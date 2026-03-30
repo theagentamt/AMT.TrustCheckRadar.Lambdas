@@ -1,0 +1,94 @@
+# AMT.SecurityForAll.Lambdas
+
+Scaffold for SecurityForAll AWS Lambda functions, starting with the Incognito writer Lambda that stores incoming payloads in DynamoDB.
+
+## What is included
+
+- AWS SAM template (`template.yaml`)
+- DynamoDB table (`SecurityForAllTable`)
+- First Lambda (`IncognitoWriteFunction`) exposed via API Gateway `POST /incognito/write`
+- Age attestation Lambda (`AgeAttestationFunction`) exposed via API Gateway `POST /identity/age-attestation`
+- Local test event (`events/incognito-write.json`)
+- Local test event (`events/age-attestation.json`)
+- Scripts and Make targets for build, deploy, local invoke, logs, zip packaging, and S3 artifact upload
+
+## Prerequisites
+
+- AWS CLI configured with credentials and target account
+- AWS SAM CLI installed
+- Docker (only needed for `sam local invoke`)
+
+## Deploy with SAM
+
+```bash
+make deploy STACK_NAME=amt-security-for-all-lambdas AWS_REGION=us-east-1
+```
+
+This deploys:
+
+- DynamoDB table named `<stack-name>-security-for-all`
+- API endpoint for posting Incognito data
+- Lambda with IAM permissions to read/write the DynamoDB table
+
+## Local invocation
+
+```bash
+make local-invoke
+```
+
+```bash
+make local-invoke-age
+```
+
+## Build Lambda ZIP artifact
+
+```bash
+make zip
+```
+
+Default output is `function.zip` at the repo root.
+
+## Upload ZIP to foundation artifacts bucket
+
+```bash
+make upload-zip
+```
+
+Defaults:
+
+- Bucket: `asecurityforall-dev-artifacts`
+- Key: `identity/post-confirmation/v1.0.0/function.zip`
+
+Override key/version when publishing a new release:
+
+```bash
+make publish-zip ARTIFACT_KEY=identity/post-confirmation/v1.0.1/function.zip
+```
+
+`publish-zip` runs build + upload. If S3 bucket versioning is enabled, the upload script prints the returned `VersionId` so you can pin it in downstream deployment configs.
+
+## API usage
+
+After deploy, get `ApiBaseUrl` from stack outputs, then call:
+
+```bash
+curl -X POST "$API_BASE_URL/incognito/write" \
+  -H "Content-Type: application/json" \
+  -d '{"sub":"user-123"}'
+```
+
+```bash
+curl -X POST "$API_BASE_URL/identity/age-attestation" \
+  -H "Content-Type: application/json" \
+  -d '{"tenantId":"tenant-001","subjectId":"user@example.com","over18Acknowledged":true}'
+```
+
+The age-attestation flow writes an immutable attestation audit item and updates the user profile item at
+`pk=TENANT#<tenantId>`, `sk=USER#<subjectId>` with the latest verification fields.
+
+## Adding future lambdas
+
+1. Add a new folder under `src/<lambda_name>/`.
+2. Add a new `AWS::Serverless::Function` resource in `template.yaml`.
+3. Reuse shared resources (table, env vars, policies) as needed.
+4. Add an event JSON file under `events/` for local testing.

@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: AMT SecurityForAll Lambda stack
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - arm64
+    Timeout: 10
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+
+Resources:
+  SecurityForAllTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      TableName: !Sub "${AWS::StackName}-security-for-all"
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+
+  IncognitoWriteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/incognito_write/
+      Handler: app.lambda_handler
+      Description: Writes Incognito payloads to DynamoDB
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SecurityForAllTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SecurityForAllTable
+      Events:
+        ApiPost:
+          Type: Api
+          Properties:
+            Path: /incognito/write
+            Method: post
+
+  AgeAttestationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/age_attestation/
+      Handler: app.lambda_handler
+      Description: Validates and stores age attestation decisions
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref SecurityForAllTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SecurityForAllTable
+      Events:
+        ApiPost:
+          Type: Api
+          Properties:
+            Path: /identity/age-attestation
+            Method: post
+
+Outputs:
+  ApiBaseUrl:
+    Description: API base URL for this stack
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  SecurityForAllTableName:
+    Description: DynamoDB table used by SecurityForAll lambdas
+    Value: !Ref SecurityForAllTable
+  IncognitoWriteFunctionName:
+    Description: Name of the Incognito writer lambda
+    Value: !Ref IncognitoWriteFunction
+  AgeAttestationFunctionName:
+    Description: Name of the age attestation lambda
+    Value: !Ref AgeAttestationFunction

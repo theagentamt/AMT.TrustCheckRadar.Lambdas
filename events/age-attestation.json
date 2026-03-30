@@ -1,0 +1,15 @@
+{
+  "body": "{\"tenantId\":\"tenant-001\",\"subjectId\":\"user@example.com\",\"over18Acknowledged\":true,\"countryCode\":\"US\",\"consentVersion\":\"2026-03-21\"}",
+  "resource": "/identity/age-attestation",
+  "path": "/identity/age-attestation",
+  "httpMethod": "POST",
+  "headers": {
+    "User-Agent": "local-test"
+  },
+  "requestContext": {
+    "identity": {
+      "sourceIp": "127.0.0.1"
+    }
+  },
+  "isBase64Encoded": false
+}

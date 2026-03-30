@@ -1,0 +1,7 @@
+{
+  "body": "{\"sub\":\"user-123\"}",
+  "resource": "/incognito/write",
+  "path": "/incognito/write",
+  "httpMethod": "POST",
+  "isBase64Encoded": false
+}
