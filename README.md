@@ -80,11 +80,12 @@ curl -X POST "$API_BASE_URL/incognito/write" \
 ```bash
 curl -X POST "$API_BASE_URL/identity/age-attestation" \
   -H "Content-Type: application/json" \
-  -d '{"tenantId":"tenant-001","subjectId":"user@example.com","over18Acknowledged":true}'
+  -d '{"sub":"user-123","over18Acknowledged":true,"agePolicyVersion":"v1.0"}'
 ```
 
-The age-attestation flow writes an immutable attestation audit item and updates the user profile item at
-`pk=TENANT#<tenantId>`, `sk=USER#<subjectId>` with the latest verification fields.
+The age-attestation flow only updates the existing user profile item at
+`PK=USER#<sub>`, `SK=PROFILE`. If that profile does not exist already, the Lambda returns a friendly `404`
+and makes no DynamoDB changes.
 
 ## Adding future lambdas
 
