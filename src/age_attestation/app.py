@@ -26,14 +26,11 @@ def _handle_api_request(event, context):
     sub = None
     try:
         payload = _parse_body(event)
-        _reject_unknown_fields(
-            payload,
-            {"sub", "over18Acknowledged", "agePolicyVersion"},
-        )
 
-        sub = _get_required_safe_identifier(payload, "sub")
-        over_18_acknowledged = _get_required_bool(payload, "over18Acknowledged")
-        age_policy_version = _get_optional_safe_identifier(payload, "agePolicyVersion") or "v1.0"
+        claims = _extract_jwt_claims(event)
+        sub = _extract_api_sub(claims, payload)
+        over_18_acknowledged = _extract_api_over_18(claims, payload)
+        age_policy_version = _extract_api_age_policy_version(claims, payload)
 
         result = _process_attestation(
             sub=sub,
@@ -70,7 +67,8 @@ def _handle_cognito_trigger(event, context):
             raise ValueError("sub is required in Cognito attributes")
 
         over_18_acknowledged = _parse_cognito_boolean(
-            attributes.get("custom:over18Acknowledged")
+            attributes.get("custom:over_18")
+            or attributes.get("custom:over18Acknowledged")
             or client_metadata.get("over18Acknowledged")
         )
         age_policy_version = (
@@ -97,26 +95,18 @@ def _handle_cognito_trigger(event, context):
 
 
 def _process_attestation(*, sub: str, over_18_acknowledged: bool, age_policy_version: str):
-    eligible_for_signup = bool(over_18_acknowledged)
-    denial_reasons = []
-
-    if not over_18_acknowledged:
-        denial_reasons.append("over_18_not_acknowledged")
-
     timestamp = datetime.now(UTC).isoformat()
     _update_user_attestation(
         sub=sub,
         over_18_acknowledged=over_18_acknowledged,
-        eligible_for_signup=eligible_for_signup,
-        denial_reasons=denial_reasons,
         attested_at=timestamp,
         age_policy_version=age_policy_version,
     )
 
     return {
         "sub": sub,
-        "eligibleForSignup": eligible_for_signup,
-        "denialReasons": denial_reasons,
+        "eligibleForSignup": over_18_acknowledged,
+        "denialReasons": [] if over_18_acknowledged else ["over_18_not_acknowledged"],
         "attestedAt": timestamp,
         "over18Acknowledged": over_18_acknowledged,
         "agePolicyVersion": age_policy_version,
@@ -155,6 +145,42 @@ def _optional_str(value):
     return None
 
 
+def _extract_jwt_claims(event):
+    request_context = event.get("requestContext") or {}
+    authorizer = request_context.get("authorizer") or {}
+
+    jwt_claims = (authorizer.get("jwt") or {}).get("claims")
+    if isinstance(jwt_claims, dict):
+        return jwt_claims
+
+    legacy_claims = authorizer.get("claims")
+    if isinstance(legacy_claims, dict):
+        return legacy_claims
+
+    return {}
+
+
+def _extract_api_sub(claims, payload):
+    claim_sub = claims.get("sub")
+    if claim_sub is not None:
+        return _validate_safe_identifier(str(claim_sub).strip(), "sub")
+    return _get_required_safe_identifier(payload, "sub")
+
+
+def _extract_api_over_18(claims, payload):
+    claim_value = claims.get("custom:over_18")
+    if claim_value is not None:
+        return _parse_cognito_boolean(claim_value)
+    return _get_required_bool(payload, "over18Acknowledged")
+
+
+def _extract_api_age_policy_version(claims, payload):
+    claim_value = claims.get("custom:agePolicyVersion")
+    if isinstance(claim_value, str) and claim_value.strip():
+        return _validate_safe_identifier(claim_value.strip(), "agePolicyVersion")
+    return _get_optional_safe_identifier(payload, "agePolicyVersion") or "v1.0"
+
+
 def _get_required_safe_identifier(payload, field_name):
     value = _get_required_str(payload, field_name)
     return _validate_safe_identifier(value, field_name)
@@ -184,12 +210,6 @@ def _validate_safe_identifier(value, field_name):
     if any(char not in allowed for char in value):
         raise ValueError(f"{field_name} contains unsupported characters")
     return value
-
-
-def _reject_unknown_fields(payload, allowed_fields):
-    unknown_fields = sorted(set(payload.keys()) - allowed_fields)
-    if unknown_fields:
-        raise ValueError(f"Unsupported fields: {', '.join(unknown_fields)}")
 
 
 def _parse_cognito_boolean(value):
@@ -223,8 +243,6 @@ def _update_user_attestation(
     *,
     sub: str,
     over_18_acknowledged: bool,
-    eligible_for_signup: bool,
-    denial_reasons: list[str],
     attested_at: str,
     age_policy_version: str,
 ):
@@ -237,15 +255,16 @@ def _update_user_attestation(
                 "ageVerifiedAt = :age_verified_at, "
                 "agePolicyVersion = :age_policy_version, "
                 "updatedAt = :updated_at, "
-                "status = :status"
+                "#status = :status"
             ),
+            ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues=_serialize_map(
                 {
                     ":age_verified": over_18_acknowledged,
                     ":age_verified_at": attested_at if over_18_acknowledged else None,
                     ":age_policy_version": age_policy_version,
                     ":updated_at": attested_at,
-                    ":status": "ACTIVE" if eligible_for_signup else "DENIED_AGE_GATE",
+                    ":status": "ACTIVE" if over_18_acknowledged else "PENDING_AGE_GATE",
                 }
             ),
             ConditionExpression="attribute_exists(PK) AND attribute_exists(SK)",

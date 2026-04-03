@@ -8,8 +8,10 @@ Scaffold for SecurityForAll AWS Lambda functions, starting with the Incognito wr
 - DynamoDB table (`SecurityForAllTable`)
 - First Lambda (`IncognitoWriteFunction`) exposed via API Gateway `POST /incognito/write`
 - Age attestation Lambda (`AgeAttestationFunction`) exposed via API Gateway `POST /identity/age-attestation`
+- Post-confirmation Lambda source for Cognito profile creation (`src/post_confirmation/app.py`)
 - Local test event (`events/incognito-write.json`)
 - Local test event (`events/age-attestation.json`)
+- Local test event (`events/post-confirmation.json`)
 - Scripts and Make targets for build, deploy, local invoke, logs, zip packaging, and S3 artifact upload
 
 ## Prerequisites
@@ -79,13 +81,15 @@ curl -X POST "$API_BASE_URL/incognito/write" \
 
 ```bash
 curl -X POST "$API_BASE_URL/identity/age-attestation" \
+  -H "Authorization: Bearer <cognito-id-token>" \
   -H "Content-Type: application/json" \
-  -d '{"sub":"user-123","over18Acknowledged":true,"agePolicyVersion":"v1.0"}'
+  -d '{"agePolicyVersion":"v1.0"}'
 ```
 
 The age-attestation flow only updates the existing user profile item at
 `PK=USER#<sub>`, `SK=PROFILE`. If that profile does not exist already, the Lambda returns a friendly `404`
-and makes no DynamoDB changes.
+and makes no DynamoDB changes. When API Gateway is configured with a Cognito/JWT authorizer, the Lambda reads
+`sub` and `custom:over_18` from the ID token claims instead of trusting those values from the request body.
 
 ## Adding future lambdas
 

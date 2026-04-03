@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "triggerSource": "PostConfirmation_ConfirmSignUp",
+  "region": "us-east-1",
+  "userPoolId": "us-east-1_example",
+  "userName": "user-123",
+  "callerContext": {
+    "clientId": "example-client-id"
+  },
+  "request": {
+    "userAttributes": {
+      "sub": "user-123",
+      "email": "user@example.com",
+      "given_name": "Example",
+      "family_name": "User",
+      "phone_number": "+15555550123",
+      "custom:over_18": "true"
+    }
+  },
+  "response": {}
+}

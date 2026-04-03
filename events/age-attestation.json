@@ -1,5 +1,5 @@
 {
-  "body": "{\"sub\":\"user-123\",\"over18Acknowledged\":true,\"agePolicyVersion\":\"v1.0\"}",
+  "body": "{\"agePolicyVersion\":\"v1.0\"}",
   "resource": "/identity/age-attestation",
   "path": "/identity/age-attestation",
   "httpMethod": "POST",
@@ -7,6 +7,17 @@
     "User-Agent": "local-test"
   },
   "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-123",
+          "email": "user@example.com",
+          "given_name": "Example",
+          "family_name": "User",
+          "custom:over_18": "true"
+        }
+      }
+    },
     "identity": {
       "sourceIp": "127.0.0.1"
     }
