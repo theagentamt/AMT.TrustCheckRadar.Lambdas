@@ -9,9 +9,11 @@ Scaffold for SecurityForAll AWS Lambda functions, starting with the Incognito wr
 - First Lambda (`IncognitoWriteFunction`) exposed via API Gateway `POST /incognito/write`
 - Age attestation Lambda (`AgeAttestationFunction`) exposed via API Gateway `POST /identity/age-attestation`
 - Post-confirmation Lambda source for Cognito profile creation (`src/post_confirmation/app.py`)
+- Conversation analysis Lambda source for sanitized analysis requests (`src/conversation_analysis/app.py`)
 - Local test event (`events/incognito-write.json`)
 - Local test event (`events/age-attestation.json`)
 - Local test event (`events/post-confirmation.json`)
+- Local test event (`events/conversation-analysis.json`)
 - Scripts and Make targets for build, deploy, local invoke, logs, zip packaging, and S3 artifact upload
 
 ## Prerequisites
