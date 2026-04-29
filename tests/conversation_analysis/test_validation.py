@@ -71,6 +71,44 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
         self.assertEqual(context.exception.code, "INVALID_REQUEST")
         self.assertEqual(context.exception.details[0]["field"], "entities")
 
+    def test_rejects_oversized_sanitized_text(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "a" * 8001,
+                    "entities": [],
+                }
+            )
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.code, "INVALID_REQUEST")
+        self.assertEqual(context.exception.details[0]["field"], "sanitizedText")
+
+    def test_rejects_oversized_request_body_dict(self):
+        event = {
+            "body": {
+                "schemaVersion": "1.0",
+                "requestId": "request-123",
+                "sourceType": "mixed",
+                "localSanitizationApplied": True,
+                "sanitizedText": "a" * 70000,
+                "entities": [],
+            }
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.code, "INVALID_REQUEST")
+        self.assertEqual(context.exception.details[0]["field"], "body")
+
 
 if __name__ == "__main__":
     unittest.main()

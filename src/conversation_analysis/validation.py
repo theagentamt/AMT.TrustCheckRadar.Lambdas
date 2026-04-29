@@ -24,6 +24,8 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
 
     if not isinstance(payload, dict):
         raise _invalid_request("body", "Request body must be a JSON object.")
+    if len(json.dumps(payload).encode("utf-8")) > MAX_REQUEST_BODY_BYTES:
+        raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
 
     schema_version = _required_string(payload, "schemaVersion")
     if schema_version != SCHEMA_VERSION:

@@ -93,6 +93,16 @@ The age-attestation flow only updates the existing user profile item at
 and makes no DynamoDB changes. When API Gateway is configured with a Cognito/JWT authorizer, the Lambda reads
 `sub` and `custom:over_18` from the ID token claims instead of trusting those values from the request body.
 
+## Conversation analysis guardrails
+
+The conversation analysis Lambda enforces backend request limits so malformed or oversized payloads are rejected consistently even if a client bypasses local checks.
+
+- `schemaVersion` must be `1.0`
+- `localSanitizationApplied` must be `true`
+- `sanitizedText` max: `8,000` characters
+- `entities` max: `100`
+- request body max: `64 KB`
+
 ## Adding future lambdas
 
 1. Add a new folder under `src/<lambda_name>/`.
