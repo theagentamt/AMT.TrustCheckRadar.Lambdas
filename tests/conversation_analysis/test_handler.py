@@ -9,9 +9,33 @@ MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysi
 if str(MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(MODULE_DIR))
 
+class _FakeTable:
+    def get_item(self, **kwargs):
+        return {}
+    def put_item(self, **kwargs):
+        return {}
+    def update_item(self, **kwargs):
+        return {"Attributes": {"requestCount": 1}}
+    def delete_item(self, **kwargs):
+        return {}
+
+
+class _FakeResource:
+    def Table(self, name):
+        return _FakeTable()
+
+
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.client = lambda *args, **kwargs: object()
+boto3_stub.resource = lambda *args, **kwargs: _FakeResource()
 sys.modules.setdefault("boto3", boto3_stub)
+botocore_ex = types.ModuleType("botocore.exceptions")
+class _FakeClientError(Exception):
+    def __init__(self, response=None):
+        super().__init__("client error")
+        self.response = response or {}
+botocore_ex.ClientError = _FakeClientError
+sys.modules.setdefault("botocore.exceptions", botocore_ex)
 
 import app  # noqa: E402
 from errors import AppError  # noqa: E402

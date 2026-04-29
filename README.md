@@ -103,6 +103,16 @@ The conversation analysis Lambda enforces backend request limits so malformed or
 - `entities` max: `100`
 - request body max: `64 KB`
 
+## Conversation analysis abuse controls
+
+The conversation analysis Lambda also applies MVP repeat-request protections.
+
+- per-identity rate limiting uses a fixed `5` minute window
+- default limit is `10` analysis requests per identity per window
+- identical in-flight `requestId` values return a structured retryable `RATE_LIMITED` response
+- completed duplicate `requestId` values return the cached success response when still within the dedupe TTL
+- successful request records are cached for `15` minutes by default to support safe retries
+
 ## Adding future lambdas
 
 1. Add a new folder under `src/<lambda_name>/`.
