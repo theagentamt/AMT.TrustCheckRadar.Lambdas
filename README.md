@@ -98,7 +98,9 @@ and makes no DynamoDB changes. When API Gateway is configured with a Cognito/JWT
 The conversation analysis Lambda enforces backend request limits so malformed or oversized payloads are rejected consistently even if a client bypasses local checks.
 
 - `schemaVersion` must be `1.0`
+- `requestId` must be `1-128` characters and use only letters, numbers, `.`, `_`, `:`, or `-`
 - `localSanitizationApplied` must be `true`
+- `entities[].type` must be one of: `email`, `phone`, `url`, `credit_card`, `ssn`, `ip_address`, `messenger_handle`, `payment_handle`, `crypto_wallet`
 - `sanitizedText` max: `8,000` characters
 - `entities` max: `100`
 - request body max: `64 KB`
@@ -107,6 +109,7 @@ The conversation analysis Lambda enforces backend request limits so malformed or
 
 The conversation analysis Lambda also applies MVP repeat-request protections.
 
+- analysis requests require trusted authorizer identity context; callers without it are rejected
 - per-identity rate limiting uses a fixed `5` minute window
 - default limit is `10` analysis requests per identity per window
 - identical in-flight `requestId` values return a structured retryable `RATE_LIMITED` response

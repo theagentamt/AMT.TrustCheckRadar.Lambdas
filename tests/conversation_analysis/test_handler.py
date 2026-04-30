@@ -44,6 +44,7 @@ from errors import AppError  # noqa: E402
 class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_success_contract(self):
         event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -76,6 +77,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_structured_validation_error(self):
         event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -98,6 +100,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_unsupported_schema_error(self):
         event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
             "body": json.dumps(
                 {
                     "schemaVersion": "2.0",
@@ -118,6 +121,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_service_error_with_request_id(self):
         event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -142,6 +146,28 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
         self.assertEqual(body["requestId"], "request-123")
         self.assertEqual(body["error"]["code"], "ANALYSIS_TIMEOUT")
         self.assertTrue(body["error"]["retryable"])
+
+    def test_returns_unauthorized_when_trusted_identity_is_missing(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                }
+            )
+        }
+
+        response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 401)
+        body = json.loads(response["body"])
+        self.assertEqual(body["requestId"], "request-123")
+        self.assertEqual(body["error"]["code"], "UNAUTHORIZED")
+        self.assertFalse(body["error"]["retryable"])
 
 
 if __name__ == "__main__":

@@ -1,7 +1,15 @@
 import json
 from typing import Any
 
-from config import ALLOWED_SOURCE_TYPES, MAX_ENTITIES, MAX_REQUEST_BODY_BYTES, MAX_SANITIZED_TEXT_LENGTH, SCHEMA_VERSION
+from config import (
+    ALLOWED_ENTITY_TYPES,
+    ALLOWED_SOURCE_TYPES,
+    MAX_ENTITIES,
+    MAX_REQUEST_BODY_BYTES,
+    MAX_SANITIZED_TEXT_LENGTH,
+    REQUEST_ID_PATTERN,
+    SCHEMA_VERSION,
+)
 from errors import AppError
 
 
@@ -37,6 +45,11 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
         )
 
     request_id = _required_string(payload, "requestId")
+    if not REQUEST_ID_PATTERN.fullmatch(request_id):
+        raise _invalid_request(
+            "requestId",
+            "requestId must be 1-128 characters and contain only letters, numbers, period, underscore, colon, or hyphen.",
+        )
     source_type = _required_string(payload, "sourceType")
     if source_type not in ALLOWED_SOURCE_TYPES:
         raise _invalid_request("sourceType", f"Unsupported source type '{source_type}'.")
@@ -61,6 +74,8 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
             raise _invalid_request(f"entities[{index}]", "Each entity must be an object.")
         token = _required_string(entity, "token", location=f"entities[{index}]")
         entity_type = _required_string(entity, "type", location=f"entities[{index}]")
+        if entity_type not in ALLOWED_ENTITY_TYPES:
+            raise _invalid_request(f"entities[{index}].type", f"Unsupported entity type '{entity_type}'.")
         validated_entities.append({"token": token, "type": entity_type})
 
     return {

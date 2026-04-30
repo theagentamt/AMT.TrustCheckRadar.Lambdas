@@ -79,6 +79,29 @@ class AbuseControlsTests(unittest.TestCase):
         fake_table.items.clear()
         abuse_controls.table = fake_table
 
+    def test_extract_identity_prefers_jwt_sub(self):
+        event = {
+            "requestContext": {
+                "authorizer": {
+                    "jwt": {
+                        "claims": {
+                            "sub": "user-123",
+                        }
+                    }
+                }
+            }
+        }
+
+        identity = abuse_controls.extract_identity(event)
+
+        self.assertEqual(identity, "user-123")
+
+    def test_extract_identity_rejects_missing_authorizer_identity(self):
+        with self.assertRaises(AppError) as context:
+            abuse_controls.extract_identity({})
+
+        self.assertEqual(context.exception.code, "UNAUTHORIZED")
+
     def test_rejects_recently_completed_duplicate_request(self):
         identity_hash = abuse_controls._hashed_identity("user-123")
         fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")] = {

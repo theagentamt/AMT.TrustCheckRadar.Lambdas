@@ -109,6 +109,46 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
         self.assertEqual(context.exception.code, "INVALID_REQUEST")
         self.assertEqual(context.exception.details[0]["field"], "body")
 
+    def test_rejects_invalid_request_id_format(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "bad request id!",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                }
+            )
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.code, "INVALID_REQUEST")
+        self.assertEqual(context.exception.details[0]["field"], "requestId")
+
+    def test_rejects_unsupported_entity_type(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [{"token": "[PERSON_NAME_1]", "type": "person_name"}],
+                }
+            )
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.code, "INVALID_REQUEST")
+        self.assertEqual(context.exception.details[0]["field"], "entities[0].type")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,11 +33,11 @@ def extract_identity(event: dict) -> str:
     if isinstance(principal_id, str) and principal_id.strip():
         return _normalize_identity(principal_id)
 
-    source_ip = ((request_context.get("identity") or {}).get("sourceIp") or _header_value(event, "x-forwarded-for"))
-    if isinstance(source_ip, str) and source_ip.strip():
-        return _normalize_identity(source_ip.split(",")[0].strip())
-
-    return "anonymous"
+    raise AppError(
+        "UNAUTHORIZED",
+        "A trusted caller identity is required for analysis requests.",
+        retryable=False,
+    )
 
 
 def check_or_lock_request(identity: str, request_id: str, now_epoch: int | None = None):
@@ -138,11 +138,6 @@ def _normalize_identity(value: str) -> str:
 
 def _hashed_identity(identity: str) -> str:
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
-
-
-def _header_value(event: dict, name: str):
-    headers = event.get("headers") or {}
-    return headers.get(name) or headers.get(name.title())
 
 
 def _require_table():

@@ -1,7 +1,20 @@
 import os
+import re
 
 SCHEMA_VERSION = "1.0"
 ALLOWED_SOURCE_TYPES = {"text", "chat", "sms", "email", "mixed"}
+ALLOWED_ENTITY_TYPES = {
+    "email",
+    "phone",
+    "url",
+    "credit_card",
+    "ssn",
+    "ip_address",
+    "messenger_handle",
+    "payment_handle",
+    "crypto_wallet",
+}
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 MAX_SANITIZED_TEXT_LENGTH = 8000
 MAX_ENTITIES = 100
 MAX_REQUEST_BODY_BYTES = 64 * 1024
