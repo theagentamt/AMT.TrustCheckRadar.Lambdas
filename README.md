@@ -110,8 +110,17 @@ The conversation analysis Lambda also applies MVP repeat-request protections.
 - per-identity rate limiting uses a fixed `5` minute window
 - default limit is `10` analysis requests per identity per window
 - identical in-flight `requestId` values return a structured retryable `RATE_LIMITED` response
-- completed duplicate `requestId` values return the cached success response when still within the dedupe TTL
-- successful request records are cached for `15` minutes by default to support safe retries
+- recently completed duplicate `requestId` values return a structured retryable `RATE_LIMITED` response during the dedupe TTL
+- request records are retained for `15` minutes by default with minimal metadata only
+
+## Conversation analysis instruction-style abuse handling
+
+The conversation analysis Lambda treats submitted sanitized text as untrusted user data.
+
+- instruction-style abuse patterns are detected before the model call
+- suspicious prompt-injection style content returns a safe low-confidence response instead of trusting the content as instructions
+- the OpenAI prompt explicitly treats submitted content as data, not system or developer instructions
+- model failures still return structured backend-safe errors without leaking raw provider text
 
 ## Adding future lambdas
 
