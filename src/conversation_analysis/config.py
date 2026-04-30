@@ -2,7 +2,7 @@ import os
 import re
 
 SCHEMA_VERSION = "1.0"
-ALLOWED_SOURCE_TYPES = {"text", "chat", "sms", "email", "mixed"}
+ALLOWED_SOURCE_TYPES = {"ocr", "pasted_text", "mixed"}
 ALLOWED_ENTITY_TYPES = {
     "email",
     "phone",

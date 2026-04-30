@@ -31,6 +31,42 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
         self.assertEqual(payload["requestId"], "request-123")
         self.assertEqual(payload["entities"][0]["token"], "[TOKEN_1]")
 
+    def test_parses_valid_ocr_source_type(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-ocr-123",
+                    "sourceType": "ocr",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized OCR content",
+                    "entities": [],
+                }
+            )
+        }
+
+        payload = parse_and_validate_event(event)
+
+        self.assertEqual(payload["sourceType"], "ocr")
+
+    def test_parses_valid_pasted_text_source_type(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-pasted-123",
+                    "sourceType": "pasted_text",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized pasted content",
+                    "entities": [],
+                }
+            )
+        }
+
+        payload = parse_and_validate_event(event)
+
+        self.assertEqual(payload["sourceType"], "pasted_text")
+
     def test_rejects_unsanitized_payload(self):
         event = {
             "body": json.dumps(
