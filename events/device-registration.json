@@ -1,0 +1,16 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-123"
+        }
+      }
+    }
+  },
+  "body": "{\"bindingFingerprint\":\"fp-1\",\"platform\":\"ios\",\"osVersion\":\"18.4\"}",
+  "resource": "/device-registration",
+  "path": "/device-registration",
+  "httpMethod": "POST",
+  "isBase64Encoded": false
+}
