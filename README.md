@@ -106,6 +106,20 @@ The conversation analysis Lambda enforces backend request limits so malformed or
 - `entities` max: `100`
 - request body max: `64 KB`
 
+## Conversation analysis device-binding enforcement
+
+The conversation analysis Lambda now treats device binding as part of protected request authorization.
+
+- the analysis request body contract does not change
+- the backend still derives account identity from the bearer token / authorizer context
+- protected analysis requests must include the header:
+  - `X-Device-Binding-Fingerprint`
+- the backend looks up the currently active device binding for that account
+- the request is allowed only when the presented fingerprint matches the active binding
+- structured device-binding errors:
+  - `DEVICE_BINDING_REQUIRED`
+  - `DEVICE_BINDING_MISMATCH`
+
 ## Conversation analysis abuse controls
 
 The conversation analysis Lambda also applies MVP repeat-request protections.

@@ -45,6 +45,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_success_contract(self):
         event = {
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -57,16 +58,17 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
             )
         }
 
-        with mock.patch.object(app, "handle_analysis_request", return_value={
-            "schemaVersion": "1.0",
-            "requestId": "request-123",
-            "scamScore": 72,
-            "riskLevel": "high",
-            "confidence": 0.84,
-            "summary": "Strong scam indicators detected.",
-            "signals": ["payment_request"],
-            "recommendedActions": ["Do not send money."],
-        }):
+        with mock.patch.object(app, "assert_active_device_binding"), \
+             mock.patch.object(app, "handle_analysis_request", return_value={
+                "schemaVersion": "1.0",
+                "requestId": "request-123",
+                "scamScore": 72,
+                "riskLevel": "high",
+                "confidence": 0.84,
+                "summary": "Strong scam indicators detected.",
+                "signals": ["payment_request"],
+                "recommendedActions": ["Do not send money."],
+            }):
             response = app.lambda_handler(event, None)
 
         self.assertEqual(response["statusCode"], 200)
@@ -78,6 +80,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_structured_validation_error(self):
         event = {
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -101,6 +104,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_unsupported_schema_error(self):
         event = {
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
                     "schemaVersion": "2.0",
@@ -122,6 +126,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_service_error_with_request_id(self):
         event = {
             "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -134,11 +139,12 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
             )
         }
 
-        with mock.patch.object(
-            app,
-            "handle_analysis_request",
-            side_effect=AppError("ANALYSIS_TIMEOUT", "The analysis service timed out.", retryable=True),
-        ):
+        with mock.patch.object(app, "assert_active_device_binding"), \
+             mock.patch.object(
+                app,
+                "handle_analysis_request",
+                side_effect=AppError("ANALYSIS_TIMEOUT", "The analysis service timed out.", retryable=True),
+            ):
             response = app.lambda_handler(event, None)
 
         self.assertEqual(response["statusCode"], 504)
@@ -168,6 +174,60 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
         self.assertEqual(body["requestId"], "request-123")
         self.assertEqual(body["error"]["code"], "UNAUTHORIZED")
         self.assertFalse(body["error"]["retryable"])
+
+    def test_returns_device_binding_required_when_header_missing(self):
+        event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                }
+            ),
+        }
+
+        response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 403)
+        body = json.loads(response["body"])
+        self.assertEqual(body["requestId"], "request-123")
+        self.assertEqual(body["error"]["code"], "DEVICE_BINDING_REQUIRED")
+
+    def test_returns_device_binding_mismatch_when_active_binding_differs(self):
+        event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                }
+            ),
+        }
+
+        with mock.patch.object(
+            app,
+            "assert_active_device_binding",
+            side_effect=AppError(
+                "DEVICE_BINDING_MISMATCH",
+                "The active device binding for this account does not match the presented device.",
+                retryable=False,
+            ),
+        ):
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 403)
+        body = json.loads(response["body"])
+        self.assertEqual(body["requestId"], "request-123")
+        self.assertEqual(body["error"]["code"], "DEVICE_BINDING_MISMATCH")
 
 
 if __name__ == "__main__":
