@@ -126,6 +126,42 @@ The conversation analysis Lambda treats submitted sanitized text as untrusted us
 - the OpenAI prompt explicitly treats submitted content as data, not system or developer instructions
 - model failures still return structured backend-safe errors without leaking raw provider text
 
+## Device binding recovery CLI
+
+For MVP support operations, use `scripts/device_binding_recovery.py` to perform safe manual recovery actions against the `DeviceBindings` table without editing records directly in the AWS console.
+
+Supported actions:
+
+- `RESET_ACTIVE_BINDING`
+  - deactivates the current active device binding for an account
+  - use when support wants the user to retry normal registration on the intended device
+- `RECOVER_BINDING`
+  - reactivates a specific existing binding by `bindingFingerprint`
+  - deactivates the currently active binding if it is different
+
+Examples:
+
+```bash
+python3 scripts/device_binding_recovery.py \
+  --action RESET_ACTIVE_BINDING \
+  --account-id user-123 \
+  --operator-id support-1 \
+  --table-name <device-bindings-table> \
+  --region us-east-1
+```
+
+```bash
+python3 scripts/device_binding_recovery.py \
+  --action RECOVER_BINDING \
+  --account-id user-123 \
+  --binding-fingerprint fp-1 \
+  --operator-id support-1 \
+  --table-name <device-bindings-table> \
+  --region us-east-1
+```
+
+Use `--dry-run` first if you want to inspect the planned result without writing changes.
+
 ## Adding future lambdas
 
 1. Add a new folder under `src/<lambda_name>/`.

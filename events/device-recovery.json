@@ -1,0 +1,16 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "support-1"
+        }
+      }
+    }
+  },
+  "body": "{\"action\":\"RESET_ACTIVE_BINDING\",\"accountId\":\"user-123\"}",
+  "resource": "/device-recovery",
+  "path": "/device-recovery",
+  "httpMethod": "POST",
+  "isBase64Encoded": false
+}
