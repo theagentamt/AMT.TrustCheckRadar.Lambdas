@@ -1,0 +1,16 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-123"
+        }
+      }
+    }
+  },
+  "body": "{\"productId\":\"pro_monthly\",\"platform\":\"ios\",\"purchaseState\":\"purchased\",\"proof\":{\"transactionId\":\"tx-123\",\"purchaseTime\":\"2026-05-10T12:00:00Z\"}}",
+  "resource": "/purchase-handoff",
+  "path": "/purchase-handoff",
+  "httpMethod": "POST",
+  "isBase64Encoded": false
+}
