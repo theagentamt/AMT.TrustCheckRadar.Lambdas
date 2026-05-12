@@ -33,7 +33,8 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
         }
 
         with mock.patch.object(service, "check_or_lock_request"), \
-             mock.patch.object(service, "enforce_rate_limit"), \
+             mock.patch.object(service, "prepare_scan_access", return_value={"consumptionType": "monthly", "entitlement": {}}), \
+             mock.patch.object(service, "consume_scan_access"), \
              mock.patch.object(service, "complete_request"), \
              mock.patch.object(service, "release_request"), \
              mock.patch.object(service, "analyze_conversation") as mocked_analyze:
@@ -43,6 +44,37 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
         self.assertEqual(response["requestId"], "request-123")
         self.assertEqual(response["riskLevel"], "low")
         self.assertIn("instruction_style_abuse_detected", response["signals"])
+
+    def test_consumes_scan_access_after_successful_analysis(self):
+        payload = {
+            "requestId": "request-123",
+            "sourceType": "mixed",
+            "sanitizedText": "This looks like a suspicious money request.",
+            "entities": [],
+        }
+        access_grant = {"consumptionType": "monthly", "entitlement": {}}
+
+        with mock.patch.object(service, "check_or_lock_request"), \
+             mock.patch.object(service, "prepare_scan_access", return_value=access_grant), \
+             mock.patch.object(service, "consume_scan_access") as mocked_consume, \
+             mock.patch.object(service, "complete_request"), \
+             mock.patch.object(service, "release_request"), \
+             mock.patch.object(
+                 service,
+                 "analyze_conversation",
+                 return_value={
+                     "scamScore": 72,
+                     "riskLevel": "high",
+                     "confidence": 0.84,
+                     "summary": "Strong scam indicators detected.",
+                     "signals": ["payment_request"],
+                     "recommendedActions": ["Do not send money."],
+                 },
+             ):
+            response = service.handle_analysis_request(payload, "user-123")
+
+        mocked_consume.assert_called_once_with(access_grant)
+        self.assertEqual(response["requestId"], "request-123")
 
 
 if __name__ == "__main__":

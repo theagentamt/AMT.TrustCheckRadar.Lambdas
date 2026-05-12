@@ -125,11 +125,30 @@ The conversation analysis Lambda now treats device binding as part of protected 
 The conversation analysis Lambda also applies MVP repeat-request protections.
 
 - analysis requests require trusted authorizer identity context; callers without it are rejected
-- per-identity rate limiting uses a fixed `5` minute window
-- default limit is `10` analysis requests per identity per window
 - identical in-flight `requestId` values return a structured retryable `RATE_LIMITED` response
 - recently completed duplicate `requestId` values return a structured retryable `RATE_LIMITED` response during the dedupe TTL
 - request records are retained for `15` minutes by default with minimal metadata only
+
+## Conversation analysis scan access enforcement
+
+The conversation analysis Lambda now enforces monetization-backed scan access before an analysis request is allowed to complete.
+
+- monthly scans are consumed first from backend entitlement state
+- credits are consumed only when monthly scans are exhausted
+- requests are rejected with `ENTITLEMENT_EXHAUSTED` when neither monthly scans nor credits remain
+- successful analysis requests decrement usage at the backend so client-side state cannot bypass enforcement
+- an additional scan abuse cap applies at request time with a default limit of `10` scans per `1` minute per account
+- suspicious usage conditions are logged to CloudWatch for later review
+
+Expected runtime configuration for this behavior:
+
+- `ENTITLEMENTS_TABLE_NAME`
+- `ANALYSIS_ABUSE_TABLE_NAME`
+- optional:
+  - `FREE_MONTHLY_SCAN_LIMIT`
+  - `PRO_MONTHLY_SCAN_LIMIT`
+  - `SCAN_RATE_LIMIT_WINDOW_SECONDS`
+  - `SCAN_RATE_LIMIT_MAX_REQUESTS`
 
 ## Conversation analysis instruction-style abuse handling
 

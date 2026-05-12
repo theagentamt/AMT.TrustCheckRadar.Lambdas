@@ -10,8 +10,8 @@ DEVICE_BINDING_HEADER = "x-device-binding-fingerprint"
 
 
 def assert_active_device_binding(event: dict, account_id: str):
-    _require_table()
     binding_fingerprint = _extract_binding_fingerprint(event)
+    _require_table()
     active = _get_active_binding(account_id)
 
     if not active or active.get("bindingFingerprint") != binding_fingerprint:

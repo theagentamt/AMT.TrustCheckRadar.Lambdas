@@ -1,19 +1,21 @@
-from abuse_controls import check_or_lock_request, complete_request, enforce_rate_limit, release_request
+from abuse_controls import check_or_lock_request, complete_request, release_request
 from analysis_client import analyze_conversation
 from errors import AppError
 from response_builders import build_success_response
 from safety import build_safe_low_confidence_response, is_instruction_style_abuse
+from scan_access import consume_scan_access, prepare_scan_access
 
 
 def handle_analysis_request(payload: dict, identity: str) -> dict:
     request_id = payload["requestId"]
     check_or_lock_request(identity, request_id)
     try:
-        enforce_rate_limit(identity)
+        access_grant = prepare_scan_access(identity)
         if is_instruction_style_abuse(payload["sanitizedText"]):
             analysis = build_safe_low_confidence_response()
         else:
             analysis = analyze_conversation(payload)
+        consume_scan_access(access_grant)
         response_body = build_success_response(request_id=request_id, analysis=analysis)
         complete_request(identity, request_id)
         return response_body
