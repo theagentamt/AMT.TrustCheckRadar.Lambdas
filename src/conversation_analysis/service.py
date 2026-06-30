@@ -8,17 +8,23 @@ from scan_access import consume_scan_access, prepare_scan_access
 
 def handle_analysis_request(payload: dict, identity: str) -> dict:
     request_id = payload["requestId"]
-    check_or_lock_request(identity, request_id)
+    request_state = check_or_lock_request(identity, request_id)
+    if request_state["state"] == "completed":
+        return request_state["response"]
+
+    quota_consumed = False
     try:
         access_grant = prepare_scan_access(identity)
         if is_instruction_style_abuse(payload["sanitizedText"]):
             analysis = build_safe_low_confidence_response()
         else:
             analysis = analyze_conversation(payload)
-        consume_scan_access(access_grant)
         response_body = build_success_response(request_id=request_id, analysis=analysis)
-        complete_request(identity, request_id)
+        consume_scan_access(access_grant, request_id)
+        quota_consumed = True
+        complete_request(identity, request_id, response_body)
         return response_body
     except Exception:
-        release_request(identity, request_id)
+        if not quota_consumed:
+            release_request(identity, request_id)
         raise

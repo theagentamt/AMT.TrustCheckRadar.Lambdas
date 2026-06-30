@@ -46,6 +46,8 @@ def check_or_lock_request(identity: str, request_id: str, now_epoch: int | None 
     identity_key = _hashed_identity(identity)
     existing = _get_request_record(identity_key, request_id)
     if existing and int(existing.get("expiresAt", 0)) > now_epoch:
+        if existing.get("status") == "COMPLETED" and isinstance(existing.get("response"), dict):
+            return {"state": "completed", "response": existing["response"]}
         raise AppError(
             "RATE_LIMITED",
             "A matching analysis request is already in progress or was recently completed. Please retry shortly.",
@@ -102,16 +104,17 @@ def enforce_rate_limit(identity: str, now_epoch: int | None = None):
         )
 
 
-def complete_request(identity: str, request_id: str, now_epoch: int | None = None):
+def complete_request(identity: str, request_id: str, response: dict, now_epoch: int | None = None):
     _require_table()
     now_epoch = now_epoch or int(time.time())
     identity_key = _hashed_identity(identity)
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-        UpdateExpression="SET #status = :status, completedAt = :completed_at, updatedAt = :updated_at, expiresAt = :expires_at, ttl = :expires_at",
-        ExpressionAttributeNames={"#status": "status"},
+        UpdateExpression="SET #status = :status, #response = :response, completedAt = :completed_at, updatedAt = :updated_at, expiresAt = :expires_at, ttl = :expires_at",
+        ExpressionAttributeNames={"#status": "status", "#response": "response"},
         ExpressionAttributeValues={
             ":status": "COMPLETED",
+            ":response": response,
             ":completed_at": _iso_now(),
             ":updated_at": _iso_now(),
             ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,

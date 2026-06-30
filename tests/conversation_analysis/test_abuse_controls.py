@@ -116,6 +116,30 @@ class AbuseControlsTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "RATE_LIMITED")
 
+    def test_returns_completed_response_for_recent_duplicate_request(self):
+        identity_hash = abuse_controls._hashed_identity("user-123")
+        stored_response = {
+            "schemaVersion": "1.0",
+            "requestId": "req-1",
+            "scamScore": 12,
+            "riskLevel": "low",
+            "confidence": 0.6,
+            "summary": "No strong scam indicators detected.",
+            "signals": [],
+            "recommendedActions": ["Proceed carefully."],
+        }
+        fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")] = {
+            "PK": f"ANALYSIS#REQUEST#{identity_hash}",
+            "SK": "req-1",
+            "status": "COMPLETED",
+            "response": stored_response,
+            "expiresAt": 9999999999,
+        }
+
+        result = abuse_controls.check_or_lock_request("user-123", "req-1", now_epoch=100)
+
+        self.assertEqual(result, {"state": "completed", "response": stored_response})
+
     def test_rejects_duplicate_in_progress_request(self):
         identity_hash = abuse_controls._hashed_identity("user-123")
         fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")] = {
@@ -139,15 +163,25 @@ class AbuseControlsTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "RATE_LIMITED")
 
-    def test_complete_request_stores_minimal_metadata_only(self):
+    def test_complete_request_stores_response_for_safe_replay(self):
         abuse_controls.check_or_lock_request("user-123", "req-1", now_epoch=100)
-        abuse_controls.complete_request("user-123", "req-1", now_epoch=100)
+        response = {
+            "schemaVersion": "1.0",
+            "requestId": "req-1",
+            "scamScore": 12,
+            "riskLevel": "low",
+            "confidence": 0.6,
+            "summary": "No strong scam indicators detected.",
+            "signals": [],
+            "recommendedActions": ["Proceed carefully."],
+        }
+        abuse_controls.complete_request("user-123", "req-1", response, now_epoch=100)
 
         identity_hash = abuse_controls._hashed_identity("user-123")
         item = fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")]
         self.assertEqual(item["status"], "COMPLETED")
         self.assertIn("completedAt", item)
-        self.assertNotIn("response", item)
+        self.assertEqual(item["response"], response)
 
 
 if __name__ == "__main__":

@@ -45,10 +45,13 @@ def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
     )
 
 
-def consume_scan_access(access_grant: dict, now_iso: str | None = None) -> dict:
+def consume_scan_access(access_grant: dict, request_id: str, now_iso: str | None = None) -> dict:
     entitlement = dict(access_grant["entitlement"])
     consumption_type = access_grant["consumptionType"]
     now_iso = now_iso or _iso_now()
+
+    if entitlement.get("lastScanRequestId") == request_id:
+        return entitlement
 
     if consumption_type == "monthly":
         if entitlement["remainingMonthlyScans"] <= 0:
@@ -76,6 +79,7 @@ def consume_scan_access(access_grant: dict, now_iso: str | None = None) -> dict:
 
     entitlement["updatedAt"] = now_iso
     entitlement["lastScanAt"] = now_iso
+    entitlement["lastScanRequestId"] = request_id
     entitlement["lastScanConsumptionType"] = consumption_type
     try:
         save_entitlement(entitlement)

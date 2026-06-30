@@ -67,11 +67,12 @@ class ScanAccessTests(unittest.TestCase):
     def test_default_free_entitlement_consumes_monthly_scan(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
 
-        updated = scan_access.consume_scan_access(grant, now_iso="2026-05-11T00:00:00+00:00")
+        updated = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
 
         self.assertEqual(updated["entitlementTier"], "FREE")
         self.assertEqual(updated["remainingMonthlyScans"], 4)
         self.assertEqual(updated["remainingCredits"], 0)
+        self.assertEqual(updated["lastScanRequestId"], "request-123")
 
     def test_consumes_credit_when_monthly_scans_are_exhausted(self):
         entitlements_fake.put_item(
@@ -90,11 +91,21 @@ class ScanAccessTests(unittest.TestCase):
         )
 
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
-        updated = scan_access.consume_scan_access(grant, now_iso="2026-05-11T00:00:00+00:00")
+        updated = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
 
         self.assertEqual(updated["remainingMonthlyScans"], 0)
         self.assertEqual(updated["remainingCredits"], 2)
         self.assertEqual(updated["lastScanConsumptionType"], "credit")
+
+    def test_same_request_id_does_not_consume_twice(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        first = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
+        second = scan_access.consume_scan_access(first | {"accountId": "user-123", "consumptionType": "monthly", "entitlement": first}, "request-123", now_iso="2026-05-11T00:01:00+00:00")
+
+        self.assertEqual(first["remainingMonthlyScans"], 4)
+        self.assertEqual(second["remainingMonthlyScans"], 4)
+        self.assertEqual(second["lastScanRequestId"], "request-123")
 
     def test_rejects_when_entitlement_is_exhausted(self):
         entitlements_fake.put_item(
