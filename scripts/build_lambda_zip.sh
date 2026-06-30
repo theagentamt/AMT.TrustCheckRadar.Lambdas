@@ -8,6 +8,7 @@ OUTPUT_ZIP="$ROOT_DIR/function.zip"
 PYTHON_VERSION="3.12"
 LAMBDA_ARCH="arm64"
 BUILD_DIR="$ROOT_DIR/.build/lambda_package"
+SHARED_SRC_DIR="$ROOT_DIR/src/shared_entitlements"
 
 usage() {
   cat <<USAGE
@@ -119,6 +120,11 @@ mkdir -p "$BUILD_DIR"
 
 log "Copying source files from $LAMBDA_SRC_DIR"
 cp -R "$LAMBDA_SRC_DIR"/. "$BUILD_DIR/"
+
+if [[ -d "$SHARED_SRC_DIR" ]]; then
+  log "Copying shared entitlement package from $SHARED_SRC_DIR"
+  cp -R "$SHARED_SRC_DIR" "$BUILD_DIR/shared_entitlements"
+fi
 
 log "Removing local caches"
 find "$BUILD_DIR" -type d -name "__pycache__" -prune -exec rm -rf {} +

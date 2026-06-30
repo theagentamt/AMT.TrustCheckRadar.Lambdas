@@ -4,21 +4,26 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+MODULE_DIR = SRC_DIR / "conversation_analysis"
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+for module_name in ["config", "errors", "service", "scan_access", "abuse_controls", "analysis_client", "response_builders", "safety"]:
+    sys.modules.pop(module_name, None)
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.client = lambda *args, **kwargs: object()
 boto3_stub.resource = lambda *args, **kwargs: object()
-sys.modules.setdefault("boto3", boto3_stub)
+sys.modules["boto3"] = boto3_stub
 botocore_ex = types.ModuleType("botocore.exceptions")
 class _FakeClientError(Exception):
     def __init__(self, response=None):
         super().__init__("client error")
         self.response = response or {}
 botocore_ex.ClientError = _FakeClientError
-sys.modules.setdefault("botocore.exceptions", botocore_ex)
+sys.modules["botocore.exceptions"] = botocore_ex
 
 import service  # noqa: E402
 

@@ -3,9 +3,14 @@ import types
 import unittest
 from pathlib import Path
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+MODULE_DIR = SRC_DIR / "conversation_analysis"
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+for module_name in ["config", "errors", "scan_access", "shared_entitlements", "shared_entitlements.service", "shared_entitlements.config"]:
+    sys.modules.pop(module_name, None)
 
 
 class FakeTable:
@@ -45,8 +50,9 @@ class FakeResource:
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: FakeResource()
 boto3_stub.client = lambda *args, **kwargs: object()
-sys.modules.setdefault("boto3", boto3_stub)
+sys.modules["boto3"] = boto3_stub
 
+import shared_entitlements.service as shared_service  # noqa: E402
 import scan_access  # noqa: E402
 from errors import AppError  # noqa: E402
 
@@ -55,7 +61,7 @@ class ScanAccessTests(unittest.TestCase):
     def setUp(self):
         entitlements_fake.items.clear()
         abuse_fake.items.clear()
-        scan_access.entitlements_table = entitlements_fake
+        shared_service.table = entitlements_fake
         scan_access.abuse_table = abuse_fake
 
     def test_default_free_entitlement_consumes_monthly_scan(self):
@@ -74,6 +80,7 @@ class ScanAccessTests(unittest.TestCase):
                 "SK": "ENTITLEMENT",
                 "accountId": "user-123",
                 "entitlementTier": "FREE",
+                "subscriptionStatus": "expired",
                 "monthlyScanLimit": 5,
                 "remainingMonthlyScans": 0,
                 "remainingCredits": 3,
@@ -96,6 +103,7 @@ class ScanAccessTests(unittest.TestCase):
                 "SK": "ENTITLEMENT",
                 "accountId": "user-123",
                 "entitlementTier": "FREE",
+                "subscriptionStatus": "expired",
                 "monthlyScanLimit": 5,
                 "remainingMonthlyScans": 0,
                 "remainingCredits": 0,

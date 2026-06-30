@@ -1,40 +1,41 @@
-from datetime import UTC, datetime
 import hashlib
 import logging
 import time
 
 import boto3
 
-from config import (
-    ANALYSIS_ABUSE_TABLE_NAME,
-    ENTITLEMENTS_TABLE_NAME,
-    FREE_MONTHLY_SCAN_LIMIT,
-    PRO_MONTHLY_SCAN_LIMIT,
-    SCAN_RATE_LIMIT_MAX_REQUESTS,
-    SCAN_RATE_LIMIT_WINDOW_SECONDS,
-)
+from config import ANALYSIS_ABUSE_TABLE_NAME, SCAN_RATE_LIMIT_MAX_REQUESTS, SCAN_RATE_LIMIT_WINDOW_SECONDS
 from errors import AppError
+from shared_entitlements import (
+    EntitlementStoreNotConfiguredError,
+    build_entitlement_snapshot,
+    load_entitlement,
+    save_entitlement,
+)
 
 LOGGER = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
-entitlements_table = dynamodb.Table(ENTITLEMENTS_TABLE_NAME) if ENTITLEMENTS_TABLE_NAME else None
 abuse_table = dynamodb.Table(ANALYSIS_ABUSE_TABLE_NAME) if ANALYSIS_ABUSE_TABLE_NAME else None
 
 
 def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
-    _require_tables()
+    _require_abuse_table()
     now_epoch = now_epoch or int(time.time())
     _enforce_scan_rate_limit(account_id, now_epoch)
 
-    existing = _get_entitlement(account_id)
-    entitlement = _normalize_entitlement(account_id, existing)
+    try:
+        entitlement = load_entitlement(account_id)
+    except EntitlementStoreNotConfiguredError as err:
+        raise AppError("SERVER_UNAVAILABLE", str(err), retryable=False) from err
 
-    if entitlement["remainingMonthlyScans"] > 0:
-        return {"accountId": account_id, "consumptionType": "monthly", "entitlement": entitlement}
+    snapshot = build_entitlement_snapshot(entitlement)
 
-    if entitlement["remainingCredits"] > 0:
-        return {"accountId": account_id, "consumptionType": "credit", "entitlement": entitlement}
+    if snapshot["remainingMonthlyScans"] > 0:
+        return {"accountId": account_id, "consumptionType": "monthly", "entitlement": entitlement, "snapshot": snapshot}
+
+    if snapshot["remainingCredits"] > 0:
+        return {"accountId": account_id, "consumptionType": "credit", "entitlement": entitlement, "snapshot": snapshot}
 
     LOGGER.warning("Entitlement exhausted for accountId=%s", account_id)
     raise AppError(
@@ -45,7 +46,6 @@ def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
 
 
 def consume_scan_access(access_grant: dict, now_iso: str | None = None) -> dict:
-    _require_tables()
     entitlement = dict(access_grant["entitlement"])
     consumption_type = access_grant["consumptionType"]
     now_iso = now_iso or _iso_now()
@@ -77,93 +77,11 @@ def consume_scan_access(access_grant: dict, now_iso: str | None = None) -> dict:
     entitlement["updatedAt"] = now_iso
     entitlement["lastScanAt"] = now_iso
     entitlement["lastScanConsumptionType"] = consumption_type
-    entitlements_table.put_item(Item=entitlement)
-    return entitlement
-
-
-def _get_entitlement(account_id: str) -> dict | None:
-    response = entitlements_table.get_item(Key={"PK": f"USER#{account_id}", "SK": "ENTITLEMENT"})
-    return response.get("Item")
-
-
-def _normalize_entitlement(account_id: str, entitlement: dict | None) -> dict:
-    now_iso = _iso_now()
-    if not entitlement:
-        return _default_entitlement(account_id, now_iso)
-
-    normalized = dict(entitlement)
-    tier = str(normalized.get("entitlementTier", "FREE")).upper()
-    if tier not in {"FREE", "PRO"}:
-        LOGGER.warning("Unexpected entitlement tier for accountId=%s tier=%s", account_id, tier)
-        tier = "FREE"
-
-    monthly_limit = _coerce_non_negative_int(
-        normalized.get("monthlyScanLimit"),
-        PRO_MONTHLY_SCAN_LIMIT if tier == "PRO" else FREE_MONTHLY_SCAN_LIMIT,
-        field_name="monthlyScanLimit",
-        account_id=account_id,
-    )
-    remaining_monthly = _coerce_non_negative_int(
-        normalized.get("remainingMonthlyScans"),
-        monthly_limit,
-        field_name="remainingMonthlyScans",
-        account_id=account_id,
-    )
-    remaining_credits = _coerce_non_negative_int(
-        normalized.get("remainingCredits"),
-        0,
-        field_name="remainingCredits",
-        account_id=account_id,
-    )
-
-    if remaining_monthly > monthly_limit:
-        LOGGER.warning(
-            "remainingMonthlyScans exceeds monthlyScanLimit for accountId=%s remaining=%s limit=%s",
-            account_id,
-            remaining_monthly,
-            monthly_limit,
-        )
-        remaining_monthly = monthly_limit
-
-    normalized["PK"] = f"USER#{account_id}"
-    normalized["SK"] = "ENTITLEMENT"
-    normalized["accountId"] = account_id
-    normalized["entitlementTier"] = tier
-    normalized["monthlyScanLimit"] = monthly_limit
-    normalized["remainingMonthlyScans"] = remaining_monthly
-    normalized["remainingCredits"] = remaining_credits
-    normalized.setdefault("createdAt", now_iso)
-    normalized.setdefault("updatedAt", now_iso)
-    return normalized
-
-
-def _coerce_non_negative_int(value, default: int, *, field_name: str, account_id: str) -> int:
     try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        if value is not None:
-            LOGGER.warning("Invalid entitlement field for accountId=%s field=%s value=%s", account_id, field_name, value)
-        return default
-
-    if parsed < 0:
-        LOGGER.warning("Negative entitlement field for accountId=%s field=%s value=%s", account_id, field_name, parsed)
-        return 0
-    return parsed
-
-
-def _default_entitlement(account_id: str, now_iso: str) -> dict:
-    return {
-        "PK": f"USER#{account_id}",
-        "SK": "ENTITLEMENT",
-        "accountId": account_id,
-        "entitlementTier": "FREE",
-        "monthlyScanLimit": FREE_MONTHLY_SCAN_LIMIT,
-        "remainingMonthlyScans": FREE_MONTHLY_SCAN_LIMIT,
-        "remainingCredits": 0,
-        "createdAt": now_iso,
-        "updatedAt": now_iso,
-        "lastVerifiedAt": None,
-    }
+        save_entitlement(entitlement)
+    except EntitlementStoreNotConfiguredError as err:
+        raise AppError("SERVER_UNAVAILABLE", str(err), retryable=False) from err
+    return entitlement
 
 
 def _enforce_scan_rate_limit(account_id: str, now_epoch: int) -> None:
@@ -197,14 +115,13 @@ def _enforce_scan_rate_limit(account_id: str, now_epoch: int) -> None:
         )
 
 
-def _require_tables() -> None:
-    if not entitlements_table:
-        raise AppError("SERVER_UNAVAILABLE", "The entitlements table is not configured.", retryable=False)
+def _require_abuse_table() -> None:
     if not abuse_table:
         raise AppError("SERVER_UNAVAILABLE", "The analysis abuse-control table is not configured.", retryable=False)
 
 
 def _iso_now() -> str:
+    from datetime import UTC, datetime
     return datetime.now(UTC).isoformat()
 
 

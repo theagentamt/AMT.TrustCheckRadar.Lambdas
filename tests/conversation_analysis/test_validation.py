@@ -3,9 +3,14 @@ import sys
 import unittest
 from pathlib import Path
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+MODULE_DIR = SRC_DIR / "conversation_analysis"
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+for module_name in ["config", "errors", "validation"]:
+    sys.modules.pop(module_name, None)
 
 from errors import AppError  # noqa: E402
 from validation import parse_and_validate_event  # noqa: E402
