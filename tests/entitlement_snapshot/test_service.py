@@ -68,6 +68,37 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         shared_service.table = fake_table
         service.entitlements_table = fake_table
 
+    def _put_entitlement(
+        self,
+        *,
+        account_id: str = "user-123",
+        tier: str = "PRO",
+        status: str = "active",
+        is_access_granted: bool = True,
+        billing_period_start: str = "2026-07-01T00:00:00Z",
+        billing_period_end: str = "2026-08-01T00:00:00Z",
+        remaining_monthly_scans: int = 91,
+    ):
+        fake_table.put_item(
+            {
+                "PK": f"USER#{account_id}",
+                "SK": "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
+                "accountId": account_id,
+                "entitlementTier": tier,
+                "subscriptionStatus": status,
+                "platform": "google_play",
+                "productId": "trustcheck_radar_pro_monthly",
+                "billingPeriodStartUtc": billing_period_start,
+                "billingPeriodEndUtc": billing_period_end,
+                "isAccessGranted": is_access_granted,
+                "monthlyScanLimit": 100 if tier == "PRO" else 5,
+                "remainingMonthlyScans": remaining_monthly_scans,
+                "remainingCredits": 0,
+                "createdAt": "2026-07-01T00:00:00Z",
+                "updatedAt": "2026-07-02T00:00:00Z",
+            }
+        )
+
     def test_returns_free_user_snapshot_without_usage_item(self):
         result = service.get_entitlement_snapshot("user-123")
 
@@ -81,25 +112,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertTrue(result["guidance"]["restoreRecommended"])
 
     def test_returns_active_pro_user_snapshot_with_usage_item(self):
-        fake_table.put_item(
-            {
-                "PK": "USER#user-123",
-                "SK": "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
-                "accountId": "user-123",
-                "entitlementTier": "PRO",
-                "subscriptionStatus": "active",
-                "platform": "google_play",
-                "productId": "trustcheck_radar_pro_monthly",
-                "billingPeriodStartUtc": "2026-07-01T00:00:00Z",
-                "billingPeriodEndUtc": "2026-08-01T00:00:00Z",
-                "isAccessGranted": True,
-                "monthlyScanLimit": 100,
-                "remainingMonthlyScans": 91,
-                "remainingCredits": 0,
-                "createdAt": "2026-07-01T00:00:00Z",
-                "updatedAt": "2026-07-02T00:00:00Z",
-            }
-        )
+        self._put_entitlement()
         fake_table.put_item(
             {
                 "PK": "USER#user-123",
@@ -121,24 +134,13 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertFalse(result["guidance"]["restoreRecommended"])
 
     def test_returns_expired_user_snapshot(self):
-        fake_table.put_item(
-            {
-                "PK": "USER#user-123",
-                "SK": "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
-                "accountId": "user-123",
-                "entitlementTier": "FREE",
-                "subscriptionStatus": "expired",
-                "platform": "google_play",
-                "productId": "trustcheck_radar_pro_monthly",
-                "billingPeriodStartUtc": "2026-06-01T00:00:00Z",
-                "billingPeriodEndUtc": "2026-07-01T00:00:00Z",
-                "isAccessGranted": False,
-                "monthlyScanLimit": 5,
-                "remainingMonthlyScans": 2,
-                "remainingCredits": 0,
-                "createdAt": "2026-06-01T00:00:00Z",
-                "updatedAt": "2026-07-02T00:00:00Z",
-            }
+        self._put_entitlement(
+            tier="FREE",
+            status="expired",
+            is_access_granted=False,
+            billing_period_start="2026-06-01T00:00:00Z",
+            billing_period_end="2026-07-01T00:00:00Z",
+            remaining_monthly_scans=2,
         )
 
         result = service.get_entitlement_snapshot("user-123")
@@ -154,6 +156,59 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
                 service.get_entitlement_snapshot("user-123")
 
         self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+
+    def test_returns_pending_state_without_restore_recommendation(self):
+        self._put_entitlement(status="pending", is_access_granted=False)
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["entitlement"]["status"], "pending")
+        self.assertFalse(result["entitlement"]["isAccessGranted"])
+        self.assertFalse(result["guidance"]["restoreRecommended"])
+
+    def test_returns_grace_state_with_access_granted(self):
+        self._put_entitlement(status="grace", is_access_granted=True)
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["entitlement"]["status"], "grace")
+        self.assertTrue(result["entitlement"]["isAccessGranted"])
+        self.assertFalse(result["guidance"]["restoreRecommended"])
+
+    def test_returns_hold_state_with_restore_recommended(self):
+        self._put_entitlement(status="hold", is_access_granted=False)
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["entitlement"]["status"], "hold")
+        self.assertFalse(result["entitlement"]["isAccessGranted"])
+        self.assertTrue(result["guidance"]["restoreRecommended"])
+
+    def test_returns_paused_state_with_restore_recommended(self):
+        self._put_entitlement(status="paused", is_access_granted=False)
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["entitlement"]["status"], "paused")
+        self.assertFalse(result["entitlement"]["isAccessGranted"])
+        self.assertTrue(result["guidance"]["restoreRecommended"])
+
+    def test_returns_canceled_state_without_restore_when_access_still_valid(self):
+        self._put_entitlement(status="canceled", is_access_granted=True)
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["entitlement"]["status"], "canceled")
+        self.assertTrue(result["entitlement"]["isAccessGranted"])
+        self.assertFalse(result["guidance"]["restoreRecommended"])
+
+    def test_repeated_refresh_returns_stable_snapshot(self):
+        self._put_entitlement(status="active", is_access_granted=True)
+
+        first = service.get_entitlement_snapshot("user-123")
+        second = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(first, second)
 
 
 if __name__ == "__main__":
