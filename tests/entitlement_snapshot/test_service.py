@@ -3,6 +3,7 @@ import sys
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
 MODULE_DIR = SRC_DIR / "entitlement_snapshot"
@@ -77,6 +78,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertEqual(result["usage"]["limit"], 5)
         self.assertEqual(result["usage"]["usedCount"], 0)
         self.assertEqual(result["usage"]["remaining"], 5)
+        self.assertTrue(result["guidance"]["restoreRecommended"])
 
     def test_returns_active_pro_user_snapshot_with_usage_item(self):
         fake_table.put_item(
@@ -116,6 +118,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertEqual(result["usage"]["limit"], 100)
         self.assertEqual(result["usage"]["usedCount"], 9)
         self.assertEqual(result["usage"]["remaining"], 91)
+        self.assertFalse(result["guidance"]["restoreRecommended"])
 
     def test_returns_expired_user_snapshot(self):
         fake_table.put_item(
@@ -143,8 +146,15 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertEqual(result["entitlement"]["status"], "expired")
         self.assertFalse(result["entitlement"]["isAccessGranted"])
         self.assertEqual(result["usage"]["remaining"], 2)
+        self.assertTrue(result["guidance"]["restoreRecommended"])
+
+    def test_returns_server_unavailable_when_entitlements_table_is_missing(self):
+        with mock.patch.object(service, "entitlements_table", None):
+            with self.assertRaises(service.AppError) as context:
+                service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
 
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -10,6 +10,7 @@ from shared_entitlements.service import table as entitlements_table
 
 
 def get_entitlement_snapshot(account_id: str) -> dict:
+    has_entitlement_record = _has_entitlement_record(account_id)
     try:
         entitlement = load_entitlement(
             account_id,
@@ -33,7 +34,23 @@ def get_entitlement_snapshot(account_id: str) -> dict:
             "isAccessGranted": entitlement_snapshot["isAccessGranted"],
         },
         "usage": usage_snapshot,
+        "guidance": {
+            "restoreRecommended": _should_recommend_restore(entitlement_snapshot, has_entitlement_record),
+        },
     }
+
+
+def _has_entitlement_record(account_id: str) -> bool:
+    if not entitlements_table:
+        raise AppError("SERVER_UNAVAILABLE", "The entitlements table is not configured.", retryable=False)
+
+    response = entitlements_table.get_item(
+        Key={
+            "PK": f"USER#{account_id}",
+            "SK": f"ENTITLEMENT#{ENTITLEMENT_PLATFORM}#{ENTITLEMENT_PRODUCT_ID}",
+        }
+    )
+    return bool(response.get("Item"))
 
 
 def _build_usage_snapshot(account_id: str, entitlement_snapshot: dict) -> dict:
@@ -90,3 +107,10 @@ def _coerce_int(value, default: int) -> int:
         return default
     return max(0, parsed)
 
+
+def _should_recommend_restore(entitlement_snapshot: dict, has_entitlement_record: bool) -> bool:
+    if entitlement_snapshot["isAccessGranted"]:
+        return False
+    if not has_entitlement_record:
+        return True
+    return entitlement_snapshot["status"] in {"expired", "canceled", "hold", "paused"}

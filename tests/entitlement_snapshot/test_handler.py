@@ -68,6 +68,9 @@ class EntitlementSnapshotHandlerTests(unittest.TestCase):
                     "usedCount": 9,
                     "remaining": 91,
                 },
+                "guidance": {
+                    "restoreRecommended": False,
+                },
             },
         ):
             response = app.lambda_handler(event, None)
@@ -76,6 +79,7 @@ class EntitlementSnapshotHandlerTests(unittest.TestCase):
         body = json.loads(response["body"])
         self.assertEqual(body["entitlement"]["tier"], "pro")
         self.assertEqual(body["usage"]["remaining"], 91)
+        self.assertFalse(body["guidance"]["restoreRecommended"])
 
     def test_returns_unauthorized_without_trusted_identity(self):
         response = app.lambda_handler({}, None)
@@ -83,6 +87,22 @@ class EntitlementSnapshotHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 401)
         body = json.loads(response["body"])
         self.assertEqual(body["error"]["code"], "UNAUTHORIZED")
+
+    def test_returns_server_unavailable_error(self):
+        event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+        }
+
+        with mock.patch.object(
+            app,
+            "get_entitlement_snapshot",
+            side_effect=app.AppError("SERVER_UNAVAILABLE", "The entitlements table is not configured.", retryable=False),
+        ):
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 500)
+        body = json.loads(response["body"])
+        self.assertEqual(body["error"]["code"], "SERVER_UNAVAILABLE")
 
     def test_returns_internal_error_on_unexpected_failure(self):
         event = {
