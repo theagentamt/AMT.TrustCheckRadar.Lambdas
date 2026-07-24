@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
@@ -32,6 +33,7 @@ class FakeTable:
         key = (Key["PK"], Key["SK"])
         item = self.items.get(key, {"PK": Key["PK"], "SK": Key["SK"], "requestCount": 0})
         if "ADD requestCount" in (UpdateExpression or ""):
+            self.assert_ttl_alias(ExpressionAttributeNames)
             item["requestCount"] = int(item.get("requestCount", 0)) + int(ExpressionAttributeValues[":one"])
             item["expiresAt"] = ExpressionAttributeValues[":expires_at"]
             item["ttl"] = ExpressionAttributeValues[":expires_at"]
@@ -39,6 +41,7 @@ class FakeTable:
             self.items[key] = item
             return {"Attributes": {"requestCount": item["requestCount"]}}
 
+        self.assert_ttl_alias(ExpressionAttributeNames)
         item["status"] = ExpressionAttributeValues[":status"]
         if ":response" in ExpressionAttributeValues:
             item["response"] = ExpressionAttributeValues[":response"]
@@ -49,6 +52,11 @@ class FakeTable:
         item["ttl"] = ExpressionAttributeValues[":expires_at"]
         self.items[key] = item
         return {"Attributes": item}
+
+    @staticmethod
+    def assert_ttl_alias(expression_attribute_names):
+        if not expression_attribute_names or expression_attribute_names.get("#ttl") != "ttl":
+            raise AssertionError("Expected DynamoDB reserved attribute alias for ttl")
 
     def delete_item(self, Key):
         self.items.pop((Key["PK"], Key["SK"]), None)
@@ -123,7 +131,7 @@ class AbuseControlsTests(unittest.TestCase):
             "requestId": "req-1",
             "scamScore": 12,
             "riskLevel": "low",
-            "confidence": 0.6,
+            "confidence": Decimal("0.6"),
             "summary": "No strong scam indicators detected.",
             "signals": [],
             "recommendedActions": ["Proceed carefully."],
@@ -138,7 +146,22 @@ class AbuseControlsTests(unittest.TestCase):
 
         result = abuse_controls.check_or_lock_request("user-123", "req-1", now_epoch=100)
 
-        self.assertEqual(result, {"state": "completed", "response": stored_response})
+        self.assertEqual(
+            result,
+            {
+                "state": "completed",
+                "response": {
+                    "schemaVersion": "1.0",
+                    "requestId": "req-1",
+                    "scamScore": 12,
+                    "riskLevel": "low",
+                    "confidence": 0.6,
+                    "summary": "No strong scam indicators detected.",
+                    "signals": [],
+                    "recommendedActions": ["Proceed carefully."],
+                },
+            },
+        )
 
     def test_rejects_duplicate_in_progress_request(self):
         identity_hash = abuse_controls._hashed_identity("user-123")
@@ -181,7 +204,10 @@ class AbuseControlsTests(unittest.TestCase):
         item = fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")]
         self.assertEqual(item["status"], "COMPLETED")
         self.assertIn("completedAt", item)
-        self.assertEqual(item["response"], response)
+        self.assertEqual(item["response"]["confidence"], Decimal("0.6"))
+        stored_response = dict(item["response"])
+        stored_response["confidence"] = float(stored_response["confidence"])
+        self.assertEqual(stored_response, response)
 
 
 if __name__ == "__main__":

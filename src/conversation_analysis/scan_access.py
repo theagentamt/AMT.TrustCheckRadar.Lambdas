@@ -96,7 +96,10 @@ def _enforce_scan_rate_limit(account_id: str, now_epoch: int) -> None:
 
     response = abuse_table.update_item(
         Key=key,
-        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, ttl = :expires_at, updatedAt = :updated_at",
+        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, #ttl = :expires_at, updatedAt = :updated_at",
+        ExpressionAttributeNames={
+            "#ttl": "ttl",
+        },
         ExpressionAttributeValues={
             ":one": 1,
             ":expires_at": expires_at,

@@ -126,9 +126,10 @@ if [[ -d "$SHARED_SRC_DIR" ]]; then
   cp -R "$SHARED_SRC_DIR" "$BUILD_DIR/shared_entitlements"
 fi
 
-log "Removing local caches"
+log "Removing local caches and build-only files"
 find "$BUILD_DIR" -type d -name "__pycache__" -prune -exec rm -rf {} +
 find "$BUILD_DIR" -type f -name "*.pyc" -delete
+rm -f "$BUILD_DIR/requirements.txt"
 
 if [[ -n "$REQUIREMENTS_FILE" ]]; then
   if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
@@ -147,6 +148,9 @@ if [[ -n "$REQUIREMENTS_FILE" ]]; then
     --implementation cp \
     --python-version "$PYTHON_VERSION" \
     --only-binary=:all:
+
+  log "Removing dependency metadata not needed at runtime"
+  find "$BUILD_DIR" -type d \( -name "*.dist-info" -o -name "*.egg-info" \) -prune -exec rm -rf {} +
 fi
 
 log "Creating ZIP artifact: $OUTPUT_ZIP"

@@ -40,6 +40,12 @@ Use neutral language. Keep the result concise, actionable, and suitable for dire
 
 
 def analyze_conversation(payload: dict) -> dict:
+    LOGGER.info(
+        "Stage started: openai_analysis_prepare | requestId=%s sourceType=%s entityCount=%s",
+        payload.get("requestId"),
+        payload.get("sourceType"),
+        len(payload.get("entities") or []),
+    )
     api_key = _get_api_key()
     request_body = {
         "model": OPENAI_MODEL,
@@ -113,11 +119,18 @@ def analyze_conversation(payload: dict) -> dict:
     )
 
     try:
+        LOGGER.info(
+            "Stage started: openai_api_call | requestId=%s model=%s endpoint=%s",
+            payload.get("requestId"),
+            OPENAI_MODEL,
+            OPENAI_RESPONSES_ENDPOINT,
+        )
         with request.urlopen(req, timeout=OPENAI_TIMEOUT_SECONDS) as response:
             raw = response.read().decode("utf-8")
+        LOGGER.info("Stage completed: openai_api_call | requestId=%s", payload.get("requestId"))
     except error.HTTPError as err:
         status_code = getattr(err, "code", 500)
-        LOGGER.warning("OpenAI HTTP error: %s", status_code)
+        LOGGER.warning("Stage failed: openai_api_call | requestId=%s httpStatus=%s", payload.get("requestId"), status_code)
         if status_code == 401:
             raise AppError("UNAUTHORIZED", "The analysis service rejected the request.", retryable=False) from err
         if status_code == 403:
@@ -128,16 +141,25 @@ def analyze_conversation(payload: dict) -> dict:
             raise AppError("ANALYSIS_TIMEOUT", "The analysis service timed out.", retryable=True) from err
         raise AppError("SERVER_UNAVAILABLE", "The analysis service is currently unavailable.", retryable=True) from err
     except error.URLError as err:
-        LOGGER.warning("OpenAI connection error: %s", err.reason)
+        LOGGER.warning("Stage failed: openai_api_call | requestId=%s reason=%s", payload.get("requestId"), err.reason)
         raise AppError("SERVER_UNAVAILABLE", "The analysis service is currently unavailable.", retryable=True) from err
 
-    return _parse_analysis_response(raw)
+    LOGGER.info("Stage started: openai_response_parse | requestId=%s", payload.get("requestId"))
+    analysis = _parse_analysis_response(raw)
+    LOGGER.info(
+        "Stage completed: openai_response_parse | requestId=%s riskLevel=%s scamScore=%s",
+        payload.get("requestId"),
+        analysis.get("riskLevel"),
+        analysis.get("scamScore"),
+    )
+    return analysis
 
 
 def _get_api_key() -> str:
     if not OPENAI_SECRET_NAME:
         raise AppError("SERVER_UNAVAILABLE", "The analysis service configuration is incomplete.", retryable=False)
 
+    LOGGER.info("Stage started: openai_secret_load | secretName=%s", OPENAI_SECRET_NAME)
     response = secrets_client.get_secret_value(SecretId=OPENAI_SECRET_NAME)
     secret_string = response.get("SecretString")
     if not secret_string:
@@ -152,8 +174,10 @@ def _get_api_key() -> str:
         for field_name in (OPENAI_SECRET_FIELD, "apiKey", "OPENAI_API_KEY"):
             value = parsed_secret.get(field_name)
             if isinstance(value, str) and value.strip():
+                LOGGER.info("Stage completed: openai_secret_load | secretName=%s field=%s", OPENAI_SECRET_NAME, field_name)
                 return value.strip()
     elif isinstance(parsed_secret, str) and parsed_secret.strip():
+        LOGGER.info("Stage completed: openai_secret_load | secretName=%s field=raw_string", OPENAI_SECRET_NAME)
         return parsed_secret.strip()
 
     raise AppError("SERVER_UNAVAILABLE", "The analysis service configuration is incomplete.", retryable=False)

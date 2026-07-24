@@ -25,7 +25,14 @@ class FakeTable:
         self.items[(Item["PK"], Item["SK"])] = dict(Item)
         return {}
 
-    def update_item(self, Key, UpdateExpression=None, ExpressionAttributeValues=None, ReturnValues=None):
+    def update_item(
+        self,
+        Key,
+        UpdateExpression=None,
+        ExpressionAttributeNames=None,
+        ExpressionAttributeValues=None,
+        ReturnValues=None,
+    ):
         key = (Key["PK"], Key["SK"])
         item = self.items.get(key, {"PK": Key["PK"], "SK": Key["SK"], "requestCount": 0})
         item["requestCount"] = int(item.get("requestCount", 0)) + int(ExpressionAttributeValues[":one"])

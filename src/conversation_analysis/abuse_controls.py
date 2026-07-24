@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 import hashlib
 import re
 import time
@@ -47,7 +48,7 @@ def check_or_lock_request(identity: str, request_id: str, now_epoch: int | None 
     existing = _get_request_record(identity_key, request_id)
     if existing and int(existing.get("expiresAt", 0)) > now_epoch:
         if existing.get("status") == "COMPLETED" and isinstance(existing.get("response"), dict):
-            return {"state": "completed", "response": existing["response"]}
+            return {"state": "completed", "response": _to_json_compatible(existing["response"])}
         raise AppError(
             "RATE_LIMITED",
             "A matching analysis request is already in progress or was recently completed. Please retry shortly.",
@@ -87,7 +88,8 @@ def enforce_rate_limit(identity: str, now_epoch: int | None = None):
 
     response = table.update_item(
         Key={"PK": f"ANALYSIS#RATE#{identity_key}", "SK": str(window_start)},
-        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, ttl = :expires_at, updatedAt = :updated_at",
+        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, #ttl = :expires_at, updatedAt = :updated_at",
+        ExpressionAttributeNames={"#ttl": "ttl"},
         ExpressionAttributeValues={
             ":one": 1,
             ":expires_at": expires_at,
@@ -110,11 +112,11 @@ def complete_request(identity: str, request_id: str, response: dict, now_epoch: 
     identity_key = _hashed_identity(identity)
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-        UpdateExpression="SET #status = :status, #response = :response, completedAt = :completed_at, updatedAt = :updated_at, expiresAt = :expires_at, ttl = :expires_at",
-        ExpressionAttributeNames={"#status": "status", "#response": "response"},
+        UpdateExpression="SET #status = :status, #response = :response, completedAt = :completed_at, updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at",
+        ExpressionAttributeNames={"#status": "status", "#response": "response", "#ttl": "ttl"},
         ExpressionAttributeValues={
             ":status": "COMPLETED",
-            ":response": response,
+            ":response": _to_dynamodb_compatible(response),
             ":completed_at": _iso_now(),
             ":updated_at": _iso_now(),
             ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
@@ -150,3 +152,25 @@ def _require_table():
 
 def _iso_now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _to_dynamodb_compatible(value):
+    if isinstance(value, dict):
+        return {key: _to_dynamodb_compatible(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_to_dynamodb_compatible(item) for item in value]
+    if isinstance(value, float):
+        return Decimal(str(value))
+    return value
+
+
+def _to_json_compatible(value):
+    if isinstance(value, dict):
+        return {key: _to_json_compatible(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_to_json_compatible(item) for item in value]
+    if isinstance(value, Decimal):
+        if value == value.to_integral_value():
+            return int(value)
+        return float(value)
+    return value
