@@ -13,6 +13,17 @@ for module_name in ["config", "errors", "scan_access", "shared_entitlements", "s
     sys.modules.pop(module_name, None)
 
 
+class FakeClientError(Exception):
+    def __init__(self, response=None, operation_name=None):
+        super().__init__(operation_name or "client error")
+        self.response = response or {}
+
+
+botocore_ex = types.ModuleType("botocore.exceptions")
+botocore_ex.ClientError = FakeClientError
+sys.modules["botocore.exceptions"] = botocore_ex
+
+
 class FakeTable:
     def __init__(self):
         self.items = {}
@@ -43,8 +54,21 @@ class FakeTable:
         return {"Attributes": {"requestCount": item["requestCount"]}}
 
 
+class FakeDynamoClient:
+    def __init__(self):
+        self.transactions = []
+        self.error = None
+
+    def transact_write_items(self, TransactItems):
+        if self.error:
+            raise self.error
+        self.transactions.append(TransactItems)
+        return {}
+
+
 entitlements_fake = FakeTable()
 abuse_fake = FakeTable()
+transaction_fake = FakeDynamoClient()
 
 
 class FakeResource:
@@ -56,7 +80,7 @@ class FakeResource:
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: FakeResource()
-boto3_stub.client = lambda *args, **kwargs: object()
+boto3_stub.client = lambda *args, **kwargs: transaction_fake
 sys.modules["boto3"] = boto3_stub
 
 import shared_entitlements.service as shared_service  # noqa: E402
@@ -70,6 +94,11 @@ class ScanAccessTests(unittest.TestCase):
         abuse_fake.items.clear()
         shared_service.table = entitlements_fake
         scan_access.abuse_table = abuse_fake
+        scan_access.dynamodb_client = transaction_fake
+        scan_access.ANALYSIS_ABUSE_TABLE_NAME = "test-analysis-abuse"
+        scan_access.ENTITLEMENTS_TABLE_NAME = "test-entitlements"
+        transaction_fake.transactions.clear()
+        transaction_fake.error = None
 
     def test_default_free_entitlement_consumes_monthly_scan(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
@@ -113,6 +142,73 @@ class ScanAccessTests(unittest.TestCase):
         self.assertEqual(first["remainingMonthlyScans"], 4)
         self.assertEqual(second["remainingMonthlyScans"], 4)
         self.assertEqual(second["lastScanRequestId"], "request-123")
+
+    def test_result_completion_and_quota_consumption_share_one_transaction(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        updated = scan_access.commit_scan_and_request(
+            grant,
+            "request-123",
+            "payload-hash",
+            {"schemaVersion": "1.0", "requestId": "request-123"},
+            now_epoch=100,
+            now_iso="2026-05-11T00:00:00Z",
+        )
+
+        self.assertEqual(updated["remainingMonthlyScans"], 4)
+        self.assertEqual(len(transaction_fake.transactions), 1)
+        transaction = transaction_fake.transactions[0]
+        self.assertEqual(len(transaction), 3)
+        request_update = transaction[0]["Update"]
+        self.assertEqual(request_update["TableName"], "test-analysis-abuse")
+        self.assertIn("#status = :result_ready", request_update["ConditionExpression"])
+        consumption_event = transaction[1]["Put"]
+        self.assertEqual(
+            consumption_event["Item"]["PK"],
+            {"S": f"ANALYSIS#CONSUMPTION#{scan_access._hashed_account_id('user-123')}"},
+        )
+        entitlement_put = transaction[2]["Put"]
+        self.assertEqual(entitlement_put["TableName"], "test-entitlements")
+        self.assertEqual(
+            entitlement_put["Item"]["remainingMonthlyScans"],
+            {"N": "4"},
+        )
+
+    def test_transaction_conflict_is_retryable_without_partial_local_success(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        try:
+            error = scan_access.ClientError(
+                {"Error": {"Code": "TransactionCanceledException"}},
+                "TransactWriteItems",
+            )
+        except TypeError:
+            error = scan_access.ClientError({"Error": {"Code": "TransactionCanceledException"}})
+        transaction_fake.error = error
+
+        with self.assertRaises(AppError) as context:
+            scan_access.commit_scan_and_request(
+                grant,
+                "request-123",
+                "payload-hash",
+                {"schemaVersion": "1.0", "requestId": "request-123"},
+            )
+
+        self.assertEqual(context.exception.code, "REQUEST_IN_PROGRESS")
+        self.assertTrue(context.exception.retryable)
+
+    def test_atomic_commit_rejects_a_result_for_another_request(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        with self.assertRaises(AppError) as context:
+            scan_access.commit_scan_and_request(
+                grant,
+                "request-123",
+                "payload-hash",
+                {"schemaVersion": "1.0", "requestId": "another-request"},
+            )
+
+        self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+        self.assertEqual(transaction_fake.transactions, [])
 
     def test_rejects_when_entitlement_is_exhausted(self):
         entitlements_fake.put_item(

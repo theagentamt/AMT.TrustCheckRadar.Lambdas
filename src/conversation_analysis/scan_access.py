@@ -3,8 +3,15 @@ import logging
 import time
 
 import boto3
+from botocore.exceptions import ClientError
 
-from config import ANALYSIS_ABUSE_TABLE_NAME, SCAN_RATE_LIMIT_MAX_REQUESTS, SCAN_RATE_LIMIT_WINDOW_SECONDS
+from config import (
+    ANALYSIS_ABUSE_TABLE_NAME,
+    ENTITLEMENTS_TABLE_NAME,
+    REQUEST_ID_TTL_SECONDS,
+    SCAN_RATE_LIMIT_MAX_REQUESTS,
+    SCAN_RATE_LIMIT_WINDOW_SECONDS,
+)
 from errors import AppError
 from shared_entitlements import (
     EntitlementStoreNotConfiguredError,
@@ -16,6 +23,7 @@ from shared_entitlements import (
 LOGGER = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
+dynamodb_client = boto3.client("dynamodb")
 abuse_table = dynamodb.Table(ANALYSIS_ABUSE_TABLE_NAME) if ANALYSIS_ABUSE_TABLE_NAME else None
 
 
@@ -46,10 +54,127 @@ def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
 
 
 def consume_scan_access(access_grant: dict, request_id: str, now_iso: str | None = None) -> dict:
+    now_iso = now_iso or _iso_now()
+    entitlement = _build_consumed_entitlement(access_grant, request_id, now_iso)
+    try:
+        save_entitlement(entitlement)
+    except EntitlementStoreNotConfiguredError as err:
+        raise AppError("SERVER_UNAVAILABLE", str(err), retryable=False) from err
+    return entitlement
+
+
+def commit_scan_and_request(
+    access_grant: dict,
+    request_id: str,
+    payload_hash: str,
+    response: dict,
+    now_epoch: int | None = None,
+    now_iso: str | None = None,
+) -> dict:
+    _require_abuse_table()
+    if not ENTITLEMENTS_TABLE_NAME:
+        raise AppError("SERVER_UNAVAILABLE", "The entitlements table is not configured.", retryable=False)
+    if response.get("requestId") != request_id:
+        raise AppError("SERVER_UNAVAILABLE", "The analysis result does not match its request.", retryable=False)
+    now_epoch = now_epoch or int(time.time())
+    now_iso = now_iso or _iso_now()
+    current = dict(access_grant["entitlement"])
+    updated = _build_consumed_entitlement(access_grant, request_id, now_iso)
+    account_id = access_grant["accountId"]
+    account_hash = _hashed_account_id(account_id)
+    request_key = {
+        "PK": f"ANALYSIS#REQUEST#{account_hash}",
+        "SK": request_id,
+    }
+    consumption_key = {
+        "PK": f"ANALYSIS#CONSUMPTION#{account_hash}",
+        "SK": request_id,
+    }
+    expires_at = now_epoch + REQUEST_ID_TTL_SECONDS
+    transaction = [
+        {
+            "Update": {
+                "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+                "Key": _serialize_item(request_key),
+                "UpdateExpression": (
+                    "SET #status = :completed, completedAt = :completed_at, "
+                    "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
+                ),
+                "ConditionExpression": (
+                    "#status = :result_ready AND payloadHash = :payload_hash"
+                ),
+                "ExpressionAttributeNames": {
+                    "#status": "status",
+                    "#ttl": "ttl",
+                },
+                "ExpressionAttributeValues": _serialize_item(
+                    {
+                        ":completed": "COMPLETED",
+                        ":completed_at": now_iso,
+                        ":updated_at": now_iso,
+                        ":expires_at": expires_at,
+                        ":result_ready": "RESULT_READY",
+                        ":payload_hash": payload_hash,
+                    }
+                ),
+            }
+        },
+        {
+            "Put": {
+                "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+                "Item": _serialize_item(
+                    consumption_key
+                    | {
+                        "accountIdHash": account_hash,
+                        "consumptionType": access_grant["consumptionType"],
+                        "createdAt": now_iso,
+                        "expiresAt": expires_at,
+                        "ttl": expires_at,
+                    }
+                ),
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        },
+        {
+            "Put": {
+                "TableName": ENTITLEMENTS_TABLE_NAME,
+                "Item": _serialize_item(updated),
+                "ConditionExpression": (
+                    "attribute_not_exists(PK) OR "
+                    "(remainingMonthlyScans = :monthly AND remainingCredits = :credits "
+                    "AND updatedAt = :updated_at)"
+                ),
+                "ExpressionAttributeValues": _serialize_item(
+                    {
+                        ":monthly": int(current["remainingMonthlyScans"]),
+                        ":credits": int(current["remainingCredits"]),
+                        ":updated_at": current["updatedAt"],
+                    }
+                ),
+            }
+        },
+    ]
+    try:
+        dynamodb_client.transact_write_items(TransactItems=transaction)
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") == "TransactionCanceledException":
+            raise AppError(
+                "REQUEST_IN_PROGRESS",
+                "Account access changed while this analysis result was being committed.",
+                retryable=True,
+                details=[{"retryAfterSeconds": 1}],
+            ) from err
+        raise
+    return updated
+
+
+def _build_consumed_entitlement(
+    access_grant: dict,
+    request_id: str,
+    now_iso: str,
+) -> dict:
     entitlement = dict(access_grant["entitlement"])
     consumption_type = access_grant["consumptionType"]
-    now_iso = now_iso or _iso_now()
-
     if entitlement.get("lastScanRequestId") == request_id:
         return entitlement
 
@@ -81,10 +206,6 @@ def consume_scan_access(access_grant: dict, request_id: str, now_iso: str | None
     entitlement["lastScanAt"] = now_iso
     entitlement["lastScanRequestId"] = request_id
     entitlement["lastScanConsumptionType"] = consumption_type
-    try:
-        save_entitlement(entitlement)
-    except EntitlementStoreNotConfiguredError as err:
-        raise AppError("SERVER_UNAVAILABLE", str(err), retryable=False) from err
     return entitlement
 
 
@@ -134,3 +255,23 @@ def _iso_now() -> str:
 
 def _hashed_account_id(account_id: str) -> str:
     return hashlib.sha256(account_id.encode("utf-8")).hexdigest()
+
+
+def _serialize_item(value: dict) -> dict:
+    return {key: _serialize_value(item) for key, item in value.items()}
+
+
+def _serialize_value(value):
+    if value is None:
+        return {"NULL": True}
+    if isinstance(value, bool):
+        return {"BOOL": value}
+    if isinstance(value, (int, float)):
+        return {"N": str(value)}
+    if isinstance(value, str):
+        return {"S": value}
+    if isinstance(value, list):
+        return {"L": [_serialize_value(item) for item in value]}
+    if isinstance(value, dict):
+        return {"M": _serialize_item(value)}
+    raise TypeError(f"Unsupported DynamoDB value type: {type(value).__name__}")

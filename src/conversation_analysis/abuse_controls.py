@@ -1,13 +1,21 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 import hashlib
+import json
 import re
 import time
+import uuid
 
 import boto3
 from botocore.exceptions import ClientError
 
-from config import ANALYSIS_ABUSE_TABLE_NAME, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW_SECONDS, REQUEST_ID_TTL_SECONDS
+from config import (
+    ANALYSIS_ABUSE_TABLE_NAME,
+    PROCESSING_LEASE_SECONDS,
+    RATE_LIMIT_MAX_REQUESTS,
+    RATE_LIMIT_WINDOW_SECONDS,
+    REQUEST_ID_TTL_SECONDS,
+)
 from errors import AppError
 
 dynamodb = boto3.resource("dynamodb")
@@ -41,26 +49,68 @@ def extract_identity(event: dict) -> str:
     )
 
 
-def check_or_lock_request(identity: str, request_id: str, now_epoch: int | None = None):
+def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epoch: int | None = None):
     _require_table()
     now_epoch = now_epoch or int(time.time())
     identity_key = _hashed_identity(identity)
+    payload_hash = _payload_hash(payload)
     existing = _get_request_record(identity_key, request_id)
+    if existing and int(existing.get("expiresAt", 0)) <= now_epoch:
+        return _replace_expired_request(
+            identity_key,
+            request_id,
+            payload_hash,
+            existing,
+            now_epoch,
+        )
     if existing and int(existing.get("expiresAt", 0)) > now_epoch:
-        if existing.get("status") == "COMPLETED" and isinstance(existing.get("response"), dict):
-            return {"state": "completed", "response": _to_json_compatible(existing["response"])}
+        _assert_matching_payload(existing, payload_hash)
+        status = existing.get("status")
+        if status == "COMPLETED" and isinstance(existing.get("response"), dict):
+            return {
+                "state": "completed",
+                "payloadHash": payload_hash,
+                "response": _to_json_compatible(existing["response"]),
+            }
+        if status == "RESULT_READY" and isinstance(existing.get("response"), dict):
+            return {
+                "state": "result_ready",
+                "payloadHash": payload_hash,
+                "response": _to_json_compatible(existing["response"]),
+            }
+        lease_expires_at = int(existing.get("leaseExpiresAt", 0))
+        if status == "PROCESSING" and lease_expires_at > now_epoch:
+            retry_after = max(1, lease_expires_at - now_epoch)
+            raise AppError(
+                "REQUEST_IN_PROGRESS",
+                "This analysis request is already processing.",
+                retryable=True,
+                details=[{"retryAfterSeconds": retry_after}],
+            )
+        if status == "PROCESSING":
+            return _take_over_expired_lease(
+                identity_key,
+                request_id,
+                payload_hash,
+                existing,
+                now_epoch,
+            )
         raise AppError(
-            "RATE_LIMITED",
-            "A matching analysis request is already in progress or was recently completed. Please retry shortly.",
-            retryable=True,
+            "SERVER_UNAVAILABLE",
+            "The stored request state is invalid.",
+            retryable=False,
         )
 
+    lease_token = str(uuid.uuid4())
     try:
         table.put_item(
             Item={
                 "PK": f"ANALYSIS#REQUEST#{identity_key}",
                 "SK": request_id,
-                "status": "IN_PROGRESS",
+                "status": "PROCESSING",
+                "payloadHash": payload_hash,
+                "leaseToken": lease_token,
+                "leaseExpiresAt": now_epoch + PROCESSING_LEASE_SECONDS,
                 "createdAt": _iso_now(),
                 "updatedAt": _iso_now(),
                 "expiresAt": now_epoch + REQUEST_ID_TTL_SECONDS,
@@ -71,12 +121,17 @@ def check_or_lock_request(identity: str, request_id: str, now_epoch: int | None 
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
             raise AppError(
-                "RATE_LIMITED",
-                "A matching analysis request is already in progress or was recently completed. Please retry shortly.",
+                "REQUEST_IN_PROGRESS",
+                "This analysis request is already processing.",
                 retryable=True,
+                details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
             ) from err
         raise
-    return {"state": "locked"}
+    return {
+        "state": "processing",
+        "payloadHash": payload_hash,
+        "leaseToken": lease_token,
+    }
 
 
 def enforce_rate_limit(identity: str, now_epoch: int | None = None):
@@ -106,34 +161,179 @@ def enforce_rate_limit(identity: str, now_epoch: int | None = None):
         )
 
 
-def complete_request(identity: str, request_id: str, response: dict, now_epoch: int | None = None):
+def store_result(
+    identity: str,
+    request_id: str,
+    payload_hash: str,
+    lease_token: str,
+    response: dict,
+    now_epoch: int | None = None,
+):
     _require_table()
     now_epoch = now_epoch or int(time.time())
     identity_key = _hashed_identity(identity)
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-        UpdateExpression="SET #status = :status, #response = :response, completedAt = :completed_at, updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at",
+        UpdateExpression=(
+            "SET #status = :result_ready, #response = :response, resultReadyAt = :result_ready_at, "
+            "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at "
+            "REMOVE leaseToken, leaseExpiresAt"
+        ),
+        ConditionExpression=(
+            "#status = :processing AND payloadHash = :payload_hash AND leaseToken = :lease_token"
+        ),
         ExpressionAttributeNames={"#status": "status", "#response": "response", "#ttl": "ttl"},
         ExpressionAttributeValues={
-            ":status": "COMPLETED",
+            ":processing": "PROCESSING",
+            ":result_ready": "RESULT_READY",
+            ":payload_hash": payload_hash,
+            ":lease_token": lease_token,
             ":response": _to_dynamodb_compatible(response),
-            ":completed_at": _iso_now(),
+            ":result_ready_at": _iso_now(),
             ":updated_at": _iso_now(),
             ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
         },
     )
 
 
-def release_request(identity: str, request_id: str):
+def release_request(identity: str, request_id: str, lease_token: str | None = None):
     if not table:
         return
     identity_key = _hashed_identity(identity)
-    table.delete_item(Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id})
+    kwargs = {"Key": {"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id}}
+    if lease_token:
+        kwargs |= {
+            "ConditionExpression": "#status = :processing AND leaseToken = :lease_token",
+            "ExpressionAttributeNames": {"#status": "status"},
+            "ExpressionAttributeValues": {
+                ":processing": "PROCESSING",
+                ":lease_token": lease_token,
+            },
+        }
+    try:
+        table.delete_item(**kwargs)
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+            raise
 
 
 def _get_request_record(identity_key: str, request_id: str):
     response = table.get_item(Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id})
     return response.get("Item")
+
+
+def _take_over_expired_lease(
+    identity_key: str,
+    request_id: str,
+    payload_hash: str,
+    existing: dict,
+    now_epoch: int,
+) -> dict:
+    lease_token = str(uuid.uuid4())
+    try:
+        table.update_item(
+            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
+            UpdateExpression=(
+                "SET leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, "
+                "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
+            ),
+            ConditionExpression=(
+                "#status = :processing AND payloadHash = :payload_hash "
+                "AND leaseExpiresAt = :previous_lease_expires_at"
+            ),
+            ExpressionAttributeNames={"#status": "status", "#ttl": "ttl"},
+            ExpressionAttributeValues={
+                ":processing": "PROCESSING",
+                ":payload_hash": payload_hash,
+                ":previous_lease_expires_at": int(existing.get("leaseExpiresAt", 0)),
+                ":lease_token": lease_token,
+                ":lease_expires_at": now_epoch + PROCESSING_LEASE_SECONDS,
+                ":updated_at": _iso_now(),
+                ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
+            },
+        )
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            raise AppError(
+                "REQUEST_IN_PROGRESS",
+                "This analysis request is already processing.",
+                retryable=True,
+                details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
+            ) from err
+        raise
+    return {
+        "state": "processing",
+        "payloadHash": payload_hash,
+        "leaseToken": lease_token,
+        "takeover": True,
+    }
+
+
+def _replace_expired_request(
+    identity_key: str,
+    request_id: str,
+    payload_hash: str,
+    existing: dict,
+    now_epoch: int,
+) -> dict:
+    lease_token = str(uuid.uuid4())
+    previous_expires_at = int(existing.get("expiresAt", 0))
+    try:
+        table.update_item(
+            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
+            UpdateExpression=(
+                "SET #status = :processing, payloadHash = :payload_hash, "
+                "leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, "
+                "createdAt = :created_at, updatedAt = :updated_at, "
+                "expiresAt = :expires_at, #ttl = :expires_at "
+                "REMOVE #response, resultReadyAt, completedAt"
+            ),
+            ConditionExpression="expiresAt = :previous_expires_at",
+            ExpressionAttributeNames={
+                "#status": "status",
+                "#response": "response",
+                "#ttl": "ttl",
+            },
+            ExpressionAttributeValues={
+                ":processing": "PROCESSING",
+                ":payload_hash": payload_hash,
+                ":lease_token": lease_token,
+                ":lease_expires_at": now_epoch + PROCESSING_LEASE_SECONDS,
+                ":created_at": _iso_now(),
+                ":updated_at": _iso_now(),
+                ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
+                ":previous_expires_at": previous_expires_at,
+            },
+        )
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            raise AppError(
+                "REQUEST_IN_PROGRESS",
+                "This analysis request changed while an expired record was being replaced.",
+                retryable=True,
+                details=[{"retryAfterSeconds": 1}],
+            ) from err
+        raise
+    return {
+        "state": "processing",
+        "payloadHash": payload_hash,
+        "leaseToken": lease_token,
+        "replacedExpired": True,
+    }
+
+
+def _assert_matching_payload(existing: dict, payload_hash: str) -> None:
+    if existing.get("payloadHash") != payload_hash:
+        raise AppError(
+            "IDEMPOTENCY_CONFLICT",
+            "The request ID is already bound to different analysis content.",
+            retryable=False,
+        )
+
+
+def _payload_hash(payload: dict) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _normalize_identity(value: str) -> str:
