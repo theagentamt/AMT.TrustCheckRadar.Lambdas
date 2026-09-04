@@ -15,8 +15,8 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `USERS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `securityforall-dev-users` | DynamoDB profile updates cannot run |
-| `TABLE_NAME` | Compatibility alias | `securityforall-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
+| `USERS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-users` | DynamoDB profile updates cannot run |
+| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
 ### External resources
@@ -69,21 +69,22 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `USERS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `securityforall-dev-users` | New profile record cannot be created |
-| `TABLE_NAME` | Compatibility alias | `securityforall-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
+| `USERS_TABLE_NAME` | Preferred | `trustcheckradar-dev-users` | New profile record cannot be created if no table identifier is provided |
+| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
+| `USERS_TABLE_ARN` | Infrastructure fallback | `arn:aws:dynamodb:us-east-1:123456789012:table/trustcheckradar-dev-users` | The table name is derived from the ARN when neither name variable is present |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
 ### External resources
 
 | Resource | Env/config key used | Needs | ARN, name, or both |
 |---|---|---|---|
-| DynamoDB users table | `USERS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:PutItem` | Name required by code |
+| DynamoDB users table | `USERS_TABLE_NAME`, `TABLE_NAME`, or `USERS_TABLE_ARN` | `dynamodb:PutItem` | Name or ARN required by code |
 | Cognito user pool trigger event | direct event payload | invoke permission only | No env var |
 | CloudWatch Logs | Lambda runtime default | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Managed by Lambda execution role |
 
 ### Storage contract
 
-- Table: users table from `USERS_TABLE_NAME` / `TABLE_NAME`
+- Table: users table from `USERS_TABLE_NAME` / `TABLE_NAME`, or derived from `USERS_TABLE_ARN`
 - Primary key shape:
   - `PK = USER#<sub>`
   - `SK = PROFILE`
@@ -115,7 +116,8 @@ This document captures the deployment dependency contract for the Lambda functio
 - Table variable aliases accepted:
   - `USERS_TABLE_NAME`
   - `TABLE_NAME`
-- Code does not require an ARN.
+  - `USERS_TABLE_ARN`
+- The ARN fallback matches the identity-workflows Terraform stack contract.
 
 ---
 
@@ -130,8 +132,8 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `DEVICE_BINDINGS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `securityforall-dev-device-bindings` | Device binding records cannot be read or written |
-| `TABLE_NAME` | Compatibility alias | `securityforall-dev-device-bindings` | Same as above if `DEVICE_BINDINGS_TABLE_NAME` is not provided |
+| `DEVICE_BINDINGS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-device-bindings` | Device binding records cannot be read or written |
+| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-device-bindings` | Same as above if `DEVICE_BINDINGS_TABLE_NAME` is not provided |
 | `DEVICE_BINDINGS_INACTIVE_RETENTION_DAYS` | No | `180` | Defaults are used for inactive cleanup horizon |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -195,8 +197,8 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `DEVICE_BINDINGS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `securityforall-dev-device-bindings` | Recovery logic cannot read or update bindings |
-| `TABLE_NAME` | Compatibility alias | `securityforall-dev-device-bindings` | Same as above if `DEVICE_BINDINGS_TABLE_NAME` is not provided |
+| `DEVICE_BINDINGS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-device-bindings` | Recovery logic cannot read or update bindings |
+| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-device-bindings` | Same as above if `DEVICE_BINDINGS_TABLE_NAME` is not provided |
 | `DEVICE_BINDINGS_INACTIVE_RETENTION_DAYS` | No | `180` | Defaults are used for inactive retention handling |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -249,10 +251,10 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `securityforall-dev-purchase-entitlements` | Entitlement persistence fails |
-| `TABLE_NAME` | Compatibility alias | `securityforall-dev-purchase-entitlements` | Same as above if `ENTITLEMENTS_TABLE_NAME` is not provided |
+| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-purchase-entitlements` | Entitlement persistence fails |
+| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-purchase-entitlements` | Same as above if `ENTITLEMENTS_TABLE_NAME` is not provided |
 | `PURCHASE_VERIFICATION_MODE` | No, but required for live verification behavior | `google_play` | If set to `stub`, Google Play is not called |
-| `GOOGLE_PLAY_SECRET_NAME` | Required for live Google Play verification | `securityforall/dev/google-play-service-account` | Live verification cannot fetch service account credentials |
+| `GOOGLE_PLAY_SECRET_NAME` | Required for live Google Play verification | `trustcheckradar/dev/google-play-service-account` | Live verification cannot fetch service account credentials |
 | `GOOGLE_PLAY_PACKAGE_NAME` | Required for live Google Play verification | `com.andmorethings.trustcheckradar` | Android Publisher API calls cannot be scoped correctly |
 | `GOOGLE_PLAY_PRO_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults may be used, but product mapping may be wrong |
 | `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Default free quota logic may be wrong if code assumes configured policy |
@@ -316,9 +318,9 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `USERS_TABLE_NAME` or `TABLE_NAME` is set | `securityforall-dev-purchase-entitlements` | Snapshot cannot read entitlement state |
-| `USERS_TABLE_NAME` | Compatibility fallback | `securityforall-dev-purchase-entitlements` | Used only if `ENTITLEMENTS_TABLE_NAME` is not set |
-| `TABLE_NAME` | Compatibility fallback | `securityforall-dev-purchase-entitlements` | Used only if stronger names are not set |
+| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `USERS_TABLE_NAME` or `TABLE_NAME` is set | `trustcheckradar-dev-purchase-entitlements` | Snapshot cannot read entitlement state |
+| `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-purchase-entitlements` | Used only if `ENTITLEMENTS_TABLE_NAME` is not set |
+| `TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-purchase-entitlements` | Used only if stronger names are not set |
 | `ENTITLEMENT_PLATFORM` | No | `google_play` | Defaults are used for key resolution |
 | `ENTITLEMENT_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults are used for key resolution |
 | `ENTITLEMENT_USAGE_PERIOD_MODE` | No | `billing_cycle` | Defaults are used in usage response logic |
@@ -379,11 +381,11 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `ANALYSIS_ABUSE_TABLE_NAME` | Yes, unless fallback aliases are set | `securityforall-dev-analysis-abuse-control` | Request dedupe/rate controls fail |
-| `TABLE_NAME` | Compatibility fallback | `securityforall-dev-analysis-abuse-control` | Used only if primary name is missing |
-| `USERS_TABLE_NAME` | Compatibility fallback | `securityforall-dev-analysis-abuse-control` | Used only if stronger names are missing |
-| `DEVICE_BINDINGS_TABLE_NAME` | Yes | `securityforall-dev-device-bindings` | Device binding validation fails and request is rejected/unavailable |
-| `ENTITLEMENTS_TABLE_NAME` | Yes for entitlement enforcement, unless fallback aliases are set | `securityforall-dev-purchase-entitlements` | Monthly/credit entitlement gating fails |
+| `ANALYSIS_ABUSE_TABLE_NAME` | Yes, unless fallback aliases are set | `trustcheckradar-dev-analysis-abuse-control` | Request dedupe/rate controls fail |
+| `TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-analysis-abuse-control` | Used only if primary name is missing |
+| `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-analysis-abuse-control` | Used only if stronger names are missing |
+| `DEVICE_BINDINGS_TABLE_NAME` | Yes | `trustcheckradar-dev-device-bindings` | Device binding validation fails and request is rejected/unavailable |
+| `ENTITLEMENTS_TABLE_NAME` | Yes for entitlement enforcement, unless fallback aliases are set | `trustcheckradar-dev-purchase-entitlements` | Monthly/credit entitlement gating fails |
 | `RATE_LIMIT_WINDOW_SECONDS` | No | `60` | Default request throttling windows are used |
 | `RATE_LIMIT_MAX_REQUESTS` | No | `10` | Default request throttling caps are used |
 | `REQUEST_ID_TTL_SECONDS` | No | `86400` | Dedupe retention defaults are used |
@@ -391,7 +393,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | `SCAN_RATE_LIMIT_MAX_REQUESTS` | No | `20` | Default scan abuse cap is used |
 | `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Free-tier quota math may be wrong |
 | `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Pro-tier quota math may be wrong |
-| `OPENAI_SECRET_NAME` | Required for real model calls | `securityforall/dev/openai` | OpenAI API key cannot be loaded |
+| `OPENAI_SECRET_NAME` | Required for real model calls | `trustcheckradar/dev/openai` | OpenAI API key cannot be loaded |
 | `OPENAI_SECRET_FIELD` | No | `apiKey` | Defaults are used when omitted |
 | `OPENAI_RESPONSES_ENDPOINT` | No | `https://api.openai.com/v1/responses` | Defaults are used when omitted |
 | `OPENAI_MODEL` | No | `gpt-4.1-mini` | Defaults are used when omitted |
@@ -473,10 +475,10 @@ This document captures the deployment dependency contract for the Lambda functio
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `WEB_RISK_TABLE_NAME` | Yes, unless fallback aliases are set | `securityforall-dev-web-risk-cache` | Cache reads/writes fail |
-| `TABLE_NAME` | Compatibility fallback | `securityforall-dev-web-risk-cache` | Used only if primary name is missing |
-| `USERS_TABLE_NAME` | Compatibility fallback | `securityforall-dev-web-risk-cache` | Used only if stronger names are missing |
-| `WEB_RISK_SECRET_NAME` | Yes | `securityforall/dev/web-risk-api-key` | Google Web Risk API key cannot be loaded |
+| `WEB_RISK_TABLE_NAME` | Yes, unless fallback aliases are set | `trustcheckradar-dev-web-risk-cache` | Cache reads/writes fail |
+| `TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-web-risk-cache` | Used only if primary name is missing |
+| `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-web-risk-cache` | Used only if stronger names are missing |
+| `WEB_RISK_SECRET_NAME` | Yes | `trustcheckradar/dev/web-risk-api-key` | Google Web Risk API key cannot be loaded |
 | `WEB_RISK_SECRET_FIELD` | No | `apiKey` | Defaults are used when omitted |
 | `WEB_RISK_ENDPOINT` | No | `https://webrisk.googleapis.com/v1eap1:evaluateUri` | Defaults are used when omitted |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
@@ -680,4 +682,3 @@ This document captures the deployment dependency contract for the Lambda functio
   - request body shape
   - authenticated identity requirements
   - expected HTTP method
-

@@ -3,7 +3,7 @@ import re
 
 ENTITLEMENTS_TABLE_NAME = os.environ.get("ENTITLEMENTS_TABLE_NAME") or os.environ.get("TABLE_NAME")
 VERIFICATION_MODE = os.environ.get("PURCHASE_VERIFICATION_MODE", "google_play")
-GOOGLE_PLAY_SECRET_NAME = os.environ.get("GOOGLE_PLAY_SECRET_NAME", "securityforall/dev/google-play-service-account")
+GOOGLE_PLAY_SECRET_NAME = os.environ.get("GOOGLE_PLAY_SECRET_NAME")
 GOOGLE_PLAY_PACKAGE_NAME = os.environ.get("GOOGLE_PLAY_PACKAGE_NAME")
 GOOGLE_PLAY_PRO_PRODUCT_ID = os.environ.get("GOOGLE_PLAY_PRO_PRODUCT_ID", "trustcheck_radar_pro_monthly")
 

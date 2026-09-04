@@ -1,7 +1,7 @@
 {
   "body": "{\"url\":\"https://example.com/login?campaign=test\"}",
-  "resource": "/web-risk/communication",
-  "path": "/web-risk/communication",
+  "resource": "/web-risk-communication",
+  "path": "/web-risk-communication",
   "httpMethod": "POST",
   "isBase64Encoded": false
 }

@@ -1,7 +1,7 @@
 {
   "body": "{\"agePolicyVersion\":\"v1.0\"}",
-  "resource": "/identity/age-attestation",
-  "path": "/identity/age-attestation",
+  "resource": "/v1/users/age-attestation",
+  "path": "/v1/users/age-attestation",
   "httpMethod": "POST",
   "headers": {
     "User-Agent": "local-test"

@@ -1,7 +1,19 @@
 {
   "body": "{\"schemaVersion\":\"1.0\",\"requestId\":\"6f1d4b83-4f3e-4c7f-8ad6-6b4d96b9f4d8\",\"sourceType\":\"mixed\",\"localSanitizationApplied\":true,\"sanitizedText\":\"Message [MESSENGER_HANDLE_1] and send payment to [PAYMENT_HANDLE_1].\",\"entities\":[{\"token\":\"[MESSENGER_HANDLE_1]\",\"type\":\"messenger_handle\"},{\"token\":\"[PAYMENT_HANDLE_1]\",\"type\":\"payment_handle\"}]}",
-  "resource": "/conversation/analysis",
-  "path": "/conversation/analysis",
+  "resource": "/analysis",
+  "path": "/analysis",
   "httpMethod": "POST",
+  "headers": {
+    "X-Device-Binding-Fingerprint": "fp-1"
+  },
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-123"
+        }
+      }
+    }
+  },
   "isBase64Encoded": false
 }

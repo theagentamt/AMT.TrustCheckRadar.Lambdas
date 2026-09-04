@@ -1,203 +1,90 @@
-# AMT.SecurityForAll.Lambdas
+# AMT.TrustCheckRadar.Lambdas
 
-Scaffold for SecurityForAll AWS Lambda functions, starting with the Incognito writer Lambda that stores incoming payloads in DynamoDB.
+Python AWS Lambda application code for TrustCheckRadar. Infrastructure is owned by
+[`AMT.TrustCheckRadar.Cloud.Infrastructure`](https://github.com/theagentamt/AMT.TrustCheckRadar.Cloud.Infrastructure);
+this repository owns function code, tests, and immutable deployment packages.
 
-## What is included
+## Functions
 
-- AWS SAM template (`template.yaml`)
-- DynamoDB table (`SecurityForAllTable`)
-- First Lambda (`IncognitoWriteFunction`) exposed via API Gateway `POST /incognito/write`
-- Age attestation Lambda (`AgeAttestationFunction`) exposed via API Gateway `POST /identity/age-attestation`
-- Post-confirmation Lambda source for Cognito profile creation (`src/post_confirmation/app.py`)
-- Conversation analysis Lambda source for sanitized analysis requests (`src/conversation_analysis/app.py`)
-- Local test event (`events/incognito-write.json`)
-- Local test event (`events/age-attestation.json`)
-- Local test event (`events/post-confirmation.json`)
-- Local test event (`events/conversation-analysis.json`)
-- Scripts and Make targets for build, deploy, local invoke, logs, zip packaging, and S3 artifact upload
+| Artifact | Invocation | Purpose |
+|---|---|---|
+| `age_attestation.zip` | `POST /v1/users/age-attestation` | Records the authenticated user's age-policy decision. |
+| `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
+| `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
+| `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
+| `entitlement_snapshot.zip` | `GET /entitlements/snapshot` | Returns the current subscription and scan-usage view. |
+| `purchase_handoff.zip` | `POST /purchase-handoff` | Verifies Google Play purchases and updates entitlement state. |
+| `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
+| `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
-## Prerequisites
+All deployed handlers are `app.lambda_handler` on Python 3.13. Optional functions
+are packaged with the required release set, but Terraform decides whether to deploy
+them.
 
-- AWS CLI configured with credentials and target account
-- AWS SAM CLI installed
-- Docker (only needed for `sam local invoke`)
+## Local development
 
-## Deploy with SAM
+Prerequisites:
 
-```bash
-make deploy STACK_NAME=amt-security-for-all-lambdas AWS_REGION=us-east-1
-```
+- Python 3.13 or newer for local tests
+- `pytest`
+- `shellcheck` for shell validation
+- AWS CLI only when publishing artifacts
 
-This deploys:
-
-- DynamoDB table named `<stack-name>-security-for-all`
-- API endpoint for posting Incognito data
-- Lambda with IAM permissions to read/write the DynamoDB table
-
-## Local invocation
+Run the quality checks:
 
 ```bash
-make local-invoke
+make check
 ```
+
+Build all deployment packages without resolving third-party dependencies (fast
+local packaging check):
 
 ```bash
-make local-invoke-age
+make package-no-deps
 ```
 
-## Build Lambda ZIP artifact
+Build release-ready packages, including Linux/ARM64 dependencies:
 
 ```bash
-make zip
+make package
 ```
 
-Default output is `function.zip` at the repo root.
+Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
+metadata so identical inputs produce identical archives.
 
-## Upload ZIP to foundation artifacts bucket
+Build one function or target x86_64 explicitly:
 
 ```bash
-make upload-zip
+./scripts/build_lambda_zip.sh --function purchase_handoff
+./scripts/build_lambda_zip.sh --all --arch x86_64
 ```
 
-Defaults:
+## Publishing a release
 
-- Bucket: `asecurityforall-dev-artifacts`
-- Key: `identity/post-confirmation/v1.0.0/function.zip`
-
-Override key/version when publishing a new release:
+Choose the immutable release ID used by the infrastructure repository and the
+environment-specific foundation artifact bucket:
 
 ```bash
-make publish-zip ARTIFACT_KEY=identity/post-confirmation/v1.0.1/function.zip
+make publish \
+  RELEASE=2026.09.03-1 \
+  ARTIFACT_BUCKET=trustcheckradar-dev-123456789012-artifacts
 ```
 
-`publish-zip` runs build + upload. If S3 bucket versioning is enabled, the upload script prints the returned `VersionId` so you can pin it in downstream deployment configs.
+The upload script refuses to replace an existing S3 object. Packages are stored at
+`releases/<release-id>/<function>.zip`, matching the Terraform release contract.
+After publishing, set the same release ID in the infrastructure deployment.
 
-## API usage
+Use `INCLUDE_OPTIONAL=false` to publish only the six functions required by the
+default infrastructure configuration.
 
-After deploy, get `ApiBaseUrl` from stack outputs, then call:
+## Repository boundaries
 
-```bash
-curl -X POST "$API_BASE_URL/incognito/write" \
-  -H "Content-Type: application/json" \
-  -d '{"sub":"user-123"}'
-```
+- Do not deploy CloudFormation/SAM stacks from this repository.
+- Do not commit credentials, generated ZIPs, state files, or environment-specific
+  configuration.
+- Make infrastructure changes in the cloud-infrastructure repository.
+- Keep runtime settings and artifact names synchronized with
+  [the deployment contract](lambda_deployment_dependency_contract.md).
 
-```bash
-curl -X POST "$API_BASE_URL/identity/age-attestation" \
-  -H "Authorization: Bearer <cognito-id-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"agePolicyVersion":"v1.0"}'
-```
-
-The age-attestation flow only updates the existing user profile item at
-`PK=USER#<sub>`, `SK=PROFILE`. If that profile does not exist already, the Lambda returns a friendly `404`
-and makes no DynamoDB changes. When API Gateway is configured with a Cognito/JWT authorizer, the Lambda reads
-`sub` and `custom:over_18` from the ID token claims instead of trusting those values from the request body.
-
-## Conversation analysis guardrails
-
-The conversation analysis Lambda enforces backend request limits so malformed or oversized payloads are rejected consistently even if a client bypasses local checks.
-
-- `schemaVersion` must be `1.0`
-- `sourceType` must be one of: `ocr`, `pasted_text`, `mixed`
-- `requestId` must be `1-128` characters and use only letters, numbers, `.`, `_`, `:`, or `-`
-- `localSanitizationApplied` must be `true`
-- `entities[].type` must be one of: `email`, `phone`, `url`, `credit_card`, `ssn`, `ip_address`, `messenger_handle`, `payment_handle`, `crypto_wallet`
-- `sanitizedText` max: `8,000` characters
-- `entities` max: `100`
-- request body max: `64 KB`
-
-## Conversation analysis device-binding enforcement
-
-The conversation analysis Lambda now treats device binding as part of protected request authorization.
-
-- the analysis request body contract does not change
-- the backend still derives account identity from the bearer token / authorizer context
-- protected analysis requests must include the header:
-  - `X-Device-Binding-Fingerprint`
-- the backend looks up the currently active device binding for that account
-- the request is allowed only when the presented fingerprint matches the active binding
-- structured device-binding errors:
-  - `DEVICE_BINDING_REQUIRED`
-  - `DEVICE_BINDING_MISMATCH`
-
-## Conversation analysis abuse controls
-
-The conversation analysis Lambda also applies MVP repeat-request protections.
-
-- analysis requests require trusted authorizer identity context; callers without it are rejected
-- identical in-flight `requestId` values return a structured retryable `RATE_LIMITED` response
-- recently completed duplicate `requestId` values return a structured retryable `RATE_LIMITED` response during the dedupe TTL
-- request records are retained for `15` minutes by default with minimal metadata only
-
-## Conversation analysis scan access enforcement
-
-The conversation analysis Lambda now enforces monetization-backed scan access before an analysis request is allowed to complete.
-
-- monthly scans are consumed first from backend entitlement state
-- credits are consumed only when monthly scans are exhausted
-- requests are rejected with `ENTITLEMENT_EXHAUSTED` when neither monthly scans nor credits remain
-- successful analysis requests decrement usage at the backend so client-side state cannot bypass enforcement
-- an additional scan abuse cap applies at request time with a default limit of `10` scans per `1` minute per account
-- suspicious usage conditions are logged to CloudWatch for later review
-
-Expected runtime configuration for this behavior:
-
-- `ENTITLEMENTS_TABLE_NAME`
-- `ANALYSIS_ABUSE_TABLE_NAME`
-- optional:
-  - `FREE_MONTHLY_SCAN_LIMIT`
-  - `PRO_MONTHLY_SCAN_LIMIT`
-  - `SCAN_RATE_LIMIT_WINDOW_SECONDS`
-  - `SCAN_RATE_LIMIT_MAX_REQUESTS`
-
-## Conversation analysis instruction-style abuse handling
-
-The conversation analysis Lambda treats submitted sanitized text as untrusted user data.
-
-- instruction-style abuse patterns are detected before the model call
-- suspicious prompt-injection style content returns a safe low-confidence response instead of trusting the content as instructions
-- the OpenAI prompt explicitly treats submitted content as data, not system or developer instructions
-- model failures still return structured backend-safe errors without leaking raw provider text
-
-## Device binding recovery CLI
-
-For MVP support operations, use `scripts/device_binding_recovery.py` to perform safe manual recovery actions against the `DeviceBindings` table without editing records directly in the AWS console.
-
-Supported actions:
-
-- `RESET_ACTIVE_BINDING`
-  - deactivates the current active device binding for an account
-  - use when support wants the user to retry normal registration on the intended device
-- `RECOVER_BINDING`
-  - reactivates a specific existing binding by `bindingFingerprint`
-  - deactivates the currently active binding if it is different
-
-Examples:
-
-```bash
-python3 scripts/device_binding_recovery.py \
-  --action RESET_ACTIVE_BINDING \
-  --account-id user-123 \
-  --operator-id support-1 \
-  --table-name <device-bindings-table> \
-  --region us-east-1
-```
-
-```bash
-python3 scripts/device_binding_recovery.py \
-  --action RECOVER_BINDING \
-  --account-id user-123 \
-  --binding-fingerprint fp-1 \
-  --operator-id support-1 \
-  --table-name <device-bindings-table> \
-  --region us-east-1
-```
-
-Use `--dry-run` first if you want to inspect the planned result without writing changes.
-
-## Adding future lambdas
-
-1. Add a new folder under `src/<lambda_name>/`.
-2. Add a new `AWS::Serverless::Function` resource in `template.yaml`.
-3. Reuse shared resources (table, env vars, policies) as needed.
-4. Add an event JSON file under `events/` for local testing.
+The `events/` directory contains sanitized examples for handler debugging. It does
+not contain credentials or production identifiers.

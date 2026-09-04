@@ -1,33 +1,35 @@
-STACK_NAME ?= amt-security-for-all-lambdas
-AWS_REGION ?= us-east-1
-LAMBDA_SRC ?= src/incognito_write
-ZIP_OUTPUT ?= function.zip
-PYTHON_VERSION ?= 3.12
+PYTHON ?= python3
+PYTHON_VERSION ?= 3.13
 LAMBDA_ARCH ?= arm64
-ARTIFACT_BUCKET ?= asecurityforall-dev-artifacts
-ARTIFACT_KEY ?= identity/post-confirmation/v1.0.0/function.zip
+DIST_DIR ?= dist
+ARTIFACT_BUCKET ?=
+AWS_REGION ?= us-east-1
+RELEASE ?=
+INCLUDE_OPTIONAL ?= true
 
-.PHONY: build deploy local-invoke local-invoke-age logs zip upload-zip publish-zip
+.PHONY: test compile lint check package package-no-deps publish clean
 
-build:
-	sam build --cached
+test:
+	$(PYTHON) -m pytest -q
 
-deploy: build
-	sam deploy --stack-name $(STACK_NAME) --region $(AWS_REGION) --capabilities CAPABILITY_IAM --resolve-s3 --confirm-changeset
+compile:
+	$(PYTHON) -m compileall -q src tests
 
-local-invoke: build
-	sam local invoke IncognitoWriteFunction --event events/incognito-write.json
+lint:
+	shellcheck scripts/*.sh
 
-local-invoke-age: build
-	sam local invoke AgeAttestationFunction --event events/age-attestation.json
+check: test compile lint
 
-logs:
-	sam logs --name IncognitoWriteFunction --stack-name $(STACK_NAME) --region $(AWS_REGION) --tail
+package:
+	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" --python-version "$(PYTHON_VERSION)" --arch "$(LAMBDA_ARCH)"
 
-zip:
-	bash scripts/build_lambda_zip.sh --lambda-src $(LAMBDA_SRC) --output $(ZIP_OUTPUT) --python-version $(PYTHON_VERSION) --arch $(LAMBDA_ARCH)
+package-no-deps:
+	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" --python-version "$(PYTHON_VERSION)" --arch "$(LAMBDA_ARCH)" --skip-dependencies
 
-upload-zip:
-	bash scripts/upload_lambda_zip.sh --file $(ZIP_OUTPUT) --bucket $(ARTIFACT_BUCKET) --key $(ARTIFACT_KEY) --region $(AWS_REGION)
+publish: package
+	@test -n "$(ARTIFACT_BUCKET)" || (echo "ARTIFACT_BUCKET is required" >&2; exit 2)
+	@test -n "$(RELEASE)" || (echo "RELEASE is required" >&2; exit 2)
+	bash scripts/upload_lambda_zips.sh --dist-dir "$(DIST_DIR)" --bucket "$(ARTIFACT_BUCKET)" --release "$(RELEASE)" --region "$(AWS_REGION)" --include-optional "$(INCLUDE_OPTIONAL)"
 
-publish-zip: zip upload-zip
+clean:
+	rm -rf .build dist

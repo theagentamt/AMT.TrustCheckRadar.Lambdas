@@ -8,7 +8,7 @@
       }
     }
   },
-  "body": "{\"productId\":\"pro_monthly\",\"platform\":\"ios\",\"purchaseState\":\"purchased\",\"proof\":{\"transactionId\":\"tx-123\",\"purchaseTime\":\"2026-05-10T12:00:00Z\"}}",
+  "body": "{\"productId\":\"trustcheck_radar_pro_monthly\",\"platform\":\"google_play\",\"purchaseState\":\"PURCHASED\",\"packageName\":\"com.andmorethings.trustcheckradar\",\"purchaseToken\":\"example-purchase-token-12345\"}",
   "resource": "/purchase-handoff",
   "path": "/purchase-handoff",
   "httpMethod": "POST",

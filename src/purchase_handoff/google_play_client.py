@@ -54,6 +54,8 @@ def _build_authorized_session():
 
 
 def _load_service_account_info() -> dict:
+    if not GOOGLE_PLAY_SECRET_NAME:
+        raise GooglePlayRetryableError("Google Play service account secret is not configured.")
     secret_value = secrets_client.get_secret_value(SecretId=GOOGLE_PLAY_SECRET_NAME)
     secret_string = secret_value.get("SecretString")
     if not secret_string:

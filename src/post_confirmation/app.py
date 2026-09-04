@@ -8,7 +8,20 @@ from botocore.exceptions import ClientError
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
-TABLE_NAME = os.environ.get("USERS_TABLE_NAME") or os.environ["TABLE_NAME"]
+
+def _table_name_from_environment():
+    table_name = os.environ.get("USERS_TABLE_NAME") or os.environ.get("TABLE_NAME")
+    if table_name:
+        return table_name
+
+    table_arn = os.environ.get("USERS_TABLE_ARN")
+    if table_arn and "/" in table_arn:
+        return table_arn.rsplit("/", 1)[-1]
+
+    raise RuntimeError("USERS_TABLE_NAME, TABLE_NAME, or USERS_TABLE_ARN is required")
+
+
+TABLE_NAME = _table_name_from_environment()
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(TABLE_NAME)
 

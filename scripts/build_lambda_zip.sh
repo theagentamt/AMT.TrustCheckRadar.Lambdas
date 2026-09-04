@@ -2,177 +2,211 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LAMBDA_SRC_DIR="$ROOT_DIR/src/incognito_write"
-REQUIREMENTS_FILE=""
-OUTPUT_ZIP="$ROOT_DIR/function.zip"
-PYTHON_VERSION="3.12"
+OUTPUT_DIR="$ROOT_DIR/dist"
+PYTHON_VERSION="3.13"
 LAMBDA_ARCH="arm64"
-BUILD_DIR="$ROOT_DIR/.build/lambda_package"
-SHARED_SRC_DIR="$ROOT_DIR/src/shared_entitlements"
+SELECTED_FUNCTION=""
+BUILD_ALL=false
+SKIP_DEPENDENCIES=false
+
+FUNCTIONS=(
+  age_attestation
+  conversation_analysis
+  device_registration
+  device_recovery
+  entitlement_snapshot
+  purchase_handoff
+  web_risk_communication
+  post_confirmation
+)
 
 usage() {
-  cat <<USAGE
-Usage: $(basename "$0") [options]
+  cat <<'USAGE'
+Usage: build_lambda_zip.sh (--all | --function <name>) [options]
 
-Builds a Lambda ZIP artifact from Python source, installing Linux-compatible
-wheels so builds done on macOS are safe for AWS Lambda runtime.
+Build deterministic AWS Lambda ZIP packages with app.py at the archive root.
 
 Options:
-  --lambda-src <dir>       Lambda source directory (default: src/incognito_write)
-  --requirements <file>    requirements.txt path (default: auto-detect in lambda source)
-  --output <zip>           Output zip path (default: function.zip at repo root)
-  --python-version <ver>   Python runtime version, e.g. 3.12 (default: 3.12)
-  --arch <arch>            Lambda architecture: arm64 or x86_64 (default: arm64)
-  -h, --help               Show this help
-
-Example:
-  $(basename "$0") --lambda-src src/incognito_write --output dist/incognito-write.zip --arch arm64
+  --all                    Build every Lambda artifact.
+  --function <name>        Build one function from src/<name>.
+  --output-dir <dir>       Artifact directory (default: dist).
+  --python-version <ver>   Lambda Python version (default: 3.13).
+  --arch <arch>            arm64 or x86_64 (default: arm64).
+  --skip-dependencies      Package source only; intended for local validation.
+  -h, --help               Show this help.
 USAGE
 }
 
-log() {
-  printf '\n[%s] %s\n' "$(date +"%Y-%m-%d %H:%M:%S")" "$*"
+fail() {
+  echo "Error: $*" >&2
+  exit 2
 }
 
-require_cmd() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Error: required command not found: $1" >&2
-    exit 1
+resolve_path() {
+  if [[ "$1" = /* ]]; then
+    printf '%s\n' "$1"
+  else
+    printf '%s\n' "$ROOT_DIR/$1"
   fi
 }
 
 platform_for_arch() {
   case "$1" in
-    arm64) echo "manylinux2014_aarch64" ;;
-    x86_64) echo "manylinux2014_x86_64" ;;
-    *)
-      echo "Error: unsupported arch '$1'. Use arm64 or x86_64." >&2
-      exit 1
-      ;;
+    arm64) printf '%s\n' "manylinux2014_aarch64" ;;
+    x86_64) printf '%s\n' "manylinux2014_x86_64" ;;
+    *) fail "unsupported architecture '$1'; use arm64 or x86_64" ;;
   esac
 }
 
-resolve_path() {
-  local input="$1"
-  if [[ "$input" = /* ]]; then
-    printf '%s\n' "$input"
-  else
-    printf '%s\n' "$ROOT_DIR/$input"
-  fi
+is_known_function() {
+  local candidate="$1"
+  local function_name
+  for function_name in "${FUNCTIONS[@]}"; do
+    [[ "$function_name" == "$candidate" ]] && return 0
+  done
+  return 1
+}
+
+needs_shared_entitlements() {
+  case "$1" in
+    conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --lambda-src)
-      LAMBDA_SRC_DIR="$2"
+    --all)
+      BUILD_ALL=true
+      shift
+      ;;
+    --function)
+      [[ $# -ge 2 ]] || fail "--function requires a value"
+      SELECTED_FUNCTION="$2"
       shift 2
       ;;
-    --requirements)
-      REQUIREMENTS_FILE="$2"
-      shift 2
-      ;;
-    --output)
-      OUTPUT_ZIP="$2"
+    --output-dir)
+      [[ $# -ge 2 ]] || fail "--output-dir requires a value"
+      OUTPUT_DIR="$2"
       shift 2
       ;;
     --python-version)
+      [[ $# -ge 2 ]] || fail "--python-version requires a value"
       PYTHON_VERSION="$2"
       shift 2
       ;;
     --arch)
+      [[ $# -ge 2 ]] || fail "--arch requires a value"
       LAMBDA_ARCH="$2"
       shift 2
+      ;;
+    --skip-dependencies)
+      SKIP_DEPENDENCIES=true
+      shift
       ;;
     -h|--help)
       usage
       exit 0
       ;;
-    *)
-      echo "Unknown argument: $1" >&2
-      usage
-      exit 1
-      ;;
+    *) fail "unknown argument '$1'" ;;
   esac
 done
 
-require_cmd python3
-LAMBDA_SRC_DIR="$(resolve_path "$LAMBDA_SRC_DIR")"
-OUTPUT_ZIP="$(resolve_path "$OUTPUT_ZIP")"
-
-if [[ ! -d "$LAMBDA_SRC_DIR" ]]; then
-  echo "Error: lambda source directory not found: $LAMBDA_SRC_DIR" >&2
-  exit 1
+if [[ "$BUILD_ALL" == true && -n "$SELECTED_FUNCTION" ]] || [[ "$BUILD_ALL" == false && -z "$SELECTED_FUNCTION" ]]; then
+  fail "choose exactly one of --all or --function <name>"
 fi
 
-if [[ -z "$REQUIREMENTS_FILE" ]] && [[ -f "$LAMBDA_SRC_DIR/requirements.txt" ]]; then
-  REQUIREMENTS_FILE="$LAMBDA_SRC_DIR/requirements.txt"
+if [[ -n "$SELECTED_FUNCTION" ]] && ! is_known_function "$SELECTED_FUNCTION"; then
+  fail "unknown function '$SELECTED_FUNCTION'"
 fi
 
-if [[ -n "$REQUIREMENTS_FILE" ]]; then
-  REQUIREMENTS_FILE="$(resolve_path "$REQUIREMENTS_FILE")"
-fi
-
+command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 TARGET_PLATFORM="$(platform_for_arch "$LAMBDA_ARCH")"
+OUTPUT_DIR="$(resolve_path "$OUTPUT_DIR")"
+mkdir -p "$OUTPUT_DIR"
 
-log "Preparing build directory: $BUILD_DIR"
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
+build_function() {
+  local function_name="$1"
+  local source_dir="$ROOT_DIR/src/$function_name"
+  local build_dir="$ROOT_DIR/.build/$function_name"
+  local output_zip="$OUTPUT_DIR/$function_name.zip"
+  local requirements_file="$source_dir/requirements.txt"
 
-log "Copying source files from $LAMBDA_SRC_DIR"
-cp -R "$LAMBDA_SRC_DIR"/. "$BUILD_DIR/"
+  [[ -d "$source_dir" ]] || fail "source directory not found: $source_dir"
+  [[ -f "$source_dir/app.py" ]] || fail "handler not found: $source_dir/app.py"
 
-if [[ -d "$SHARED_SRC_DIR" ]]; then
-  log "Copying shared entitlement package from $SHARED_SRC_DIR"
-  cp -R "$SHARED_SRC_DIR" "$BUILD_DIR/shared_entitlements"
-fi
+  echo "Packaging $function_name"
+  rm -rf "$build_dir"
+  mkdir -p "$build_dir"
+  cp -R "$source_dir"/. "$build_dir/"
 
-log "Removing local caches and build-only files"
-find "$BUILD_DIR" -type d -name "__pycache__" -prune -exec rm -rf {} +
-find "$BUILD_DIR" -type f -name "*.pyc" -delete
-rm -f "$BUILD_DIR/requirements.txt"
-
-if [[ -n "$REQUIREMENTS_FILE" ]]; then
-  if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
-    echo "Error: requirements file not found: $REQUIREMENTS_FILE" >&2
-    exit 1
+  if needs_shared_entitlements "$function_name"; then
+    cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
   fi
 
-  log "Installing Linux-compatible dependencies for Lambda"
-  log "Platform: $TARGET_PLATFORM | Python: $PYTHON_VERSION | Arch: $LAMBDA_ARCH"
+  if [[ -f "$requirements_file" && "$SKIP_DEPENDENCIES" == false ]]; then
+    python3 -m pip install \
+      --disable-pip-version-check \
+      --no-compile \
+      --target "$build_dir" \
+      --requirement "$requirements_file" \
+      --platform "$TARGET_PLATFORM" \
+      --implementation cp \
+      --python-version "$PYTHON_VERSION" \
+      --only-binary=:all:
+  fi
 
-  python3 -m pip install \
-    --upgrade \
-    --target "$BUILD_DIR" \
-    --requirement "$REQUIREMENTS_FILE" \
-    --platform "$TARGET_PLATFORM" \
-    --implementation cp \
-    --python-version "$PYTHON_VERSION" \
-    --only-binary=:all:
+  find "$build_dir" -type d -name __pycache__ -prune -exec rm -rf {} +
+  find "$build_dir" -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
+  rm -f "$build_dir/requirements.txt" "$output_zip"
 
-  log "Removing dependency metadata not needed at runtime"
-  find "$BUILD_DIR" -type d \( -name "*.dist-info" -o -name "*.egg-info" \) -prune -exec rm -rf {} +
-fi
-
-log "Creating ZIP artifact: $OUTPUT_ZIP"
-mkdir -p "$(dirname "$OUTPUT_ZIP")"
-rm -f "$OUTPUT_ZIP"
-
-python3 - <<PY
-import os
+  python3 - "$build_dir" "$output_zip" <<'PY'
+from pathlib import Path
+import stat
+import sys
 import zipfile
 
-build_dir = os.path.abspath("$BUILD_DIR")
-out_zip = os.path.abspath("$OUTPUT_ZIP")
+build_dir = Path(sys.argv[1]).resolve()
+output_zip = Path(sys.argv[2]).resolve()
 
-with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-    for root, _, files in os.walk(build_dir):
-        for f in files:
-            full_path = os.path.join(root, f)
-            arcname = os.path.relpath(full_path, build_dir)
-            zf.write(full_path, arcname)
-
-print(out_zip)
+with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for path in sorted(item for item in build_dir.rglob("*") if item.is_file()):
+        relative_path = path.relative_to(build_dir).as_posix()
+        info = zipfile.ZipInfo(relative_path, date_time=(1980, 1, 1, 0, 0, 0))
+        mode = 0o755 if path.stat().st_mode & stat.S_IXUSR else 0o644
+        info.external_attr = (stat.S_IFREG | mode) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        with path.open("rb") as source:
+            archive.writestr(info, source.read(), compresslevel=9)
 PY
 
-log "Build complete"
-log "Artifact: $OUTPUT_ZIP"
+  python3 - "$output_zip" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    names = archive.namelist()
+    if "app.py" not in names:
+        raise SystemExit(f"{sys.argv[1]} does not contain app.py at its root")
+    bad = [name for name in names if "__pycache__" in name or name.endswith((".pyc", ".pyo"))]
+    if bad:
+        raise SystemExit(f"{sys.argv[1]} contains cache files: {bad}")
+PY
+
+  python3 - "$output_zip" <<'PY'
+from hashlib import sha256
+from pathlib import Path
+import sys
+
+artifact = Path(sys.argv[1])
+print(f"{sha256(artifact.read_bytes()).hexdigest()}  {artifact}")
+PY
+}
+
+if [[ "$BUILD_ALL" == true ]]; then
+  for function_name in "${FUNCTIONS[@]}"; do
+    build_function "$function_name"
+  done
+else
+  build_function "$SELECTED_FUNCTION"
+fi

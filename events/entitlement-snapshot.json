@@ -1,0 +1,15 @@
+{
+  "requestContext": {
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "sub": "user-123"
+        }
+      }
+    }
+  },
+  "resource": "/entitlements/snapshot",
+  "path": "/entitlements/snapshot",
+  "httpMethod": "GET",
+  "isBase64Encoded": false
+}
