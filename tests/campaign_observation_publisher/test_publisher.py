@@ -316,6 +316,7 @@ class ServiceTests(unittest.TestCase):
 class HandlerTests(unittest.TestCase):
     def setUp(self):
         fake_cloudwatch.calls.clear()
+        fake_dynamo.item = {"status": {"S": "ENABLED"}, "keyArn": {"S": "arn:period-key"}}
 
     def test_handler_uses_content_free_completion_log(self):
         with mock.patch.object(app, "publish_observation", return_value="published") as publish, \

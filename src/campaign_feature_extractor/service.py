@@ -48,6 +48,8 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             "statisticsEventId": event_id,
             "periodId": item["periodId"],
             "contributorToken": item["contributorToken"],
+            "GSI1PK": f"CONTRIB#{item['periodId']}#{item['contributorToken']}",
+            "GSI1SK": f"EVENT#{event_id}#FEATURE",
             "taxonomyBucket": _taxonomy_bucket(item.get("signalIds", [])),
             "languageId": _language_id(item["sanitizedText"]),
             "vector": vector,

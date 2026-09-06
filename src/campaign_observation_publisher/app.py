@@ -37,11 +37,12 @@ def lambda_handler(event, _context):
         if item is None:
             continue
         period_id = contributor_period_id(item["observedAtEpoch"])
+        hmac_key_id = _period_key(period_id)
         result = publish_observation(
             item,
             pipeline_table_name=config.PIPELINE_TABLE_NAME,
             feature_queue_url=config.FEATURE_QUEUE_URL,
-            hmac_key_id=config.period_hmac_key_id(period_id),
+            hmac_key_id=hmac_key_id,
             observation_retention_hours=config.OBSERVATION_RETENTION_HOURS,
             transient_retention_days=config.TRANSIENT_RETENTION_DAYS,
             dynamodb_client=dynamodb_client,
@@ -57,6 +58,20 @@ def lambda_handler(event, _context):
         sum(results.values()),
     )
     return {"processed": sum(results.values()), "results": results}
+
+
+def _period_key(period_id: int) -> str:
+    response = dynamodb_client.get_item(
+        TableName=config.PIPELINE_TABLE_NAME,
+        Key={"PK": {"S": f"PERIOD#{period_id}"}, "SK": {"S": "HMAC_KEY"}},
+        ConsistentRead=True,
+        ProjectionExpression="keyArn,#status",
+        ExpressionAttributeNames={"#status": "status"},
+    )
+    item = response.get("Item") or {}
+    if item.get("status") != {"S": "ENABLED"} or "keyArn" not in item:
+        raise RuntimeError("The contributor period key is unavailable")
+    return item["keyArn"]["S"]
 
 
 def _metric(result: str) -> None:

@@ -1,0 +1,1 @@
+"""Campaign deletion bridge tests."""

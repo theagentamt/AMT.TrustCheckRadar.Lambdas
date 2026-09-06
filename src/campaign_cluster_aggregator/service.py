@@ -22,6 +22,14 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if feature.get("expiresAt", 0) <= now_epoch or feature.get("suppressed") is True:
         return "suppressed"
+    tombstone = dynamodb.get_item(
+        TableName=table_name,
+        Key={"PK": {"S": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}"},
+             "SK": {"S": "TOMBSTONE"}},
+        ConsistentRead=True,
+    ).get("Item")
+    if tombstone:
+        return "suppressed"
 
     dedupe_key = {"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "CLUSTERED"}}
     if dynamodb.get_item(TableName=table_name, Key=dedupe_key, ConsistentRead=True).get("Item"):
@@ -74,6 +82,8 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         put_candidate,
         {"Put": {"TableName": table_name, "Item": serialize({
             "PK": f"CANDIDATE#{candidate_id}", "SK": f"CONTRIB#{feature['contributorToken']}",
+            "GSI1PK": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}",
+            "GSI1SK": f"CANDIDATE#{candidate_id}",
             "periodId": feature["periodId"], "submissionCount": 1, "vectorApplied": True,
             "vector": feature["vector"], "expiresAt": expires_at,
         }), "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}},

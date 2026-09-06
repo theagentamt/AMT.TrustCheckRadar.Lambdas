@@ -23,6 +23,30 @@ This document captures the deployment dependency contract for the Lambda functio
 
 ---
 
+## Campaign Lifecycle and Deletion Bridge
+
+- Artifacts: `campaign_lifecycle.zip` and `campaign_deletion_bridge.zip`
+- Handlers: `app.lambda_handler`
+- The lifecycle handler accepts only the scheduler operations `manage_keys`,
+  `finalize_periods`, and `expire_transient` for its immutable environment.
+- Period HMAC key ARNs are registered at `PK=PERIOD#<periodId>, SK=HMAC_KEY`.
+  Publisher and deletion workers read that registry; no KMS alias permission is
+  required.
+- Keys are created as `HMAC_256`/`GENERATE_VERIFY_MAC`, tagged by project,
+  environment, purpose, and period, disabled after the seven-day recovery window,
+  and scheduled for deletion with the seven-day minimum.
+- Threshold finalization recomputes counts from contribution records, suppresses
+  cohorts below 10, persists only a non-linkable aggregate for review, and removes
+  the transient candidate ledger.
+- The deletion bridge derives only current/recovery-period tokens, writes a
+  tombstone before deleting GSI-matched records, and recomputes affected centroids
+  and counts from remaining contributions.
+- `expire_transient` fails explicitly until `CampaignPipeline` exposes an expiry
+  query access pattern. DynamoDB TTL remains a safety net but is not represented as
+  evidence of deadline-bound explicit deletion.
+
+---
+
 ## Campaign Observation Publisher
 
 - Lambda path: `src/campaign_observation_publisher/`

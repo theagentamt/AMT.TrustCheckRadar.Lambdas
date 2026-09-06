@@ -8,10 +8,6 @@ FEATURE_QUEUE_URL = os.environ.get("FEATURE_QUEUE_URL", "")
 OBSERVATION_RETENTION_HOURS = int(os.environ.get("OBSERVATION_RETENTION_HOURS", "72"))
 TRANSIENT_RETENTION_DAYS = int(os.environ.get("TRANSIENT_RETENTION_DAYS", "21"))
 CONTRIBUTOR_PERIOD_DAYS = int(os.environ.get("CONTRIBUTOR_PERIOD_DAYS", "14"))
-HMAC_KEY_ID_TEMPLATE = os.environ.get(
-    "CONTRIBUTOR_HMAC_KEY_ID_TEMPLATE",
-    "alias/trustcheckradar-{environment}-campaign-contributor-{period_id}",
-)
 
 
 def validate_config() -> None:
@@ -29,14 +25,3 @@ def validate_config() -> None:
         raise RuntimeError("TRANSIENT_RETENTION_DAYS must be between 1 and 21")
     if CONTRIBUTOR_PERIOD_DAYS != 14:
         raise RuntimeError("CONTRIBUTOR_PERIOD_DAYS must be 14")
-    try:
-        HMAC_KEY_ID_TEMPLATE.format(environment=APP_ENVIRONMENT, period_id="0")
-    except (KeyError, ValueError) as err:
-        raise RuntimeError("CONTRIBUTOR_HMAC_KEY_ID_TEMPLATE is invalid") from err
-
-
-def period_hmac_key_id(period_id: int) -> str:
-    return HMAC_KEY_ID_TEMPLATE.format(
-        environment=APP_ENVIRONMENT,
-        period_id=period_id,
-    )
