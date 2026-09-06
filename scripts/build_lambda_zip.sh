@@ -213,6 +213,20 @@ if [[ "$BUILD_ALL" == true ]]; then
   for function_name in "${FUNCTIONS[@]}"; do
     build_function "$function_name"
   done
+
+  python3 - "$OUTPUT_DIR" <<'PY'
+from hashlib import sha256
+from pathlib import Path
+import sys
+
+output_dir = Path(sys.argv[1])
+artifacts = sorted(output_dir.glob("*.zip"))
+manifest = "".join(
+    f"{sha256(artifact.read_bytes()).hexdigest()}  {artifact.name}\n"
+    for artifact in artifacts
+)
+(output_dir / "SHA256SUMS").write_text(manifest, encoding="utf-8")
+PY
 else
   build_function "$SELECTED_FUNCTION"
 fi

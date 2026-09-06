@@ -1,0 +1,236 @@
+name: Publish Lambda release
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment artifact bucket to publish to
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
+      source_run_id:
+        description: Successful main-branch CI run containing the exact artifacts to promote
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+concurrency:
+  group: lambda-publish-${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       vars.ENABLE_DEV_PUBLISH == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+    env:
+      ARTIFACT_BUCKET: ${{ vars.ARTIFACT_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      FEATURE_IMAGE_ECR_REPOSITORY: ${{ vars.FEATURE_IMAGE_ECR_REPOSITORY }}
+
+    steps:
+      - name: Resolve and validate source CI run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_RUN_ID: ${{ inputs.source_run_id }}
+          COMPLETED_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
+            source_run_id="${COMPLETED_RUN_ID}"
+          else
+            source_run_id="${REQUESTED_RUN_ID}"
+          fi
+
+          [[ "${source_run_id}" =~ ^[0-9]+$ ]] || {
+            echo "source_run_id must be a numeric GitHub Actions run ID" >&2
+            exit 2
+          }
+
+          run_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${source_run_id}")"
+          workflow_name="$(jq -r '.name' <<<"${run_json}")"
+          conclusion="$(jq -r '.conclusion' <<<"${run_json}")"
+          event="$(jq -r '.event' <<<"${run_json}")"
+          head_branch="$(jq -r '.head_branch' <<<"${run_json}")"
+          source_sha="$(jq -r '.head_sha' <<<"${run_json}")"
+
+          [[ "${workflow_name}" == "CI" ]] || {
+            echo "Run ${source_run_id} belongs to '${workflow_name}', not CI" >&2
+            exit 2
+          }
+          [[ "${conclusion}" == "success" && "${event}" == "push" && "${head_branch}" == "main" ]] || {
+            echo "Run ${source_run_id} must be a successful CI push run on main" >&2
+            exit 2
+          }
+          [[ "${source_sha}" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "Run ${source_run_id} returned an invalid source SHA" >&2
+            exit 2
+          }
+
+          {
+            echo "run_id=${source_run_id}"
+            echo "source_sha=${source_sha}"
+            echo "release_id=${source_sha}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Validate environment configuration
+        run: |
+          set -euo pipefail
+          [[ -n "${AWS_REGION}" ]] || { echo "GitHub environment variable AWS_REGION is required" >&2; exit 2; }
+          [[ -n "${AWS_ROLE_ARN}" ]] || { echo "GitHub environment variable AWS_ROLE_ARN is required" >&2; exit 2; }
+          [[ -n "${ARTIFACT_BUCKET}" ]] || { echo "GitHub environment variable ARTIFACT_BUCKET is required" >&2; exit 2; }
+          [[ "${AWS_ROLE_ARN}" =~ ^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+ ]] || {
+            echo "AWS_ROLE_ARN is not a valid IAM role ARN" >&2
+            exit 2
+          }
+
+      - name: Check out the released source
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.source_sha }}
+          persist-credentials: false
+
+      - name: Download exact CI packages
+        uses: actions/download-artifact@v8
+        with:
+          name: lambda-packages
+          path: dist
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+
+      - name: Download exact CI feature image
+        if: env.FEATURE_IMAGE_ECR_REPOSITORY != ''
+        uses: actions/download-artifact@v8
+        with:
+          name: campaign-feature-image
+          path: feature-image
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.source.outputs.run_id }}
+
+      - name: Verify package checksums and contents
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check SHA256SUMS
+          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 14 ]] || {
+            echo "Expected all 14 Lambda ZIP packages" >&2
+            exit 2
+          }
+          for artifact in *.zip; do
+            unzip -Z1 "${artifact}" app.py | grep -Fxq app.py || {
+              echo "${artifact} does not contain app.py at its root" >&2
+              exit 2
+            }
+          done
+
+      - name: Configure short-lived AWS credentials
+        id: aws
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: trustcheckradar-lambdas-${{ github.run_id }}
+
+      - name: Verify AWS account and target bucket
+        run: |
+          set -euo pipefail
+          expected_account_id="${AWS_ROLE_ARN#*::}"
+          expected_account_id="${expected_account_id%%:*}"
+          actual_account_id="$(aws sts get-caller-identity --query Account --output text)"
+          [[ "${actual_account_id}" == "${expected_account_id}" ]] || {
+            echo "Assumed role account does not match AWS_ROLE_ARN" >&2
+            exit 2
+          }
+          aws s3api head-bucket --bucket "${ARTIFACT_BUCKET}"
+
+      - name: Publish immutable Lambda ZIP release
+        run: |
+          bash scripts/upload_lambda_zips.sh \
+            --dist-dir dist \
+            --bucket "${ARTIFACT_BUCKET}" \
+            --release "${{ steps.source.outputs.release_id }}" \
+            --region "${AWS_REGION}" \
+            --include-optional true
+
+      - name: Log in to Amazon ECR
+        if: env.FEATURE_IMAGE_ECR_REPOSITORY != ''
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Publish exact CI feature-extractor image
+        if: env.FEATURE_IMAGE_ECR_REPOSITORY != ''
+        id: feature_image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
+          RELEASE_ID: ${{ steps.source.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          image_uri="${ECR_REGISTRY}/${FEATURE_IMAGE_ECR_REPOSITORY}:${RELEASE_ID}"
+          image_digest="$(aws ecr describe-images \
+            --repository-name "${FEATURE_IMAGE_ECR_REPOSITORY}" \
+            --image-ids "imageTag=${RELEASE_ID}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text 2>/dev/null || true)"
+          if [[ ! "${image_digest}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            docker load --input feature-image/campaign-feature-extractor.tar
+            docker tag "campaign-feature-extractor:${RELEASE_ID}" "${image_uri}"
+            docker push "${image_uri}"
+            image_digest="$(aws ecr describe-images \
+              --repository-name "${FEATURE_IMAGE_ECR_REPOSITORY}" \
+              --image-ids "imageTag=${RELEASE_ID}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+          fi
+          [[ "${image_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            echo "ECR did not return an immutable image digest" >&2
+            exit 2
+          }
+          echo "digest=${image_digest}" >> "${GITHUB_OUTPUT}"
+          echo "uri=${ECR_REGISTRY}/${FEATURE_IMAGE_ECR_REPOSITORY}@${image_digest}" >> "${GITHUB_OUTPUT}"
+
+      - name: Write release summary
+        env:
+          RELEASE_ID: ${{ steps.source.outputs.release_id }}
+          SOURCE_RUN_ID: ${{ steps.source.outputs.run_id }}
+          FEATURE_IMAGE_URI: ${{ steps.feature_image.outputs.uri }}
+        run: |
+          {
+            echo "## Lambda release published"
+            echo
+            echo "- Environment: \`${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}\`"
+            echo "- Source CI run: \`${SOURCE_RUN_ID}\`"
+            echo "- Source commit/release: \`${RELEASE_ID}\`"
+            echo "- ZIP location: \`s3://${ARTIFACT_BUCKET}/releases/${RELEASE_ID}/\`"
+            if [[ -n "${FEATURE_IMAGE_URI}" ]]; then
+              echo "- Feature image: \`${FEATURE_IMAGE_URI}\`"
+            else
+              echo "- Feature image: skipped because \`FEATURE_IMAGE_ECR_REPOSITORY\` is not configured"
+            fi
+            echo
+            echo "This publishes immutable artifacts only. The infrastructure workflow must deploy release \`${RELEASE_ID}\`."
+          } >> "${GITHUB_STEP_SUMMARY}"

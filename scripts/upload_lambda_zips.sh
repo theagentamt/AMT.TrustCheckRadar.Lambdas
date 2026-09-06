@@ -86,6 +86,7 @@ done
 [[ "$RELEASE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]] || fail "--release must use only letters, digits, dots, underscores, and hyphens"
 [[ "$INCLUDE_OPTIONAL" == true || "$INCLUDE_OPTIONAL" == false ]] || fail "--include-optional must be true or false"
 command -v aws >/dev/null 2>&1 || fail "aws CLI is required"
+command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 
 DIST_DIR="$(resolve_path "$DIST_DIR")"
 FUNCTIONS=("${REQUIRED_FUNCTIONS[@]}")
@@ -98,14 +99,67 @@ for function_name in "${FUNCTIONS[@]}"; do
   [[ -f "$artifact" ]] || fail "missing artifact: $artifact"
 done
 
-for function_name in "${FUNCTIONS[@]}"; do
-  artifact="$DIST_DIR/$function_name.zip"
-  object_key="releases/$RELEASE_ID/$function_name.zip"
-  put_args=(s3api put-object --bucket "$BUCKET_NAME" --key "$object_key" --body "$artifact" --if-none-match '*')
+CHECKSUM_MANIFEST="$DIST_DIR/SHA256SUMS"
+[[ -f "$CHECKSUM_MANIFEST" ]] || fail "missing checksum manifest: $CHECKSUM_MANIFEST"
+
+python3 - "$DIST_DIR" "${FUNCTIONS[@]}" <<'PY'
+from hashlib import sha256
+from pathlib import Path
+import sys
+
+dist_dir = Path(sys.argv[1])
+function_names = sys.argv[2:]
+entries = {}
+for line in (dist_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
+    digest, separator, name = line.partition("  ")
+    if not separator or len(digest) != 64 or not name:
+        raise SystemExit(f"invalid SHA256SUMS entry: {line!r}")
+    entries[name] = digest
+
+for function_name in function_names:
+    name = f"{function_name}.zip"
+    artifact = dist_dir / name
+    expected = entries.get(name)
+    actual = sha256(artifact.read_bytes()).hexdigest()
+    if expected is None:
+        raise SystemExit(f"missing checksum for {name}")
+    if actual != expected:
+        raise SystemExit(f"checksum mismatch for {name}")
+PY
+
+upload_immutable() {
+  local source_path="$1"
+  local object_key="$2"
+  local digest="$3"
+  local content_type="${4:-application/zip}"
+  local existing_digest=""
+  local head_args=(s3api head-object --bucket "$BUCKET_NAME" --key "$object_key")
+  local put_args=(s3api put-object --bucket "$BUCKET_NAME" --key "$object_key" --body "$source_path" --content-type "$content_type" --metadata "sha256=$digest" --if-none-match '*')
+
   if [[ -n "$AWS_REGION" ]]; then
+    head_args+=(--region "$AWS_REGION")
     put_args+=(--region "$AWS_REGION")
+  fi
+
+  if existing_digest="$(aws "${head_args[@]}" --query 'Metadata.sha256' --output text 2>/dev/null)"; then
+    if [[ "$existing_digest" == "$digest" ]]; then
+      echo "Already published with matching checksum: s3://$BUCKET_NAME/$object_key"
+      return 0
+    fi
+    fail "immutable object already exists with a different or missing checksum: s3://$BUCKET_NAME/$object_key"
   fi
 
   echo "Uploading s3://$BUCKET_NAME/$object_key"
   aws "${put_args[@]}" --query '{ETag:ETag,VersionId:VersionId}' --output json
+}
+
+for function_name in "${FUNCTIONS[@]}"; do
+  artifact="$DIST_DIR/$function_name.zip"
+  object_key="releases/$RELEASE_ID/$function_name.zip"
+  artifact_digest="$(awk -v name="$function_name.zip" '$2 == name { print $1 }' "$CHECKSUM_MANIFEST")"
+  upload_immutable "$artifact" "$object_key" "$artifact_digest"
 done
+
+manifest_key="releases/$RELEASE_ID/SHA256SUMS"
+manifest_digest="$(python3 -c 'from hashlib import sha256; from pathlib import Path; import sys; print(sha256(Path(sys.argv[1]).read_bytes()).hexdigest())' "$CHECKSUM_MANIFEST")"
+upload_immutable "$CHECKSUM_MANIFEST" "$manifest_key" "$manifest_digest" "text/plain"

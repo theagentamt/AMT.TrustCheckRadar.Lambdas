@@ -88,6 +88,13 @@ After publishing, set the same release ID in the infrastructure deployment.
 Use `INCLUDE_OPTIONAL=false` to publish only the six functions required by the
 default infrastructure configuration.
 
+GitHub Actions can publish the exact artifacts from a successful main-branch CI
+run with short-lived AWS OIDC credentials. Dev publishing can run automatically;
+UAT and production promotion uses protected GitHub environments and the original
+CI run so the ZIP bytes are not rebuilt. See
+[GitHub Lambda Publishing](docs/GITHUB_PUBLISHING.md) for the required repository
+variables, AWS role contract, and promotion flow.
+
 ## Repository boundaries
 
 - Do not deploy CloudFormation/SAM stacks from this repository.
