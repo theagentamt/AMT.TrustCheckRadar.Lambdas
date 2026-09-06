@@ -11,6 +11,7 @@ SKIP_DEPENDENCIES=false
 
 FUNCTIONS=(
   age_attestation
+  campaign_observation_publisher
   conversation_analysis
   device_registration
   device_recovery

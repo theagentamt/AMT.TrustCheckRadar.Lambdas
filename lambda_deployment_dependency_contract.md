@@ -2,6 +2,55 @@
 
 This document captures the deployment dependency contract for the Lambda functions currently used from the infrastructure repo.
 
+## Campaign Observation Publisher
+
+- Lambda path: `src/campaign_observation_publisher/`
+- Artifact: `campaign_observation_publisher.zip`
+- Handler: `app.lambda_handler`
+- Runtime expectation: Python 3.13 compatible, ARM64
+- Invocation mode: `INSERT` records from the campaign outbox DynamoDB stream
+
+### Required environment variables
+
+| Variable | Required | Example | What breaks if missing |
+|---|---|---:|---|
+| `APP_ENVIRONMENT` | Yes | `dev` | Cross-environment validation and key selection cannot run |
+| `CAMPAIGN_SCHEMA_VERSION` | Yes | `1` | Version validation cannot run; V1 is the only supported value |
+| `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient observations and dedupe state cannot be written |
+| `FEATURE_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque feature requests cannot be published |
+| `CONTRIBUTOR_HMAC_KEY_ID_TEMPLATE` | Until the period-key discovery handoff is finalized | `alias/trustcheckradar-{environment}-campaign-contributor-{period_id}` | The publisher cannot address the period-specific KMS HMAC key |
+| `CONTRIBUTOR_PERIOD_DAYS` | No | `14` | Defaults to 14 and rejects any other value |
+| `OBSERVATION_RETENTION_HOURS` | No | `72` | Defaults to 72 and rejects values above the approved maximum |
+| `TRANSIENT_RETENTION_DAYS` | No | `21` | Defaults to 21 and rejects values above the approved maximum |
+| `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
+
+### External resources
+
+| Resource | Needs |
+|---|---|
+| Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
+| Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:TransactWriteItems` |
+| Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
+| Feature queue | `sqs:SendMessage` |
+| Campaign metrics namespace | `cloudwatch:PutMetricData` |
+
+### Privacy and message contract
+
+- The outbox input is strict, versioned, environment-bound, and requires an explicit `campaignConsentGranted` boolean.
+- Declined consent and expired observations are successful no-ops.
+- The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
+- Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
+- Sanitized observations expire within 72 hours; dedupe state expires within 21 days.
+- Feature queue messages contain exactly `schemaVersion`, `eventType`, `environment`, `statisticsEventId`, and `recordVersion`.
+- Standard-queue delivery is at least once. A `PENDING`/`PUBLISHED` dedupe record prevents completed replays while permitting recovery after a write-before-send failure.
+
+The authoritative completed-analysis/outbox schema and lifecycle-created HMAC key
+addressing convention remain pending campaign contract handoff. The parser and key
+template are isolated so those details can be aligned without weakening the privacy
+boundary.
+
+---
+
 ## Age Attestation
 
 - Lambda path: `src/age_attestation/app.py`

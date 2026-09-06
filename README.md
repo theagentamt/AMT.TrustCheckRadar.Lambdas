@@ -9,6 +9,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | Artifact | Invocation | Purpose |
 |---|---|---|
 | `age_attestation.zip` | `POST /v1/users/age-attestation` | Records the authenticated user's age-policy decision. |
+| `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Pseudonymizes opted-in completed analyses and publishes opaque feature work. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
 | `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
@@ -18,8 +19,8 @@ this repository owns function code, tests, and immutable deployment packages.
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
 All deployed handlers are `app.lambda_handler` on Python 3.13. Optional functions
-are packaged with the required release set, but Terraform decides whether to deploy
-them.
+and campaign workers are packaged with the required release set, but Terraform
+decides whether to deploy them.
 
 ## Local development
 
