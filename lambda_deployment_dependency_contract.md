@@ -47,6 +47,25 @@ This document captures the deployment dependency contract for the Lambda functio
 
 ---
 
+## Campaign Review
+
+- Artifact: `campaign_review.zip`; handler: `app.lambda_handler`.
+- Requires `APP_ENVIRONMENT`, `CAMPAIGN_SCHEMA_VERSION`,
+  `INTELLIGENCE_TABLE_NAME`, `REVIEWER_GROUP`, and
+  `MIN_CONTRIBUTOR_COUNT=10`.
+- Accepts only the configured Cognito reviewer group and performs conditional,
+  versioned transitions from `PENDING_REVIEW` to `CONFIRMED`, from `CONFIRMED` to
+  `PUBLISHED`, and from review/confirmed/published states to suppression where
+  allowed.
+- Publication creates the sparse `STATE#PUBLISHED` index keys; emergency
+  suppression removes them in the same conditional update.
+- Every state change and standardized reason code is written with a conditional
+  immutable audit record in the same DynamoDB transaction. Reviewer identity and
+  free-form reason text are not persisted.
+- Merge and split fail closed until an overlap-safe aggregate contract exists.
+
+---
+
 ## Campaign Observation Publisher
 
 - Lambda path: `src/campaign_observation_publisher/`

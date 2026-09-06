@@ -13,6 +13,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_deletion_bridge.zip` | Account-deletion ledger stream | Tombstones and removes active pseudonymous contributions. |
 | `campaign_lifecycle.zip` | EventBridge Scheduler | Finalizes thresholded periods and creates/retires period HMAC keys. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Pseudonymizes opted-in completed analyses and publishes opaque feature work. |
+| `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | Campaign feature-extractor image | Feature SQS queue | Produces bounded multilingual embeddings from an image-baked offline model. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |

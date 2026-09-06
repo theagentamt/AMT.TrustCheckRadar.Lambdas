@@ -15,6 +15,7 @@ FUNCTIONS=(
   campaign_deletion_bridge
   campaign_lifecycle
   campaign_observation_publisher
+  campaign_review
   conversation_analysis
   device_registration
   device_recovery
