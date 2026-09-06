@@ -73,6 +73,8 @@ def finalize_periods(*, environment, schema_version, pipeline_table, intelligenc
                         "taxonomyVersion": 1, "categoryId": candidate["taxonomyBucket"],
                         "periodWeek": week, "state": "PENDING_REVIEW", "contributorCount": contributor_count,
                         "submissionCount": submission_count, "languageIds": candidate.get("languageIds", ["en", "es"]),
+                        "contributorCountBand": count_band(contributor_count),
+                        "submissionCountBand": count_band(submission_count),
                         "riskBand": "high", "summaryKey": f"campaign.{candidate['taxonomyBucket']}",
                         "trendDirection": "new", "expiresAt": now_epoch + aggregate_retention_days * 86400,
                         "version": 1, "environment": environment}
@@ -83,6 +85,15 @@ def finalize_periods(*, environment, schema_version, pipeline_table, intelligenc
                     results["suppressed"] += 1
                 _delete_candidate(dynamodb, pipeline_table, candidate["candidateId"], contributions)
     return results
+
+
+def count_band(value):
+    if value < 10: return None
+    if value < 25: return "10-24"
+    if value < 50: return "25-49"
+    if value < 100: return "50-99"
+    if value < 250: return "100-249"
+    return "250+"
 
 
 def _contributions(dynamodb, table, candidate_id):

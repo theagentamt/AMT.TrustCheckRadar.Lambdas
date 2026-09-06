@@ -16,6 +16,7 @@ FUNCTIONS=(
   campaign_lifecycle
   campaign_observation_publisher
   campaign_review
+  campaign_trends
   conversation_analysis
   device_registration
   device_recovery

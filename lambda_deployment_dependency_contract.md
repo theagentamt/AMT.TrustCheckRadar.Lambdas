@@ -66,6 +66,23 @@ This document captures the deployment dependency contract for the Lambda functio
 
 ---
 
+## Campaign Trends
+
+- Artifact: `campaign_trends.zip`; handler: `app.lambda_handler`.
+- Requires `APP_ENVIRONMENT`, `CAMPAIGN_SCHEMA_VERSION`,
+  `INTELLIGENCE_TABLE_NAME`, `PUBLICATION_INDEX_NAME`,
+  `MIN_CONTRIBUTOR_COUNT=10`, `MAXIMUM_PAGE_SIZE`, and
+  `PAGINATION_TOKEN_TTL_SECS`.
+- Queries only `GSI1PK=STATE#PUBLISHED` through `PublicationIndex`; it has no
+  transient or identity-table dependency.
+- Returns count bands rather than exact counts and suppresses any item whose
+  contributor or submission band is missing or invalid.
+- Supports English/Spanish labels, safe unknown taxonomy IDs, category/risk/
+  language/week filters, descending periods, bounded page sizes, and
+  environment-bound expiring pagination tokens.
+
+---
+
 ## Campaign Observation Publisher
 
 - Lambda path: `src/campaign_observation_publisher/`
