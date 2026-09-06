@@ -2,6 +2,27 @@
 
 This document captures the deployment dependency contract for the Lambda functions currently used from the infrastructure repo.
 
+## Campaign Cluster Aggregator
+
+- Lambda path: `src/campaign_cluster_aggregator/`
+- Artifact: `campaign_cluster_aggregator.zip`
+- Handler: `app.lambda_handler`
+- Invocation: campaign cluster SQS queue with partial batch responses
+- Required configuration: `APP_ENVIRONMENT`, `CAMPAIGN_SCHEMA_VERSION`,
+  `PIPELINE_TABLE_NAME`, `TRANSIENT_RETENTION_DAYS`,
+  `MIN_CONTRIBUTOR_COUNT`, and `MAX_CONTRIBUTOR_SUBMISSIONS`
+- Access: read/write `CampaignPipeline` and query `CandidateBucketIndex`
+- Queue messages contain only the approved five-field opaque envelope.
+- Similarity weights are semantic 45%, lexical 25%, tactics/taxonomy 20%, and
+  bounded indicators 10%; category conflicts cannot match.
+- Scores at or above 0.82 may match. Lower scores create a separate candidate;
+  publication is never automatic.
+- Each contributor contributes one centroid vector and at most three counted
+  submissions per candidate and fixed 14-day period.
+- Candidate, contribution, and event dedupe records expire within 21 days.
+
+---
+
 ## Campaign Observation Publisher
 
 - Lambda path: `src/campaign_observation_publisher/`

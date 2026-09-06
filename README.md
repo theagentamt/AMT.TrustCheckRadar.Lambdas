@@ -9,6 +9,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | Artifact | Invocation | Purpose |
 |---|---|---|
 | `age_attestation.zip` | `POST /v1/users/age-attestation` | Records the authenticated user's age-policy decision. |
+| `campaign_cluster_aggregator.zip` | Cluster SQS queue | Applies bounded similarity and contributor caps to transient candidates. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Pseudonymizes opted-in completed analyses and publishes opaque feature work. |
 | Campaign feature-extractor image | Feature SQS queue | Produces bounded multilingual embeddings from an image-baked offline model. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |

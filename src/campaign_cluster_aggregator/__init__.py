@@ -1,0 +1,1 @@
+"""Campaign cluster aggregator Lambda."""
