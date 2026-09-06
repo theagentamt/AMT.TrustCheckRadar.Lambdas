@@ -67,6 +67,8 @@ class FakeTable:
             item["status"] = values[":result_ready"]
             item["response"] = values[":response"]
             item["resultReadyAt"] = values[":result_ready_at"]
+            if ":statistics_event_id" in values:
+                item["statisticsEventId"] = values[":statistics_event_id"]
             item.pop("leaseToken", None)
             item.pop("leaseExpiresAt", None)
         elif ":previous_lease_expires_at" in values:
@@ -260,6 +262,7 @@ class AbuseControlsTests(unittest.TestCase):
             lock["payloadHash"],
             lock["leaseToken"],
             response(),
+            statistics_event_id="7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc",
             now_epoch=101,
         )
 
@@ -267,6 +270,10 @@ class AbuseControlsTests(unittest.TestCase):
 
         self.assertEqual(result["state"], "result_ready")
         self.assertEqual(result["response"], response())
+        self.assertEqual(
+            result["statisticsEventId"],
+            "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc",
+        )
 
     def test_completed_response_replays_without_reprocessing(self):
         identity_hash = abuse_controls._hashed_identity("user-123")

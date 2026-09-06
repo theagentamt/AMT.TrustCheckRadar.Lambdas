@@ -97,6 +97,10 @@ class ScanAccessTests(unittest.TestCase):
         scan_access.dynamodb_client = transaction_fake
         scan_access.ANALYSIS_ABUSE_TABLE_NAME = "test-analysis-abuse"
         scan_access.ENTITLEMENTS_TABLE_NAME = "test-entitlements"
+        scan_access.APP_ENVIRONMENT = "dev"
+        scan_access.CAMPAIGN_OUTBOX_TABLE_NAME = "test-campaign-outbox"
+        scan_access.CAMPAIGN_SCHEMA_VERSION = 1
+        scan_access.CAMPAIGN_OBSERVATION_RETENTION_HOURS = 72
         transaction_fake.transactions.clear()
         transaction_fake.error = None
 
@@ -195,6 +199,53 @@ class ScanAccessTests(unittest.TestCase):
 
         self.assertEqual(context.exception.code, "REQUEST_IN_PROGRESS")
         self.assertTrue(context.exception.retryable)
+
+    def test_opted_in_analysis_atomically_writes_campaign_outbox(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+
+        scan_access.commit_scan_and_request(
+            grant,
+            "request-123",
+            "payload-hash",
+            {
+                "schemaVersion": "1.0",
+                "requestId": "request-123",
+                "riskLevel": "high",
+                "signals": ["payment_request"],
+            },
+            campaign_payload={
+                "campaignConsentGranted": True,
+                "sourceType": "pasted_text",
+                "sanitizedText": "Send money to [PAYMENT_HANDLE_1].",
+            },
+            statistics_event_id=event_id,
+            now_epoch=100,
+            now_iso="2026-05-11T00:00:00Z",
+        )
+
+        transaction = transaction_fake.transactions[0]
+        self.assertEqual(len(transaction), 4)
+        outbox = transaction[3]["Put"]
+        self.assertEqual(outbox["TableName"], "test-campaign-outbox")
+        self.assertEqual(outbox["Item"]["PK"], {"S": f"EVENT#{event_id}"})
+        self.assertEqual(outbox["Item"]["accountId"], {"S": "user-123"})
+        serialized = str(outbox["Item"])
+        self.assertNotIn("request-123", serialized)
+
+    def test_declined_campaign_consent_does_not_write_outbox(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        scan_access.commit_scan_and_request(
+            grant,
+            "request-123",
+            "payload-hash",
+            {"schemaVersion": "1.0", "requestId": "request-123"},
+            campaign_payload={"campaignConsentGranted": False},
+            now_epoch=100,
+        )
+
+        self.assertEqual(len(transaction_fake.transactions[0]), 3)
 
     def test_atomic_commit_rejects_a_result_for_another_request(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)

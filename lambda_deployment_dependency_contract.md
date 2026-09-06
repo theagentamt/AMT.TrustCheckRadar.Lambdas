@@ -442,6 +442,10 @@ boundary.
 | `SCAN_RATE_LIMIT_MAX_REQUESTS` | No | `20` | Default scan abuse cap is used |
 | `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Free-tier quota math may be wrong |
 | `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Pro-tier quota math may be wrong |
+| `APP_ENVIRONMENT` | Required when campaign publishing is configured | `dev` | Opted-in campaign outbox records cannot be environment-bound |
+| `CAMPAIGN_OUTBOX_TABLE_NAME` | Required for opted-in campaign publishing | `trustcheckradar-dev-campaign-outbox` | Explicit opt-in fails closed instead of publishing |
+| `CAMPAIGN_SCHEMA_VERSION` | No | `1` | Defaults to the V1 campaign record contract |
+| `OBSERVATION_RETENTION_HOURS` | No | `72` | Campaign outbox records default to the maximum 72-hour retention |
 | `OPENAI_SECRET_NAME` | Required for real model calls | `trustcheckradar/dev/openai` | OpenAI API key cannot be loaded |
 | `OPENAI_SECRET_FIELD` | No | `apiKey` | Defaults are used when omitted |
 | `OPENAI_RESPONSES_ENDPOINT` | No | `https://api.openai.com/v1/responses` | Defaults are used when omitted |
@@ -456,6 +460,7 @@ boundary.
 | DynamoDB abuse-control table | `ANALYSIS_ABUSE_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:DeleteItem` | Name required by code |
 | DynamoDB device bindings table | `DEVICE_BINDINGS_TABLE_NAME` | `dynamodb:Query` | Name required by code |
 | DynamoDB entitlements table | `ENTITLEMENTS_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem` | Name required by code |
+| Campaign outbox table | `CAMPAIGN_OUTBOX_TABLE_NAME` | `dynamodb:PutItem` through the existing completion transaction | Name required only for explicitly opted-in submissions |
 | Secrets Manager OpenAI secret | `OPENAI_SECRET_NAME` | `secretsmanager:GetSecretValue` | Name required by code |
 | OpenAI Responses API | runtime outbound call | outbound HTTPS | No AWS identifier |
 | API Gateway JWT authorizer / Cognito identity | request context | invoke + authorizer context | No env var |
@@ -467,6 +472,7 @@ boundary.
   - request idempotency / dedupe:
     - `PK = ANALYSIS#REQUEST#<sha256(identity)>`
     - `SK = <requestId>`
+    - Stores the random campaign `statisticsEventId` only while an opted-in result is awaiting atomic commit, allowing retries to reuse the same event identity.
   - request rate limiting:
     - `PK = ANALYSIS#RATE#<sha256(identity)>`
     - `SK = <windowStart>`

@@ -88,12 +88,12 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             mock.patch.object(
                 service,
                 "store_result",
-                side_effect=lambda *args: calls.append("store"),
+                side_effect=lambda *args, **kwargs: calls.append("store"),
             ),
             mock.patch.object(
                 service,
                 "commit_scan_and_request",
-                side_effect=lambda *args: calls.append("commit"),
+                side_effect=lambda *args, **kwargs: calls.append("commit"),
             ),
             mock.patch.object(service, "release_request"),
             mock.patch.object(service, "analyze_conversation") as mocked_analyze,
@@ -115,12 +115,12 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             mock.patch.object(
                 service,
                 "store_result",
-                side_effect=lambda *args: calls.append("store"),
+                side_effect=lambda *args, **kwargs: calls.append("store"),
             ) as mocked_store,
             mock.patch.object(
                 service,
                 "commit_scan_and_request",
-                side_effect=lambda *args: calls.append("commit"),
+                side_effect=lambda *args, **kwargs: calls.append("commit"),
             ) as mocked_commit,
             mock.patch.object(service, "release_request"),
         ):
@@ -133,12 +133,15 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             "payload-hash",
             "lease-token",
             response,
+            statistics_event_id=None,
         )
         mocked_commit.assert_called_once_with(
             ACCESS_GRANT,
             "request-123",
             "payload-hash",
             response,
+            campaign_payload=PAYLOAD,
+            statistics_event_id=None,
         )
 
     def test_completed_response_replays_without_reprocessing_or_charging(self):
@@ -184,6 +187,8 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             "request-123",
             "payload-hash",
             COMPLETED_RESPONSE,
+            campaign_payload=PAYLOAD,
+            statistics_event_id=None,
         )
         mocked_store.assert_not_called()
         mocked_analyze.assert_not_called()

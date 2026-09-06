@@ -8,7 +8,7 @@ repository's scope.
 |---|---|---|
 | `SECUR4ALL-202` | Consume the approved taxonomy, privacy, retention, and schema decisions in Lambda contracts. | Dependency only. Product rules are available; the authoritative backend schemas and period-key addressing handoff remain pending. |
 | `SECUR4ALL-203` | None. | Excluded: AWS infrastructure story. |
-| `SECUR4ALL-204` | Publish opted-in sanitized observations, derive period pseudonyms, enforce input privacy, retain idempotency state, and enqueue opaque feature requests. | In progress. The publisher, package integration, and unit/privacy tests are implemented. Producer integration waits for the authoritative consent/outbox schema. |
+| `SECUR4ALL-204` | Publish opted-in sanitized observations, derive period pseudonyms, enforce input privacy, retain idempotency state, and enqueue opaque feature requests. | Lambda implementation complete. Analysis opt-in is fail-closed, the event ID survives transaction recovery, the outbox write is atomic with completion, and the publisher is packaged and tested. External contract/privacy approval remains a promotion gate rather than unfinished Lambda code. |
 | `SECUR4ALL-205` | Run the pinned multilingual feature model, redact/bound its output, record model provenance, and enqueue opaque clustering work. | Lambda work identified; model digest, dimensions, calibration, and fixtures are required from the model-selection handoff. |
 | `SECUR4ALL-206` | Perform deterministic candidate scoring and bounded conditional aggregation with contributor caps and replay safety. | Lambda work identified; begins after the feature record contract is accepted. |
 | `SECUR4ALL-207` | Process consent withdrawal/account deletion, remove active contributions, recompute affected candidates, sweep retention, and retire period keys. | Lambda work identified; command schemas and the lifecycle key convention are required first. |
@@ -27,7 +27,8 @@ The observation publisher currently owns the first identity-separating boundary:
 5. Send only the approved five-field envelope to the feature queue.
 6. Track `PENDING` and `PUBLISHED` dedupe state for recoverable at-least-once delivery.
 
-The existing conversation-analysis Lambda is deliberately unchanged until the
-authoritative consent source and completed-analysis/outbox schema are accepted.
-This avoids treating a request field as consent or publishing campaign data without
-an approved opt-in source.
+The conversation-analysis request defaults campaign consent to `false` and accepts
+only an explicit boolean opt-in. An opted-in completion creates its UUIDv4 event
+identity before the atomic commit and stores that identity with `RESULT_READY`, so
+a transaction retry cannot create a second campaign event. Declined requests do
+not create an outbox record.

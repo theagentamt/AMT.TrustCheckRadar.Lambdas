@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from abuse_controls import check_or_lock_request, release_request, store_result
 from analysis_client import analyze_conversation
@@ -25,6 +26,8 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             request_id,
             request_state["payloadHash"],
             request_state["response"],
+            campaign_payload=payload,
+            statistics_event_id=request_state.get("statisticsEventId"),
         )
         return request_state["response"]
     LOGGER.info("Stage completed: request_processing_lease | requestId=%s accountId=%s", request_id, identity)
@@ -60,12 +63,29 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
         LOGGER.info("Stage completed: response_build | requestId=%s accountId=%s", request_id, identity)
 
         LOGGER.info("Stage started: result_store | requestId=%s accountId=%s", request_id, identity)
-        store_result(identity, request_id, payload_hash, lease_token, response_body)
+        statistics_event_id = (
+            str(uuid.uuid4()) if payload.get("campaignConsentGranted") else None
+        )
+        store_result(
+            identity,
+            request_id,
+            payload_hash,
+            lease_token,
+            response_body,
+            statistics_event_id=statistics_event_id,
+        )
         result_stored = True
         LOGGER.info("Stage completed: result_store | requestId=%s accountId=%s", request_id, identity)
 
         LOGGER.info("Stage started: atomic_commit | requestId=%s accountId=%s", request_id, identity)
-        commit_scan_and_request(access_grant, request_id, payload_hash, response_body)
+        commit_scan_and_request(
+            access_grant,
+            request_id,
+            payload_hash,
+            response_body,
+            campaign_payload=payload,
+            statistics_event_id=statistics_event_id,
+        )
         LOGGER.info("Stage completed: atomic_commit | requestId=%s accountId=%s", request_id, identity)
         return response_body
     except Exception:

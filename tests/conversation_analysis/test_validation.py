@@ -35,6 +35,46 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
 
         self.assertEqual(payload["requestId"], "request-123")
         self.assertEqual(payload["entities"][0]["token"], "[TOKEN_1]")
+        self.assertFalse(payload["campaignConsentGranted"])
+
+    def test_accepts_explicit_campaign_opt_in(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                    "campaignConsentGranted": True,
+                }
+            )
+        }
+
+        payload = parse_and_validate_event(event)
+
+        self.assertTrue(payload["campaignConsentGranted"])
+
+    def test_rejects_non_boolean_campaign_consent(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                    "campaignConsentGranted": "yes",
+                }
+            )
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.details[0]["field"], "campaignConsentGranted")
 
     def test_parses_valid_ocr_source_type(self):
         event = {

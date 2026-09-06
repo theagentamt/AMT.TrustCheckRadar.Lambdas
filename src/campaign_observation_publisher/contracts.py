@@ -45,7 +45,7 @@ PROHIBITED_FIELD_NAMES = {
     "originalmessage",
 }
 
-SOURCE_TYPES = {"text", "screenshot", "mixed"}
+SOURCE_TYPES = {"ocr", "pasted_text", "mixed"}
 RISK_LEVELS = {"low", "medium", "high", "unknown"}
 SIGNAL_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 EMAIL_PATTERN = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)

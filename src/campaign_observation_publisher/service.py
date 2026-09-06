@@ -75,7 +75,6 @@ def publish_observation(
                                     "contributorToken": contributor_token,
                                     "GSI1PK": f"CONTRIB#{period_id}#{contributor_token}",
                                     "GSI1SK": f"EVENT#{event_id}",
-                                    "observedAtEpoch": item["observedAtEpoch"],
                                     "sourceType": item["sourceType"],
                                     "sanitizedText": item["sanitizedText"],
                                     "riskLevel": item["riskLevel"],

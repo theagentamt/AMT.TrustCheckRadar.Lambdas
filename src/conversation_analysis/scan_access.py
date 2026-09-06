@@ -1,12 +1,17 @@
 import hashlib
 import logging
 import time
+import uuid
 
 import boto3
 from botocore.exceptions import ClientError
 
 from config import (
     ANALYSIS_ABUSE_TABLE_NAME,
+    APP_ENVIRONMENT,
+    CAMPAIGN_OBSERVATION_RETENTION_HOURS,
+    CAMPAIGN_OUTBOX_TABLE_NAME,
+    CAMPAIGN_SCHEMA_VERSION,
     ENTITLEMENTS_TABLE_NAME,
     REQUEST_ID_TTL_SECONDS,
     SCAN_RATE_LIMIT_MAX_REQUESTS,
@@ -68,6 +73,8 @@ def commit_scan_and_request(
     request_id: str,
     payload_hash: str,
     response: dict,
+    campaign_payload: dict | None = None,
+    statistics_event_id: str | None = None,
     now_epoch: int | None = None,
     now_iso: str | None = None,
 ) -> dict:
@@ -154,6 +161,42 @@ def commit_scan_and_request(
             }
         },
     ]
+    if campaign_payload and campaign_payload.get("campaignConsentGranted"):
+        if not CAMPAIGN_OUTBOX_TABLE_NAME or APP_ENVIRONMENT not in {"dev", "uat", "prod"}:
+            raise AppError(
+                "SERVER_UNAVAILABLE",
+                "Campaign publishing is not configured for this environment.",
+                retryable=False,
+            )
+        statistics_event_id = statistics_event_id or str(uuid.uuid4())
+        outbox_expiry = now_epoch + min(CAMPAIGN_OBSERVATION_RETENTION_HOURS, 72) * 60 * 60
+        transaction.append(
+            {
+                "Put": {
+                    "TableName": CAMPAIGN_OUTBOX_TABLE_NAME,
+                    "Item": _serialize_item(
+                        {
+                            "PK": f"EVENT#{statistics_event_id}",
+                            "SK": "OBSERVATION_READY",
+                            "schemaVersion": CAMPAIGN_SCHEMA_VERSION,
+                            "recordVersion": 1,
+                            "eventType": "campaign.observation.ready",
+                            "environment": APP_ENVIRONMENT,
+                            "statisticsEventId": statistics_event_id,
+                            "accountId": account_id,
+                            "campaignConsentGranted": True,
+                            "observedAtEpoch": now_epoch,
+                            "sourceType": campaign_payload["sourceType"],
+                            "sanitizedText": campaign_payload["sanitizedText"],
+                            "riskLevel": response.get("riskLevel", "unknown"),
+                            "signalIds": response.get("signals", []),
+                            "expiresAt": outbox_expiry,
+                        }
+                    ),
+                    "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                }
+            }
+        )
     try:
         dynamodb_client.transact_write_items(TransactItems=transaction)
     except ClientError as err:

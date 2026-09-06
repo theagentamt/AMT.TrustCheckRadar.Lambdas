@@ -124,7 +124,7 @@ def valid_item(**overrides):
         "accountId": "account-123",
         "campaignConsentGranted": True,
         "observedAtEpoch": 1_780_000_000,
-        "sourceType": "text",
+        "sourceType": "pasted_text",
         "sanitizedText": "A caller requested payment using [PAYMENT_HANDLE_1].",
         "riskLevel": "high",
         "signalIds": ["payment_request"],

@@ -78,6 +78,13 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
             raise _invalid_request(f"entities[{index}].type", f"Unsupported entity type '{entity_type}'.")
         validated_entities.append({"token": token, "type": entity_type})
 
+    campaign_consent_granted = payload.get("campaignConsentGranted", False)
+    if not isinstance(campaign_consent_granted, bool):
+        raise _invalid_request(
+            "campaignConsentGranted",
+            "campaignConsentGranted must be a boolean when provided.",
+        )
+
     return {
         "schemaVersion": schema_version,
         "requestId": request_id,
@@ -85,6 +92,7 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
         "localSanitizationApplied": True,
         "sanitizedText": sanitized_text,
         "entities": validated_entities,
+        "campaignConsentGranted": campaign_consent_granted,
     }
 
 

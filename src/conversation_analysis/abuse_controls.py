@@ -77,6 +77,7 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
                 "state": "result_ready",
                 "payloadHash": payload_hash,
                 "response": _to_json_compatible(existing["response"]),
+                "statisticsEventId": existing.get("statisticsEventId"),
             }
         lease_expires_at = int(existing.get("leaseExpiresAt", 0))
         if status == "PROCESSING" and lease_expires_at > now_epoch:
@@ -167,32 +168,38 @@ def store_result(
     payload_hash: str,
     lease_token: str,
     response: dict,
+    statistics_event_id: str | None = None,
     now_epoch: int | None = None,
 ):
     _require_table()
     now_epoch = now_epoch or int(time.time())
     identity_key = _hashed_identity(identity)
+    update_expression = (
+        "SET #status = :result_ready, #response = :response, resultReadyAt = :result_ready_at, "
+        "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
+    )
+    expression_values = {
+        ":processing": "PROCESSING",
+        ":result_ready": "RESULT_READY",
+        ":payload_hash": payload_hash,
+        ":lease_token": lease_token,
+        ":response": _to_dynamodb_compatible(response),
+        ":result_ready_at": _iso_now(),
+        ":updated_at": _iso_now(),
+        ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
+    }
+    if statistics_event_id:
+        update_expression += ", statisticsEventId = :statistics_event_id"
+        expression_values[":statistics_event_id"] = statistics_event_id
+    update_expression += " REMOVE leaseToken, leaseExpiresAt"
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-        UpdateExpression=(
-            "SET #status = :result_ready, #response = :response, resultReadyAt = :result_ready_at, "
-            "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at "
-            "REMOVE leaseToken, leaseExpiresAt"
-        ),
+        UpdateExpression=update_expression,
         ConditionExpression=(
             "#status = :processing AND payloadHash = :payload_hash AND leaseToken = :lease_token"
         ),
         ExpressionAttributeNames={"#status": "status", "#response": "response", "#ttl": "ttl"},
-        ExpressionAttributeValues={
-            ":processing": "PROCESSING",
-            ":result_ready": "RESULT_READY",
-            ":payload_hash": payload_hash,
-            ":lease_token": lease_token,
-            ":response": _to_dynamodb_compatible(response),
-            ":result_ready_at": _iso_now(),
-            ":updated_at": _iso_now(),
-            ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
-        },
+        ExpressionAttributeValues=expression_values,
     )
 
 
