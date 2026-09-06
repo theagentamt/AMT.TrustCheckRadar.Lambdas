@@ -10,6 +10,7 @@ this repository owns function code, tests, and immutable deployment packages.
 |---|---|---|
 | `age_attestation.zip` | `POST /v1/users/age-attestation` | Records the authenticated user's age-policy decision. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Pseudonymizes opted-in completed analyses and publishes opaque feature work. |
+| Campaign feature-extractor image | Feature SQS queue | Produces bounded multilingual embeddings from an image-baked offline model. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
 | `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
@@ -52,6 +53,10 @@ make package
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
 metadata so identical inputs produce identical archives.
+
+The feature extractor is a container Lambda rather than a ZIP. Its Dockerfile
+downloads a revision-pinned model during the image build and enables offline mode
+at runtime; the deployed image must be referenced by its ECR digest.
 
 Build one function or target x86_64 explicitly:
 
