@@ -99,7 +99,6 @@ This document captures the deployment dependency contract for the Lambda functio
 | `CAMPAIGN_SCHEMA_VERSION` | Yes | `1` | Version validation cannot run; V1 is the only supported value |
 | `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient observations and dedupe state cannot be written |
 | `FEATURE_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque feature requests cannot be published |
-| `CONTRIBUTOR_HMAC_KEY_ID_TEMPLATE` | Until the period-key discovery handoff is finalized | `alias/trustcheckradar-{environment}-campaign-contributor-{period_id}` | The publisher cannot address the period-specific KMS HMAC key |
 | `CONTRIBUTOR_PERIOD_DAYS` | No | `14` | Defaults to 14 and rejects any other value |
 | `OBSERVATION_RETENTION_HOURS` | No | `72` | Defaults to 72 and rejects values above the approved maximum |
 | `TRANSIENT_RETENTION_DAYS` | No | `21` | Defaults to 21 and rejects values above the approved maximum |
@@ -121,14 +120,15 @@ This document captures the deployment dependency contract for the Lambda functio
 - Declined consent and expired observations are successful no-ops.
 - The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
 - Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
+- The publisher resolves the enabled KMS key ARN from the lifecycle-owned
+  `PK=PERIOD#<periodId>, SK=HMAC_KEY` registry item.
 - Sanitized observations expire within 72 hours; dedupe state expires within 21 days.
 - Feature queue messages contain exactly `schemaVersion`, `eventType`, `environment`, `statisticsEventId`, and `recordVersion`.
 - Standard-queue delivery is at least once. A `PENDING`/`PUBLISHED` dedupe record prevents completed replays while permitting recovery after a write-before-send failure.
 
-The authoritative completed-analysis/outbox schema and lifecycle-created HMAC key
-addressing convention remain pending campaign contract handoff. The parser and key
-template are isolated so those details can be aligned without weakening the privacy
-boundary.
+The authoritative completed-analysis/outbox schema remains subject to the external
+campaign contract approval. Its strict parser is isolated so approved field changes
+can be aligned without weakening the privacy boundary.
 
 ---
 
