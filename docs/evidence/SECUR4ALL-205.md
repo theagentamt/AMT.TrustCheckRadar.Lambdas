@@ -25,10 +25,13 @@ Current result: 5 tests pass, including 2 parameterized negative subtests.
 
 Completion blockers that must not be fabricated:
 
-1. Docker Desktop is available and reports a Linux/ARM64 engine, but the build made
-   no progress beyond resolving `public.ecr.aws/lambda/python:3.13-arm64` for two
-   minutes and was canceled. An ARM64 image digest, runtime smoke test, and
-   vulnerability scan therefore could not be produced from this host/network.
+1. Docker Desktop 4.74.0 reports a Linux/ARM64 Docker 29.4.3 engine. The corrected
+   AWS-documented build command
+   `docker buildx build --platform linux/arm64 --provenance=false --load ...`
+   made no progress beyond resolving
+   `public.ecr.aws/lambda/python:3.13` for 90 seconds and was canceled. The host's
+   public-ECR path therefore remains blocked, so an image digest, runtime smoke
+   test, and vulnerability scan cannot yet be produced.
 2. The approved English/Spanish labeled fixtures required to measure at least 95%
    precision and 80% recall are not present.
 3. UAT memory, p95 latency, throughput, and measured cost require the immutable

@@ -1,4 +1,4 @@
-FROM public.ecr.aws/lambda/python:3.13-arm64
+FROM public.ecr.aws/lambda/python:3.13
 
 ARG MODEL_SOURCE=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
 ARG MODEL_REVISION=b8ef00830037f9868450f778081ea683e900fe39
