@@ -7,7 +7,7 @@ AWS_REGION ?= us-east-1
 RELEASE ?=
 INCLUDE_OPTIONAL ?= true
 
-.PHONY: test compile lint check package package-no-deps publish clean
+.PHONY: test compile lint check campaign-evidence package package-no-deps publish clean
 
 test:
 	$(PYTHON) -m pytest -q
@@ -19,6 +19,9 @@ lint:
 	shellcheck scripts/*.sh
 
 check: test compile lint
+
+campaign-evidence: check package-no-deps
+	$(PYTHON) scripts/validate_campaign_lambdas.py --dist-dir "$(DIST_DIR)"
 
 package:
 	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" --python-version "$(PYTHON_VERSION)" --arch "$(LAMBDA_ARCH)"
