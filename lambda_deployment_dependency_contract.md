@@ -87,9 +87,11 @@ This document captures the deployment dependency contract for the Lambda functio
   and ledger command. The command key is `PK=ACCOUNT#<sub>`,
   `SK=CAMPAIGN_WITHDRAWAL#<operationId>` and its deletion deadline is exactly 24
   hours after occurrence.
-- IAM requires GetItem/PutItem/TransactWriteItems on the users table,
-  GetItem/PutItem/TransactWriteItems on entitlements, and PutItem/
-  TransactWriteItems on the deletion ledger.
+- IAM requires `dynamodb:GetItem` and `dynamodb:PutItem` on the users and
+  entitlements tables, plus `dynamodb:PutItem` on the deletion ledger. These are
+  the underlying item actions authorized when the SDK calls
+  `TransactWriteItems`; IAM policies may constrain them with
+  `dynamodb:EnclosingOperation=TransactWriteItems`.
 
 ---
 
@@ -154,7 +156,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | Resource | Needs |
 |---|---|
 | Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
-| Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:TransactWriteItems` |
+| Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`; transaction-only grants may use `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
 | Clustering queue | `sqs:SendMessage` |
 | Campaign metrics namespace | `cloudwatch:PutMetricData` |
@@ -573,6 +575,7 @@ can be aligned without weakening the privacy boundary.
 | `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-analysis-abuse-control` | Used only if stronger names are missing |
 | `DEVICE_BINDINGS_TABLE_NAME` | Yes | `trustcheckradar-dev-device-bindings` | Device binding validation fails and request is rejected/unavailable |
 | `ENTITLEMENTS_TABLE_NAME` | Yes for entitlement enforcement, unless fallback aliases are set | `trustcheckradar-dev-purchase-entitlements` | Monthly/credit entitlement gating fails |
+| `USERS_TABLE_NAME` | Yes for server-authoritative campaign publishing | `trustcheckradar-dev-users` | Participation state cannot be read or condition-checked during an outbox write |
 | `RATE_LIMIT_WINDOW_SECONDS` | No | `60` | Default request throttling windows are used |
 | `RATE_LIMIT_MAX_REQUESTS` | No | `10` | Default request throttling caps are used |
 | `REQUEST_ID_TTL_SECONDS` | No | `86400` | Dedupe retention defaults are used |
@@ -599,6 +602,7 @@ can be aligned without weakening the privacy boundary.
 | DynamoDB abuse-control table | `ANALYSIS_ABUSE_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:DeleteItem` | Name required by code |
 | DynamoDB device bindings table | `DEVICE_BINDINGS_TABLE_NAME` | `dynamodb:Query` | Name required by code |
 | DynamoDB entitlements table | `ENTITLEMENTS_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem` | Name required by code |
+| DynamoDB users participation item | `USERS_TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name required for server-authorized campaign publishing |
 | Campaign outbox table | `CAMPAIGN_OUTBOX_TABLE_NAME` | `dynamodb:PutItem` through the existing completion transaction | Name required only for explicitly opted-in submissions |
 | Secrets Manager OpenAI secret | `OPENAI_SECRET_NAME` | `secretsmanager:GetSecretValue` | Name required by code |
 | OpenAI Responses API | runtime outbound call | outbound HTTPS | No AWS identifier |
@@ -814,6 +818,7 @@ can be aligned without weakening the privacy boundary.
 
 ### Conversation Analysis
 - `dynamodb:GetItem`
+- `dynamodb:ConditionCheckItem` for the participation-state transaction check
 - `dynamodb:PutItem`
 - `dynamodb:UpdateItem`
 - `dynamodb:DeleteItem`
