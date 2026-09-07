@@ -107,6 +107,39 @@ class ParticipationHandlerTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 validate_config()
 
+    def test_scan_quotas_are_configurable_with_safe_tier_ordering(self):
+        values = {
+            "USERS_TABLE_NAME": "users", "ENTITLEMENTS_TABLE_NAME": "entitlements",
+            "DELETION_LEDGER_TABLE_NAME": "ledger", "ENVIRONMENT": "dev",
+            "NOTICE_VERSION": "notice-2026-09", "POLICY_VERSION": "policy-1",
+            "AUDIT_RETENTION_DAYS": 400, "DELETION_SLA_HOURS": 24,
+        }
+        with mock.patch.multiple(
+            app.config,
+            **values,
+            FREE_MONTHLY_SCAN_LIMIT=15,
+            PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT=20,
+            PRO_MONTHLY_SCAN_LIMIT=1000,
+        ):
+            validate_config()
+
+        invalid_quotas = ((0, 15, 1000), (15, 15, 1000), (15, 20, 20))
+        for base_free, participating_free, pro in invalid_quotas:
+            with self.subTest(
+                base_free=base_free,
+                participating_free=participating_free,
+                pro=pro,
+            ):
+                with mock.patch.multiple(
+                    app.config,
+                    **values,
+                    FREE_MONTHLY_SCAN_LIMIT=base_free,
+                    PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT=participating_free,
+                    PRO_MONTHLY_SCAN_LIMIT=pro,
+                ):
+                    with self.assertRaises(RuntimeError):
+                        validate_config()
+
 
 if __name__ == "__main__":
     unittest.main()

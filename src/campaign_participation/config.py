@@ -38,7 +38,9 @@ def validate_config() -> None:
         raise RuntimeError("Campaign participation policy versions are not configured")
     if AUDIT_RETENTION_DAYS != 400 or DELETION_SLA_HOURS != 24:
         raise RuntimeError("Campaign participation retention policy is invalid")
-    if FREE_MONTHLY_SCAN_LIMIT != 10 or PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT != 15:
-        raise RuntimeError("Campaign participation free quota policy is invalid")
+    if FREE_MONTHLY_SCAN_LIMIT < 1:
+        raise RuntimeError("Base free quota must be positive")
+    if PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT <= FREE_MONTHLY_SCAN_LIMIT:
+        raise RuntimeError("Participating free quota must exceed the base free quota")
     if PRO_MONTHLY_SCAN_LIMIT <= PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT:
         raise RuntimeError("Pro quota must exceed the participating free quota")
