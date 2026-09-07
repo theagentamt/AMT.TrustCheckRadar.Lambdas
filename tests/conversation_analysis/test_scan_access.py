@@ -203,6 +203,7 @@ class ScanAccessTests(unittest.TestCase):
     def test_opted_in_analysis_atomically_writes_campaign_outbox(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
         event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+        scan_access.CAMPAIGN_OBSERVATION_RETENTION_HOURS = 168
 
         scan_access.commit_scan_and_request(
             grant,
@@ -218,6 +219,11 @@ class ScanAccessTests(unittest.TestCase):
                 "campaignConsentGranted": True,
                 "sourceType": "pasted_text",
                 "sanitizedText": "Send money to [PAYMENT_HANDLE_1].",
+                "images": ["forbidden-binary-reference"],
+                "files": [{"name": "forbidden.txt", "content": b"forbidden"}],
+                "screenshots": [b"forbidden"],
+                "rawOcrText": "forbidden raw OCR",
+                "unknownField": "must not cross the boundary",
             },
             statistics_event_id=event_id,
             now_epoch=100,
@@ -230,8 +236,54 @@ class ScanAccessTests(unittest.TestCase):
         self.assertEqual(outbox["TableName"], "test-campaign-outbox")
         self.assertEqual(outbox["Item"]["PK"], {"S": f"EVENT#{event_id}"})
         self.assertEqual(outbox["Item"]["accountId"], {"S": "user-123"})
+        self.assertEqual(
+            set(outbox["Item"]),
+            {
+                "PK",
+                "SK",
+                "schemaVersion",
+                "recordVersion",
+                "eventType",
+                "environment",
+                "statisticsEventId",
+                "accountId",
+                "campaignConsentGranted",
+                "observedAtEpoch",
+                "sourceType",
+                "sanitizedText",
+                "riskLevel",
+                "signalIds",
+                "expiresAt",
+            },
+        )
+        self.assertEqual(outbox["Item"]["expiresAt"], {"N": str(100 + 72 * 60 * 60)})
         serialized = str(outbox["Item"])
         self.assertNotIn("request-123", serialized)
+        self.assertNotIn("forbidden", serialized)
+
+    def test_opted_in_commit_requires_the_persisted_uuid4(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        for event_id in (None, "not-a-uuid", "550e8400-e29b-11d4-a716-446655440000"):
+            with self.subTest(event_id=event_id):
+                with self.assertRaises(AppError) as context:
+                    scan_access.commit_scan_and_request(
+                        grant,
+                        "request-123",
+                        "payload-hash",
+                        {"schemaVersion": "1.0", "requestId": "request-123"},
+                        campaign_payload={
+                            "campaignConsentGranted": True,
+                            "sourceType": "pasted_text",
+                            "sanitizedText": "Send money to [PAYMENT_HANDLE_1].",
+                        },
+                        statistics_event_id=event_id,
+                        now_epoch=100,
+                    )
+
+                self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+                self.assertFalse(context.exception.retryable)
+                self.assertEqual(transaction_fake.transactions, [])
 
     def test_declined_campaign_consent_does_not_write_outbox(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)

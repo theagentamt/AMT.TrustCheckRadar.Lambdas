@@ -168,7 +168,7 @@ def commit_scan_and_request(
                 "Campaign publishing is not configured for this environment.",
                 retryable=False,
             )
-        statistics_event_id = statistics_event_id or str(uuid.uuid4())
+        statistics_event_id = _require_statistics_event_id(statistics_event_id)
         outbox_expiry = now_epoch + min(CAMPAIGN_OBSERVATION_RETENTION_HOURS, 72) * 60 * 60
         transaction.append(
             {
@@ -209,6 +209,24 @@ def commit_scan_and_request(
             ) from err
         raise
     return updated
+
+
+def _require_statistics_event_id(value: str | None) -> str:
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError) as err:
+        raise AppError(
+            "SERVER_UNAVAILABLE",
+            "Campaign publishing requires a persisted UUIDv4 event identifier.",
+            retryable=False,
+        ) from err
+    if parsed.version != 4 or str(parsed) != value:
+        raise AppError(
+            "SERVER_UNAVAILABLE",
+            "Campaign publishing requires a persisted UUIDv4 event identifier.",
+            retryable=False,
+        )
+    return value
 
 
 def _build_consumed_entitlement(
