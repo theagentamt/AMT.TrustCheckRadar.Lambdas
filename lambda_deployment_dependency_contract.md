@@ -41,9 +41,55 @@ This document captures the deployment dependency contract for the Lambda functio
 - The deletion bridge derives only current/recovery-period tokens, writes a
   tombstone before deleting GSI-matched records, and recomputes affected centroids
   and counts from remaining contributions.
+- Campaign withdrawal commands remain `PENDING` until deletion succeeds. The
+  worker then atomically changes the matching participation epoch to `withdrawn`,
+  appends a 400-day completion receipt, and marks the ledger command `COMPLETE`.
+  `COMPLETE` stream modifications are ignored to prevent loops.
+- The deletion worker additionally requires `USERS_TABLE_NAME`,
+  `DELETION_LEDGER_TABLE_NAME`, `PARTICIPATION_ITEM_SK=CAMPAIGN_PARTICIPATION`,
+  and `PARTICIPATION_AUDIT_DAYS=400` with users-table Get/Put/Update and ledger
+  UpdateItem permissions.
 - `expire_transient` fails explicitly until `CampaignPipeline` exposes an expiry
   query access pattern. DynamoDB TTL remains a safety net but is not represented as
   evidence of deadline-bound explicit deletion.
+
+---
+
+## Campaign Participation
+
+- Lambda path: `src/campaign_participation/`
+- Artifact: `campaign_participation.zip`; handler: `app.lambda_handler`
+- Routes: authenticated HTTP API v2 `GET` and `PUT`
+  `/v1/users/campaign-participation`
+- Identity is exclusively the Cognito JWT `claims.sub`; body identity, legacy
+  claims, and principal IDs are not trusted.
+- Required configuration: `USERS_TABLE_NAME` or `USERS_TABLE_ARN`,
+  `ENTITLEMENTS_TABLE_NAME` or `ENTITLEMENTS_TABLE_ARN`,
+  `DELETION_LEDGER_TABLE_NAME` or `DELETION_LEDGER_TABLE_ARN`, `ENVIRONMENT`,
+  `CAMPAIGN_PARTICIPATION_NOTICE_VERSION`,
+  `CAMPAIGN_PARTICIPATION_POLICY_VERSION=policy-1`,
+  `CAMPAIGN_PARTICIPATION_AUDIT_RETENTION_DAYS=400`,
+  `CAMPAIGN_PARTICIPATION_DELETION_SLA_HOURS=24`,
+  `FREE_MONTHLY_SCAN_LIMIT=10`,
+  `PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT=15`, and `PRO_MONTHLY_SCAN_LIMIT`.
+- `PUT` accepts exactly `schemaVersion=1`, `action=join|withdraw`, the configured
+  notice version, and a canonical UUIDv4 `operationId`.
+- Current state is `PK=USER#<sub>, SK=CAMPAIGN_PARTICIPATION`. Accepted
+  transitions append a receipt at
+  `SK=CAMPAIGN_CONSENT#<consentEpochId>#<timestamp>#<operationId>` with a 400-day
+  TTL. A transactionally written `SK=CAMPAIGN_OPERATION#<operationId>` record
+  makes retries a single strongly consistent `GetItem` rather than a filtered
+  receipt query. Re-enrollment always creates a new consent epoch.
+- Join/withdraw quota changes preserve usage as
+  `used=max(0,oldLimit-remaining)` and `remaining=max(0,newLimit-used)`; free
+  participation is 15 total scans, base free is 10, and Pro is unchanged.
+- Withdrawal atomically writes the pending state, receipt, adjusted entitlement,
+  and ledger command. The command key is `PK=ACCOUNT#<sub>`,
+  `SK=CAMPAIGN_WITHDRAWAL#<operationId>` and its deletion deadline is exactly 24
+  hours after occurrence.
+- IAM requires GetItem/PutItem/TransactWriteItems on the users table,
+  GetItem/PutItem/TransactWriteItems on entitlements, and PutItem/
+  TransactWriteItems on the deletion ledger.
 
 ---
 
@@ -115,7 +161,7 @@ This document captures the deployment dependency contract for the Lambda functio
 
 ### Privacy and message contract
 
-- The outbox input is strict, versioned, environment-bound, and requires an explicit `campaignConsentGranted` boolean.
+- The outbox input is strict, versioned, environment-bound, and requires an explicit `campaignConsentGranted` boolean plus the server-authorized `consentEpochId` and `noticeVersion` provenance.
 - An opted-in outbox item contains the exact V1 `appFeatures` object:
   `schemaVersion`, `extractorVersion`, `languageId`, `taxonomyBucket`, `vector`,
   `lexicalFingerprint`, `signalIds`, `indicatorIds`, and `confidence`.
@@ -397,7 +443,7 @@ can be aligned without weakening the privacy boundary.
 | `GOOGLE_PLAY_SECRET_NAME` | Required for live Google Play verification | `trustcheckradar/dev/google-play-service-account` | Live verification cannot fetch service account credentials |
 | `GOOGLE_PLAY_PACKAGE_NAME` | Required for live Google Play verification | `com.andmorethings.trustcheckradar` | Android Publisher API calls cannot be scoped correctly |
 | `GOOGLE_PLAY_PRO_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults may be used, but product mapping may be wrong |
-| `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Default free quota logic may be wrong if code assumes configured policy |
+| `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Default free quota logic may be wrong if code assumes configured policy |
 | `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Default pro quota logic may be wrong if code assumes configured policy |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -464,7 +510,8 @@ can be aligned without weakening the privacy boundary.
 | `ENTITLEMENT_PLATFORM` | No | `google_play` | Defaults are used for key resolution |
 | `ENTITLEMENT_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults are used for key resolution |
 | `ENTITLEMENT_USAGE_PERIOD_MODE` | No | `billing_cycle` | Defaults are used in usage response logic |
-| `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Free-tier remaining count may be incorrect |
+| `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Free-tier remaining count may be incorrect |
+| `PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT` | No | `15` | Enrolled free-tier remaining count may be incorrect |
 | `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Pro-tier remaining count may be incorrect |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -531,7 +578,8 @@ can be aligned without weakening the privacy boundary.
 | `REQUEST_ID_TTL_SECONDS` | No | `86400` | Dedupe retention defaults are used |
 | `SCAN_RATE_LIMIT_WINDOW_SECONDS` | No | `3600` | Default scan abuse window is used |
 | `SCAN_RATE_LIMIT_MAX_REQUESTS` | No | `20` | Default scan abuse cap is used |
-| `FREE_MONTHLY_SCAN_LIMIT` | No | `5` | Free-tier quota math may be wrong |
+| `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Free-tier quota math may be wrong |
+| `PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT` | No | `15` | Server-authorized participating free quota may be wrong |
 | `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Pro-tier quota math may be wrong |
 | `APP_ENVIRONMENT` | Required when campaign publishing is configured | `dev` | Opted-in campaign outbox records cannot be environment-bound |
 | `CAMPAIGN_OUTBOX_TABLE_NAME` | Required for opted-in campaign publishing | `trustcheckradar-dev-campaign-outbox` | Explicit opt-in fails closed instead of publishing |
@@ -685,6 +733,7 @@ can be aligned without weakening the privacy boundary.
 - `USERS_TABLE_NAME`
 - `TABLE_NAME`
 - `FREE_MONTHLY_SCAN_LIMIT`
+- `PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT`
 - `PRO_MONTHLY_SCAN_LIMIT`
 
 ### Shared storage assumptions

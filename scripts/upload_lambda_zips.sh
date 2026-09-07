@@ -16,7 +16,7 @@ REQUIRED_FUNCTIONS=(
   entitlement_snapshot
   post_confirmation
 )
-OPTIONAL_FUNCTIONS=(campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_review campaign_trends device_recovery web_risk_communication)
+OPTIONAL_FUNCTIONS=(campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends device_recovery web_risk_communication)
 
 usage() {
   cat <<'USAGE'

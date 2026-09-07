@@ -73,12 +73,15 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
                 "response": _to_json_compatible(existing["response"]),
             }
         if status == "RESULT_READY" and isinstance(existing.get("response"), dict):
-            return {
+            result = {
                 "state": "result_ready",
                 "payloadHash": payload_hash,
                 "response": _to_json_compatible(existing["response"]),
                 "statisticsEventId": existing.get("statisticsEventId"),
             }
+            if isinstance(existing.get("campaignAuthorization"), dict):
+                result["campaignAuthorization"] = _to_json_compatible(existing["campaignAuthorization"])
+            return result
         lease_expires_at = int(existing.get("leaseExpiresAt", 0))
         if status == "PROCESSING" and lease_expires_at > now_epoch:
             retry_after = max(1, lease_expires_at - now_epoch)
@@ -169,6 +172,7 @@ def store_result(
     lease_token: str,
     response: dict,
     statistics_event_id: str | None = None,
+    campaign_authorization: dict | None = None,
     now_epoch: int | None = None,
 ):
     _require_table()
@@ -191,6 +195,9 @@ def store_result(
     if statistics_event_id:
         update_expression += ", statisticsEventId = :statistics_event_id"
         expression_values[":statistics_event_id"] = statistics_event_id
+    if campaign_authorization:
+        update_expression += ", campaignAuthorization = :campaign_authorization"
+        expression_values[":campaign_authorization"] = _to_dynamodb_compatible(campaign_authorization)
     update_expression += " REMOVE leaseToken, leaseExpiresAt"
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},

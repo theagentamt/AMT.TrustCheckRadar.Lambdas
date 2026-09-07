@@ -24,6 +24,8 @@ REQUIRED_FIELDS = {
     "statisticsEventId",
     "accountId",
     "campaignConsentGranted",
+    "consentEpochId",
+    "noticeVersion",
     "observedAtEpoch",
     "sourceType",
     "sanitizedText",
@@ -96,7 +98,9 @@ def _validate_item(item: dict, *, environment: str, schema_version: int) -> None
         raise ContractError("Outbox record belongs to another environment")
     if item["PK"] != f"EVENT#{item['statisticsEventId']}" or item["SK"] != "OBSERVATION_READY":
         raise ContractError("Outbox record key does not match the event")
-    _require_uuid4(item["statisticsEventId"])
+    _require_uuid4(item["statisticsEventId"], "statisticsEventId")
+    _require_uuid4(item["consentEpochId"], "consentEpochId")
+    _require_string(item["noticeVersion"], "noticeVersion", maximum=64)
     _require_string(item["accountId"], "accountId", maximum=256)
     if not isinstance(item["campaignConsentGranted"], bool):
         raise ContractError("campaignConsentGranted must be boolean")
@@ -134,13 +138,13 @@ def _reject_prohibited_fields(value) -> None:
             _reject_prohibited_fields(child)
 
 
-def _require_uuid4(value) -> None:
+def _require_uuid4(value, field: str) -> None:
     try:
         parsed = UUID(str(value))
     except (ValueError, AttributeError, TypeError) as err:
-        raise ContractError("statisticsEventId must be a UUIDv4") from err
+        raise ContractError(f"{field} must be a UUIDv4") from err
     if parsed.version != 4 or str(parsed) != value:
-        raise ContractError("statisticsEventId must be a canonical UUIDv4")
+        raise ContractError(f"{field} must be a canonical UUIDv4")
 
 
 def _require_string(value, field: str, *, maximum: int) -> None:

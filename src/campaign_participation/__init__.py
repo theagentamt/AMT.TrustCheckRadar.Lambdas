@@ -1,0 +1,1 @@
+"""Campaign participation API Lambda."""

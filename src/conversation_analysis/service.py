@@ -6,7 +6,7 @@ from analysis_client import analyze_conversation
 from errors import AppError
 from response_builders import build_success_response
 from safety import build_safe_low_confidence_response, is_instruction_style_abuse
-from scan_access import commit_scan_and_request, prepare_scan_access
+from scan_access import campaign_authorization, commit_scan_and_request, prepare_scan_access
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +28,7 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             request_state["response"],
             campaign_payload=payload,
             statistics_event_id=request_state.get("statisticsEventId"),
+            campaign_authorization=request_state.get("campaignAuthorization"),
         )
         return request_state["response"]
     LOGGER.info("Stage completed: request_processing_lease | requestId=%s", request_id)
@@ -62,9 +63,12 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
         LOGGER.info("Stage completed: response_build | requestId=%s", request_id)
 
         LOGGER.info("Stage started: result_store | requestId=%s", request_id)
-        statistics_event_id = (
-            str(uuid.uuid4()) if payload.get("campaignConsentGranted") else None
+        authorization = (
+            campaign_authorization(access_grant)
+            if payload.get("campaignConsentGranted")
+            else None
         )
+        statistics_event_id = str(uuid.uuid4()) if authorization else None
         store_result(
             identity,
             request_id,
@@ -72,6 +76,7 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             lease_token,
             response_body,
             statistics_event_id=statistics_event_id,
+            campaign_authorization=authorization,
         )
         result_stored = True
         LOGGER.info("Stage completed: result_store | requestId=%s", request_id)
@@ -84,6 +89,7 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             response_body,
             campaign_payload=payload,
             statistics_event_id=statistics_event_id,
+            campaign_authorization=authorization,
         )
         LOGGER.info("Stage completed: atomic_commit | requestId=%s", request_id)
         return response_body

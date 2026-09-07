@@ -28,7 +28,7 @@ class FakeTable:
     def __init__(self):
         self.items = {}
 
-    def get_item(self, Key):
+    def get_item(self, Key, **_kwargs):
         item = self.items.get((Key["PK"], Key["SK"]))
         return {"Item": item} if item else {}
 
@@ -106,10 +106,12 @@ class ScanAccessTests(unittest.TestCase):
         entitlements_fake.items.clear()
         abuse_fake.items.clear()
         shared_service.table = entitlements_fake
+        shared_service.participation_table = entitlements_fake
         scan_access.abuse_table = abuse_fake
         scan_access.dynamodb_client = transaction_fake
         scan_access.ANALYSIS_ABUSE_TABLE_NAME = "test-analysis-abuse"
         scan_access.ENTITLEMENTS_TABLE_NAME = "test-entitlements"
+        scan_access.USERS_TABLE_NAME = "test-users"
         scan_access.APP_ENVIRONMENT = "dev"
         scan_access.CAMPAIGN_OUTBOX_TABLE_NAME = "test-campaign-outbox"
         scan_access.CAMPAIGN_SCHEMA_VERSION = 1
@@ -123,7 +125,7 @@ class ScanAccessTests(unittest.TestCase):
         updated = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
 
         self.assertEqual(updated["entitlementTier"], "FREE")
-        self.assertEqual(updated["remainingMonthlyScans"], 4)
+        self.assertEqual(updated["remainingMonthlyScans"], 9)
         self.assertEqual(updated["remainingCredits"], 0)
         self.assertEqual(updated["lastScanRequestId"], "request-123")
 
@@ -135,7 +137,7 @@ class ScanAccessTests(unittest.TestCase):
                 "accountId": "user-123",
                 "entitlementTier": "FREE",
                 "subscriptionStatus": "expired",
-                "monthlyScanLimit": 5,
+                "monthlyScanLimit": 10,
                 "remainingMonthlyScans": 0,
                 "remainingCredits": 3,
                 "createdAt": "2026-05-01T00:00:00+00:00",
@@ -156,8 +158,8 @@ class ScanAccessTests(unittest.TestCase):
         first = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
         second = scan_access.consume_scan_access(first | {"accountId": "user-123", "consumptionType": "monthly", "entitlement": first}, "request-123", now_iso="2026-05-11T00:01:00+00:00")
 
-        self.assertEqual(first["remainingMonthlyScans"], 4)
-        self.assertEqual(second["remainingMonthlyScans"], 4)
+        self.assertEqual(first["remainingMonthlyScans"], 9)
+        self.assertEqual(second["remainingMonthlyScans"], 9)
         self.assertEqual(second["lastScanRequestId"], "request-123")
 
     def test_result_completion_and_quota_consumption_share_one_transaction(self):
@@ -172,7 +174,7 @@ class ScanAccessTests(unittest.TestCase):
             now_iso="2026-05-11T00:00:00Z",
         )
 
-        self.assertEqual(updated["remainingMonthlyScans"], 4)
+        self.assertEqual(updated["remainingMonthlyScans"], 9)
         self.assertEqual(len(transaction_fake.transactions), 1)
         transaction = transaction_fake.transactions[0]
         self.assertEqual(len(transaction), 3)
@@ -188,7 +190,7 @@ class ScanAccessTests(unittest.TestCase):
         self.assertEqual(entitlement_put["TableName"], "test-entitlements")
         self.assertEqual(
             entitlement_put["Item"]["remainingMonthlyScans"],
-            {"N": "4"},
+            {"N": "9"},
         )
 
     def test_transaction_conflict_is_retryable_without_partial_local_success(self):
@@ -214,6 +216,11 @@ class ScanAccessTests(unittest.TestCase):
         self.assertTrue(context.exception.retryable)
 
     def test_opted_in_analysis_atomically_writes_campaign_outbox(self):
+        entitlements_fake.put_item({
+            "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
+            "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+            "noticeVersion": "notice-2026-09", "environment": "dev",
+        })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
         event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
         scan_access.CAMPAIGN_OBSERVATION_RETENTION_HOURS = 168
@@ -240,13 +247,17 @@ class ScanAccessTests(unittest.TestCase):
                 "unknownField": "must not cross the boundary",
             },
             statistics_event_id=event_id,
+            campaign_authorization=scan_access.campaign_authorization(grant),
             now_epoch=100,
             now_iso="2026-05-11T00:00:00Z",
         )
 
         transaction = transaction_fake.transactions[0]
-        self.assertEqual(len(transaction), 4)
-        outbox = transaction[3]["Put"]
+        self.assertEqual(len(transaction), 5)
+        condition = transaction[3]["ConditionCheck"]
+        self.assertEqual(condition["TableName"], "test-users")
+        self.assertIn("consentEpochId = :consent_epoch_id", condition["ConditionExpression"])
+        outbox = transaction[4]["Put"]
         self.assertEqual(outbox["TableName"], "test-campaign-outbox")
         self.assertEqual(outbox["Item"]["PK"], {"S": f"EVENT#{event_id}"})
         self.assertEqual(outbox["Item"]["accountId"], {"S": "user-123"})
@@ -262,6 +273,8 @@ class ScanAccessTests(unittest.TestCase):
                 "statisticsEventId",
                 "accountId",
                 "campaignConsentGranted",
+                "consentEpochId",
+                "noticeVersion",
                 "observedAtEpoch",
                 "sourceType",
                 "sanitizedText",
@@ -278,6 +291,11 @@ class ScanAccessTests(unittest.TestCase):
         self.assertNotIn("forbidden", serialized)
 
     def test_opted_in_commit_requires_the_persisted_uuid4(self):
+        entitlements_fake.put_item({
+            "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
+            "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+            "noticeVersion": "notice-2026-09", "environment": "dev",
+        })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
 
         for event_id in (None, "not-a-uuid", "550e8400-e29b-11d4-a716-446655440000"):
@@ -295,6 +313,7 @@ class ScanAccessTests(unittest.TestCase):
                             "appFeatures": APP_FEATURES,
                         },
                         statistics_event_id=event_id,
+                        campaign_authorization=scan_access.campaign_authorization(grant),
                         now_epoch=100,
                     )
 
@@ -314,6 +333,35 @@ class ScanAccessTests(unittest.TestCase):
             now_epoch=100,
         )
 
+        self.assertEqual(len(transaction_fake.transactions[0]), 3)
+
+    def test_app_intent_without_server_enrollment_does_not_write_outbox(self):
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        scan_access.commit_scan_and_request(
+            grant, "request-123", "payload-hash",
+            {"schemaVersion": "1.0", "requestId": "request-123"},
+            campaign_payload={"campaignConsentGranted": True, "appFeatures": APP_FEATURES},
+            now_epoch=100,
+        )
+        self.assertEqual(len(transaction_fake.transactions[0]), 3)
+
+    def test_changed_consent_epoch_does_not_publish_recovered_result(self):
+        entitlements_fake.put_item({
+            "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
+            "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+            "noticeVersion": "notice-2026-09", "environment": "dev",
+        })
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        authorization = scan_access.campaign_authorization(grant)
+        grant["campaignParticipation"] = dict(grant["campaignParticipation"]) | {"stateVersion": 3}
+        scan_access.commit_scan_and_request(
+            grant, "request-123", "payload-hash",
+            {"schemaVersion": "1.0", "requestId": "request-123"},
+            campaign_payload={"campaignConsentGranted": True, "appFeatures": APP_FEATURES},
+            statistics_event_id="7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc",
+            campaign_authorization=authorization,
+            now_epoch=100,
+        )
         self.assertEqual(len(transaction_fake.transactions[0]), 3)
 
     def test_atomic_commit_rejects_a_result_for_another_request(self):
@@ -338,7 +386,7 @@ class ScanAccessTests(unittest.TestCase):
                 "accountId": "user-123",
                 "entitlementTier": "FREE",
                 "subscriptionStatus": "expired",
-                "monthlyScanLimit": 5,
+                "monthlyScanLimit": 10,
                 "remainingMonthlyScans": 0,
                 "remainingCredits": 0,
                 "createdAt": "2026-05-01T00:00:00+00:00",

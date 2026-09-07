@@ -29,7 +29,7 @@ class FakeTable:
     def __init__(self):
         self.items = {}
 
-    def get_item(self, Key):
+    def get_item(self, Key, **_kwargs):
         item = self.items.get((Key["PK"], Key["SK"]))
         return {"Item": item} if item else {}
 
@@ -88,6 +88,7 @@ class PurchaseHandoffServiceTests(unittest.TestCase):
     def setUp(self):
         fake_table.items.clear()
         shared_service.table = fake_table
+        shared_service.participation_table = fake_table
         idempotency_module.table = fake_table
 
     def test_accepts_verified_google_play_purchase(self):

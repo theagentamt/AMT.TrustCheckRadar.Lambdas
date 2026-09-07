@@ -26,7 +26,7 @@ class FakeTable:
     def __init__(self):
         self.items = {}
 
-    def get_item(self, Key):
+    def get_item(self, Key, **_kwargs):
         item = self.items.get((Key["PK"], Key["SK"]))
         return {"Item": item} if item else {}
 
@@ -66,6 +66,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
     def setUp(self):
         fake_table.items.clear()
         shared_service.table = fake_table
+        shared_service.participation_table = fake_table
         service.entitlements_table = fake_table
 
     def _put_entitlement(
@@ -91,7 +92,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
                 "billingPeriodStartUtc": billing_period_start,
                 "billingPeriodEndUtc": billing_period_end,
                 "isAccessGranted": is_access_granted,
-                "monthlyScanLimit": 100 if tier == "PRO" else 5,
+                "monthlyScanLimit": 100 if tier == "PRO" else 10,
                 "remainingMonthlyScans": remaining_monthly_scans,
                 "remainingCredits": 0,
                 "createdAt": "2026-07-01T00:00:00Z",
@@ -106,9 +107,9 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         self.assertEqual(result["entitlement"]["status"], "expired")
         self.assertFalse(result["entitlement"]["isAccessGranted"])
         self.assertEqual(result["usage"]["periodMode"], "billing_cycle")
-        self.assertEqual(result["usage"]["limit"], 5)
+        self.assertEqual(result["usage"]["limit"], 10)
         self.assertEqual(result["usage"]["usedCount"], 0)
-        self.assertEqual(result["usage"]["remaining"], 5)
+        self.assertEqual(result["usage"]["remaining"], 10)
         self.assertTrue(result["guidance"]["restoreRecommended"])
 
     def test_returns_active_pro_user_snapshot_with_usage_item(self):
@@ -209,6 +210,27 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
         second = service.get_entitlement_snapshot("user-123")
 
         self.assertEqual(first, second)
+
+    def test_enrolled_free_user_gets_fifteen_with_used_count_preserved(self):
+        self._put_entitlement(
+            tier="FREE", status="expired", is_access_granted=False,
+            remaining_monthly_scans=6,
+        )
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
+            "stateVersion": 1, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+            "noticeVersion": "notice-2026-09", "environment": "dev",
+        })
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "USAGE#2026-07-01T00:00:00Z",
+            "monthlyLimit": 10, "usedCount": 4, "remainingCount": 6,
+        })
+
+        result = service.get_entitlement_snapshot("user-123")
+
+        self.assertEqual(result["usage"]["limit"], 15)
+        self.assertEqual(result["usage"]["usedCount"], 4)
+        self.assertEqual(result["usage"]["remaining"], 11)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ Status: **Local validation complete; final UAT gate blocked**
 
 The reproducible local evidence target runs the complete test suite, compiles all
 sources, validates shell scripts, builds every ZIP deterministically, inspects the
-six campaign ZIPs, statically checks campaign and analysis log templates, proves
+seven campaign ZIPs, statically checks campaign and analysis log templates, proves
 that server feature-extraction code/build/publishing support is absent, and runs a
 10,000-comparison local scoring benchmark:
 
@@ -15,6 +15,8 @@ make campaign-evidence
 Covered automated evidence includes:
 
 - explicit-consent negative paths and retry-stable random event identity;
+- server-owned participation, quota cycling protection, one-read operation
+  idempotency, withdrawal-race checks, and deletion-completion receipts;
 - cross-environment, unknown-version, extra-field, and malformed-input rejection;
 - email/phone leakage rejection and content-free log-template checks;
 - opaque queue envelopes and partial batch failures;
@@ -35,12 +37,12 @@ Lambda p95 or cost evidence.
 
 Latest local run (2026-09-07):
 
-- 156 tests passed with 66 parameterized negative subtests.
-- 59 campaign and analysis log templates passed the static content-free check.
-- All six ZIP artifacts passed root-handler/cache inspection.
+- 177 tests passed with 73 parameterized negative subtests.
+- 62 campaign and analysis log templates passed the static content-free check.
+- All seven campaign ZIP artifacts passed root-handler/cache inspection.
 - The server feature-extractor absence check passed.
-- 10,000 local 384-dimensional scoring comparisons completed in 197.228 ms
-  (50,702.6 comparisons/second on this host). This is not a Lambda/UAT latency
+- 10,000 local 384-dimensional scoring comparisons completed in 194.195 ms
+  (51,494.7 comparisons/second on this host). This is not a Lambda/UAT latency
   measurement.
 
 Final completion requires evidence that cannot be generated correctly from this

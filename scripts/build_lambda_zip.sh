@@ -15,6 +15,7 @@ FUNCTIONS=(
   campaign_deletion_bridge
   campaign_lifecycle
   campaign_observation_publisher
+  campaign_participation
   campaign_review
   campaign_trends
   conversation_analysis
@@ -75,7 +76,7 @@ is_known_function() {
 
 needs_shared_entitlements() {
   case "$1" in
-    conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
+    campaign_participation|conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
     *) return 1 ;;
   esac
 }

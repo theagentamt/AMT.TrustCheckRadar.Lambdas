@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import base64
+from datetime import UTC, datetime
 import time
+from uuid import UUID
 
 TOKEN_DOMAIN = b"campaign-contributor:v1\0"
 PERIOD_SECONDS = 14 * 86400
@@ -13,12 +15,40 @@ def parse_deletion_record(record, *, environment, schema_version):
     raw = record.get("dynamodb", {}).get("NewImage")
     if not raw: raise ValueError("Deletion stream record has no NewImage")
     item = deserialize(raw)
-    required = {"schemaVersion", "recordVersion", "environment", "eventType", "accountId", "status", "occurredAtEpoch"}
-    if set(item) != required or item["schemaVersion"] != schema_version or item["recordVersion"] != 1 \
-            or item["environment"] != environment or item["eventType"] not in {"campaign.consent.withdrawn", "account.deletion.requested"} \
-            or item["status"] != "REQUESTED":
+    if item.get("eventType") == "campaign.consent.withdrawn" and item.get("status") == "COMPLETE":
+        return None
+    common = {"schemaVersion", "recordVersion", "environment", "eventType", "accountId", "status", "occurredAtEpoch"}
+    if isinstance(item.get("schemaVersion"), bool) or not isinstance(item.get("schemaVersion"), int) \
+            or item.get("schemaVersion") != schema_version \
+            or isinstance(item.get("recordVersion"), bool) or not isinstance(item.get("recordVersion"), int) \
+            or item.get("recordVersion") != 1 \
+            or item.get("environment") != environment or isinstance(item.get("occurredAtEpoch"), bool) \
+            or not isinstance(item.get("occurredAtEpoch"), int) or item["occurredAtEpoch"] < 0 \
+            or not isinstance(item.get("accountId"), str) or not item["accountId"]:
+        raise ValueError("Invalid deletion command")
+    if item.get("eventType") == "campaign.consent.withdrawn":
+        required = common | {"PK", "SK", "consentEpochId", "deleteByEpoch", "operationId"}
+        if set(item) != required or item["status"] != "PENDING" \
+                or item["PK"] != f"ACCOUNT#{item['accountId']}" \
+                or item["SK"] != f"CAMPAIGN_WITHDRAWAL#{item['operationId']}" \
+                or not _is_uuid4(item["consentEpochId"]) or not _is_uuid4(item["operationId"]) \
+                or isinstance(item["deleteByEpoch"], bool) or not isinstance(item["deleteByEpoch"], int) \
+                or item["deleteByEpoch"] != item["occurredAtEpoch"] + 24 * 3600:
+            raise ValueError("Invalid deletion command")
+    elif item.get("eventType") == "account.deletion.requested":
+        if frozenset(item) not in {frozenset(common), frozenset(common | {"PK", "SK"})} or item["status"] != "REQUESTED":
+            raise ValueError("Invalid deletion command")
+    else:
         raise ValueError("Invalid deletion command")
     return item
+
+
+def _is_uuid4(value):
+    try:
+        parsed = UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value
 
 
 def delete_account_contributions(command, *, table_name, retention_days, dynamodb, kms, now_epoch=None):
@@ -48,6 +78,97 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
         for candidate_id in recomputed:
             _recompute(dynamodb, table_name, candidate_id)
     return {"deleted": deleted, "recomputedCandidates": len(recomputed)}
+
+
+def complete_campaign_withdrawal(
+    command,
+    *,
+    users_table_name,
+    deletion_ledger_table_name,
+    participation_item_sk,
+    audit_days,
+    dynamodb,
+    now_epoch=None,
+):
+    if command.get("eventType") != "campaign.consent.withdrawn" or command.get("status") != "PENDING":
+        return False
+    now_epoch = int(time.time()) if now_epoch is None else now_epoch
+    completed_at = datetime.fromtimestamp(now_epoch, UTC).isoformat().replace("+00:00", "Z")
+    account_id = command["accountId"]
+    epoch_id = command["consentEpochId"]
+    operation_id = command["operationId"]
+    receipt = {
+        "PK": {"S": f"USER#{account_id}"},
+        "SK": {"S": f"CAMPAIGN_CONSENT#{epoch_id}#{now_epoch}#{operation_id}#COMPLETE"},
+        "schemaVersion": {"N": "1"},
+        "recordVersion": {"N": "1"},
+        "eventType": {"S": "campaign.participation.withdrawal_completed"},
+        "occurredAt": {"S": completed_at},
+        "consentEpochId": {"S": epoch_id},
+        "operationId": {"S": operation_id},
+        "resultingState": {"S": "withdrawn"},
+        "expiresAt": {"N": str(now_epoch + audit_days * 86400)},
+    }
+    transaction = [
+            {
+                "Update": {
+                    "TableName": users_table_name,
+                    "Key": {"PK": {"S": f"USER#{account_id}"}, "SK": {"S": participation_item_sk}},
+                    "UpdateExpression": "SET #state = :withdrawn, withdrawalCompletedAt = :completed_at, updatedAt = :completed_at ADD stateVersion :one",
+                    "ConditionExpression": "#state = :pending AND consentEpochId = :epoch AND lastOperationId = :operation_id",
+                    "ExpressionAttributeNames": {"#state": "state"},
+                    "ExpressionAttributeValues": {
+                        ":withdrawn": {"S": "withdrawn"},
+                        ":pending": {"S": "withdrawal_pending"},
+                        ":epoch": {"S": epoch_id},
+                        ":operation_id": {"S": operation_id},
+                        ":completed_at": {"S": completed_at},
+                        ":one": {"N": "1"},
+                    },
+                }
+            },
+            {
+                "Put": {
+                    "TableName": users_table_name,
+                    "Item": receipt,
+                    "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                }
+            },
+            {
+                "Update": {
+                    "TableName": deletion_ledger_table_name,
+                    "Key": {"PK": {"S": command["PK"]}, "SK": {"S": command["SK"]}},
+                    "UpdateExpression": "SET #status = :complete, completedAtEpoch = :completed_at",
+                    "ConditionExpression": "#status = :pending AND consentEpochId = :epoch AND operationId = :operation_id",
+                    "ExpressionAttributeNames": {"#status": "status"},
+                    "ExpressionAttributeValues": {
+                        ":complete": {"S": "COMPLETE"},
+                        ":pending": {"S": "PENDING"},
+                        ":completed_at": {"N": str(now_epoch)},
+                        ":epoch": {"S": epoch_id},
+                        ":operation_id": {"S": operation_id},
+                    },
+                }
+            },
+        ]
+    try:
+        dynamodb.transact_write_items(TransactItems=transaction)
+    except Exception as err:
+        if getattr(err, "response", {}).get("Error", {}).get("Code") != "TransactionCanceledException":
+            raise
+        stored = dynamodb.get_item(
+            TableName=deletion_ledger_table_name,
+            Key={"PK": {"S": command["PK"]}, "SK": {"S": command["SK"]}},
+            ConsistentRead=True,
+        ).get("Item")
+        if stored:
+            completed = deserialize(stored)
+            if completed.get("status") == "COMPLETE" \
+                    and completed.get("consentEpochId") == epoch_id \
+                    and completed.get("operationId") == operation_id:
+                return False
+        raise
+    return True
 
 
 def active_periods(now_epoch):

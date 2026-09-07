@@ -14,6 +14,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 ZIP_FUNCTIONS = (
     "campaign_observation_publisher",
+    "campaign_participation",
     "campaign_cluster_aggregator",
     "campaign_lifecycle",
     "campaign_deletion_bridge",

@@ -18,6 +18,9 @@ Implemented and tested:
 - Cluster-side tombstone check prevents queued work from resurrecting a deleted
   contribution.
 - Content-free lifecycle/deletion logs and environment/version validation.
+- Exact pending campaign-withdrawal command validation, successful-deletion-only
+  transition to `withdrawn`, a privacy-safe 400-day completion receipt, atomic
+  ledger `COMPLETE` status, and completed-stream loop suppression.
 
 Reproduce:
 
@@ -35,9 +38,5 @@ Completion blockers proven against the current infrastructure contract:
    observation, feature, and dedupe items for explicit deletion. The handler fails
    this operation rather than falsely treating eventually consistent TTL cleanup as
    the required 24-hour evidence.
-2. The foundation deletion ledger defines only `PK`/`SK`; no authoritative command
-   schema has been handed off. The bridge parser is isolated and strict, but cannot
-   be certified against the producer until that contract exists.
-
 Because those are external access/schema inputs and the user restricted this work
 to Lambda code, this evidence does not claim the whole story is complete.

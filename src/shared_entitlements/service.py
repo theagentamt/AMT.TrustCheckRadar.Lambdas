@@ -1,17 +1,28 @@
 from datetime import UTC, datetime
 import logging
+from uuid import UUID
 
 import boto3
 
-from .config import ENTITLEMENTS_TABLE_NAME, FREE_MONTHLY_SCAN_LIMIT, PRO_MONTHLY_SCAN_LIMIT, SUPPORTED_SUBSCRIPTION_STATUSES
+from .config import (
+    ENTITLEMENTS_TABLE_NAME,
+    ENVIRONMENT,
+    FREE_MONTHLY_SCAN_LIMIT,
+    PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT,
+    PRO_MONTHLY_SCAN_LIMIT,
+    SUPPORTED_SUBSCRIPTION_STATUSES,
+    USERS_TABLE_NAME,
+)
 
 LOGGER = logging.getLogger(__name__)
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(ENTITLEMENTS_TABLE_NAME) if ENTITLEMENTS_TABLE_NAME else None
+participation_table = dynamodb.Table(USERS_TABLE_NAME) if USERS_TABLE_NAME else None
 
 DEFAULT_ENTITLEMENT_SK = "ENTITLEMENT"
 GOOGLE_PLAY_PRO_SK = "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly"
+CAMPAIGN_PARTICIPATION_SK = "CAMPAIGN_PARTICIPATION"
 
 
 class EntitlementStoreNotConfiguredError(RuntimeError):
@@ -26,8 +37,14 @@ def load_entitlement(account_id: str, now_iso: str | None = None, platform: str 
         response = table.get_item(Key={"PK": f"USER#{account_id}", "SK": sk})
         item = response.get("Item")
         if item:
-            return _normalize_entitlement(account_id, item, now_iso, sk)
-    return _default_entitlement(account_id, now_iso, sk_candidates[0])
+            return apply_campaign_participation_allowance(
+                account_id,
+                _normalize_entitlement(account_id, item, now_iso, sk),
+            )
+    return apply_campaign_participation_allowance(
+        account_id,
+        _default_entitlement(account_id, now_iso, sk_candidates[0]),
+    )
 
 
 def apply_google_play_subscription(entitlement: dict, verification: dict, payload: dict, now_iso: str | None = None) -> dict:
@@ -64,7 +81,7 @@ def apply_google_play_subscription(entitlement: dict, verification: dict, payloa
             int(updated.get("remainingMonthlyScans", FREE_MONTHLY_SCAN_LIMIT)),
         )
 
-    return updated
+    return apply_campaign_participation_allowance(updated["accountId"], updated)
 
 
 def save_entitlement(entitlement: dict) -> dict:
@@ -84,13 +101,14 @@ def build_entitlement_snapshot(entitlement: dict) -> dict:
         "billingPeriodEndUtc": normalized.get("billingPeriodEndUtc"),
         "lastVerifiedAtUtc": normalized.get("lastVerifiedAtUtc"),
         "isAccessGranted": normalized["isAccessGranted"],
+        "monthlyScanLimit": normalized["monthlyScanLimit"],
         "remainingMonthlyScans": normalized["remainingMonthlyScans"],
         "remainingCredits": normalized["remainingCredits"],
     }
 
 
 def build_usage_snapshot(entitlement_snapshot: dict) -> dict:
-    monthly_limit = PRO_MONTHLY_SCAN_LIMIT if entitlement_snapshot["tier"] == "pro" else FREE_MONTHLY_SCAN_LIMIT
+    monthly_limit = int(entitlement_snapshot.get("monthlyScanLimit", PRO_MONTHLY_SCAN_LIMIT if entitlement_snapshot["tier"] == "pro" else FREE_MONTHLY_SCAN_LIMIT))
     remaining_count = int(entitlement_snapshot["remainingMonthlyScans"])
     used_count = max(0, monthly_limit - remaining_count)
     period_start = entitlement_snapshot.get("billingPeriodStartUtc")
@@ -106,6 +124,51 @@ def build_usage_snapshot(entitlement_snapshot: dict) -> dict:
 def require_table() -> None:
     if not table:
         raise EntitlementStoreNotConfiguredError("The entitlements table is not configured.")
+
+
+def load_campaign_participation(account_id: str) -> dict:
+    if not participation_table:
+        return {"state": "not_enrolled", "stateVersion": 0}
+    response = participation_table.get_item(
+        Key={"PK": f"USER#{account_id}", "SK": CAMPAIGN_PARTICIPATION_SK},
+        ConsistentRead=True,
+    )
+    item = response.get("Item")
+    if not item or item.get("state") not in {"enrolled", "withdrawal_pending", "withdrawn"}:
+        return {"state": "not_enrolled", "stateVersion": 0}
+    try:
+        state_version = int(item.get("stateVersion", 0))
+    except (TypeError, ValueError):
+        state_version = 0
+    if item.get("state") == "enrolled" and (
+        not _is_uuid4(item.get("consentEpochId"))
+        or not isinstance(item.get("noticeVersion"), str)
+        or not item["noticeVersion"]
+        or isinstance(item.get("stateVersion"), bool)
+        or state_version < 1
+        or state_version != item.get("stateVersion")
+        or (ENVIRONMENT and item.get("environment") != ENVIRONMENT)
+    ):
+        return {"state": "not_enrolled", "stateVersion": 0}
+    return dict(item)
+
+
+def apply_campaign_participation_allowance(account_id: str, entitlement: dict) -> dict:
+    adjusted = dict(entitlement)
+    if adjusted.get("entitlementTier") == "PRO":
+        return adjusted
+    participation = load_campaign_participation(account_id)
+    target_limit = (
+        PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT
+        if participation.get("state") == "enrolled"
+        else FREE_MONTHLY_SCAN_LIMIT
+    )
+    old_limit = max(0, int(adjusted.get("monthlyScanLimit", FREE_MONTHLY_SCAN_LIMIT)))
+    remaining = max(0, int(adjusted.get("remainingMonthlyScans", old_limit)))
+    used = max(0, old_limit - remaining)
+    adjusted["monthlyScanLimit"] = target_limit
+    adjusted["remainingMonthlyScans"] = max(0, target_limit - used)
+    return adjusted
 
 
 def _candidate_entitlement_sks(platform: str | None, product_id: str | None) -> list[str]:
@@ -244,3 +307,11 @@ def _coerce_non_negative_int(value, default: int, *, field_name: str, account_id
 
 def _iso_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _is_uuid4(value) -> bool:
+    try:
+        parsed = UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value

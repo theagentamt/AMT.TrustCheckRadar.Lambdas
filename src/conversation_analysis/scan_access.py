@@ -16,12 +16,14 @@ from config import (
     REQUEST_ID_TTL_SECONDS,
     SCAN_RATE_LIMIT_MAX_REQUESTS,
     SCAN_RATE_LIMIT_WINDOW_SECONDS,
+    USERS_TABLE_NAME,
 )
 from errors import AppError
 from shared_campaign_contracts import AppFeaturesContractError, validate_app_features
 from shared_entitlements import (
     EntitlementStoreNotConfiguredError,
     build_entitlement_snapshot,
+    load_campaign_participation,
     load_entitlement,
     save_entitlement,
 )
@@ -46,10 +48,22 @@ def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
     snapshot = build_entitlement_snapshot(entitlement)
 
     if snapshot["remainingMonthlyScans"] > 0:
-        return {"accountId": account_id, "consumptionType": "monthly", "entitlement": entitlement, "snapshot": snapshot}
+        return {
+            "accountId": account_id,
+            "consumptionType": "monthly",
+            "entitlement": entitlement,
+            "snapshot": snapshot,
+            "campaignParticipation": load_campaign_participation(account_id),
+        }
 
     if snapshot["remainingCredits"] > 0:
-        return {"accountId": account_id, "consumptionType": "credit", "entitlement": entitlement, "snapshot": snapshot}
+        return {
+            "accountId": account_id,
+            "consumptionType": "credit",
+            "entitlement": entitlement,
+            "snapshot": snapshot,
+            "campaignParticipation": load_campaign_participation(account_id),
+        }
 
     LOGGER.warning("Entitlement exhausted")
     raise AppError(
@@ -76,6 +90,7 @@ def commit_scan_and_request(
     response: dict,
     campaign_payload: dict | None = None,
     statistics_event_id: str | None = None,
+    campaign_authorization: dict | None = None,
     now_epoch: int | None = None,
     now_iso: str | None = None,
 ) -> dict:
@@ -162,14 +177,28 @@ def commit_scan_and_request(
             }
         },
     ]
-    if campaign_payload and campaign_payload.get("campaignConsentGranted"):
+    intends_campaign = bool(campaign_payload and campaign_payload.get("campaignConsentGranted"))
+    authorized_campaign = (
+        intends_campaign
+        and campaign_authorization is not None
+        and _authorization_matches(access_grant.get("campaignParticipation"), campaign_authorization)
+    )
+    if authorized_campaign:
+        statistics_event_id = _require_statistics_event_id(statistics_event_id)
+    should_publish = authorized_campaign
+    if should_publish:
         if not CAMPAIGN_OUTBOX_TABLE_NAME or APP_ENVIRONMENT not in {"dev", "uat", "prod"}:
             raise AppError(
                 "SERVER_UNAVAILABLE",
                 "Campaign publishing is not configured for this environment.",
                 retryable=False,
             )
-        statistics_event_id = _require_statistics_event_id(statistics_event_id)
+        if not USERS_TABLE_NAME:
+            raise AppError(
+                "SERVER_UNAVAILABLE",
+                "Campaign participation storage is not configured.",
+                retryable=False,
+            )
         try:
             app_features = validate_app_features(campaign_payload.get("appFeatures"))
         except AppFeaturesContractError as err:
@@ -179,6 +208,28 @@ def commit_scan_and_request(
                 retryable=False,
             ) from err
         outbox_expiry = now_epoch + min(CAMPAIGN_OBSERVATION_RETENTION_HOURS, 72) * 60 * 60
+        transaction.append(
+            {
+                "ConditionCheck": {
+                    "TableName": USERS_TABLE_NAME,
+                    "Key": _serialize_item(
+                        {"PK": f"USER#{account_id}", "SK": "CAMPAIGN_PARTICIPATION"}
+                    ),
+                    "ConditionExpression": (
+                        "#state = :enrolled AND stateVersion = :state_version "
+                        "AND consentEpochId = :consent_epoch_id"
+                    ),
+                    "ExpressionAttributeNames": {"#state": "state"},
+                    "ExpressionAttributeValues": _serialize_item(
+                        {
+                            ":enrolled": "enrolled",
+                            ":state_version": campaign_authorization["stateVersion"],
+                            ":consent_epoch_id": campaign_authorization["consentEpochId"],
+                        }
+                    ),
+                }
+            }
+        )
         transaction.append(
             {
                 "Put": {
@@ -194,6 +245,8 @@ def commit_scan_and_request(
                             "statisticsEventId": statistics_event_id,
                             "accountId": account_id,
                             "campaignConsentGranted": True,
+                            "consentEpochId": campaign_authorization["consentEpochId"],
+                            "noticeVersion": campaign_authorization["noticeVersion"],
                             "observedAtEpoch": now_epoch,
                             "sourceType": campaign_payload["sourceType"],
                             "sanitizedText": campaign_payload["sanitizedText"],
@@ -219,6 +272,52 @@ def commit_scan_and_request(
             ) from err
         raise
     return updated
+
+
+def campaign_authorization(access_grant: dict) -> dict | None:
+    participation = access_grant.get("campaignParticipation")
+    if not isinstance(participation, dict) or participation.get("state") != "enrolled":
+        return None
+    epoch = participation.get("consentEpochId")
+    notice_version = participation.get("noticeVersion")
+    state_version = participation.get("stateVersion")
+    try:
+        normalized_state_version = int(state_version)
+    except (TypeError, ValueError):
+        normalized_state_version = 0
+    if (
+        not _is_uuid4(epoch)
+        or not isinstance(notice_version, str)
+        or not notice_version
+        or isinstance(state_version, bool)
+        or normalized_state_version < 1
+        or normalized_state_version != state_version
+    ):
+        raise AppError("SERVER_UNAVAILABLE", "Stored campaign participation state is invalid.", retryable=False)
+    return {
+        "consentEpochId": epoch,
+        "noticeVersion": notice_version,
+        "stateVersion": normalized_state_version,
+    }
+
+
+def _authorization_matches(participation, authorization) -> bool:
+    return (
+        isinstance(participation, dict)
+        and isinstance(authorization, dict)
+        and participation.get("state") == "enrolled"
+        and participation.get("stateVersion") == authorization.get("stateVersion")
+        and participation.get("consentEpochId") == authorization.get("consentEpochId")
+        and participation.get("noticeVersion") == authorization.get("noticeVersion")
+    )
+
+
+def _is_uuid4(value) -> bool:
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value
 
 
 def _require_statistics_event_id(value: str | None) -> str:

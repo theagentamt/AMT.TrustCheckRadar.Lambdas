@@ -121,6 +121,7 @@ aggregator_spec.loader.exec_module(aggregator_service)
 
 
 EVENT_ID = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+CONSENT_EPOCH_ID = "15c81ba4-2fa6-43c3-8895-889f08c931bf"
 
 
 def valid_features(**overrides):
@@ -150,6 +151,8 @@ def valid_item(**overrides):
         "statisticsEventId": EVENT_ID,
         "accountId": "account-123",
         "campaignConsentGranted": True,
+        "consentEpochId": CONSENT_EPOCH_ID,
+        "noticeVersion": "2026-09-07",
         "observedAtEpoch": 1_780_000_000,
         "sourceType": "pasted_text",
         "sanitizedText": "A caller requested payment using [PAYMENT_HANDLE_1].",

@@ -85,6 +85,11 @@ PROCESSING_STATE = {
     "payloadHash": "payload-hash",
     "leaseToken": "lease-token",
 }
+CAMPAIGN_AUTHORIZATION = {
+    "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+    "noticeVersion": "notice-2026-09",
+    "stateVersion": 2,
+}
 
 
 class ConversationAnalysisServiceTests(unittest.TestCase):
@@ -146,6 +151,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             "lease-token",
             response,
             statistics_event_id=None,
+            campaign_authorization=None,
         )
         mocked_commit.assert_called_once_with(
             ACCESS_GRANT,
@@ -154,6 +160,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             response,
             campaign_payload=PAYLOAD,
             statistics_event_id=None,
+            campaign_authorization=None,
         )
 
     def test_opted_in_success_persists_uuid4_and_reuses_it_in_atomic_commit(self):
@@ -167,6 +174,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
         with (
             mock.patch.object(service, "check_or_lock_request", return_value=PROCESSING_STATE),
             mock.patch.object(service, "prepare_scan_access", return_value=ACCESS_GRANT),
+            mock.patch.object(service, "campaign_authorization", return_value=CAMPAIGN_AUTHORIZATION),
             mock.patch.object(service, "analyze_conversation", return_value=ANALYSIS),
             mock.patch.object(service, "store_result") as mocked_store,
             mock.patch.object(service, "commit_scan_and_request") as mocked_commit,
@@ -184,6 +192,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             "lease-token",
             response,
             statistics_event_id=event_id,
+            campaign_authorization=CAMPAIGN_AUTHORIZATION,
         )
         mocked_commit.assert_called_once_with(
             ACCESS_GRANT,
@@ -192,6 +201,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             response,
             campaign_payload=payload,
             statistics_event_id=event_id,
+            campaign_authorization=CAMPAIGN_AUTHORIZATION,
         )
 
     def test_completed_response_replays_without_reprocessing_or_charging(self):
@@ -239,6 +249,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             COMPLETED_RESPONSE,
             campaign_payload=PAYLOAD,
             statistics_event_id=None,
+            campaign_authorization=None,
         )
         mocked_store.assert_not_called()
         mocked_analyze.assert_not_called()
@@ -255,6 +266,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             "payloadHash": "payload-hash",
             "response": COMPLETED_RESPONSE,
             "statisticsEventId": event_id,
+            "campaignAuthorization": CAMPAIGN_AUTHORIZATION,
         }
 
         with (
@@ -275,6 +287,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             COMPLETED_RESPONSE,
             campaign_payload=payload,
             statistics_event_id=event_id,
+            campaign_authorization=CAMPAIGN_AUTHORIZATION,
         )
         mocked_store.assert_not_called()
         mocked_analyze.assert_not_called()

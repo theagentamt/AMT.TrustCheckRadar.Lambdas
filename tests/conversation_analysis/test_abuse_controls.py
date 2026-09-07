@@ -69,6 +69,8 @@ class FakeTable:
             item["resultReadyAt"] = values[":result_ready_at"]
             if ":statistics_event_id" in values:
                 item["statisticsEventId"] = values[":statistics_event_id"]
+            if ":campaign_authorization" in values:
+                item["campaignAuthorization"] = values[":campaign_authorization"]
             item.pop("leaseToken", None)
             item.pop("leaseExpiresAt", None)
         elif ":previous_lease_expires_at" in values:
@@ -263,6 +265,11 @@ class AbuseControlsTests(unittest.TestCase):
             lock["leaseToken"],
             response(),
             statistics_event_id="7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc",
+            campaign_authorization={
+                "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+                "noticeVersion": "notice-2026-09",
+                "stateVersion": 2,
+            },
             now_epoch=101,
         )
 
@@ -273,6 +280,14 @@ class AbuseControlsTests(unittest.TestCase):
         self.assertEqual(
             result["statisticsEventId"],
             "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc",
+        )
+        self.assertEqual(
+            result["campaignAuthorization"],
+            {
+                "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+                "noticeVersion": "notice-2026-09",
+                "stateVersion": 2,
+            },
         )
 
     def test_completed_response_replays_without_reprocessing(self):

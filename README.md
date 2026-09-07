@@ -10,9 +10,10 @@ this repository owns function code, tests, and immutable deployment packages.
 |---|---|---|
 | `age_attestation.zip` | `POST /v1/users/age-attestation` | Records the authenticated user's age-policy decision. |
 | `campaign_cluster_aggregator.zip` | Cluster SQS queue | Applies bounded similarity and contributor caps to transient candidates. |
-| `campaign_deletion_bridge.zip` | Account-deletion ledger stream | Tombstones and removes active pseudonymous contributions. |
+| `campaign_deletion_bridge.zip` | Account-deletion ledger stream | Deletes contributions and completes matching pending participation withdrawals. |
 | `campaign_lifecycle.zip` | EventBridge Scheduler | Finalizes thresholded periods and creates/retires period HMAC keys. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Revalidates app-provided features, pseudonymizes the contributor, and enqueues opaque clustering work. |
+| `campaign_participation.zip` | `GET`/`PUT /v1/users/campaign-participation` | Manages optional server-authoritative participation, quota, receipts, and withdrawal commands. |
 | `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |

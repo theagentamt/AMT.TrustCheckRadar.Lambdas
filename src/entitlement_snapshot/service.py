@@ -58,15 +58,9 @@ def _build_usage_snapshot(account_id: str, entitlement_snapshot: dict) -> dict:
     usage_item = _load_usage_item(account_id, entitlement_snapshot, derived_usage["periodKey"])
 
     if usage_item:
-        monthly_limit = _coerce_int(
-            usage_item.get("monthlyLimit", usage_item.get("limit")),
-            derived_usage["monthlyLimit"],
-        )
+        monthly_limit = derived_usage["monthlyLimit"]
         used_count = _coerce_int(usage_item.get("usedCount"), derived_usage["usedCount"])
-        remaining_count = _coerce_int(
-            usage_item.get("remainingCount", usage_item.get("remaining")),
-            max(0, monthly_limit - used_count),
-        )
+        remaining_count = max(0, monthly_limit - used_count)
     else:
         monthly_limit = derived_usage["monthlyLimit"]
         used_count = derived_usage["usedCount"]
