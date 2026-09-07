@@ -41,9 +41,8 @@ def lambda_handler(event, _context):
         result = publish_observation(
             item,
             pipeline_table_name=config.PIPELINE_TABLE_NAME,
-            feature_queue_url=config.FEATURE_QUEUE_URL,
+            cluster_queue_url=config.CLUSTER_QUEUE_URL,
             hmac_key_id=hmac_key_id,
-            observation_retention_hours=config.OBSERVATION_RETENTION_HOURS,
             transient_retention_days=config.TRANSIENT_RETENTION_DAYS,
             dynamodb_client=dynamodb_client,
             kms_client=kms_client,

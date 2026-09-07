@@ -11,6 +11,7 @@ from config import (
     SCHEMA_VERSION,
 )
 from errors import AppError
+from shared_campaign_contracts import AppFeaturesContractError, validate_app_features
 
 
 def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
@@ -85,6 +86,20 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
             "campaignConsentGranted must be a boolean when provided.",
         )
 
+    raw_app_features = payload.get("appFeatures")
+    if raw_app_features is None:
+        if campaign_consent_granted:
+            raise _invalid_request(
+                "appFeatures",
+                "appFeatures is required when campaign consent is granted.",
+            )
+        app_features = None
+    else:
+        try:
+            app_features = validate_app_features(raw_app_features)
+        except AppFeaturesContractError as err:
+            raise _invalid_request("appFeatures", str(err)) from err
+
     return {
         "schemaVersion": schema_version,
         "requestId": request_id,
@@ -93,6 +108,7 @@ def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
         "sanitizedText": sanitized_text,
         "entities": validated_entities,
         "campaignConsentGranted": campaign_consent_granted,
+        "appFeatures": app_features,
     }
 
 

@@ -15,6 +15,7 @@ Status: **Lambda implementation complete**
 | No automatic publication | Aggregator writes only transient `UNFINALIZED` candidates. |
 | Retention | Candidates, contributions, and dedupe records receive a maximum 21-day expiry. |
 | Queue isolation | Strict five-field schema and environment checks; handler returns partial batch failures. |
+| Persisted input contract | The app-provided feature and routing metadata are revalidated before candidate lookup or scoring. |
 
 Reproduce:
 
@@ -23,6 +24,6 @@ python3 -m pytest -q tests/campaign_cluster_aggregator
 ./scripts/build_lambda_zip.sh --function campaign_cluster_aggregator --skip-dependencies
 ```
 
-The separate end-to-end bilingual precision/recall evaluation is correctly owned
-by the final quality gate and cannot pass until the approved model image and fixture
-set identified in `SECUR4ALL-205` exist.
+The Android implementation owns extractor model quality and bilingual fixture
+evidence. The Lambda aggregator owns only strict input rejection and bounded,
+deterministic clustering behavior.

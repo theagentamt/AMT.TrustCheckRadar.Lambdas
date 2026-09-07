@@ -12,10 +12,9 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_cluster_aggregator.zip` | Cluster SQS queue | Applies bounded similarity and contributor caps to transient candidates. |
 | `campaign_deletion_bridge.zip` | Account-deletion ledger stream | Tombstones and removes active pseudonymous contributions. |
 | `campaign_lifecycle.zip` | EventBridge Scheduler | Finalizes thresholded periods and creates/retires period HMAC keys. |
-| `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Pseudonymizes opted-in completed analyses and publishes opaque feature work. |
+| `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Revalidates app-provided features, pseudonymizes the contributor, and enqueues opaque clustering work. |
 | `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
-| Campaign feature-extractor image | Feature SQS queue | Produces bounded multilingual embeddings from an image-baked offline model. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
 | `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
@@ -58,10 +57,6 @@ make package
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
 metadata so identical inputs produce identical archives.
-
-The feature extractor is a container Lambda rather than a ZIP. Its Dockerfile
-downloads a revision-pinned model during the image build and enables offline mode
-at runtime; the deployed image must be referenced by its ECR digest.
 
 Build one function or target x86_64 explicitly:
 

@@ -18,6 +18,7 @@ from config import (
     SCAN_RATE_LIMIT_WINDOW_SECONDS,
 )
 from errors import AppError
+from shared_campaign_contracts import AppFeaturesContractError, validate_app_features
 from shared_entitlements import (
     EntitlementStoreNotConfiguredError,
     build_entitlement_snapshot,
@@ -50,7 +51,7 @@ def prepare_scan_access(account_id: str, now_epoch: int | None = None) -> dict:
     if snapshot["remainingCredits"] > 0:
         return {"accountId": account_id, "consumptionType": "credit", "entitlement": entitlement, "snapshot": snapshot}
 
-    LOGGER.warning("Entitlement exhausted for accountId=%s", account_id)
+    LOGGER.warning("Entitlement exhausted")
     raise AppError(
         "ENTITLEMENT_EXHAUSTED",
         "No remaining scans or credits are available for this account.",
@@ -169,6 +170,14 @@ def commit_scan_and_request(
                 retryable=False,
             )
         statistics_event_id = _require_statistics_event_id(statistics_event_id)
+        try:
+            app_features = validate_app_features(campaign_payload.get("appFeatures"))
+        except AppFeaturesContractError as err:
+            raise AppError(
+                "SERVER_UNAVAILABLE",
+                "The persisted app feature contract is invalid.",
+                retryable=False,
+            ) from err
         outbox_expiry = now_epoch + min(CAMPAIGN_OBSERVATION_RETENTION_HOURS, 72) * 60 * 60
         transaction.append(
             {
@@ -190,6 +199,7 @@ def commit_scan_and_request(
                             "sanitizedText": campaign_payload["sanitizedText"],
                             "riskLevel": response.get("riskLevel", "unknown"),
                             "signalIds": response.get("signals", []),
+                            "appFeatures": app_features,
                             "expiresAt": outbox_expiry,
                         }
                     ),
@@ -257,8 +267,7 @@ def _build_consumed_entitlement(
         entitlement["remainingCredits"] -= 1
     else:
         LOGGER.warning(
-            "Unexpected scan consumption type for accountId=%s consumptionType=%s",
-            access_grant["accountId"],
+            "Unexpected scan consumption type | consumptionType=%s",
             consumption_type,
         )
         raise AppError("SERVER_UNAVAILABLE", "The scan access configuration is invalid.", retryable=False)
@@ -292,8 +301,7 @@ def _enforce_scan_rate_limit(account_id: str, now_epoch: int) -> None:
     request_count = int(response["Attributes"]["requestCount"])
     if request_count > SCAN_RATE_LIMIT_MAX_REQUESTS:
         LOGGER.warning(
-            "Scan abuse cap exceeded for accountId=%s requestCount=%s windowStart=%s",
-            account_id,
+            "Scan abuse cap exceeded | requestCount=%s windowStart=%s",
             request_count,
             window_start,
         )

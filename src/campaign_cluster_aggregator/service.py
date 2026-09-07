@@ -1,13 +1,27 @@
 from __future__ import annotations
 
+from decimal import Decimal
 import json
 import time
 import uuid
 
 from scoring import similarity, updated_centroid
+from shared_campaign_contracts import APP_FEATURE_FIELDS, AppFeaturesContractError, validate_app_features
 
 
 ENVELOPE_FIELDS = {"schemaVersion", "eventType", "environment", "statisticsEventId", "recordVersion"}
+PERSISTED_FEATURE_FIELDS = APP_FEATURE_FIELDS | {
+    "PK",
+    "SK",
+    "recordVersion",
+    "environment",
+    "statisticsEventId",
+    "periodId",
+    "contributorToken",
+    "GSI1PK",
+    "GSI1SK",
+    "expiresAt",
+}
 
 
 def process_message(body: str, *, environment: str, schema_version: int, table_name: str,
@@ -18,7 +32,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         Key={"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "FEATURE"}}, ConsistentRead=True).get("Item")
     if not feature_raw:
         return "missing"
-    feature = deserialize(feature_raw)
+    feature = _validated_feature(deserialize(feature_raw), event_id, environment, schema_version)
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if feature.get("expiresAt", 0) <= now_epoch or feature.get("suppressed") is True:
         return "suppressed"
@@ -127,21 +141,84 @@ def _dedupe_action(table_name, event_id, candidate_id, expiry, outcome):
 
 
 def _envelope(body, environment, schema_version):
-    value = json.loads(body)
+    try:
+        value = json.loads(body)
+    except (TypeError, json.JSONDecodeError) as err:
+        raise ValueError("Invalid cluster envelope") from err
     if not isinstance(value, dict) or set(value) != ENVELOPE_FIELDS or value.get("schemaVersion") != schema_version \
             or value.get("recordVersion") != 1 or value.get("environment") != environment \
             or value.get("eventType") != "campaign.cluster.requested":
         raise ValueError("Invalid cluster envelope")
+    if isinstance(value["schemaVersion"], bool) or isinstance(value["recordVersion"], bool):
+        raise ValueError("Invalid cluster envelope")
+    _require_uuid4(value.get("statisticsEventId"))
     return value
+
+
+def _validated_feature(feature, event_id, environment, schema_version):
+    if not isinstance(feature, dict) or set(feature) not in {
+        PERSISTED_FEATURE_FIELDS,
+        PERSISTED_FEATURE_FIELDS | {"suppressed"},
+    }:
+        raise ValueError("Invalid persisted feature fields")
+    if (
+        feature.get("PK") != f"EVENT#{event_id}"
+        or feature.get("SK") != "FEATURE"
+        or feature.get("statisticsEventId") != event_id
+        or feature.get("environment") != environment
+        or feature.get("schemaVersion") != schema_version
+        or feature.get("recordVersion") != 1
+    ):
+        raise ValueError("Persisted feature routing mismatch")
+    if isinstance(feature["schemaVersion"], bool) or isinstance(feature["recordVersion"], bool):
+        raise ValueError("Persisted feature version is invalid")
+    _require_uuid4(feature["statisticsEventId"])
+    period_id = feature.get("periodId")
+    expires_at = feature.get("expiresAt")
+    if isinstance(period_id, bool) or not isinstance(period_id, int) or period_id < 0:
+        raise ValueError("Persisted feature period is invalid")
+    if isinstance(expires_at, bool) or not isinstance(expires_at, int) or expires_at < 0:
+        raise ValueError("Persisted feature expiry is invalid")
+    if "suppressed" in feature and not isinstance(feature["suppressed"], bool):
+        raise ValueError("Persisted feature suppression flag is invalid")
+    contributor_token = feature.get("contributorToken")
+    if not isinstance(contributor_token, str) or not contributor_token or len(contributor_token) > 128:
+        raise ValueError("Persisted feature contributor token is invalid")
+    if (
+        feature.get("GSI1PK") != f"CONTRIB#{period_id}#{contributor_token}"
+        or feature.get("GSI1SK") != f"EVENT#{event_id}#FEATURE"
+    ):
+        raise ValueError("Persisted feature contributor index is invalid")
+    try:
+        app_features = validate_app_features(
+            {field: feature[field] for field in APP_FEATURE_FIELDS}
+        )
+    except AppFeaturesContractError as err:
+        raise ValueError("Persisted appFeatures violates the V1 contract") from err
+    return feature | app_features
+
+
+def _require_uuid4(value):
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError) as err:
+        raise ValueError("statisticsEventId must be UUIDv4") from err
+    if parsed.version != 4 or str(parsed) != value:
+        raise ValueError("statisticsEventId must be canonical UUIDv4")
 
 
 def deserialize(item):
     def one(value):
+        if not isinstance(value, dict) or len(value) != 1:
+            raise ValueError("Invalid DynamoDB attribute")
         kind, raw = next(iter(value.items()))
         if kind == "S": return raw
-        if kind == "N": return float(raw) if "." in raw else int(raw)
+        if kind == "N":
+            number = Decimal(raw)
+            return int(number) if number == number.to_integral_value() else float(number)
         if kind == "BOOL": return raw
         if kind == "L": return [one(child) for child in raw]
+        raise ValueError("Unsupported DynamoDB attribute")
     return {key: one(value) for key, value in item.items()}
 
 

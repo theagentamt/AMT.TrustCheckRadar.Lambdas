@@ -10,12 +10,12 @@ Status: **Lambda implementation complete; promotion approvals remain external**
 | Declining does not publish | The completion transaction omits the outbox write unless consent is exactly `true`; the publisher also suppresses a false record. | `test_declined_campaign_consent_does_not_write_outbox`, `test_declined_consent_is_successful_noop` |
 | Random retry-stable event identity | A UUIDv4 is stored with `RESULT_READY` and reused by recovery before the atomic outbox commit. | `test_opted_in_success_persists_uuid4_and_reuses_it_in_atomic_commit`, `test_opted_in_result_ready_recovery_reuses_persisted_event_id`, `test_result_ready_is_replayed_for_atomic_commit_recovery`, publisher UUIDv4 contract tests |
 | Atomic completed-analysis publication | Entitlement consumption, request completion, and the conditional outbox put share one DynamoDB transaction. | `test_opted_in_analysis_atomically_writes_campaign_outbox` |
-| Period-scoped pseudonym | Publisher calls KMS `GenerateMac` with `HMAC_SHA_256` and domain-separated account bytes for the fixed 14-day UTC period. | `test_publishes_pseudonymous_observation_and_opaque_message`, `test_period_is_fixed_fourteen_day_utc_bucket` |
-| No identity beyond boundary | Pipeline observation excludes account/request/device identifiers; precise event time is not persisted beyond the outbox. | Serialized-item assertions and prohibited-field contract tests |
+| Period-scoped pseudonym | Publisher calls KMS `GenerateMac` with `HMAC_SHA_256` and domain-separated account bytes for the fixed 14-day UTC period. | `test_publishes_pseudonymous_app_feature_and_cluster_message`, `test_period_is_fixed_fourteen_day_utc_bucket` |
+| No identity beyond boundary | Pipeline feature excludes account/request/device identifiers, source text, and precise event time. | Serialized-item assertions and prohibited-field contract tests |
 | Sanitization defense | Strict field allowlist plus obvious email/phone rejection before persistence. | `test_rejects_unknown_and_prohibited_fields`, `test_rejects_obvious_unsanitized_identifiers` |
-| Opaque queue envelope | Feature message contains exactly the approved five fields. | `test_feature_envelope_contains_only_approved_fields` |
+| Opaque queue envelope | Cluster message contains exactly the approved five fields. | `test_cluster_envelope_contains_only_approved_fields` |
 | At-least-once replay safety | `PENDING`/`PUBLISHED` dedupe state recovers write-before-send failures and suppresses completed replay. | `test_pending_delivery_retries_without_rederiving_identity_token`, `test_completed_duplicate_is_successful_noop` |
-| Retention | Observation TTL is capped at 72 hours and dedupe TTL at 21 days. | Service transaction assertions and bounded configuration validation |
+| Retention | Outbox TTL is capped at 72 hours and transient feature/dedupe TTL at 21 days. | Service transaction assertions and bounded configuration validation |
 | Content-free telemetry | Logs contain counts and low-cardinality outcomes only; malformed input emits a content-free metric. | `test_handler_uses_content_free_completion_log`, `test_malformed_record_emits_only_content_free_metric` |
 
 ## Reproduction

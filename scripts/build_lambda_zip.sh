@@ -80,6 +80,13 @@ needs_shared_entitlements() {
   esac
 }
 
+needs_shared_campaign_contracts() {
+  case "$1" in
+    campaign_cluster_aggregator|campaign_observation_publisher|conversation_analysis) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all)
@@ -148,6 +155,10 @@ build_function() {
 
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
+  fi
+
+  if needs_shared_campaign_contracts "$function_name"; then
+    cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"
   fi
 
   if [[ -f "$requirements_file" && "$SKIP_DEPENDENCIES" == false ]]; then

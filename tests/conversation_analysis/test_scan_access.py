@@ -88,6 +88,19 @@ import scan_access  # noqa: E402
 from errors import AppError  # noqa: E402
 
 
+APP_FEATURES = {
+    "schemaVersion": 1,
+    "extractorVersion": "android-1.0.0",
+    "languageId": "en",
+    "taxonomyBucket": "advance_fee",
+    "vector": [1.0, 0.0],
+    "lexicalFingerprint": ["0123456789abcdef"],
+    "signalIds": ["payment_request"],
+    "indicatorIds": ["payment.crypto"],
+    "confidence": 0.9,
+}
+
+
 class ScanAccessTests(unittest.TestCase):
     def setUp(self):
         entitlements_fake.items.clear()
@@ -219,6 +232,7 @@ class ScanAccessTests(unittest.TestCase):
                 "campaignConsentGranted": True,
                 "sourceType": "pasted_text",
                 "sanitizedText": "Send money to [PAYMENT_HANDLE_1].",
+                "appFeatures": APP_FEATURES,
                 "images": ["forbidden-binary-reference"],
                 "files": [{"name": "forbidden.txt", "content": b"forbidden"}],
                 "screenshots": [b"forbidden"],
@@ -253,10 +267,12 @@ class ScanAccessTests(unittest.TestCase):
                 "sanitizedText",
                 "riskLevel",
                 "signalIds",
+                "appFeatures",
                 "expiresAt",
             },
         )
         self.assertEqual(outbox["Item"]["expiresAt"], {"N": str(100 + 72 * 60 * 60)})
+        self.assertEqual(outbox["Item"]["appFeatures"]["M"]["extractorVersion"], {"S": "android-1.0.0"})
         serialized = str(outbox["Item"])
         self.assertNotIn("request-123", serialized)
         self.assertNotIn("forbidden", serialized)
@@ -276,6 +292,7 @@ class ScanAccessTests(unittest.TestCase):
                             "campaignConsentGranted": True,
                             "sourceType": "pasted_text",
                             "sanitizedText": "Send money to [PAYMENT_HANDLE_1].",
+                            "appFeatures": APP_FEATURES,
                         },
                         statistics_event_id=event_id,
                         now_epoch=100,

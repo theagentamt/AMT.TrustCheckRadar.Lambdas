@@ -4,9 +4,9 @@ Status: **Local validation complete; final UAT gate blocked**
 
 The reproducible local evidence target runs the complete test suite, compiles all
 sources, validates shell scripts, builds every ZIP deterministically, inspects the
-six campaign ZIPs, statically checks campaign log templates, proves the feature
-model is revision-pinned/offline-only, and runs a 10,000-comparison local scoring
-benchmark:
+six campaign ZIPs, statically checks campaign and analysis log templates, proves
+that server feature-extraction code/build/publishing support is absent, and runs a
+10,000-comparison local scoring benchmark:
 
 ```bash
 make campaign-evidence
@@ -33,22 +33,20 @@ Covered automated evidence includes:
 The local scoring benchmark is diagnostic evidence only. It is not represented as
 Lambda p95 or cost evidence.
 
-Latest local run (2026-09-06):
+Latest local run (2026-09-07):
 
-- 144 tests passed with 22 parameterized negative subtests.
-- 10 campaign log templates passed the static content-free check.
+- 156 tests passed with 66 parameterized negative subtests.
+- 59 campaign and analysis log templates passed the static content-free check.
 - All six ZIP artifacts passed root-handler/cache inspection.
-- The pinned offline model revision check passed for
-  `b8ef00830037f9868450f778081ea683e900fe39`.
-- 10,000 local 384-dimensional scoring comparisons completed in 193.270 ms
-  (51,741.2 comparisons/second on this host). This is not a Lambda/UAT latency
+- The server feature-extractor absence check passed.
+- 10,000 local 384-dimensional scoring comparisons completed in 197.228 ms
+  (50,702.6 comparisons/second on this host). This is not a Lambda/UAT latency
   measurement.
 
 Final completion requires evidence that cannot be generated correctly from this
 repository/host:
 
-1. Approved English/Spanish fixtures and the immutable feature image digest for
-   measured 95% precision and 80% recall.
+1. Android-owned multilingual extractor quality, provenance, and performance evidence.
 2. UAT re-identification/model-inversion and coordinated-poisoning review.
 3. Deployed IAM negative tests and cross-environment AWS tests.
 4. Deadline-bound explicit expiry/deletion after the missing expiration access

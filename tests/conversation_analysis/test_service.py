@@ -65,6 +65,17 @@ ANALYSIS = {
     "signals": ["payment_request"],
     "recommendedActions": ["Do not send money."],
 }
+APP_FEATURES = {
+    "schemaVersion": 1,
+    "extractorVersion": "android-1.0.0",
+    "languageId": "en",
+    "taxonomyBucket": "advance_fee",
+    "vector": [1.0, 0.0],
+    "lexicalFingerprint": ["0123456789abcdef"],
+    "signalIds": ["payment_request"],
+    "indicatorIds": ["payment.crypto"],
+    "confidence": 0.9,
+}
 COMPLETED_RESPONSE = {
     "schemaVersion": "1.0",
     "requestId": "request-123",
@@ -149,6 +160,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
         payload = PAYLOAD | {
             "campaignConsentGranted": True,
             "sourceType": "pasted_text",
+            "appFeatures": APP_FEATURES,
         }
         event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
 
@@ -234,7 +246,10 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
 
     def test_opted_in_result_ready_recovery_reuses_persisted_event_id(self):
         event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
-        payload = PAYLOAD | {"campaignConsentGranted": True}
+        payload = PAYLOAD | {
+            "campaignConsentGranted": True,
+            "appFeatures": APP_FEATURES,
+        }
         result_ready = {
             "state": "result_ready",
             "payloadHash": "payload-hash",

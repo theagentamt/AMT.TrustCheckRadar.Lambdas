@@ -234,6 +234,56 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
         self.assertEqual(body["requestId"], "request-123")
         self.assertEqual(body["error"]["code"], "DEVICE_BINDING_MISMATCH")
 
+    def test_opted_in_request_logs_no_identity_text_or_app_features(self):
+        app_features = {
+            "schemaVersion": 1,
+            "extractorVersion": "private-extractor-version",
+            "languageId": "en",
+            "taxonomyBucket": "advance_fee",
+            "vector": [0.123456],
+            "lexicalFingerprint": ["0123456789abcdef"],
+            "signalIds": ["payment_request"],
+            "indicatorIds": ["payment.crypto"],
+            "confidence": 0.9,
+        }
+        event = {
+            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "private-account"}}}},
+            "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
+            "body": {
+                "schemaVersion": "1.0",
+                "requestId": "request-123",
+                "sourceType": "pasted_text",
+                "localSanitizationApplied": True,
+                "sanitizedText": "private sanitized text",
+                "entities": [],
+                "campaignConsentGranted": True,
+                "appFeatures": app_features,
+            },
+        }
+
+        with (
+            mock.patch.object(app, "assert_active_device_binding"),
+            mock.patch.object(
+                app,
+                "handle_analysis_request",
+                return_value={"requestId": "request-123", "riskLevel": "high", "scamScore": 90},
+            ),
+            self.assertLogs(level="INFO") as captured,
+        ):
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 200)
+        combined = " ".join(captured.output)
+        for prohibited in (
+            "private-account",
+            "private sanitized text",
+            "private-extractor-version",
+            "0.123456",
+            "0123456789abcdef",
+            "payment.crypto",
+        ):
+            self.assertNotIn(prohibited, combined)
+
 
 if __name__ == "__main__":
     unittest.main()

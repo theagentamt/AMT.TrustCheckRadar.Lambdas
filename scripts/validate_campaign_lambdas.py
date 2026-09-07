@@ -35,7 +35,7 @@ def main():
         "schemaVersion": 1,
         "packages": validate_packages(dist),
         "contentFreeLogTemplates": validate_logs(),
-        "offlineModel": validate_model_image(),
+        "serverFeatureExtractorAbsent": validate_server_extractor_absent(),
         "localScoringBenchmark": benchmark_scoring(),
     }
     print(json.dumps(result, indent=2, sort_keys=True))
@@ -75,19 +75,41 @@ def validate_logs():
                 for term in PROHIBITED_LOG_TERMS:
                     if re.sub(r"[^a-z]", "", term.lower()) in normalized:
                         raise SystemExit(f"prohibited campaign log term in {path}:{node.lineno}")
+    analysis_prohibited = ("accountid", "appfeatures", "sanitizedtext", "vector", "fingerprint", "indicator")
+    for path in (ROOT / "src/conversation_analysis").glob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr not in {"debug", "info", "warning", "error", "exception", "critical"}:
+                continue
+            inspected += 1
+            if not node.args or not isinstance(node.args[0], ast.Constant) or not isinstance(node.args[0].value, str):
+                raise SystemExit(f"non-literal analysis log template: {path}:{node.lineno}")
+            normalized = re.sub(r"[^a-z]", "", node.args[0].value.lower())
+            if any(term in normalized for term in analysis_prohibited):
+                raise SystemExit(f"prohibited analysis log term in {path}:{node.lineno}")
     return {"templatesInspected": inspected, "result": "pass"}
 
 
-def validate_model_image():
-    dockerfile = (ROOT / "src/campaign_feature_extractor/Dockerfile").read_text()
-    model_source = (ROOT / "src/campaign_feature_extractor/model.py").read_text()
-    required = ("HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1", "local_files_only=True")
-    if not all(value in dockerfile + model_source for value in required):
-        raise SystemExit("feature image does not prove offline-only model loading")
-    revision = re.search(r"ARG MODEL_REVISION=([0-9a-f]{40})", dockerfile)
-    if not revision:
-        raise SystemExit("feature model revision is not commit-pinned")
-    return {"result": "pass", "modelRevision": revision.group(1)}
+def validate_server_extractor_absent():
+    source = ROOT / "src/campaign_feature_extractor"
+    tests = ROOT / "tests/campaign_feature_extractor"
+    if any(path.is_file() and path.suffix != ".pyc" for folder in (source, tests) for path in folder.glob("**/*")):
+        raise SystemExit("server feature extractor source or tests are still present")
+    inspected = [
+        ROOT / ".github/workflows/ci.yml",
+        ROOT / ".github/workflows/publish.yml",
+        ROOT / "scripts/build_lambda_zip.sh",
+        ROOT / "README.md",
+        ROOT / "docs/GITHUB_PUBLISHING.md",
+    ]
+    prohibited = ("FEATURE_IMAGE", "campaign-feature-image", "campaign_feature_extractor", "amazon-ecr-login")
+    for path in inspected:
+        content = path.read_text()
+        if any(value in content for value in prohibited):
+            raise SystemExit(f"server feature extraction support remains in {path}")
+    return {"result": "pass"}
 
 
 def benchmark_scoring():

@@ -1,41 +1,32 @@
 # SECUR4ALL-205 Lambda Evidence
 
-Status: **Implementation complete; story evidence blocked**
+Status: **No server-side feature-extraction Lambda; app contract enforced**
 
-Implemented evidence:
+Product direction supersedes the former server feature extractor. Multilingual
+feature extraction always occurs in the app and the server does not download,
+load, or execute an embedding model.
 
-- Strict, environment-bound five-field SQS envelope validation.
-- Missing, deleted, suppressed, expired, and completed-replay no-op behavior.
-- Image-baked model loading with `local_files_only=True`, `HF_HUB_OFFLINE=1`, and
-  `TRANSFORMERS_OFFLINE=1`; runtime downloads are impossible.
-- Revision-pinned Apache-2.0 multilingual MiniLM candidate with a maximum of 384
-  normalized, finite, clipped vector dimensions.
-- Feature records omit source text and direct identity while retaining bounded
-  transient model provenance, taxonomy bucket, language, fingerprint, and token.
-- Opaque cluster queue envelope and partial SQS batch failure response.
+The Lambda-owned boundary is limited to defensive contract enforcement:
 
-Automated reproduction:
+- `conversation_analysis` validates the exact V1 `appFeatures` object before an
+  opted-in analysis can enter the campaign outbox.
+- `campaign_observation_publisher` revalidates the same object, derives the
+  period-scoped contributor HMAC, stores a source-text-free transient `FEATURE`
+  record, and sends an opaque `campaign.cluster.requested` envelope.
+- `campaign_cluster_aggregator` revalidates the persisted feature and its routing
+  metadata before candidate lookup or scoring.
+- Missing, unknown, malformed, oversized, duplicate-list, unsupported-version,
+  non-finite, boolean-as-number, and out-of-range values fail closed.
+- Server extractor source, tests, container build, feature queue, model image,
+  ECR settings, and image-publishing workflow support have been removed.
+
+Reproduce:
 
 ```bash
-python3 -m pytest -q tests/campaign_feature_extractor
-python3 -m compileall -q src/campaign_feature_extractor tests/campaign_feature_extractor
+python3 -m pytest -q tests/shared_campaign_contracts tests/conversation_analysis tests/campaign_observation_publisher tests/campaign_cluster_aggregator
+make campaign-evidence
 ```
 
-Current result: 5 tests pass, including 2 parameterized negative subtests.
-
-Completion blockers that must not be fabricated:
-
-1. Docker Desktop 4.74.0 reports a Linux/ARM64 Docker 29.4.3 engine. The corrected
-   AWS-documented build command
-   `docker buildx build --platform linux/arm64 --provenance=false --load ...`
-   made no progress beyond resolving
-   `public.ecr.aws/lambda/python:3.13` for 90 seconds and was canceled. The host's
-   public-ECR path therefore remains blocked, so an image digest, runtime smoke
-   test, and vulnerability scan cannot yet be produced.
-2. The approved English/Spanish labeled fixtures required to measure at least 95%
-   precision and 80% recall are not present.
-3. UAT memory, p95 latency, throughput, and measured cost require the immutable
-   image running against those approved fixtures.
-
-Until those artifacts exist, this story cannot truthfully be marked complete even
-though its Lambda application boundary is implemented.
+Model quality, language coverage, extractor provenance, and app runtime
+performance evidence now belong to the Android implementation handoff rather
+than any Lambda or server runtime.

@@ -1,4 +1,5 @@
 import base64
+import importlib.util
 import json
 import os
 import sys
@@ -100,7 +101,7 @@ os.environ.update(
         "APP_ENVIRONMENT": "dev",
         "CAMPAIGN_SCHEMA_VERSION": "1",
         "PIPELINE_TABLE_NAME": "campaign-pipeline",
-        "FEATURE_QUEUE_URL": "https://sqs.example/feature",
+        "CLUSTER_QUEUE_URL": "https://sqs.example/cluster",
     }
 )
 
@@ -108,8 +109,34 @@ import app  # noqa: E402
 import contracts  # noqa: E402
 import service  # noqa: E402
 
+AGGREGATOR_DIR = SRC_DIR / "campaign_cluster_aggregator"
+if str(AGGREGATOR_DIR) not in sys.path:
+    sys.path.insert(0, str(AGGREGATOR_DIR))
+aggregator_spec = importlib.util.spec_from_file_location(
+    "campaign_cluster_contract_service",
+    AGGREGATOR_DIR / "service.py",
+)
+aggregator_service = importlib.util.module_from_spec(aggregator_spec)
+aggregator_spec.loader.exec_module(aggregator_service)
+
 
 EVENT_ID = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+
+
+def valid_features(**overrides):
+    value = {
+        "schemaVersion": 1,
+        "extractorVersion": "android-1.0.0",
+        "languageId": "en",
+        "taxonomyBucket": "advance_fee",
+        "vector": [1.0, 0.0],
+        "lexicalFingerprint": ["0123456789abcdef"],
+        "signalIds": ["payment_request"],
+        "indicatorIds": ["payment.crypto"],
+        "confidence": 0.9,
+    }
+    value.update(overrides)
+    return value
 
 
 def valid_item(**overrides):
@@ -128,6 +155,7 @@ def valid_item(**overrides):
         "sanitizedText": "A caller requested payment using [PAYMENT_HANDLE_1].",
         "riskLevel": "high",
         "signalIds": ["payment_request"],
+        "appFeatures": valid_features(),
         "expiresAt": 1_780_259_200,
     }
     item.update(overrides)
@@ -139,10 +167,14 @@ def dynamodb_value(value):
         return {"BOOL": value}
     if isinstance(value, int):
         return {"N": str(value)}
+    if isinstance(value, float):
+        return {"N": str(value)}
     if isinstance(value, str):
         return {"S": value}
     if isinstance(value, list):
         return {"L": [dynamodb_value(item) for item in value]}
+    if isinstance(value, dict):
+        return {"M": {key: dynamodb_value(item) for key, item in value.items()}}
     raise TypeError(type(value).__name__)
 
 
@@ -206,8 +238,8 @@ class ContractTests(unittest.TestCase):
                     schema_version=1,
                 )
 
-    def test_feature_envelope_contains_only_approved_fields(self):
-        envelope = contracts.build_feature_envelope(valid_item())
+    def test_cluster_envelope_contains_only_approved_fields(self):
+        envelope = contracts.build_cluster_envelope(valid_item())
 
         self.assertEqual(
             set(envelope),
@@ -215,6 +247,24 @@ class ContractTests(unittest.TestCase):
         )
         self.assertNotIn("accountId", json.dumps(envelope))
         self.assertNotIn("sanitizedText", json.dumps(envelope))
+        self.assertNotIn("appFeatures", json.dumps(envelope))
+
+    def test_rejects_invalid_app_features(self):
+        cases = [
+            valid_features(schemaVersion=2),
+            valid_features(vector=[float("nan")]),
+            valid_features(confidence=True),
+            valid_features(unknown="field"),
+        ]
+        for app_features in cases:
+            with self.subTest(), self.assertRaisesRegex(
+                contracts.ContractError, "appFeatures"
+            ):
+                contracts.parse_stream_record(
+                    stream_event(valid_item(appFeatures=app_features))["Records"][0],
+                    environment="dev",
+                    schema_version=1,
+                )
 
     def test_rejects_obvious_unsanitized_identifiers(self):
         for text in ("Email victim@example.com", "Call +1 (312) 555-0199"):
@@ -240,9 +290,8 @@ class ServiceTests(unittest.TestCase):
         return service.publish_observation(
             valid_item() if item is None else item,
             pipeline_table_name="campaign-pipeline",
-            feature_queue_url="https://sqs.example/feature",
+            cluster_queue_url="https://sqs.example/cluster",
             hmac_key_id="alias/period-key",
-            observation_retention_hours=72,
             transient_retention_days=21,
             dynamodb_client=fake_dynamo,
             kms_client=fake_kms,
@@ -250,7 +299,7 @@ class ServiceTests(unittest.TestCase):
             now_epoch=now_epoch,
         )
 
-    def test_publishes_pseudonymous_observation_and_opaque_message(self):
+    def test_publishes_pseudonymous_app_feature_and_cluster_message(self):
         result = self.publish()
 
         self.assertEqual(result, "published")
@@ -260,17 +309,50 @@ class ServiceTests(unittest.TestCase):
             b"campaign-contributor:v1\0account-123",
         )
         self.assertEqual(fake_kms.calls[0]["MacAlgorithm"], "HMAC_SHA_256")
-        observation = fake_dynamo.transactions[0][0]["Put"]["Item"]
-        self.assertNotIn("accountId", observation)
+        feature = fake_dynamo.transactions[0][0]["Put"]["Item"]
+        self.assertEqual(feature["SK"], {"S": "FEATURE"})
+        self.assertNotIn("accountId", feature)
+        self.assertNotIn("sanitizedText", feature)
         self.assertEqual(
-            observation["contributorToken"]["S"],
+            feature["contributorToken"]["S"],
             base64.urlsafe_b64encode(b"x" * 32).decode("ascii").rstrip("="),
         )
+        self.assertEqual(feature["extractorVersion"], {"S": "android-1.0.0"})
+        self.assertEqual(feature["indicatorIds"], {"L": [{"S": "payment.crypto"}]})
         message = json.loads(fake_sqs.calls[0]["MessageBody"])
         self.assertEqual(set(message), {
             "schemaVersion", "eventType", "environment", "statisticsEventId", "recordVersion"
         })
-        self.assertEqual(message["eventType"], "campaign.feature.requested")
+        self.assertEqual(message["eventType"], "campaign.cluster.requested")
+        self.assertEqual(fake_sqs.calls[0]["QueueUrl"], "https://sqs.example/cluster")
+
+    def test_service_revalidates_app_features_before_any_side_effect(self):
+        with self.assertRaises(ValueError):
+            self.publish(valid_item(appFeatures=valid_features(vector=[float("inf")])))
+
+        self.assertEqual(fake_kms.calls, [])
+        self.assertEqual(fake_dynamo.transactions, [])
+        self.assertEqual(fake_sqs.calls, [])
+
+    def test_publisher_feature_record_satisfies_cluster_input_contract(self):
+        self.publish()
+        persisted = aggregator_service.deserialize(
+            fake_dynamo.transactions[0][0]["Put"]["Item"]
+        )
+
+        validated = aggregator_service._validated_feature(
+            persisted,
+            EVENT_ID,
+            "dev",
+            1,
+        )
+
+        self.assertEqual(validated["extractorVersion"], "android-1.0.0")
+        self.assertEqual(validated["SK"], "FEATURE")
+        self.assertEqual(
+            json.loads(fake_sqs.calls[0]["MessageBody"])["eventType"],
+            "campaign.cluster.requested",
+        )
 
     def test_declined_consent_is_successful_noop(self):
         result = self.publish(valid_item(campaignConsentGranted=False))
@@ -329,6 +411,8 @@ class HandlerTests(unittest.TestCase):
         self.assertNotIn(EVENT_ID, combined)
         self.assertNotIn("account-123", combined)
         self.assertNotIn("PAYMENT_HANDLE", combined)
+        self.assertNotIn("android-1.0.0", combined)
+        self.assertNotIn("0123456789abcdef", combined)
         self.assertEqual(len(fake_cloudwatch.calls), 1)
 
     def test_malformed_record_emits_only_content_free_metric(self):

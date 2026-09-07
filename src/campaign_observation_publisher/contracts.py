@@ -4,13 +4,15 @@ from decimal import Decimal
 import re
 from uuid import UUID
 
+from shared_campaign_contracts import AppFeaturesContractError, validate_app_features
+
 
 class ContractError(ValueError):
     """Raised when an outbox record violates the campaign contract."""
 
 
 OUTBOX_EVENT_TYPE = "campaign.observation.ready"
-FEATURE_EVENT_TYPE = "campaign.feature.requested"
+CLUSTER_EVENT_TYPE = "campaign.cluster.requested"
 
 REQUIRED_FIELDS = {
     "PK",
@@ -27,6 +29,7 @@ REQUIRED_FIELDS = {
     "sanitizedText",
     "riskLevel",
     "signalIds",
+    "appFeatures",
     "expiresAt",
 }
 
@@ -67,10 +70,10 @@ def deserialize_item(image: dict) -> dict:
     return {key: _deserialize_value(value) for key, value in image.items()}
 
 
-def build_feature_envelope(item: dict) -> dict:
+def build_cluster_envelope(item: dict) -> dict:
     return {
         "schemaVersion": item["schemaVersion"],
-        "eventType": FEATURE_EVENT_TYPE,
+        "eventType": CLUSTER_EVENT_TYPE,
         "environment": item["environment"],
         "statisticsEventId": item["statisticsEventId"],
         "recordVersion": item["recordVersion"],
@@ -112,6 +115,10 @@ def _validate_item(item: dict, *, environment: str, schema_version: int) -> None
         _require_string(signal_id, "signalIds", maximum=64)
         if not SIGNAL_ID_PATTERN.fullmatch(signal_id):
             raise ContractError("signalIds contains an invalid identifier")
+    try:
+        item["appFeatures"] = validate_app_features(item["appFeatures"])
+    except AppFeaturesContractError as err:
+        raise ContractError("appFeatures violates the V1 contract") from err
     _reject_prohibited_fields(item)
 
 

@@ -1,0 +1,1 @@
+"""Shared campaign-contract tests."""

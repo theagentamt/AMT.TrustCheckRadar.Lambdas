@@ -97,10 +97,9 @@ This document captures the deployment dependency contract for the Lambda functio
 |---|---|---:|---|
 | `APP_ENVIRONMENT` | Yes | `dev` | Cross-environment validation and key selection cannot run |
 | `CAMPAIGN_SCHEMA_VERSION` | Yes | `1` | Version validation cannot run; V1 is the only supported value |
-| `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient observations and dedupe state cannot be written |
-| `FEATURE_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque feature requests cannot be published |
+| `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient app features and dedupe state cannot be written |
+| `CLUSTER_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque clustering requests cannot be published |
 | `CONTRIBUTOR_PERIOD_DAYS` | No | `14` | Defaults to 14 and rejects any other value |
-| `OBSERVATION_RETENTION_HOURS` | No | `72` | Defaults to 72 and rejects values above the approved maximum |
 | `TRANSIENT_RETENTION_DAYS` | No | `21` | Defaults to 21 and rejects values above the approved maximum |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -111,19 +110,30 @@ This document captures the deployment dependency contract for the Lambda functio
 | Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
 | Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:TransactWriteItems` |
 | Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
-| Feature queue | `sqs:SendMessage` |
+| Clustering queue | `sqs:SendMessage` |
 | Campaign metrics namespace | `cloudwatch:PutMetricData` |
 
 ### Privacy and message contract
 
 - The outbox input is strict, versioned, environment-bound, and requires an explicit `campaignConsentGranted` boolean.
+- An opted-in outbox item contains the exact V1 `appFeatures` object:
+  `schemaVersion`, `extractorVersion`, `languageId`, `taxonomyBucket`, `vector`,
+  `lexicalFingerprint`, `signalIds`, `indicatorIds`, and `confidence`.
+- The shared contract caps canonical compact JSON at 32 KiB; vectors at 384
+  finite values in `[-1,1]`; fingerprints at 32 unique lowercase 16-character
+  hex values; signal/indicator lists at 16 unique stable IDs each; and confidence
+  at `[0,1]`. Booleans are not numeric values.
 - Declined consent and expired observations are successful no-ops.
 - The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
 - Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
 - The publisher resolves the enabled KMS key ARN from the lifecycle-owned
   `PK=PERIOD#<periodId>, SK=HMAC_KEY` registry item.
-- Sanitized observations expire within 72 hours; dedupe state expires within 21 days.
-- Feature queue messages contain exactly `schemaVersion`, `eventType`, `environment`, `statisticsEventId`, and `recordVersion`.
+- App-provided features are revalidated, stored without source text or account
+  identity, and expire within 21 days; dedupe state uses the same maximum.
+- Feature extraction is app-only. No Lambda or other server runtime loads an
+  extractor model; the publisher sends `campaign.cluster.requested` directly to
+  `CLUSTER_QUEUE_URL`.
+- Clustering queue messages contain exactly `schemaVersion`, `eventType`, `environment`, `statisticsEventId`, and `recordVersion`.
 - Standard-queue delivery is at least once. A `PENDING`/`PUBLISHED` dedupe record prevents completed replays while permitting recovery after a write-before-send failure.
 
 The authoritative completed-analysis/outbox schema remains subject to the external

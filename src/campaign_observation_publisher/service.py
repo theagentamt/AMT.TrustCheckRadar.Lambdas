@@ -6,7 +6,8 @@ import time
 
 from botocore.exceptions import ClientError
 
-from contracts import build_feature_envelope
+from contracts import build_cluster_envelope
+from shared_campaign_contracts import validate_app_features
 
 
 TOKEN_DOMAIN = b"campaign-contributor:v1\0"
@@ -17,9 +18,8 @@ def publish_observation(
     item: dict,
     *,
     pipeline_table_name: str,
-    feature_queue_url: str,
+    cluster_queue_url: str,
     hmac_key_id: str,
-    observation_retention_hours: int,
     transient_retention_days: int,
     dynamodb_client,
     kms_client,
@@ -32,6 +32,8 @@ def publish_observation(
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if item["expiresAt"] <= now_epoch:
         return "expired"
+
+    app_features = validate_app_features(item["appFeatures"])
 
     period_id = contributor_period_id(item["observedAtEpoch"])
     event_id = item["statisticsEventId"]
@@ -52,11 +54,10 @@ def publish_observation(
             key_id=hmac_key_id,
             kms_client=kms_client,
         )
-        observation_expiry = min(
-            item["expiresAt"],
-            now_epoch + observation_retention_hours * 60 * 60,
+        transient_expiry = min(
+            item["expiresAt"] + 18 * 24 * 60 * 60,
+            now_epoch + transient_retention_days * 24 * 60 * 60,
         )
-        transient_expiry = now_epoch + transient_retention_days * 24 * 60 * 60
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
@@ -66,7 +67,7 @@ def publish_observation(
                             "Item": _serialize_item(
                                 {
                                     "PK": f"EVENT#{event_id}",
-                                    "SK": "OBSERVATION",
+                                    "SK": "FEATURE",
                                     "schemaVersion": item["schemaVersion"],
                                     "recordVersion": item["recordVersion"],
                                     "environment": item["environment"],
@@ -74,12 +75,9 @@ def publish_observation(
                                     "periodId": period_id,
                                     "contributorToken": contributor_token,
                                     "GSI1PK": f"CONTRIB#{period_id}#{contributor_token}",
-                                    "GSI1SK": f"EVENT#{event_id}",
-                                    "sourceType": item["sourceType"],
-                                    "sanitizedText": item["sanitizedText"],
-                                    "riskLevel": item["riskLevel"],
-                                    "signalIds": item["signalIds"],
-                                    "expiresAt": observation_expiry,
+                                    "GSI1SK": f"EVENT#{event_id}#FEATURE",
+                                    **app_features,
+                                    "expiresAt": transient_expiry,
                                 }
                             ),
                             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
@@ -117,9 +115,9 @@ def publish_observation(
             if not concurrent:
                 raise
 
-    envelope = build_feature_envelope(item)
+    envelope = build_cluster_envelope(item)
     sqs_client.send_message(
-        QueueUrl=feature_queue_url,
+        QueueUrl=cluster_queue_url,
         MessageBody=json.dumps(envelope, separators=(",", ":"), sort_keys=True),
     )
     dynamodb_client.update_item(
@@ -157,7 +155,7 @@ def _serialize_item(value: dict) -> dict:
 def _serialize_value(value):
     if isinstance(value, bool):
         return {"BOOL": value}
-    if isinstance(value, int):
+    if isinstance(value, (int, float)):
         return {"N": str(value)}
     if isinstance(value, str):
         return {"S": value}

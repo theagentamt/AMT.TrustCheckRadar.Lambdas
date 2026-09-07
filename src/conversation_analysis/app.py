@@ -23,15 +23,15 @@ def lambda_handler(event, _context):
 
         LOGGER.info("Stage started: identity_extraction | requestId=%s", request_id)
         identity = extract_identity(event)
-        LOGGER.info("Stage completed: identity_extracted | requestId=%s accountId=%s", request_id, identity)
+        LOGGER.info("Stage completed: identity_extracted | requestId=%s", request_id)
 
-        LOGGER.info("Stage started: device_binding_validation | requestId=%s accountId=%s", request_id, identity)
+        LOGGER.info("Stage started: device_binding_validation | requestId=%s", request_id)
         assert_active_device_binding(event, identity)
-        LOGGER.info("Stage completed: device_binding_validated | requestId=%s accountId=%s", request_id, identity)
+        LOGGER.info("Stage completed: device_binding_validated | requestId=%s", request_id)
 
-        LOGGER.info("Stage started: analysis_flow | requestId=%s accountId=%s", request_id, identity)
+        LOGGER.info("Stage started: analysis_flow | requestId=%s", request_id)
         response_body = handle_analysis_request(payload, identity)
-        LOGGER.info("Stage completed: analysis_flow | requestId=%s accountId=%s riskLevel=%s scamScore=%s", request_id, identity, response_body.get("riskLevel"), response_body.get("scamScore"))
+        LOGGER.info("Stage completed: analysis_flow | requestId=%s riskLevel=%s scamScore=%s", request_id, response_body.get("riskLevel"), response_body.get("scamScore"))
         return _response(200, response_body)
     except AppError as err:
         LOGGER.warning(

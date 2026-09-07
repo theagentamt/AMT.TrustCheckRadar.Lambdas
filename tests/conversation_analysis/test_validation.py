@@ -16,6 +16,19 @@ from errors import AppError  # noqa: E402
 from validation import parse_and_validate_event  # noqa: E402
 
 
+APP_FEATURES = {
+    "schemaVersion": 1,
+    "extractorVersion": "android-1.0.0",
+    "languageId": "en",
+    "taxonomyBucket": "advance_fee",
+    "vector": [1.0, 0.0],
+    "lexicalFingerprint": ["0123456789abcdef"],
+    "signalIds": ["payment_request"],
+    "indicatorIds": ["payment.crypto"],
+    "confidence": 0.9,
+}
+
+
 class ConversationAnalysisValidationTests(unittest.TestCase):
     def test_parses_valid_payload(self):
         event = {
@@ -48,6 +61,7 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
                     "sanitizedText": "Sanitized content",
                     "entities": [],
                     "campaignConsentGranted": True,
+                    "appFeatures": APP_FEATURES,
                 }
             )
         }
@@ -55,6 +69,73 @@ class ConversationAnalysisValidationTests(unittest.TestCase):
         payload = parse_and_validate_event(event)
 
         self.assertTrue(payload["campaignConsentGranted"])
+        self.assertEqual(payload["appFeatures"], APP_FEATURES)
+
+    def test_opt_in_requires_app_features(self):
+        event = {
+            "body": json.dumps(
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "sourceType": "mixed",
+                    "localSanitizationApplied": True,
+                    "sanitizedText": "Sanitized content",
+                    "entities": [],
+                    "campaignConsentGranted": True,
+                }
+            )
+        }
+
+        with self.assertRaises(AppError) as context:
+            parse_and_validate_event(event)
+
+        self.assertEqual(context.exception.details[0]["field"], "appFeatures")
+
+    def test_rejects_malformed_app_features(self):
+        invalid_values = [
+            APP_FEATURES | {"unknown": "value"},
+            APP_FEATURES | {"vector": [float("nan")]},
+            APP_FEATURES | {"confidence": True},
+            APP_FEATURES | {"signalIds": ["payment_request", "payment_request"]},
+        ]
+        for app_features in invalid_values:
+            with self.subTest(app_features=app_features):
+                event = {
+                    "body": {
+                        "schemaVersion": "1.0",
+                        "requestId": "request-123",
+                        "sourceType": "mixed",
+                        "localSanitizationApplied": True,
+                        "sanitizedText": "Sanitized content",
+                        "entities": [],
+                        "campaignConsentGranted": True,
+                        "appFeatures": app_features,
+                    }
+                }
+
+                with self.assertRaises(AppError) as context:
+                    parse_and_validate_event(event)
+
+                self.assertEqual(context.exception.details[0]["field"], "appFeatures")
+
+    def test_declined_consent_accepts_features_but_does_not_change_consent(self):
+        event = {
+            "body": {
+                "schemaVersion": "1.0",
+                "requestId": "request-123",
+                "sourceType": "mixed",
+                "localSanitizationApplied": True,
+                "sanitizedText": "Sanitized content",
+                "entities": [],
+                "campaignConsentGranted": False,
+                "appFeatures": APP_FEATURES,
+            }
+        }
+
+        payload = parse_and_validate_event(event)
+
+        self.assertFalse(payload["campaignConsentGranted"])
+        self.assertEqual(payload["appFeatures"], APP_FEATURES)
 
     def test_rejects_non_boolean_campaign_consent(self):
         event = {
