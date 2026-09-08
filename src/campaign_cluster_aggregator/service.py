@@ -92,18 +92,68 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
                                      "ExpressionAttributeValues": {":version": {"N": str(previous_version)}}})
     else:
         put_candidate["Put"]["ConditionExpression"] = "attribute_not_exists(PK) AND attribute_not_exists(SK)"
-    dynamodb.transact_write_items(TransactItems=[
-        put_candidate,
+    transaction = [put_candidate]
+    if not selected:
+        transaction.append(_candidate_creation_serialization_action(
+            dynamodb,
+            table_name,
+            feature,
+            expires_at,
+        ))
+    transaction.extend([
         {"Put": {"TableName": table_name, "Item": serialize({
             "PK": f"CANDIDATE#{candidate_id}", "SK": f"CONTRIB#{feature['contributorToken']}",
             "GSI1PK": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}",
             "GSI1SK": f"CANDIDATE#{candidate_id}",
             "periodId": feature["periodId"], "submissionCount": 1, "vectorApplied": True,
-            "vector": feature["vector"], "expiresAt": expires_at,
+            "vector": feature["vector"], "languageId": feature["languageId"],
+            "signalIds": feature["signalIds"], "indicatorIds": feature["indicatorIds"],
+            "expiresAt": expires_at,
         }), "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
         _dedupe_action(table_name, event_id, candidate_id, expires_at, "COUNTED"),
     ])
+    dynamodb.transact_write_items(TransactItems=transaction)
     return "matched" if selected else "candidate-created"
+
+
+def _candidate_creation_serialization_action(dynamodb, table_name, feature, expires_at):
+    key = {
+        "PK": {"S": f"BUCKET#{feature['periodId']}#{feature['taxonomyBucket']}"},
+        "SK": {"S": "CREATION_CONTROL"},
+    }
+    existing = dynamodb.get_item(
+        TableName=table_name,
+        Key=key,
+        ConsistentRead=True,
+    ).get("Item")
+    if not existing:
+        return {
+            "Put": {
+                "TableName": table_name,
+                "Item": key | {"version": {"N": "1"}, "expiresAt": {"N": str(expires_at)}},
+                "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            }
+        }
+    version = existing.get("version", {}).get("N")
+    try:
+        version = int(version)
+    except (TypeError, ValueError) as err:
+        raise ValueError("Invalid candidate creation control record") from err
+    if version < 1:
+        raise ValueError("Invalid candidate creation control record")
+    return {
+        "Update": {
+            "TableName": table_name,
+            "Key": key,
+            "UpdateExpression": "SET version = :next_version, expiresAt = :expiry",
+            "ConditionExpression": "version = :version",
+            "ExpressionAttributeValues": {
+                ":version": {"N": str(version)},
+                ":next_version": {"N": str(version + 1)},
+                ":expiry": {"N": str(expires_at)},
+            },
+        }
+    }
 
 
 def _load_candidates(dynamodb, table_name, feature):

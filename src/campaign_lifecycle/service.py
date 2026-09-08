@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from collections import Counter
+import re
 import time
 
 PERIOD_SECONDS = 14 * 86400
 RECOVERY_SECONDS = 7 * 86400
-TAXONOMY_BUCKETS = ("advance_fee", "credential_theft", "impersonation", "investment", "other", "unknown")
+TAXONOMY_BUCKETS = (
+    "advance_fee", "credential_theft", "impersonation", "investment", "romance",
+    "employment", "marketplace", "extortion", "tech_support", "other", "unknown",
+)
+STABLE_ID = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 
 
 def manage_keys(*, environment, project_name, table_name, dynamodb, kms, now_epoch=None):
@@ -68,11 +74,29 @@ def finalize_periods(*, environment, schema_version, pipeline_table, intelligenc
                 submission_count = sum(min(3, item["submissionCount"]) for item in contributions)
                 if contributor_count >= minimum_contributors:
                     week = datetime.fromtimestamp((period_id + 1) * PERIOD_SECONDS, UTC).strftime("%G-W%V")
+                    language_ids = thresholded_dimension_ids(
+                        contributions,
+                        "languageId",
+                        minimum_contributors,
+                    )
+                    tactic_ids = thresholded_dimension_ids(
+                        contributions,
+                        "signalIds",
+                        minimum_contributors,
+                        prefix="tactic.",
+                    )
+                    channel_ids = thresholded_dimension_ids(
+                        contributions,
+                        "signalIds",
+                        minimum_contributors,
+                        prefix="channel.",
+                    )
                     aggregate = {"PK": f"CAMPAIGN#{candidate['candidateId']}", "SK": "AGGREGATE",
                         "campaignId": candidate["candidateId"], "schemaVersion": schema_version,
                         "taxonomyVersion": 1, "categoryId": candidate["taxonomyBucket"],
                         "periodWeek": week, "state": "PENDING_REVIEW", "contributorCount": contributor_count,
-                        "submissionCount": submission_count, "languageIds": candidate.get("languageIds", ["en", "es"]),
+                        "submissionCount": submission_count, "dimensionSchemaVersion": 1,
+                        "languageIds": language_ids, "tacticIds": tactic_ids, "channelIds": channel_ids,
                         "contributorCountBand": count_band(contributor_count),
                         "submissionCountBand": count_band(submission_count),
                         "riskBand": "high", "summaryKey": f"campaign.{candidate['taxonomyBucket']}",
@@ -85,6 +109,24 @@ def finalize_periods(*, environment, schema_version, pipeline_table, intelligenc
                     results["suppressed"] += 1
                 _delete_candidate(dynamodb, pipeline_table, candidate["candidateId"], contributions)
     return results
+
+
+def thresholded_dimension_ids(contributions, field, minimum_contributors, prefix=None):
+    counts = Counter()
+    for contribution in contributions:
+        value = contribution.get(field)
+        values = value if isinstance(value, list) else [value]
+        contributor_values = set()
+        for item in values:
+            if not isinstance(item, str):
+                continue
+            identifier = item.removeprefix(prefix) if prefix and item.startswith(prefix) else item
+            if prefix and identifier == item:
+                continue
+            if STABLE_ID.fullmatch(identifier):
+                contributor_values.add(identifier)
+        counts.update(contributor_values)
+    return sorted(identifier for identifier, count in counts.items() if count >= minimum_contributors)
 
 
 def count_band(value):

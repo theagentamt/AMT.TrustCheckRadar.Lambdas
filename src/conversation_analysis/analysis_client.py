@@ -41,8 +41,7 @@ Use neutral language. Keep the result concise, actionable, and suitable for dire
 
 def analyze_conversation(payload: dict) -> dict:
     LOGGER.info(
-        "Stage started: openai_analysis_prepare | requestId=%s sourceType=%s entityCount=%s",
-        payload.get("requestId"),
+        "Stage started: openai_analysis_prepare | sourceType=%s entityCount=%s",
         payload.get("sourceType"),
         len(payload.get("entities") or []),
     )
@@ -120,17 +119,16 @@ def analyze_conversation(payload: dict) -> dict:
 
     try:
         LOGGER.info(
-            "Stage started: openai_api_call | requestId=%s model=%s endpoint=%s",
-            payload.get("requestId"),
+            "Stage started: openai_api_call | model=%s endpoint=%s",
             OPENAI_MODEL,
             OPENAI_RESPONSES_ENDPOINT,
         )
         with request.urlopen(req, timeout=OPENAI_TIMEOUT_SECONDS) as response:
             raw = response.read().decode("utf-8")
-        LOGGER.info("Stage completed: openai_api_call | requestId=%s", payload.get("requestId"))
+        LOGGER.info("Stage completed: openai_api_call")
     except error.HTTPError as err:
         status_code = getattr(err, "code", 500)
-        LOGGER.warning("Stage failed: openai_api_call | requestId=%s httpStatus=%s", payload.get("requestId"), status_code)
+        LOGGER.warning("Stage failed: openai_api_call | httpStatus=%s", status_code)
         if status_code == 401:
             raise AppError("UNAUTHORIZED", "The analysis service rejected the request.", retryable=False) from err
         if status_code == 403:
@@ -141,14 +139,13 @@ def analyze_conversation(payload: dict) -> dict:
             raise AppError("ANALYSIS_TIMEOUT", "The analysis service timed out.", retryable=True) from err
         raise AppError("SERVER_UNAVAILABLE", "The analysis service is currently unavailable.", retryable=True) from err
     except error.URLError as err:
-        LOGGER.warning("Stage failed: openai_api_call | requestId=%s reason=%s", payload.get("requestId"), err.reason)
+        LOGGER.warning("Stage failed: openai_api_call | reason=connection_error")
         raise AppError("SERVER_UNAVAILABLE", "The analysis service is currently unavailable.", retryable=True) from err
 
-    LOGGER.info("Stage started: openai_response_parse | requestId=%s", payload.get("requestId"))
+    LOGGER.info("Stage started: openai_response_parse")
     analysis = _parse_analysis_response(raw)
     LOGGER.info(
-        "Stage completed: openai_response_parse | requestId=%s riskLevel=%s scamScore=%s",
-        payload.get("requestId"),
+        "Stage completed: openai_response_parse | riskLevel=%s scamScore=%s",
         analysis.get("riskLevel"),
         analysis.get("scamScore"),
     )

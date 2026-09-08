@@ -69,6 +69,27 @@ class DeletionTests(unittest.TestCase):
         self.assertTrue(any("centroid" in call.get("UpdateExpression", "") for call in dynamo.updates))
         self.assertNotIn("account-123", str(dynamo.updates))
 
+    def test_feature_deletion_also_removes_unindexed_event_dedupe_siblings(self):
+        dynamo, kms = Dynamo(), Kms()
+        dynamo.index_items = [
+            {"PK": {"S": "EVENT#event-1"}, "SK": {"S": "FEATURE"}},
+        ]
+
+        result = service.delete_account_contributions(
+            command(), table_name="pipeline", retention_days=21,
+            dynamodb=dynamo, kms=kms, now_epoch=10 * service.PERIOD_SECONDS + 1,
+        )
+
+        deleted_keys = {
+            (call["Key"]["PK"]["S"], call["Key"]["SK"]["S"])
+            for call in dynamo.deletes
+        }
+        self.assertEqual(
+            deleted_keys,
+            {("EVENT#event-1", "FEATURE"), ("EVENT#event-1", "DEDUPE"), ("EVENT#event-1", "CLUSTERED")},
+        )
+        self.assertEqual(result["deleted"], 6)
+
     def test_strict_command_rejects_cross_environment_and_extra_fields(self):
         def av(value): return {"N": str(value)} if isinstance(value, int) else {"S": value}
         for changes in ({"environment": "prod"}, {"extra": "bad"}):

@@ -25,7 +25,9 @@ for module_name in [
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.client = lambda *args, **kwargs: object()
-boto3_stub.resource = lambda *args, **kwargs: object()
+boto3_stub.resource = lambda *args, **kwargs: types.SimpleNamespace(
+    Table=lambda *_args, **_kwargs: object()
+)
 sys.modules["boto3"] = boto3_stub
 botocore_ex = types.ModuleType("botocore.exceptions")
 

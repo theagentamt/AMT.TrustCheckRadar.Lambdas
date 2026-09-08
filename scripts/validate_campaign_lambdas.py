@@ -35,6 +35,7 @@ def main():
     result = {
         "schemaVersion": 1,
         "packages": validate_packages(dist),
+        "canonicalContracts": validate_contract_package(dist),
         "contentFreeLogTemplates": validate_logs(),
         "serverFeatureExtractorAbsent": validate_server_extractor_absent(),
         "localScoringBenchmark": benchmark_scoring(),
@@ -59,6 +60,43 @@ def validate_packages(dist):
     return hashes
 
 
+def validate_contract_package(dist):
+    from hashlib import sha256
+    path = dist / "campaign-contracts-1.0.0.zip"
+    if not path.is_file():
+        raise SystemExit(f"missing canonical contract artifact: {path}")
+    with zipfile.ZipFile(path) as archive:
+        names = set(archive.namelist())
+        required = {
+            "contract-set.json",
+            "app-features.schema.json",
+            "outbox-record.schema.json",
+            "queue-envelope.schema.json",
+            "transient-feature-record.schema.json",
+            "campaign-aggregate.schema.json",
+            "review-transition.schema.json",
+            "scam-trends-response.schema.json",
+            "taxonomy.en.json",
+            "taxonomy.es.json",
+            "fixtures/app-features.valid.en.json",
+            "fixtures/app-features.valid.es.json",
+            "SHA256SUMS",
+        }
+        missing = required - names
+        if missing:
+            raise SystemExit(f"canonical contract artifact is incomplete: {sorted(missing)}")
+        entries = {}
+        for line in archive.read("SHA256SUMS").decode("utf-8").splitlines():
+            digest, separator, name = line.partition("  ")
+            if not separator or len(digest) != 64:
+                raise SystemExit(f"invalid contract checksum entry: {line!r}")
+            entries[name] = digest
+        for name, digest in entries.items():
+            if name not in names or sha256(archive.read(name)).hexdigest() != digest:
+                raise SystemExit(f"contract checksum mismatch: {name}")
+    return {"artifact": path.name, "sha256": sha256(path.read_bytes()).hexdigest(), "result": "pass"}
+
+
 def validate_logs():
     inspected = 0
     for folder in ROOT.glob("src/campaign_*"):
@@ -76,7 +114,9 @@ def validate_logs():
                 for term in PROHIBITED_LOG_TERMS:
                     if re.sub(r"[^a-z]", "", term.lower()) in normalized:
                         raise SystemExit(f"prohibited campaign log term in {path}:{node.lineno}")
-    analysis_prohibited = ("accountid", "appfeatures", "sanitizedtext", "vector", "fingerprint", "indicator")
+    analysis_prohibited = (
+        "accountid", "requestid", "appfeatures", "sanitizedtext", "vector", "fingerprint", "indicator"
+    )
     for path in (ROOT / "src/conversation_analysis").glob("*.py"):
         tree = ast.parse(path.read_text(), filename=str(path))
         for node in ast.walk(tree):
@@ -90,6 +130,19 @@ def validate_logs():
             normalized = re.sub(r"[^a-z]", "", node.args[0].value.lower())
             if any(term in normalized for term in analysis_prohibited):
                 raise SystemExit(f"prohibited analysis log term in {path}:{node.lineno}")
+    for path in (ROOT / "src/shared_entitlements").glob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                continue
+            if node.func.attr not in {"debug", "info", "warning", "error", "exception", "critical"}:
+                continue
+            inspected += 1
+            if not node.args or not isinstance(node.args[0], ast.Constant) or not isinstance(node.args[0].value, str):
+                raise SystemExit(f"non-literal shared entitlement log template: {path}:{node.lineno}")
+            normalized = re.sub(r"[^a-z]", "", node.args[0].value.lower())
+            if any(term in normalized for term in ("accountid", "requestid")):
+                raise SystemExit(f"prohibited entitlement log term in {path}:{node.lineno}")
     return {"templatesInspected": inspected, "result": "pass"}
 
 

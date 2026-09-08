@@ -21,6 +21,8 @@ Implemented and tested:
 - Base free 10, participating free 15, bonus 5, unchanged Pro, and used-count
   preservation across join/withdraw cycles.
 - Server-authoritative entitlement reads and analysis outbox authorization.
+- Publisher-side participation/epoch condition checks ensure withdrawal also wins
+  over an outbox record that was committed before the withdrawal transaction.
 - Withdrawal remains pending until the deletion bridge succeeds; completion then
   atomically condition-updates the same epoch/operation, appends a privacy-safe
   receipt, and marks the ledger command complete. Failed deletion remains
@@ -40,10 +42,5 @@ permissions, notice/policy versions, retention/SLA values, and quota values list
 in `lambda_deployment_dependency_contract.md`. No AWS resource was changed or
 deployed by this evidence.
 
-Latest local evidence (2026-09-07):
-
-- Full suite: 177 tests and 73 parameterized subtests passed.
-- Content-free static check: 62 log templates passed.
-- `campaign_participation.zip` SHA-256:
-  `6fa83bbed6e1f9bd8ba1d0b5a10a7ba562de9db0b8f4a8230bb6a73849aa05d8`.
-- Campaign package inspection and server-extractor absence checks passed.
+Current test counts and package SHA-256 values are recorded by the audit run and
+`dist/SHA256SUMS`; they are intentionally not hard-coded into this source file.

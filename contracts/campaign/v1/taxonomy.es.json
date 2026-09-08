@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "taxonomyVersion": "1.0.0",
+  "locale": "es",
+  "dimensions": {
+    "scam_category": {
+      "label": "Categoría de estafa",
+      "values": {
+        "advance_fee": "Estafa de pago por adelantado",
+        "credential_theft": "Robo de credenciales",
+        "impersonation": "Suplantación de identidad",
+        "investment": "Estafa de inversión",
+        "romance": "Estafa romántica",
+        "employment": "Estafa de empleo",
+        "marketplace": "Estafa de compraventa",
+        "extortion": "Extorsión",
+        "tech_support": "Estafa de soporte técnico",
+        "other": "Otro patrón de estafa",
+        "unknown": "Patrón de estafa desconocido"
+      }
+    },
+    "claimed_organization": {
+      "label": "Organización alegada",
+      "values": {
+        "bank": "Banco o institución financiera",
+        "government": "Agencia gubernamental",
+        "law_enforcement": "Fuerzas del orden",
+        "delivery_service": "Servicio de entrega",
+        "employer": "Empleador o reclutador",
+        "marketplace": "Plataforma de compraventa",
+        "technology_company": "Empresa tecnológica",
+        "utility": "Proveedor de servicios públicos",
+        "charity": "Organización benéfica",
+        "family_or_friend": "Familiar o amistad",
+        "other": "Otra organización",
+        "unknown": "Organización desconocida"
+      }
+    },
+    "requested_action": {
+      "label": "Acción solicitada",
+      "values": {
+        "send_money": "Enviar dinero",
+        "share_credentials": "Compartir credenciales",
+        "share_verification_code": "Compartir un código de verificación",
+        "install_software": "Instalar software",
+        "open_link": "Abrir un enlace",
+        "call_number": "Llamar a un número de teléfono",
+        "move_platform": "Cambiar a otra plataforma",
+        "provide_personal_information": "Proporcionar información personal",
+        "other": "Otra acción solicitada",
+        "unknown": "Acción solicitada desconocida"
+      }
+    },
+    "payment_method": {
+      "label": "Método de pago",
+      "values": {
+        "bank_transfer": "Transferencia bancaria",
+        "cryptocurrency": "Criptomoneda",
+        "gift_card": "Tarjeta de regalo",
+        "cash": "Efectivo",
+        "card": "Tarjeta de pago",
+        "mobile_payment": "Pago móvil",
+        "wire_transfer": "Transferencia electrónica",
+        "check": "Cheque",
+        "other": "Otro método de pago",
+        "unknown": "Método de pago desconocido"
+      }
+    },
+    "emotional_tactic": {
+      "label": "Táctica emocional",
+      "values": {
+        "urgency": "Urgencia",
+        "fear": "Miedo o amenaza",
+        "authority": "Autoridad alegada",
+        "scarcity": "Escasez",
+        "secrecy": "Secreto",
+        "trust": "Generación de confianza",
+        "sympathy": "Compasión",
+        "reward": "Recompensa prometida",
+        "romance": "Romance",
+        "other": "Otra táctica emocional",
+        "unknown": "Táctica emocional desconocida"
+      }
+    },
+    "channel": {
+      "label": "Canal",
+      "values": {
+        "sms": "Mensaje de texto",
+        "email": "Correo electrónico",
+        "messaging_app": "Aplicación de mensajería",
+        "social_media": "Red social",
+        "phone_call": "Llamada telefónica",
+        "web": "Sitio web",
+        "marketplace": "Plataforma de compraventa",
+        "in_person": "En persona",
+        "other": "Otro canal",
+        "unknown": "Canal desconocido"
+      }
+    },
+    "language": {
+      "label": "Idioma",
+      "values": {
+        "en": "Inglés",
+        "es": "Español",
+        "multilingual": "Varios idiomas",
+        "other": "Otro idioma",
+        "unknown": "Idioma desconocido"
+      }
+    },
+    "risk": {
+      "label": "Riesgo",
+      "values": {
+        "low": "Riesgo bajo",
+        "medium": "Riesgo medio",
+        "high": "Riesgo alto",
+        "other": "Otro riesgo",
+        "unknown": "Riesgo desconocido"
+      }
+    },
+    "confidence": {
+      "label": "Confianza",
+      "values": {
+        "very_low": "Confianza muy baja",
+        "low": "Confianza baja",
+        "medium": "Confianza media",
+        "high": "Confianza alta",
+        "very_high": "Confianza muy alta",
+        "other": "Otra confianza",
+        "unknown": "Confianza desconocida"
+      }
+    },
+    "bounded_indicator": {
+      "label": "Indicador acotado",
+      "values": {
+        "payment_request": "Solicitud de pago",
+        "credential_request": "Solicitud de credenciales",
+        "verification_code_request": "Solicitud de código de verificación",
+        "impersonation_claim": "Alegación de identidad falsa",
+        "threat": "Amenaza",
+        "suspicious_link": "Enlace sospechoso",
+        "reviewed_domain": "Dominio revisado que superó el umbral",
+        "other": "Otro indicador acotado",
+        "unknown": "Indicador acotado desconocido"
+      }
+    }
+  }
+}

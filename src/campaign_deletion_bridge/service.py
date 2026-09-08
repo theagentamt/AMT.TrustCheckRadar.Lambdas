@@ -74,9 +74,16 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
             candidate_id = pk.removeprefix("CANDIDATE#") if pk.startswith("CANDIDATE#") else None
             dynamodb.delete_item(TableName=table_name, Key={"PK": {"S": pk}, "SK": {"S": sk}})
             deleted += 1
+            if pk.startswith("EVENT#") and sk == "FEATURE":
+                for sibling_sk in ("DEDUPE", "CLUSTERED"):
+                    dynamodb.delete_item(
+                        TableName=table_name,
+                        Key={"PK": {"S": pk}, "SK": {"S": sibling_sk}},
+                    )
+                    deleted += 1
             if candidate_id: recomputed.add(candidate_id)
-        for candidate_id in recomputed:
-            _recompute(dynamodb, table_name, candidate_id)
+    for candidate_id in recomputed:
+        _recompute(dynamodb, table_name, candidate_id)
     return {"deleted": deleted, "recomputedCandidates": len(recomputed)}
 
 

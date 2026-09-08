@@ -57,7 +57,9 @@ make package
 ```
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
-metadata so identical inputs produce identical archives.
+metadata so identical inputs produce identical archives. Full builds include the
+15 Lambda packages and the immutable `campaign-contracts-1.0.0.zip` handoff from
+`contracts/campaign/v1/`.
 
 Build one function or target x86_64 explicitly:
 

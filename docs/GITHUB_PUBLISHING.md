@@ -1,8 +1,9 @@
 # GitHub Lambda Publishing
 
-The `Publish Lambda release` workflow promotes the exact ZIP packages produced by
-a successful `CI` push run on `main`. It does not rebuild deployment artifacts
-during promotion. The source commit SHA is the immutable S3 release ID.
+The `Publish Lambda release` workflow promotes the exact 15 Lambda ZIP packages
+and `campaign-contracts-1.0.0.zip` produced by a successful `CI` push run on
+`main`. It does not rebuild deployment artifacts during promotion. The source
+commit SHA is the immutable S3 release ID.
 
 ## GitHub repository configuration
 

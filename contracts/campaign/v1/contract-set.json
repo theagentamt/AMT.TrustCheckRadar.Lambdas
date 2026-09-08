@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "minimumContributors": 10,
+  "activePeriodDays": 14,
+  "recoveryWindowDays": 7,
+  "observationRetentionHoursMaximum": 72,
+  "transientRetentionDaysMaximum": 21,
+  "aggregateRetentionDays": 400,
+  "artifact": "campaign-contracts-1.0.0.zip"
+}

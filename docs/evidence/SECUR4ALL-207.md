@@ -14,13 +14,16 @@ Implemented and tested:
 - Consent-withdrawal/account-deletion token derivation only for active/recovery
   periods.
 - Tombstone-before-delete, targeted `ContributorPeriodIndex` deletion, and
-  centroid/count recomputation from surviving contributions.
+  feature/contribution/event-dedupe deletion plus centroid/count recomputation
+  from surviving contributions.
 - Cluster-side tombstone check prevents queued work from resurrecting a deleted
   contribution.
 - Content-free lifecycle/deletion logs and environment/version validation.
 - Exact pending campaign-withdrawal command validation, successful-deletion-only
   transition to `withdrawn`, a privacy-safe 400-day completion receipt, atomic
   ledger `COMPLETE` status, and completed-stream loop suppression.
+- A privacy-safe normal/failure/manual-repair runbook in
+  `docs/campaign-lifecycle-runbook.md`.
 
 Reproduce:
 
@@ -37,6 +40,9 @@ Completion blockers proven against the current infrastructure contract:
    hourly `expire_transient` invocation cannot discover arbitrary expired
    observation, feature, and dedupe items for explicit deletion. The handler fails
    this operation rather than falsely treating eventually consistent TTL cleanup as
-   the required 24-hour evidence.
+   the required deletion evidence.
+2. Backup/restore non-resurrection, DLQ re-drive, alarm delivery, arbitrary
+   time-travel expiry, and authenticated UAT withdrawal evidence require deployed
+   infrastructure and cannot be completed in this repository.
 Because those are external access/schema inputs and the user restricted this work
 to Lambda code, this evidence does not claim the whole story is complete.

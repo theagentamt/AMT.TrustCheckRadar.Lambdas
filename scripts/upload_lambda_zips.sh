@@ -17,6 +17,7 @@ REQUIRED_FUNCTIONS=(
   post_confirmation
 )
 OPTIONAL_FUNCTIONS=(campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends device_recovery web_risk_communication)
+CONTRACT_ARTIFACT="campaign-contracts-1.0.0.zip"
 
 usage() {
   cat <<'USAGE'
@@ -98,17 +99,19 @@ for function_name in "${FUNCTIONS[@]}"; do
   artifact="$DIST_DIR/$function_name.zip"
   [[ -f "$artifact" ]] || fail "missing artifact: $artifact"
 done
+[[ -f "$DIST_DIR/$CONTRACT_ARTIFACT" ]] || fail "missing artifact: $DIST_DIR/$CONTRACT_ARTIFACT"
 
 CHECKSUM_MANIFEST="$DIST_DIR/SHA256SUMS"
 [[ -f "$CHECKSUM_MANIFEST" ]] || fail "missing checksum manifest: $CHECKSUM_MANIFEST"
 
-python3 - "$DIST_DIR" "${FUNCTIONS[@]}" <<'PY'
+python3 - "$DIST_DIR" "$CONTRACT_ARTIFACT" "${FUNCTIONS[@]}" <<'PY'
 from hashlib import sha256
 from pathlib import Path
 import sys
 
 dist_dir = Path(sys.argv[1])
-function_names = sys.argv[2:]
+contract_artifact = sys.argv[2]
+function_names = sys.argv[3:]
 entries = {}
 for line in (dist_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
     digest, separator, name = line.partition("  ")
@@ -116,8 +119,7 @@ for line in (dist_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
         raise SystemExit(f"invalid SHA256SUMS entry: {line!r}")
     entries[name] = digest
 
-for function_name in function_names:
-    name = f"{function_name}.zip"
+for name in [f"{function_name}.zip" for function_name in function_names] + [contract_artifact]:
     artifact = dist_dir / name
     expected = entries.get(name)
     actual = sha256(artifact.read_bytes()).hexdigest()
@@ -159,6 +161,10 @@ for function_name in "${FUNCTIONS[@]}"; do
   artifact_digest="$(awk -v name="$function_name.zip" '$2 == name { print $1 }' "$CHECKSUM_MANIFEST")"
   upload_immutable "$artifact" "$object_key" "$artifact_digest"
 done
+
+contract_path="$DIST_DIR/$CONTRACT_ARTIFACT"
+contract_digest="$(awk -v name="$CONTRACT_ARTIFACT" '$2 == name { print $1 }' "$CHECKSUM_MANIFEST")"
+upload_immutable "$contract_path" "releases/$RELEASE_ID/$CONTRACT_ARTIFACT" "$contract_digest"
 
 manifest_key="releases/$RELEASE_ID/SHA256SUMS"
 manifest_digest="$(python3 -c 'from hashlib import sha256; from pathlib import Path; import sys; print(sha256(Path(sys.argv[1]).read_bytes()).hexdigest())' "$CHECKSUM_MANIFEST")"

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.andmorethings.com/trustcheck-radar/campaign/1.0.0/scam-trends-response.schema.json",
+  "title": "Scam trends app response V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "locale", "trends", "nextToken"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "locale": {"enum": ["en", "es"]},
+    "trends": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["campaignId", "categoryId", "categoryLabel", "periodWeek", "riskBand", "contributorCountBand", "submissionCountBand", "languageIds", "tacticIds", "channelIds", "summaryKey", "trendDirection"],
+        "properties": {
+          "campaignId": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"},
+          "categoryId": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+          "categoryLabel": {"type": "string", "minLength": 1, "maxLength": 120},
+          "periodWeek": {"type": "string", "pattern": "^\\d{4}-W(?:0[1-9]|[1-4]\\d|5[0-3])$"},
+          "riskBand": {"enum": ["low", "medium", "high", "unknown"]},
+          "contributorCountBand": {"enum": ["10-24", "25-49", "50-99", "100-249", "250+"]},
+          "submissionCountBand": {"enum": ["10-24", "25-49", "50-99", "100-249", "250+"]},
+          "languageIds": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"}},
+          "tacticIds": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"}},
+          "channelIds": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"}},
+          "summaryKey": {"type": "string", "pattern": "^campaign\\.[a-z][a-z0-9_]{0,63}$"},
+          "trendDirection": {"enum": ["new", "rising", "stable", "falling"]}
+        }
+      }
+    },
+    "nextToken": {"type": ["string", "null"], "maxLength": 4096}
+  }
+}

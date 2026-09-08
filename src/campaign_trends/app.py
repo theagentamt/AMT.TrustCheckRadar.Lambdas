@@ -16,6 +16,7 @@ def lambda_handler(event, _context):
         result = list_trends(event, environment=config.APP_ENVIRONMENT,
             table_name=config.INTELLIGENCE_TABLE_NAME, index_name=config.PUBLICATION_INDEX_NAME,
             maximum_page_size=config.MAXIMUM_PAGE_SIZE, token_ttl=config.PAGINATION_TOKEN_TTL_SECS,
+            token_secret=config.PAGINATION_TOKEN_SECRET,
             dynamodb=dynamodb)
         LOGGER.info("Campaign trends completed | operation=list schemaVersion=%s result=success resultCount=%s",
                     config.CAMPAIGN_SCHEMA_VERSION, len(result["trends"]))

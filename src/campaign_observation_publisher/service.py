@@ -18,8 +18,10 @@ def publish_observation(
     item: dict,
     *,
     pipeline_table_name: str,
+    users_table_name: str,
     cluster_queue_url: str,
-    hmac_key_id: str,
+    hmac_key_id: str | None = None,
+    hmac_key_resolver=None,
     transient_retention_days: int,
     dynamodb_client,
     kms_client,
@@ -34,8 +36,14 @@ def publish_observation(
         return "expired"
 
     app_features = validate_app_features(item["appFeatures"])
+    if not _participation_authorizes(item, users_table_name, dynamodb_client):
+        return "participation-suppressed"
 
     period_id = contributor_period_id(item["observedAtEpoch"])
+    if hmac_key_id is None:
+        if hmac_key_resolver is None:
+            raise ValueError("A period HMAC key resolver is required")
+        hmac_key_id = hmac_key_resolver(period_id)
     event_id = item["statisticsEventId"]
     key = {"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "DEDUPE"}}
     existing = dynamodb_client.get_item(
@@ -61,6 +69,29 @@ def publish_observation(
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
+                    {
+                        "ConditionCheck": {
+                            "TableName": users_table_name,
+                            "Key": {
+                                "PK": {"S": f"USER#{item['accountId']}"},
+                                "SK": {"S": "CAMPAIGN_PARTICIPATION"},
+                            },
+                            "ConditionExpression": (
+                                "#state = :enrolled AND consentEpochId = :epoch "
+                                "AND #environment = :environment AND noticeVersion = :notice"
+                            ),
+                            "ExpressionAttributeNames": {
+                                "#state": "state",
+                                "#environment": "environment",
+                            },
+                            "ExpressionAttributeValues": {
+                                ":enrolled": {"S": "enrolled"},
+                                ":epoch": {"S": item["consentEpochId"]},
+                                ":environment": {"S": item["environment"]},
+                                ":notice": {"S": item["noticeVersion"]},
+                            },
+                        }
+                    },
                     {
                         "Put": {
                             "TableName": pipeline_table_name,
@@ -103,6 +134,8 @@ def publish_observation(
         except ClientError as err:
             if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
                 raise
+            if not _participation_authorizes(item, users_table_name, dynamodb_client):
+                return "participation-suppressed"
             concurrent = dynamodb_client.get_item(
                 TableName=pipeline_table_name,
                 Key=key,
@@ -133,6 +166,25 @@ def publish_observation(
         },
     )
     return "published"
+
+
+def _participation_authorizes(item, users_table_name, dynamodb_client):
+    participation = dynamodb_client.get_item(
+        TableName=users_table_name,
+        Key={
+            "PK": {"S": f"USER#{item['accountId']}"},
+            "SK": {"S": "CAMPAIGN_PARTICIPATION"},
+        },
+        ConsistentRead=True,
+        ProjectionExpression="#state,consentEpochId,#environment,noticeVersion",
+        ExpressionAttributeNames={"#state": "state", "#environment": "environment"},
+    ).get("Item") or {}
+    return (
+        participation.get("state") == {"S": "enrolled"}
+        and participation.get("consentEpochId") == {"S": item["consentEpochId"]}
+        and participation.get("environment") == {"S": item["environment"]}
+        and participation.get("noticeVersion") == {"S": item["noticeVersion"]}
+    )
 
 
 def contributor_period_id(epoch_seconds: int) -> int:

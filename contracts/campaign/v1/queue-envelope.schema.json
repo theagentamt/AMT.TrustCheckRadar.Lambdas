@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.andmorethings.com/trustcheck-radar/campaign/1.0.0/queue-envelope.schema.json",
+  "title": "Opaque clustering queue envelope V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "eventType", "environment", "statisticsEventId", "recordVersion"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "eventType": {"const": "campaign.cluster.requested"},
+    "environment": {"enum": ["dev", "uat", "prod"]},
+    "statisticsEventId": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "recordVersion": {"const": 1}
+  }
+}

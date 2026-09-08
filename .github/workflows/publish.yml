@@ -126,15 +126,22 @@ jobs:
           set -euo pipefail
           cd dist
           sha256sum --check SHA256SUMS
-          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 15 ]] || {
-            echo "Expected all 15 Lambda ZIP packages" >&2
+          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 16 ]] || {
+            echo "Expected all 15 Lambda ZIP packages and the canonical contract package" >&2
             exit 2
           }
           for artifact in *.zip; do
-            unzip -Z1 "${artifact}" app.py | grep -Fxq app.py || {
-              echo "${artifact} does not contain app.py at its root" >&2
-              exit 2
-            }
+            if [[ "${artifact}" == campaign-contracts-1.0.0.zip ]]; then
+              unzip -Z1 "${artifact}" contract-set.json | grep -Fxq contract-set.json || {
+                echo "${artifact} does not contain contract-set.json at its root" >&2
+                exit 2
+              }
+            else
+              unzip -Z1 "${artifact}" app.py | grep -Fxq app.py || {
+                echo "${artifact} does not contain app.py at its root" >&2
+                exit 2
+              }
+            fi
           done
 
       - name: Configure short-lived AWS credentials

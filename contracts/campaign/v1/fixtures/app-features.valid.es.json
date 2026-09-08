@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "extractorVersion": "android-1.0.0",
+  "languageId": "es",
+  "taxonomyBucket": "advance_fee",
+  "vector": [0.74, -0.24, 0.49],
+  "lexicalFingerprint": ["fedcba9876543210"],
+  "signalIds": ["tactic.urgency", "channel.sms", "payment_request"],
+  "indicatorIds": ["payment.crypto"],
+  "confidence": 0.9
+}

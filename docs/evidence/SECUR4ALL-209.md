@@ -11,10 +11,12 @@ Verified acceptance evidence:
   the response.
 - English and Spanish stable-taxonomy labels are returned; unknown future IDs are
   rendered safely.
-- Category, risk, language, and ISO-week filters are validated.
+- Category, tactic, channel, risk, language, trend-direction, and ISO-week filters
+  are validated. Language/tactic/channel values fail closed unless the aggregate
+  carries the lifecycle's threshold-evidence version.
 - Page size is bounded by configuration.
-- Pagination tokens expire, are environment-bound, and are rejected if their key
-  attempts to target a non-published partition.
+- Pagination tokens are HMAC-authenticated, expire, are environment-bound, reject
+  tampering, and reject keys that target a non-published partition.
 - Logs contain only operation, schema version, result, and result count.
 - `campaign_trends.zip` packages with `app.py` at its root.
 

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 2,
+  "extractorVersion": "android-2.0.0",
+  "languageId": "en",
+  "taxonomyBucket": "advance_fee",
+  "vector": [0.75],
+  "lexicalFingerprint": [],
+  "signalIds": [],
+  "indicatorIds": [],
+  "confidence": 0.9
+}

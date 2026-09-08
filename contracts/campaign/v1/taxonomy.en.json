@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "taxonomyVersion": "1.0.0",
+  "locale": "en",
+  "dimensions": {
+    "scam_category": {
+      "label": "Scam category",
+      "values": {
+        "advance_fee": "Advance-fee scam",
+        "credential_theft": "Credential theft",
+        "impersonation": "Impersonation",
+        "investment": "Investment scam",
+        "romance": "Romance scam",
+        "employment": "Employment scam",
+        "marketplace": "Marketplace scam",
+        "extortion": "Extortion",
+        "tech_support": "Tech-support scam",
+        "other": "Other scam pattern",
+        "unknown": "Unknown scam pattern"
+      }
+    },
+    "claimed_organization": {
+      "label": "Claimed organization",
+      "values": {
+        "bank": "Bank or financial institution",
+        "government": "Government agency",
+        "law_enforcement": "Law enforcement",
+        "delivery_service": "Delivery service",
+        "employer": "Employer or recruiter",
+        "marketplace": "Marketplace",
+        "technology_company": "Technology company",
+        "utility": "Utility provider",
+        "charity": "Charity",
+        "family_or_friend": "Family member or friend",
+        "other": "Other organization",
+        "unknown": "Unknown organization"
+      }
+    },
+    "requested_action": {
+      "label": "Requested action",
+      "values": {
+        "send_money": "Send money",
+        "share_credentials": "Share credentials",
+        "share_verification_code": "Share a verification code",
+        "install_software": "Install software",
+        "open_link": "Open a link",
+        "call_number": "Call a phone number",
+        "move_platform": "Move to another platform",
+        "provide_personal_information": "Provide personal information",
+        "other": "Other requested action",
+        "unknown": "Unknown requested action"
+      }
+    },
+    "payment_method": {
+      "label": "Payment method",
+      "values": {
+        "bank_transfer": "Bank transfer",
+        "cryptocurrency": "Cryptocurrency",
+        "gift_card": "Gift card",
+        "cash": "Cash",
+        "card": "Payment card",
+        "mobile_payment": "Mobile payment",
+        "wire_transfer": "Wire transfer",
+        "check": "Check",
+        "other": "Other payment method",
+        "unknown": "Unknown payment method"
+      }
+    },
+    "emotional_tactic": {
+      "label": "Emotional tactic",
+      "values": {
+        "urgency": "Urgency",
+        "fear": "Fear or threat",
+        "authority": "Claimed authority",
+        "scarcity": "Scarcity",
+        "secrecy": "Secrecy",
+        "trust": "Trust building",
+        "sympathy": "Sympathy",
+        "reward": "Promised reward",
+        "romance": "Romance",
+        "other": "Other emotional tactic",
+        "unknown": "Unknown emotional tactic"
+      }
+    },
+    "channel": {
+      "label": "Channel",
+      "values": {
+        "sms": "Text message",
+        "email": "Email",
+        "messaging_app": "Messaging app",
+        "social_media": "Social media",
+        "phone_call": "Phone call",
+        "web": "Website",
+        "marketplace": "Marketplace",
+        "in_person": "In person",
+        "other": "Other channel",
+        "unknown": "Unknown channel"
+      }
+    },
+    "language": {
+      "label": "Language",
+      "values": {
+        "en": "English",
+        "es": "Spanish",
+        "multilingual": "Multiple languages",
+        "other": "Other language",
+        "unknown": "Unknown language"
+      }
+    },
+    "risk": {
+      "label": "Risk",
+      "values": {
+        "low": "Low risk",
+        "medium": "Medium risk",
+        "high": "High risk",
+        "other": "Other risk",
+        "unknown": "Unknown risk"
+      }
+    },
+    "confidence": {
+      "label": "Confidence",
+      "values": {
+        "very_low": "Very low confidence",
+        "low": "Low confidence",
+        "medium": "Medium confidence",
+        "high": "High confidence",
+        "very_high": "Very high confidence",
+        "other": "Other confidence",
+        "unknown": "Unknown confidence"
+      }
+    },
+    "bounded_indicator": {
+      "label": "Bounded indicator",
+      "values": {
+        "payment_request": "Payment request",
+        "credential_request": "Credential request",
+        "verification_code_request": "Verification-code request",
+        "impersonation_claim": "Impersonation claim",
+        "threat": "Threat",
+        "suspicious_link": "Suspicious link",
+        "reviewed_domain": "Threshold-approved reviewed domain",
+        "other": "Other bounded indicator",
+        "unknown": "Unknown bounded indicator"
+      }
+    }
+  }
+}

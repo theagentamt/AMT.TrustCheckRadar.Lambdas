@@ -120,14 +120,19 @@ This document captures the deployment dependency contract for the Lambda functio
 - Requires `APP_ENVIRONMENT`, `CAMPAIGN_SCHEMA_VERSION`,
   `INTELLIGENCE_TABLE_NAME`, `PUBLICATION_INDEX_NAME`,
   `MIN_CONTRIBUTOR_COUNT=10`, `MAXIMUM_PAGE_SIZE`, and
-  `PAGINATION_TOKEN_TTL_SECS`.
+  `PAGINATION_TOKEN_TTL_SECS`. `PAGINATION_TOKEN_SECRET` is also required and
+  must contain at least 32 UTF-8 bytes supplied through protected configuration;
+  it must not be committed or shared across environments.
 - Queries only `GSI1PK=STATE#PUBLISHED` through `PublicationIndex`; it has no
   transient or identity-table dependency.
 - Returns count bands rather than exact counts and suppresses any item whose
   contributor or submission band is missing or invalid.
-- Supports English/Spanish labels, safe unknown taxonomy IDs, category/risk/
-  language/week filters, descending periods, bounded page sizes, and
-  environment-bound expiring pagination tokens.
+- Supports English/Spanish labels, safe unknown taxonomy IDs, category/tactic/
+  channel/risk/language/trend/week filters, descending periods, bounded page
+  sizes, and environment-bound expiring HMAC-authenticated pagination tokens.
+- Language, tactic, and channel values are filterable only when
+  `dimensionSchemaVersion=1` proves lifecycle thresholding. Legacy aggregates
+  fail closed to empty dimension lists.
 
 ---
 
@@ -146,6 +151,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | `APP_ENVIRONMENT` | Yes | `dev` | Cross-environment validation and key selection cannot run |
 | `CAMPAIGN_SCHEMA_VERSION` | Yes | `1` | Version validation cannot run; V1 is the only supported value |
 | `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient app features and dedupe state cannot be written |
+| `USERS_TABLE_NAME` | Yes | `trustcheckradar-dev-users` | Withdrawal and consent-epoch state cannot be condition-checked; publication fails closed |
 | `CLUSTER_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque clustering requests cannot be published |
 | `CONTRIBUTOR_PERIOD_DAYS` | No | `14` | Defaults to 14 and rejects any other value |
 | `TRANSIENT_RETENTION_DAYS` | No | `21` | Defaults to 21 and rejects values above the approved maximum |
@@ -157,6 +163,7 @@ This document captures the deployment dependency contract for the Lambda functio
 |---|---|
 | Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
 | Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`; transaction-only grants may use `dynamodb:EnclosingOperation=TransactWriteItems` |
+| Users participation item | `dynamodb:GetItem`, plus `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
 | Clustering queue | `sqs:SendMessage` |
 | Campaign metrics namespace | `cloudwatch:PutMetricData` |
@@ -171,7 +178,10 @@ This document captures the deployment dependency contract for the Lambda functio
   finite values in `[-1,1]`; fingerprints at 32 unique lowercase 16-character
   hex values; signal/indicator lists at 16 unique stable IDs each; and confidence
   at `[0,1]`. Booleans are not numeric values.
-- Declined consent and expired observations are successful no-ops.
+- Declined consent, withdrawn/stale server participation, and expired
+  observations are successful no-ops. The publisher re-reads the authoritative
+  participation record and condition-checks the same consent epoch in its
+  pipeline transaction, so withdrawal wins over an already queued outbox record.
 - The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
 - Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
 - The publisher resolves the enabled KMS key ARN from the lifecycle-owned

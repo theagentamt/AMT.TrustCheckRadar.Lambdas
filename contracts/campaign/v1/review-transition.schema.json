@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.andmorethings.com/trustcheck-radar/campaign/1.0.0/review-transition.schema.json",
+  "title": "Campaign review transition V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "action", "reasonCode", "reason"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "action": {"enum": ["confirm", "publish", "suppress", "emergency_suppress"]},
+    "reasonCode": {"enum": ["quality_verified", "privacy_verified", "policy_violation", "false_positive", "emergency"]},
+    "reason": {"type": "string", "minLength": 8, "maxLength": 256}
+  }
+}

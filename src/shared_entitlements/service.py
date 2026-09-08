@@ -192,7 +192,7 @@ def _normalize_entitlement(account_id: str, entitlement: dict | None, now_iso: s
     normalized = dict(entitlement)
     tier = str(normalized.get("entitlementTier", "FREE")).upper()
     if tier not in {"FREE", "PRO"}:
-        LOGGER.warning("Unexpected entitlement tier for accountId=%s tier=%s", account_id, tier)
+        LOGGER.warning("Unexpected entitlement tier | tier=%s", tier)
         tier = "FREE"
 
     subscription_status = _normalize_subscription_status(
@@ -222,8 +222,7 @@ def _normalize_entitlement(account_id: str, entitlement: dict | None, now_iso: s
 
     if remaining_monthly > monthly_limit:
         LOGGER.warning(
-            "remainingMonthlyScans exceeds monthlyScanLimit for accountId=%s remaining=%s limit=%s",
-            account_id,
+            "remainingMonthlyScans exceeds monthlyScanLimit | remaining=%s limit=%s",
             remaining_monthly,
             monthly_limit,
         )
@@ -273,11 +272,11 @@ def _normalize_subscription_status(value, *, default: str, account_id: str) -> s
     if value is None:
         return default
     if not isinstance(value, str):
-        LOGGER.warning("Invalid subscription status for accountId=%s value=%s", account_id, value)
+        LOGGER.warning("Invalid subscription status type")
         return default
     normalized = value.strip().lower()
     if normalized not in SUPPORTED_SUBSCRIPTION_STATUSES:
-        LOGGER.warning("Unsupported subscription status for accountId=%s status=%s", account_id, normalized)
+        LOGGER.warning("Unsupported subscription status | status=%s", normalized)
         return default
     return normalized
 
@@ -296,11 +295,11 @@ def _coerce_non_negative_int(value, default: int, *, field_name: str, account_id
         parsed = int(value)
     except (TypeError, ValueError):
         if value is not None:
-            LOGGER.warning("Invalid entitlement field for accountId=%s field=%s value=%s", account_id, field_name, value)
+            LOGGER.warning("Invalid entitlement field | field=%s", field_name)
         return default
 
     if parsed < 0:
-        LOGGER.warning("Negative entitlement field for accountId=%s field=%s value=%s", account_id, field_name, parsed)
+        LOGGER.warning("Negative entitlement field | field=%s", field_name)
         return 0
     return parsed
 

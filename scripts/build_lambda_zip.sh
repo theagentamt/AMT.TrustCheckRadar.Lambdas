@@ -8,6 +8,7 @@ LAMBDA_ARCH="arm64"
 SELECTED_FUNCTION=""
 BUILD_ALL=false
 SKIP_DEPENDENCIES=false
+CONTRACT_VERSION="1.0.0"
 
 FUNCTIONS=(
   age_attestation
@@ -221,10 +222,47 @@ print(f"{sha256(artifact.read_bytes()).hexdigest()}  {artifact}")
 PY
 }
 
+package_campaign_contracts() {
+  local source_dir="$ROOT_DIR/contracts/campaign/v1"
+  local output_zip="$OUTPUT_DIR/campaign-contracts-$CONTRACT_VERSION.zip"
+  [[ -f "$source_dir/contract-set.json" ]] || fail "campaign contract source not found: $source_dir"
+  rm -f "$output_zip"
+  python3 - "$source_dir" "$output_zip" <<'PY'
+from hashlib import sha256
+from pathlib import Path
+import stat
+import sys
+import zipfile
+
+source_dir = Path(sys.argv[1]).resolve()
+output_zip = Path(sys.argv[2]).resolve()
+files = sorted(path for path in source_dir.rglob("*") if path.is_file())
+manifest = "".join(
+    f"{sha256(path.read_bytes()).hexdigest()}  {path.relative_to(source_dir).as_posix()}\n"
+    for path in files
+)
+
+with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for path in files:
+        relative_path = path.relative_to(source_dir).as_posix()
+        info = zipfile.ZipInfo(relative_path, date_time=(1980, 1, 1, 0, 0, 0))
+        info.external_attr = (stat.S_IFREG | 0o644) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, path.read_bytes(), compresslevel=9)
+    info = zipfile.ZipInfo("SHA256SUMS", date_time=(1980, 1, 1, 0, 0, 0))
+    info.external_attr = (stat.S_IFREG | 0o644) << 16
+    info.compress_type = zipfile.ZIP_DEFLATED
+    archive.writestr(info, manifest.encode("utf-8"), compresslevel=9)
+
+print(f"{sha256(output_zip.read_bytes()).hexdigest()}  {output_zip}")
+PY
+}
+
 if [[ "$BUILD_ALL" == true ]]; then
   for function_name in "${FUNCTIONS[@]}"; do
     build_function "$function_name"
   done
+  package_campaign_contracts
 
   python3 - "$OUTPUT_DIR" <<'PY'
 from hashlib import sha256

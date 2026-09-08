@@ -75,7 +75,9 @@ class LifecycleTests(unittest.TestCase):
             "GSI2PK": f"PERIOD#{period}#BUCKET#advance_fee", "contributorCount": 10,
             "submissionCount": 10, "languageIds": ["en", "es"]}]
         dynamo.contributions["c1"] = [{"PK": "CANDIDATE#c1", "SK": f"CONTRIB#t{i}",
-            "submissionCount": 1, "vectorApplied": True, "vector": [1.0]} for i in range(10)]
+            "submissionCount": 1, "vectorApplied": True, "vector": [1.0],
+            "languageId": "en", "signalIds": ["tactic.urgency", "channel.sms"]}
+            for i in range(10)]
 
         result = service.finalize_periods(environment="dev", schema_version=1,
             pipeline_table="pipeline", intelligence_table="intelligence", minimum_contributors=10,
@@ -86,10 +88,33 @@ class LifecycleTests(unittest.TestCase):
         aggregate = service.deserialize(dynamo.puts[0]["Item"])
         self.assertEqual(aggregate["state"], "PENDING_REVIEW")
         self.assertEqual(aggregate["contributorCount"], 10)
+        self.assertEqual(aggregate["dimensionSchemaVersion"], 1)
+        self.assertEqual(aggregate["languageIds"], ["en"])
+        self.assertEqual(aggregate["tacticIds"], ["urgency"])
+        self.assertEqual(aggregate["channelIds"], ["sms"])
         serialized = str(aggregate).lower()
         self.assertNotIn("token", serialized)
         self.assertNotIn("centroid", serialized)
         self.assertTrue(dynamo.batches)
+
+    def test_dimension_ids_require_ten_distinct_contributions(self):
+        contributions = [
+            {"languageId": "en", "signalIds": ["tactic.urgency", "channel.sms"]}
+            for _ in range(10)
+        ] + [
+            {"languageId": "es", "signalIds": ["tactic.fear", "channel.email"]}
+            for _ in range(9)
+        ]
+
+        self.assertEqual(service.thresholded_dimension_ids(contributions, "languageId", 10), ["en"])
+        self.assertEqual(
+            service.thresholded_dimension_ids(contributions, "signalIds", 10, prefix="tactic."),
+            ["urgency"],
+        )
+        self.assertEqual(
+            service.thresholded_dimension_ids(contributions, "signalIds", 10, prefix="channel."),
+            ["sms"],
+        )
 
 
 if __name__ == "__main__": unittest.main()

@@ -19,32 +19,37 @@ def lambda_handler(event, _context):
         LOGGER.info("Stage started: request_received")
         payload = parse_and_validate_event(event)
         request_id = payload["requestId"]
-        LOGGER.info("Stage completed: request_validated | requestId=%s sourceType=%s entityCount=%s", request_id, payload["sourceType"], len(payload["entities"]))
+        LOGGER.info(
+            "Stage completed: request_validated | sourceType=%s entityCount=%s",
+            payload["sourceType"],
+            len(payload["entities"]),
+        )
 
-        LOGGER.info("Stage started: identity_extraction | requestId=%s", request_id)
+        LOGGER.info("Stage started: identity_extraction")
         identity = extract_identity(event)
-        LOGGER.info("Stage completed: identity_extracted | requestId=%s", request_id)
+        LOGGER.info("Stage completed: identity_extracted")
 
-        LOGGER.info("Stage started: device_binding_validation | requestId=%s", request_id)
+        LOGGER.info("Stage started: device_binding_validation")
         assert_active_device_binding(event, identity)
-        LOGGER.info("Stage completed: device_binding_validated | requestId=%s", request_id)
+        LOGGER.info("Stage completed: device_binding_validated")
 
-        LOGGER.info("Stage started: analysis_flow | requestId=%s", request_id)
+        LOGGER.info("Stage started: analysis_flow")
         response_body = handle_analysis_request(payload, identity)
-        LOGGER.info("Stage completed: analysis_flow | requestId=%s riskLevel=%s scamScore=%s", request_id, response_body.get("riskLevel"), response_body.get("scamScore"))
+        LOGGER.info(
+            "Stage completed: analysis_flow | riskLevel=%s scamScore=%s",
+            response_body.get("riskLevel"),
+            response_body.get("scamScore"),
+        )
         return _response(200, response_body)
     except AppError as err:
         LOGGER.warning(
-            "Stage failed: handled_error | requestId=%s errorCode=%s retryable=%s message=%s details=%s",
-            request_id,
+            "Stage failed: handled_error | errorCode=%s retryable=%s",
             err.code,
             err.retryable,
-            err.message,
-            err.details,
         )
         return _response(err.status_code, build_error_response(request_id=request_id, err=err))
     except Exception:
-        LOGGER.exception("Stage failed: unhandled_error | requestId=%s", request_id)
+        LOGGER.exception("Stage failed: unhandled_error")
         internal_error = AppError("INTERNAL_ERROR", "An internal error occurred while processing the request.", retryable=False)
         return _response(500, build_error_response(request_id=request_id, err=internal_error))
 

@@ -276,6 +276,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
         combined = " ".join(captured.output)
         for prohibited in (
             "private-account",
+            "request-123",
             "private sanitized text",
             "private-extractor-version",
             "0.123456",

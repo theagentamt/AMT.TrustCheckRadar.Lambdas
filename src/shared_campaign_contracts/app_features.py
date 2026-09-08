@@ -23,6 +23,22 @@ APP_FEATURE_FIELDS = frozenset(
 STABLE_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 SIGNAL_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 FINGERPRINT_PATTERN = re.compile(r"^[0-9a-f]{16}$")
+LANGUAGE_IDS = frozenset({"en", "es", "multilingual", "other", "unknown"})
+TAXONOMY_BUCKETS = frozenset(
+    {
+        "advance_fee",
+        "credential_theft",
+        "impersonation",
+        "investment",
+        "romance",
+        "employment",
+        "marketplace",
+        "extortion",
+        "tech_support",
+        "other",
+        "unknown",
+    }
+)
 
 
 class AppFeaturesContractError(ValueError):
@@ -51,6 +67,8 @@ def validate_app_features(value) -> dict:
 
     language_id = _stable_id(value["languageId"], "languageId")
     taxonomy_bucket = _stable_id(value["taxonomyBucket"], "taxonomyBucket")
+    if language_id not in LANGUAGE_IDS or taxonomy_bucket not in TAXONOMY_BUCKETS:
+        raise AppFeaturesContractError("appFeatures taxonomy identifier is unsupported")
     vector = _number_list(value["vector"], "vector", minimum_items=1, maximum_items=384)
     lexical_fingerprint = _unique_string_list(
         value["lexicalFingerprint"],
