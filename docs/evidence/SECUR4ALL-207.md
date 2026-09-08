@@ -1,6 +1,6 @@
 # SECUR4ALL-207 Lambda Evidence
 
-Status: **Partially implemented; completion blocked by deployed access contract**
+Status: **Lambda and infrastructure contract implemented; deployed UAT evidence remains**
 
 Implemented and tested:
 
@@ -24,6 +24,12 @@ Implemented and tested:
   ledger `COMPLETE` status, and completed-stream loop suppression.
 - A privacy-safe normal/failure/manual-repair runbook in
   `docs/campaign-lifecycle-runbook.md`.
+- Sparse, environment-bound expiration keys on features, publisher/cluster
+  dedupe records, candidates, contributions, creation controls, and withdrawal
+  tombstones.
+- An hourly, index-query-only explicit expiration operation that deletes in
+  bounded batches and fails on unprocessed writes; DynamoDB TTL remains a
+  defense-in-depth fallback.
 
 Reproduce:
 
@@ -33,16 +39,11 @@ python3 -m pytest -q tests/campaign_lifecycle tests/campaign_deletion_bridge tes
 ./scripts/build_lambda_zip.sh --function campaign_deletion_bridge --skip-dependencies
 ```
 
-Completion blockers proven against the current infrastructure contract:
+Remaining environment evidence:
 
-1. `CampaignPipeline` has only contributor and candidate GSIs. It has no sparse
-   expiration index, while the lifecycle role has no `dynamodb:Scan`. Therefore the
-   hourly `expire_transient` invocation cannot discover arbitrary expired
-   observation, feature, and dedupe items for explicit deletion. The handler fails
-   this operation rather than falsely treating eventually consistent TTL cleanup as
-   the required deletion evidence.
-2. Backup/restore non-resurrection, DLQ re-drive, alarm delivery, arbitrary
-   time-travel expiry, and authenticated UAT withdrawal evidence require deployed
-   infrastructure and cannot be completed in this repository.
-Because those are external access/schema inputs and the user restricted this work
-to Lambda code, this evidence does not claim the whole story is complete.
+1. Backup/restore non-resurrection, DLQ re-drive, alarm delivery, and authenticated
+   UAT withdrawal evidence require deployed infrastructure.
+2. A deployed time-travel check must prove the hourly operation removes indexed
+   records at or after their deadline without relying on DynamoDB TTL.
+Because those are environment-level checks, this evidence does not claim the whole
+story is complete.

@@ -2,7 +2,7 @@ import logging
 import os
 import boto3
 import config
-from service import finalize_periods, manage_keys
+from service import expire_transient, finalize_periods, manage_keys
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
@@ -24,7 +24,9 @@ def lambda_handler(event, _context):
             minimum_contributors=config.MIN_CONTRIBUTOR_COUNT,
             aggregate_retention_days=config.AGGREGATE_RETENTION_DAYS, dynamodb=dynamodb)
     elif operation == "expire_transient":
-        raise RuntimeError("Explicit expiry requires the campaign pipeline expiration index")
+        result = expire_transient(environment=config.APP_ENVIRONMENT,
+            table_name=config.PIPELINE_TABLE_NAME, index_name=config.EXPIRATION_INDEX_NAME,
+            dynamodb=dynamodb)
     else:
         raise ValueError("Unknown lifecycle operation")
     LOGGER.info("Campaign lifecycle completed | operation=%s schemaVersion=%s result=success", operation,

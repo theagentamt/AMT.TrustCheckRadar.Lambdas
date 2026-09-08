@@ -5,7 +5,7 @@
   "$comment": "This encrypted record expires within 21 days and must never be copied into a persistent aggregate.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["PK", "SK", "schemaVersion", "recordVersion", "environment", "statisticsEventId", "periodId", "contributorToken", "GSI1PK", "GSI1SK", "extractorVersion", "languageId", "taxonomyBucket", "vector", "lexicalFingerprint", "signalIds", "indicatorIds", "confidence", "expiresAt"],
+  "required": ["PK", "SK", "schemaVersion", "recordVersion", "environment", "statisticsEventId", "periodId", "contributorToken", "GSI1PK", "GSI1SK", "GSI3PK", "GSI3SK", "extractorVersion", "languageId", "taxonomyBucket", "vector", "lexicalFingerprint", "signalIds", "indicatorIds", "confidence", "expiresAt"],
   "properties": {
     "PK": {"type": "string", "pattern": "^EVENT#[0-9a-f-]{36}$"},
     "SK": {"const": "FEATURE"},
@@ -17,6 +17,8 @@
     "contributorToken": {"type": "string", "minLength": 32, "maxLength": 128},
     "GSI1PK": {"type": "string", "minLength": 1, "maxLength": 256},
     "GSI1SK": {"type": "string", "minLength": 1, "maxLength": 256},
+    "GSI3PK": {"type": "string", "pattern": "^EXPIRY#(dev|uat|prod)$"},
+    "GSI3SK": {"type": "integer", "minimum": 0},
     "extractorVersion": {"type": "string", "minLength": 1, "maxLength": 64},
     "languageId": {"enum": ["en", "es", "multilingual", "other", "unknown"]},
     "taxonomyBucket": {"enum": ["advance_fee", "credential_theft", "impersonation", "investment", "romance", "employment", "marketplace", "extortion", "tech_support", "other", "unknown"]},

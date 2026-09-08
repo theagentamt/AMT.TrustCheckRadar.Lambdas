@@ -20,6 +20,8 @@ PERSISTED_FEATURE_FIELDS = APP_FEATURE_FIELDS | {
     "contributorToken",
     "GSI1PK",
     "GSI1SK",
+    "GSI3PK",
+    "GSI3SK",
     "expiresAt",
 }
 
@@ -59,24 +61,33 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     existing = dynamodb.get_item(TableName=table_name, Key=contribution_key, ConsistentRead=True).get("Item")
     expires_at = now_epoch + retention_days * 86400
     if existing:
+        expires_at = min(expires_at, _required_number(existing, "expiresAt"))
+    expiration_index = _expiration_index(environment, expires_at)
+    if existing:
         count = int(existing.get("submissionCount", {"N": "0"})["N"])
         if count >= max_submissions:
-            _dedupe(dynamodb, table_name, event_id, candidate_id, expires_at, "CONTRIBUTOR_CAPPED")
+            _dedupe(dynamodb, table_name, event_id, candidate_id, environment, expires_at, "CONTRIBUTOR_CAPPED")
             return "contributor-capped"
         dynamodb.transact_write_items(TransactItems=[
             {"Update": {"TableName": table_name, "Key": contribution_key,
-                        "UpdateExpression": "ADD submissionCount :one",
+                        "UpdateExpression": (
+                            "SET expiresAt = :expiry, GSI3PK = :expiry_partition, GSI3SK = :expiry "
+                            "ADD submissionCount :one"
+                        ),
                         "ConditionExpression": "submissionCount < :maximum",
-                        "ExpressionAttributeValues": {":one": {"N": "1"}, ":maximum": {"N": str(max_submissions)}}}},
+                        "ExpressionAttributeValues": {":one": {"N": "1"}, ":maximum": {"N": str(max_submissions)},
+                                                      ":expiry_partition": {"S": expiration_index["GSI3PK"]},
+                                                      ":expiry": {"N": str(expires_at)}}}},
             {"Update": {"TableName": table_name,
                         "Key": {"PK": {"S": f"CANDIDATE#{candidate_id}"}, "SK": {"S": "SUMMARY"}},
                         "UpdateExpression": "ADD submissionCount :one SET version = version + :one",
                         "ExpressionAttributeValues": {":one": {"N": "1"}}}},
-            _dedupe_action(table_name, event_id, candidate_id, expires_at, "COUNTED"),
+            _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "COUNTED"),
         ])
         return "counted-repeat"
 
-    candidate = selected or _new_candidate(candidate_id, feature, expires_at)
+    candidate = selected or _new_candidate(candidate_id, feature, environment, expires_at)
+    candidate.update(_expiration_index(environment, candidate["expiresAt"]))
     previous_version = int(candidate.get("version", 0))
     if selected:
         candidate["centroid"] = updated_centroid(selected["centroid"], selected["contributorCount"], feature["vector"])
@@ -98,6 +109,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             dynamodb,
             table_name,
             feature,
+            environment,
             expires_at,
         ))
     transaction.extend([
@@ -108,15 +120,16 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             "periodId": feature["periodId"], "submissionCount": 1, "vectorApplied": True,
             "vector": feature["vector"], "languageId": feature["languageId"],
             "signalIds": feature["signalIds"], "indicatorIds": feature["indicatorIds"],
+            **expiration_index,
             "expiresAt": expires_at,
         }), "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
-        _dedupe_action(table_name, event_id, candidate_id, expires_at, "COUNTED"),
+        _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "COUNTED"),
     ])
     dynamodb.transact_write_items(TransactItems=transaction)
     return "matched" if selected else "candidate-created"
 
 
-def _candidate_creation_serialization_action(dynamodb, table_name, feature, expires_at):
+def _candidate_creation_serialization_action(dynamodb, table_name, feature, environment, expires_at):
     key = {
         "PK": {"S": f"BUCKET#{feature['periodId']}#{feature['taxonomyBucket']}"},
         "SK": {"S": "CREATION_CONTROL"},
@@ -130,7 +143,11 @@ def _candidate_creation_serialization_action(dynamodb, table_name, feature, expi
         return {
             "Put": {
                 "TableName": table_name,
-                "Item": key | {"version": {"N": "1"}, "expiresAt": {"N": str(expires_at)}},
+                "Item": key | serialize({
+                    "version": 1,
+                    **_expiration_index(environment, expires_at),
+                    "expiresAt": expires_at,
+                }),
                 "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
             }
         }
@@ -141,16 +158,21 @@ def _candidate_creation_serialization_action(dynamodb, table_name, feature, expi
         raise ValueError("Invalid candidate creation control record") from err
     if version < 1:
         raise ValueError("Invalid candidate creation control record")
+    expires_at = min(expires_at, _required_number(existing, "expiresAt"))
     return {
         "Update": {
             "TableName": table_name,
             "Key": key,
-            "UpdateExpression": "SET version = :next_version, expiresAt = :expiry",
+            "UpdateExpression": (
+                "SET version = :next_version, expiresAt = :expiry, "
+                "GSI3PK = :expiry_partition, GSI3SK = :expiry"
+            ),
             "ConditionExpression": "version = :version",
             "ExpressionAttributeValues": {
                 ":version": {"N": str(version)},
                 ":next_version": {"N": str(version + 1)},
                 ":expiry": {"N": str(expires_at)},
+                ":expiry_partition": {"S": f"EXPIRY#{environment}"},
             },
         }
     }
@@ -169,7 +191,7 @@ def _load_candidates(dynamodb, table_name, feature):
     return candidates
 
 
-def _new_candidate(candidate_id, feature, expires_at):
+def _new_candidate(candidate_id, feature, environment, expires_at):
     return {"PK": f"CANDIDATE#{candidate_id}", "SK": "SUMMARY", "candidateId": candidate_id,
             "periodId": feature["periodId"], "taxonomyBucket": feature["taxonomyBucket"],
             "GSI2PK": f"PERIOD#{feature['periodId']}#BUCKET#{feature['taxonomyBucket']}",
@@ -177,17 +199,34 @@ def _new_candidate(candidate_id, feature, expires_at):
             "lexicalFingerprint": feature.get("lexicalFingerprint", []),
             "signalIds": feature.get("signalIds", []), "indicatorIds": feature.get("indicatorIds", []),
             "contributorCount": 1, "submissionCount": 1, "version": 1,
-            "reviewState": "UNFINALIZED", "expiresAt": expires_at}
+            "reviewState": "UNFINALIZED", **_expiration_index(environment, expires_at),
+            "expiresAt": expires_at}
 
 
-def _dedupe(dynamodb, table_name, event_id, candidate_id, expiry, outcome):
-    dynamodb.put_item(**_dedupe_action(table_name, event_id, candidate_id, expiry, outcome)["Put"])
+def _dedupe(dynamodb, table_name, event_id, candidate_id, environment, expiry, outcome):
+    dynamodb.put_item(**_dedupe_action(table_name, event_id, candidate_id, environment, expiry, outcome)["Put"])
 
 
-def _dedupe_action(table_name, event_id, candidate_id, expiry, outcome):
+def _dedupe_action(table_name, event_id, candidate_id, environment, expiry, outcome):
     return {"Put": {"TableName": table_name, "Item": serialize({"PK": f"EVENT#{event_id}", "SK": "CLUSTERED",
-        "candidateId": candidate_id, "outcome": outcome, "expiresAt": expiry}),
+        "candidateId": candidate_id, "outcome": outcome, **_expiration_index(environment, expiry),
+        "expiresAt": expiry}),
         "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
+
+
+def _expiration_index(environment, expiry):
+    return {"GSI3PK": f"EXPIRY#{environment}", "GSI3SK": expiry}
+
+
+def _required_number(item, field):
+    raw = item.get(field, {}).get("N")
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as err:
+        raise ValueError(f"Invalid {field} value") from err
+    if value < 0:
+        raise ValueError(f"Invalid {field} value")
+    return value
 
 
 def _envelope(body, environment, schema_version):
@@ -237,8 +276,10 @@ def _validated_feature(feature, event_id, environment, schema_version):
     if (
         feature.get("GSI1PK") != f"CONTRIB#{period_id}#{contributor_token}"
         or feature.get("GSI1SK") != f"EVENT#{event_id}#FEATURE"
+        or feature.get("GSI3PK") != f"EXPIRY#{environment}"
+        or feature.get("GSI3SK") != expires_at
     ):
-        raise ValueError("Persisted feature contributor index is invalid")
+        raise ValueError("Persisted feature index is invalid")
     try:
         app_features = validate_app_features(
             {field: feature[field] for field in APP_FEATURE_FIELDS}

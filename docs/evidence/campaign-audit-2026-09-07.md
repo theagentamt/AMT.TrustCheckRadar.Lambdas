@@ -31,11 +31,11 @@ excluded.
 
 | Acceptance criterion | Evidence | Result |
 |---|---|---|
-| Time-travel tests prove every transient class expires within policy. | Unit tests prove 14+7-day key lifecycle and bounded TTL assignment. `expire_transient` fails closed because no expiration index/query grant exists. | Blocked by infrastructure access pattern and deployed time-travel evidence |
+| Time-travel tests prove every transient class expires within policy. | Unit tests prove 14+7-day key lifecycle, bounded TTL assignment, sparse environment-bound expiration keys, bounded index queries, batched deletion, and failure on unprocessed writes. | Lambda and infrastructure contract pass; deployed time-travel evidence remains |
 | Account deletion removes active contributions and cannot relink later signup. | Active/recovery token derivation, tombstones, contribution/feature/dedupe deletion, candidate recomputation, and new consent epochs on re-enrollment. | Lambda pass; authenticated environment test external |
 | Expired contributor tokens cannot be regenerated. | KMS key disabled after recovery and scheduled for deletion; publisher requires enabled registry key. | Lambda pass; deployed KMS evidence external |
 | Backup/restore and DLQ cannot resurrect deleted/expired content. | Tombstone wins over delayed cluster work and completed ledger updates do not loop. | Infrastructure/UAT backup and DLQ evidence required |
-| Reconciliation detects stuck/partial purge and alarms privacy-safely. | Lambda failures remain retryable and log only bounded counts; explicit expiry remains an alarmable failure. | CloudWatch alarm/reconciliation deployment evidence required |
+| Reconciliation detects stuck/partial purge and alarms privacy-safely. | Lambda failures remain retryable and log only bounded counts; partial explicit expiry fails and remains alarmable. | CloudWatch alarm/reconciliation deployment evidence required |
 | UAT evidence and operational runbook cover normal/failure/repair. | `docs/campaign-lifecycle-runbook.md` covers Lambda operations and safe repair. | UAT execution external |
 
 ## SECUR4ALL-211

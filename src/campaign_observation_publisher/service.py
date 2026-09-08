@@ -66,6 +66,10 @@ def publish_observation(
             item["expiresAt"] + 18 * 24 * 60 * 60,
             now_epoch + transient_retention_days * 24 * 60 * 60,
         )
+        expiration_index = {
+            "GSI3PK": f"EXPIRY#{item['environment']}",
+            "GSI3SK": transient_expiry,
+        }
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
@@ -107,6 +111,7 @@ def publish_observation(
                                     "contributorToken": contributor_token,
                                     "GSI1PK": f"CONTRIB#{period_id}#{contributor_token}",
                                     "GSI1SK": f"EVENT#{event_id}#FEATURE",
+                                    **expiration_index,
                                     **app_features,
                                     "expiresAt": transient_expiry,
                                 }
@@ -123,6 +128,7 @@ def publish_observation(
                                     "SK": "DEDUPE",
                                     "status": "PENDING",
                                     "periodId": period_id,
+                                    **expiration_index,
                                     "expiresAt": transient_expiry,
                                 }
                             ),

@@ -12,6 +12,46 @@ TAXONOMY_BUCKETS = (
     "employment", "marketplace", "extortion", "tech_support", "other", "unknown",
 )
 STABLE_ID = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+EXPIRATION_PAGE_SIZE = 100
+EXPIRATION_MAX_PAGES = 5
+
+
+def expire_transient(*, environment, table_name, index_name, dynamodb, now_epoch=None):
+    now_epoch = int(time.time()) if now_epoch is None else now_epoch
+    if environment not in {"dev", "uat", "prod"} or index_name != "ExpirationIndex":
+        raise ValueError("Invalid expiration scope")
+
+    deleted = 0
+    start_key = None
+    for _ in range(EXPIRATION_MAX_PAGES):
+        query = {
+            "TableName": table_name,
+            "IndexName": index_name,
+            "KeyConditionExpression": "GSI3PK = :partition AND GSI3SK <= :now",
+            "ExpressionAttributeValues": {
+                ":partition": {"S": f"EXPIRY#{environment}"},
+                ":now": {"N": str(now_epoch)},
+            },
+            "ProjectionExpression": "PK, SK",
+            "Limit": EXPIRATION_PAGE_SIZE,
+        }
+        if start_key:
+            query["ExclusiveStartKey"] = start_key
+        response = dynamodb.query(**query)
+        requests = [
+            {"DeleteRequest": {"Key": {"PK": item["PK"], "SK": item["SK"]}}}
+            for item in response.get("Items", [])
+        ]
+        for offset in range(0, len(requests), 25):
+            batch = requests[offset:offset + 25]
+            result = dynamodb.batch_write_item(RequestItems={table_name: batch})
+            if result.get("UnprocessedItems", {}).get(table_name):
+                raise RuntimeError("Explicit expiration batch was not fully processed")
+            deleted += len(batch)
+        start_key = response.get("LastEvaluatedKey")
+        if not start_key:
+            break
+    return {"expired": deleted, "backlog": bool(start_key)}
 
 
 def manage_keys(*, environment, project_name, table_name, dynamodb, kms, now_epoch=None):

@@ -28,6 +28,8 @@ def feature(**updates):
         "contributorToken": "token-a",
         "GSI1PK": "CONTRIB#1471#token-a",
         "GSI1SK": f"EVENT#{EVENT_ID}#FEATURE",
+        "GSI3PK": "EXPIRY#dev",
+        "GSI3SK": 2_000_000_000,
         "extractorVersion": "android-1.0.0",
         "languageId": "en",
         "taxonomyBucket": "advance_fee",
@@ -131,6 +133,8 @@ class ClusterServiceTests(unittest.TestCase):
         self.assertEqual(contribution["languageId"], "en")
         self.assertEqual(contribution["signalIds"], ["payment_request"])
         self.assertEqual(contribution["indicatorIds"], ["payment.crypto"])
+        self.assertEqual(contribution["GSI3PK"], "EXPIRY#dev")
+        self.assertEqual(contribution["GSI3SK"], contribution["expiresAt"])
 
     @mock.patch.object(service.uuid, "uuid4", return_value="new-candidate")
     def test_conflict_creates_separate_candidate(self, _uuid):
@@ -149,7 +153,7 @@ class ClusterServiceTests(unittest.TestCase):
         class ControlledDynamo(Dynamo):
             def get_item(self, Key, **kwargs):
                 if Key["SK"]["S"] == "CREATION_CONTROL":
-                    return {"Item": {"version": {"N": "4"}}}
+                    return {"Item": {"version": {"N": "4"}, "expiresAt": {"N": "1780500000"}}}
                 return super().get_item(Key, **kwargs)
 
         dynamo = ControlledDynamo(feature())
@@ -157,9 +161,23 @@ class ClusterServiceTests(unittest.TestCase):
         control = dynamo.transactions[0][1]["Update"]
         self.assertEqual(control["ExpressionAttributeValues"][":version"], {"N": "4"})
         self.assertEqual(control["ExpressionAttributeValues"][":next_version"], {"N": "5"})
+        self.assertEqual(control["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
+
+    def test_repeat_contribution_keeps_original_expiration_deadline(self):
+        dynamo = Dynamo(feature(), [candidate()], contribution={
+            "submissionCount": {"N": "2"}, "expiresAt": {"N": "1780500000"},
+        })
+
+        self.assertEqual(self.process(dynamo), "counted-repeat")
+
+        update = dynamo.transactions[0][0]["Update"]
+        self.assertEqual(update["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
+        self.assertEqual(update["ExpressionAttributeValues"][":expiry_partition"], {"S": "EXPIRY#dev"})
 
     def test_caps_fourth_submission_without_second_vector(self):
-        dynamo = Dynamo(feature(), [candidate()], contribution={"submissionCount": {"N": "3"}})
+        dynamo = Dynamo(feature(), [candidate()], contribution={
+            "submissionCount": {"N": "3"}, "expiresAt": {"N": "1900000000"},
+        })
 
         self.assertEqual(self.process(dynamo), "contributor-capped")
         self.assertEqual(dynamo.transactions, [])
@@ -168,7 +186,7 @@ class ClusterServiceTests(unittest.TestCase):
     def test_missing_suppressed_and_duplicate_are_noops(self):
         self.assertEqual(self.process(Dynamo()), "missing")
         self.assertEqual(self.process(Dynamo(feature(suppressed=True))), "suppressed")
-        self.assertEqual(self.process(Dynamo(feature(expiresAt=1_780_000_000))), "suppressed")
+        self.assertEqual(self.process(Dynamo(feature(expiresAt=1_780_000_000, GSI3SK=1_780_000_000))), "suppressed")
         self.assertEqual(self.process(Dynamo(feature(), dedupe={"PK": {"S": "x"}})), "duplicate")
 
     def test_contributor_tombstone_wins_over_queued_work(self):
@@ -196,6 +214,8 @@ class ClusterServiceTests(unittest.TestCase):
             feature(vector=[True]),
             feature(confidence=1.1),
             feature(signalIds=["payment_request", "payment_request"]),
+            feature(GSI3PK="EXPIRY#prod"),
+            feature(GSI3SK=1_999_999_999),
             feature(unknown="field"),
             {key: value for key, value in feature().items() if key != "extractorVersion"},
         ]

@@ -142,6 +142,7 @@ class CampaignContractTests(unittest.TestCase):
             "PK": f"EVENT#{event_id}", "SK": "FEATURE", "schemaVersion": 1, "recordVersion": 1,
             "environment": "dev", "statisticsEventId": event_id, "periodId": 1471,
             "contributorToken": "a" * 43, "GSI1PK": "CONTRIB#1471#token", "GSI1SK": f"EVENT#{event_id}#FEATURE",
+            "GSI3PK": "EXPIRY#dev", "GSI3SK": 1_781_814_400,
             **{key: value for key, value in app_features.items() if key != "schemaVersion"},
             "expiresAt": 1_781_814_400,
         }

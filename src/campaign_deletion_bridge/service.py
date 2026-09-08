@@ -63,9 +63,13 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
         token = base64.urlsafe_b64encode(mac).decode().rstrip("=")
         tombstone_key = {"PK": {"S": f"CONTRIB#{period_id}#{token}"}, "SK": {"S": "TOMBSTONE"}}
         dynamodb.update_item(TableName=table_name, Key=tombstone_key,
-            UpdateExpression="SET expiresAt = :expiry, createdAtEpoch = :now",
+            UpdateExpression=(
+                "SET expiresAt = :expiry, createdAtEpoch = :now, "
+                "GSI3PK = :expiry_partition, GSI3SK = :expiry"
+            ),
             ExpressionAttributeValues={":expiry": {"N": str(now_epoch + retention_days * 86400)},
-                                       ":now": {"N": str(now_epoch)}})
+                                       ":now": {"N": str(now_epoch)},
+                                       ":expiry_partition": {"S": f"EXPIRY#{command['environment']}"}})
         response = dynamodb.query(TableName=table_name, IndexName="ContributorPeriodIndex",
             KeyConditionExpression="GSI1PK = :token",
             ExpressionAttributeValues={":token": {"S": f"CONTRIB#{period_id}#{token}"}})

@@ -21,6 +21,7 @@ class Dynamo:
     def __init__(self):
         self.period_keys, self.candidates, self.contributions = {}, [], {}
         self.puts, self.updates, self.batches = [], [], []
+        self.expired = []
     def get_item(self, Key, **_kwargs):
         pk, sk = Key["PK"]["S"], Key["SK"]["S"]
         if sk == "HMAC_KEY": item = self.period_keys.get(pk)
@@ -31,16 +32,49 @@ class Dynamo:
     def put_item(self, **kwargs): self.puts.append(kwargs)
     def update_item(self, **kwargs): self.updates.append(kwargs)
     def query(self, IndexName=None, ExpressionAttributeValues=None, **_kwargs):
+        if IndexName == "ExpirationIndex":
+            return {"Items": self.expired}
         if IndexName == "CandidateBucketIndex":
             bucket = ExpressionAttributeValues[":bucket"]["S"]
             return {"Items": [{"PK": {"S": c["PK"]}, "SK": {"S": c["SK"]}}
                               for c in self.candidates if c["GSI2PK"] == bucket]}
         candidate_id = ExpressionAttributeValues[":candidate"]["S"].removeprefix("CANDIDATE#")
         return {"Items": [service.serialize(item) for item in self.contributions.get(candidate_id, [])]}
-    def batch_write_item(self, **kwargs): self.batches.append(kwargs)
+    def batch_write_item(self, **kwargs):
+        self.batches.append(kwargs)
+        return {}
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_explicit_expiry_queries_sparse_index_and_deletes_in_batches(self):
+        dynamo = Dynamo()
+        dynamo.expired = [
+            {"PK": {"S": f"EVENT#{index}"}, "SK": {"S": "FEATURE"}}
+            for index in range(26)
+        ]
+
+        result = service.expire_transient(environment="dev", table_name="pipeline",
+            index_name="ExpirationIndex", dynamodb=dynamo, now_epoch=1_780_000_100)
+
+        self.assertEqual(result, {"expired": 26, "backlog": False})
+        self.assertEqual([len(batch["RequestItems"]["pipeline"]) for batch in dynamo.batches], [25, 1])
+
+    def test_explicit_expiry_rejects_cross_environment_contract(self):
+        with self.assertRaises(ValueError):
+            service.expire_transient(environment="other", table_name="pipeline",
+                index_name="ExpirationIndex", dynamodb=Dynamo(), now_epoch=1)
+
+    def test_explicit_expiry_fails_when_dynamodb_does_not_delete_every_item(self):
+        class ThrottledDynamo(Dynamo):
+            def batch_write_item(self, **kwargs):
+                return {"UnprocessedItems": kwargs["RequestItems"]}
+
+        dynamo = ThrottledDynamo()
+        dynamo.expired = [{"PK": {"S": "EVENT#1"}, "SK": {"S": "FEATURE"}}]
+        with self.assertRaises(RuntimeError):
+            service.expire_transient(environment="dev", table_name="pipeline",
+                index_name="ExpirationIndex", dynamodb=dynamo, now_epoch=1)
+
     def test_creates_current_period_key_with_required_tags(self):
         dynamo, kms = Dynamo(), Kms()
 

@@ -22,10 +22,11 @@ contain that value. A failed conditional aggregate write must be investigated by
 state/version, not by retrieving feature content. Retry is safe after determining
 whether the aggregate already exists.
 
-`expire_transient` intentionally fails until CampaignPipeline exposes the
-approved sparse expiry index and the lifecycle role can query it. DynamoDB TTL is
-defense in depth and is not accepted as proof of the deletion deadline. Keep the
-alarm open and do not mark SECUR4ALL-207 complete while this operation is blocked.
+`expire_transient` queries the environment-bound sparse `ExpirationIndex` and
+explicitly deletes up to 500 expired pipeline records per hourly run in DynamoDB
+write batches. If DynamoDB returns any unprocessed write, the operation fails so
+the scheduler retries and the lifecycle error alarm remains actionable. The
+`expiresAt` TTL remains defense in depth, not the primary deletion mechanism.
 
 ## Withdrawal and account deletion
 
@@ -67,7 +68,6 @@ python3 -m pytest -q tests/campaign_lifecycle tests/campaign_deletion_bridge tes
 make campaign-evidence
 ```
 
-Environment completion additionally requires time-travel retention tests,
-backup/restore non-resurrection tests, DLQ re-drive tests, alarm delivery, and an
-authenticated UAT withdrawal through completion. Those checks are not simulated
-or claimed by this repository.
+Environment completion additionally requires backup/restore non-resurrection
+tests, DLQ re-drive tests, alarm delivery, and an authenticated UAT withdrawal
+through completion. Those checks are not simulated or claimed by this repository.
