@@ -64,6 +64,11 @@ class ControlTable:
             item["status"] = values[":cancelled"]
         if ":complete" in values:
             item["status"] = values[":complete"]
+        if ":expired" in values:
+            item["status"] = values[":expired"]
+            item["deletedAtEpoch"] = values[":now"]
+            for field in ("contentSortKey", "lifecycleBucket", "lifecycleAt"):
+                item.pop(field, None)
         self.items[(Key["PK"], Key["SK"])] = item
         return {}
 
@@ -124,9 +129,10 @@ class BucketExpirationTable:
 
 
 class AbuseTable:
-    def __init__(self, items=None):
+    def __init__(self, items=None, *, fail_updates=0):
         self.items = items or {}
         self.updates = []
+        self.fail_updates = fail_updates
 
     def query(self, **kwargs):
         partition = kwargs["ExpressionAttributeValues"][":pk"]
@@ -134,6 +140,9 @@ class AbuseTable:
         return {"Items": items[:kwargs["Limit"]]}
 
     def update_item(self, Key, **kwargs):
+        if self.fail_updates:
+            self.fail_updates -= 1
+            raise RuntimeError("injected replay update failure")
         key = (Key["PK"], Key["SK"])
         item = self.items.get(key)
         if not item:
@@ -257,6 +266,99 @@ class HistoryLifecycleTests(unittest.TestCase):
 
         self.assertEqual(recovered["deleted"], 1)
         self.assertEqual(table.deletes, [{"PK": "CURSOR#delayed", "SK": "CURSOR"}])
+
+    def test_locator_resumes_replay_purge_after_content_delete_and_update_failure(self):
+        now = 100
+        content_key = {
+            "PK": "USER#a#HISTORY#0",
+            "SK": "COMPLETE#0000000000001#request-1",
+        }
+        content = content_key | {
+            "expiresAt": now,
+            "expiryBucket": f"HISTORY#{_hour_label(0)}#00",
+        }
+        locator = {
+            "PK": "USER#a", "SK": "REQUEST#request-1", "recordType": "REQUEST",
+            "status": "ACTIVE", "requestId": "request-1", "historyGeneration": 0,
+            "contentSortKey": content_key["SK"], "contentExpiresAt": now,
+            "lifecycleAt": now, "lifecycleBucket": "PENDING#00", "expiresAt": 1_000,
+        }
+        replay_partition = f"ANALYSIS#REQUEST#{_account_hash('a')}"
+        abuse = AbuseTable({
+            (replay_partition, "request-1"): {
+                "PK": replay_partition, "SK": "request-1", "response": {"summary": "secret"},
+            }
+        }, fail_updates=1)
+        control = ControlTable(
+            {("USER#a", "REQUEST#request-1"): locator},
+            {"PENDING#00": [locator]},
+        )
+        table = BucketExpirationTable([content])
+        service = HistoryLifecycleService(
+            settings=Settings(), content_table=table, control_table=control,
+            abuse_table=abuse, now=lambda: now,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "injected replay update failure"):
+            service._query_expiration_bucket(
+                table, "HISTORY", 0, 0, now, content=True, limit=25
+            )
+
+        self.assertEqual(table.items, [])
+        self.assertEqual(len(table.queries), 1)
+        self.assertEqual(locator["status"], "ACTIVE")
+        self.assertEqual(locator["lifecycleAt"], now)
+
+        recovered = service._process_pending_jobs(now, 10)
+
+        self.assertEqual(recovered["completedRetentionPurges"], 1)
+        self.assertEqual(recovered["redactedReplayRecords"], 1)
+        self.assertEqual(len(table.queries), 1)
+        self.assertEqual(locator["status"], "EXPIRED")
+        self.assertNotIn("lifecycleAt", locator)
+        self.assertNotIn("response", abuse.items[(replay_partition, "request-1")])
+
+    def test_locator_purges_replay_after_native_ttl_already_removed_history(self):
+        now = 100
+        content_sort_key = "COMPLETE#0000000000001#request-1"
+        locator = {
+            "PK": "USER#a", "SK": "REQUEST#request-1", "recordType": "REQUEST",
+            "status": "ACTIVE", "requestId": "request-1", "historyGeneration": 0,
+            "contentSortKey": content_sort_key, "contentExpiresAt": now,
+            "lifecycleAt": now, "lifecycleBucket": "PENDING#00", "expiresAt": 1_000,
+        }
+        replay_partition = f"ANALYSIS#REQUEST#{_account_hash('a')}"
+        abuse = AbuseTable({
+            (replay_partition, "request-1"): {
+                "PK": replay_partition, "SK": "request-1", "response": {"summary": "secret"},
+            }
+        })
+        control = ControlTable(
+            {("USER#a", "REQUEST#request-1"): locator},
+            {"PENDING#00": [locator]},
+        )
+
+        class TtlRemovedContentTable:
+            def __init__(self):
+                self.deletes = []
+
+            def delete_item(self, **kwargs):
+                self.deletes.append(kwargs["Key"])
+                raise ConditionalFailure()
+
+        content_table = TtlRemovedContentTable()
+        service = HistoryLifecycleService(
+            settings=Settings(), content_table=content_table, control_table=control,
+            abuse_table=abuse, now=lambda: now,
+        )
+
+        result = service._process_pending_jobs(now, 10)
+
+        self.assertEqual(result["completedRetentionPurges"], 1)
+        self.assertEqual(result["redactedReplayRecords"], 1)
+        self.assertEqual(locator["status"], "EXPIRED")
+        self.assertNotIn("lifecycleBucket", locator)
+        self.assertNotIn("response", abuse.items[(replay_partition, "request-1")])
 
     def test_completion_is_rescheduled_so_later_erasure_can_be_seen(self):
         completion = {

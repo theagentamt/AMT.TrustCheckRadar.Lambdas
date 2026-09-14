@@ -43,6 +43,26 @@ STATE = {"accountStatus": "ACTIVE", "historyGeneration": 2, "recognitionGenerati
 
 
 class HistoryMutationTests(unittest.TestCase):
+    def test_delete_one_atomically_removes_the_retention_work_marker(self):
+        locator = {
+            "status": "ACTIVE", "historyGeneration": 2,
+            "contentSortKey": "COMPLETE#0000000000100#request-1",
+            "payloadHash": "a" * 64, "lifecycleBucket": "PENDING#00", "lifecycleAt": 100,
+        }
+        table = Table({
+            ("USER#a", "STATE"): STATE,
+            ("USER#a", "REQUEST#request-1"): locator,
+        })
+        client = Client()
+        service = HistoryMutationService(
+            settings=Settings(), control_table=table, dynamodb_client=client, now=lambda: 100
+        )
+
+        service.delete_one("a", "request-1", "1b3f88fb-78ec-4585-a8ed-cdc751595664")
+
+        locator_update = client.transactions[0][1]["Update"]["UpdateExpression"]
+        self.assertIn("REMOVE contentSortKey, lifecycleBucket, lifecycleAt", locator_update)
+
     def test_clear_only_advances_history_and_enqueues_durable_erasure(self):
         table = Table({("USER#a", "STATE"): STATE})
         client = Client()

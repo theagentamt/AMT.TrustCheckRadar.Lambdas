@@ -47,6 +47,7 @@ class HistoryLifecycleService:
                 expired_content["checkpointLagSeconds"], expired_control["checkpointLagSeconds"]
             ),
             "completedErasureJobs": pending["completedErasureJobs"],
+            "completedRetentionPurges": pending["completedRetentionPurges"],
             "overdueErasureJobs": pending["overdueErasureJobs"],
             "observedPendingCompletions": pending["observedPendingCompletions"],
             "oldestPendingCompletionAgeSeconds": pending["oldestPendingCompletionAgeSeconds"],
@@ -258,25 +259,30 @@ class HistoryLifecycleService:
         generation = _generation_from_partition(content_item.get("PK"))
         if request_id is None or account_id is None or generation is None:
             raise HistoryError("SERVER_UNAVAILABLE", "An indexed History key is invalid.")
+        redacted = self._redact_analysis_replay(
+            account_id, request_id, now, require_response=True
+        )
         try:
             self.control_table.update_item(
                 Key={"PK": f"USER#{account_id}", "SK": f"REQUEST#{request_id}"},
-                UpdateExpression="SET #status = :expired, deletedAtEpoch = :now REMOVE contentSortKey",
-                ConditionExpression="historyGeneration = :generation AND contentSortKey = :content_sk",
+                UpdateExpression="SET #status = :expired, deletedAtEpoch = :now REMOVE contentSortKey, lifecycleBucket, lifecycleAt",
+                ConditionExpression="#status = :active AND historyGeneration = :generation AND contentSortKey = :content_sk AND contentExpiresAt <= :now",
                 ExpressionAttributeNames={"#status": "status"},
                 ExpressionAttributeValues={
-                    ":expired": "EXPIRED", ":now": now, ":generation": generation,
+                    ":expired": "EXPIRED", ":active": "ACTIVE", ":now": now,
+                    ":generation": generation,
                     ":content_sk": content_item["SK"],
                 },
             )
         except Exception as err:
             if _error_code(err) != "ConditionalCheckFailedException":
                 raise
-        return self._redact_analysis_replay(account_id, request_id, now, require_response=True)
+        return redacted
 
     def _process_pending_jobs(self, now, limit):
         result = {
             "completedErasureJobs": 0, "overdueErasureJobs": 0,
+            "completedRetentionPurges": 0,
             "observedPendingCompletions": 0, "oldestPendingCompletionAgeSeconds": None,
             "oldestPendingErasureAgeSeconds": None, "stuckPendingCompletions": 0,
             "redactedReplayRecords": 0, "worksetTruncated": limit <= 0,
@@ -300,10 +306,15 @@ class HistoryLifecycleService:
                 job = self.control_table.get_item(
                     Key={"PK": key_item["PK"], "SK": key_item["SK"]}, ConsistentRead=True
                 ).get("Item")
-                if (
-                    not job or job.get("status") != "PENDING"
-                    or int(job.get("lifecycleAt", now + 1)) > now
-                ):
+                if not job or int(job.get("lifecycleAt", now + 1)) > now:
+                    continue
+                if job.get("recordType") == "REQUEST":
+                    if job.get("status") != "ACTIVE":
+                        continue
+                    result["redactedReplayRecords"] += self._process_retention_job(job, now)
+                    result["completedRetentionPurges"] += 1
+                    continue
+                if job.get("status") != "PENDING":
                     continue
                 if job.get("recordType") == "COMPLETION":
                     age = max(0, now - int(job.get("acceptedAtEpoch", now)))
@@ -331,6 +342,34 @@ class HistoryLifecycleService:
             result["oldestPendingCompletionAgeSeconds"] = result["oldestPendingCompletionAgeSeconds"] or 0
             result["oldestPendingErasureAgeSeconds"] = result["oldestPendingErasureAgeSeconds"] or 0
         return result
+
+    def _process_retention_job(self, job, now):
+        account_id = _account_id_from_user_pk(job.get("PK"))
+        request_id = _request_id_from_locator_sort_key(job.get("SK"))
+        generation = _exact_nonnegative_int(job.get("historyGeneration"))
+        content_expires_at = _exact_nonnegative_int(job.get("contentExpiresAt"))
+        content_sort_key = job.get("contentSortKey")
+        if (
+            account_id is None or request_id is None
+            or job.get("requestId") != request_id or generation is None
+            or content_expires_at is None or content_expires_at > now
+            or _exact_nonnegative_int(job.get("lifecycleAt")) != content_expires_at
+            or not isinstance(content_sort_key, str)
+            or _request_id_from_sort_key(content_sort_key) != request_id
+        ):
+            raise HistoryError("SERVER_UNAVAILABLE", "A pending retention record is invalid.")
+        try:
+            self.content_table.delete_item(
+                Key={"PK": f"USER#{account_id}#HISTORY#{generation}", "SK": content_sort_key},
+                ConditionExpression="expiresAt <= :now",
+                ExpressionAttributeValues={":now": now},
+            )
+        except Exception as err:
+            if _error_code(err) != "ConditionalCheckFailedException":
+                raise
+        return self._expire_locator_and_replay(
+            {"PK": f"USER#{account_id}#HISTORY#{generation}", "SK": content_sort_key}, now
+        )
 
     def _observe_completion(self, job, now):
         account_id = _account_id_from_user_pk(job.get("PK"))
@@ -486,7 +525,7 @@ class HistoryLifecycleService:
         try:
             self.control_table.update_item(
                 Key={"PK": f"USER#{account_id}", "SK": f"REQUEST#{request_id}"},
-                UpdateExpression="SET #status = :cleared, deletedAtEpoch = :now REMOVE contentSortKey",
+                UpdateExpression="SET #status = :cleared, deletedAtEpoch = :now REMOVE contentSortKey, lifecycleBucket, lifecycleAt",
                 ConditionExpression="historyGeneration = :generation AND contentSortKey = :content_sk",
                 ExpressionAttributeNames={"#status": "status"},
                 ExpressionAttributeValues={
@@ -540,6 +579,13 @@ def _request_id_from_sort_key(value):
         return None
     parts = value.split("#", 2)
     return parts[2] if len(parts) == 3 and parts[2] else None
+
+
+def _request_id_from_locator_sort_key(value):
+    if not isinstance(value, str) or not value.startswith("REQUEST#"):
+        return None
+    request_id = value[len("REQUEST#"):]
+    return request_id or None
 
 
 def _account_id_from_partition(value):

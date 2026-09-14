@@ -55,6 +55,17 @@ window. Pending completion records are rescheduled after observation, moving
 them behind other due work instead of permanently occupying the first index
 page.
 
+Each active `REQUEST` locator is also a durable retention work record. It keeps
+its longer deduplication `expiresAt`, while `lifecycleAt` equals the History
+content expiry and `lifecycleBucket=PENDING#<shard>`. The pending lifecycle lane
+can therefore remove the replay response and content-free the locator even when
+native DynamoDB TTL already removed the History row and its expiration-index
+evidence. Content-index processing deletes the History row first, but it does
+not clear this independent work marker until replay redaction succeeds. A replay
+write failure leaves the locator discoverable and retryable. Delete-one and
+generation erasure remove the marker only as part of their corresponding
+redaction/erasure path.
+
 A restore that can reintroduce records older than the reconciliation window is
 not ready to serve immediately. The restore runbook must first set both tables'
 `EXPIRATION` and `RECONCILIATION` checkpoints to the earliest restored expiry,
@@ -217,6 +228,7 @@ The lifecycle artifact emits Embedded Metric Format values under
 - `ExpiredContentRecords`
 - `ExpiredControlRecords`
 - `CompletedErasureJobs`
+- `CompletedRetentionPurges`
 - `OverdueErasureJobs`
 - `ObservedPendingCompletions`
 - `StuckPendingCompletions`
@@ -245,9 +257,11 @@ reported as zero.
 History/content expiration, clear-History erasure, and account-deletion erasure
 explicitly remove the content-bearing `response` attribute from the matching
 analysis-abuse replay partition. An erasure job uses bounded, resumable
-`HISTORY` and `REPLAY` stages. This is required even when table TTL is enabled:
-asynchronous DynamoDB TTL is supplementary cleanup and is never treated as proof
-of the 24-hour physical purge.
+`HISTORY` and `REPLAY` stages. Active request locators independently schedule
+normal retention purge at `contentExpiresAt`, and remain present under their
+longer deduplication retention after becoming content-free. This is required
+even when table TTL is enabled: asynchronous DynamoDB TTL is supplementary
+cleanup and is never treated as proof of the 24-hour physical purge.
 
 Alarm on missing success heartbeat, `LifecycleSweepFailure > 0`,
 `LifecycleWorksetTruncated > 0`, `StuckPendingCompletions > 0`,

@@ -21,8 +21,14 @@ Implemented Lambda scope:
   bucket advances only after it is drained.
 - Pending completion observations advance `lifecycleAt`, preventing stuck
   completions from starving later erasure jobs in the same shard.
+- Active request locators are durable retention work records indexed at the
+  content expiry but retained under the longer deduplication policy. Replay
+  redaction failure leaves the marker retryable after the History GSI entry is
+  gone, and the same marker still purges replay if native TTL removed History
+  before lifecycle observed it.
 - Bounded resumable erasure stages explicitly remove content-bearing cached and
-  `RESULT_READY` analysis responses. Tests do not simulate DynamoDB TTL cleanup.
+  `RESULT_READY` analysis responses. Regression tests explicitly simulate both
+  replay update failure after content deletion and History-first native TTL.
 - Lifecycle metrics include overdue erasure jobs for the 24-hour SLA alarm.
 
 Automated evidence is in `tests/history_mutation_api`,

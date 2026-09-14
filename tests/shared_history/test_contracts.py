@@ -95,6 +95,9 @@ class HistoryContractTests(unittest.TestCase):
         self.assertEqual(content["expiresAt"], 1_700_000_100 + 90 * 86400)
         self.assertEqual(content["PK"], "USER#account-1#HISTORY#3")
         self.assertEqual(locator["SK"], "REQUEST#request-1")
+        self.assertEqual(locator["lifecycleAt"], content["expiresAt"])
+        self.assertRegex(locator["lifecycleBucket"], r"^PENDING#[0-9]{2}$")
+        self.assertGreater(locator["expiresAt"], locator["lifecycleAt"])
         serialized = repr((content, locator))
         for forbidden in ("must never be copied", "secret", "sanitizedText", "entities"):
             self.assertNotIn(forbidden, serialized)

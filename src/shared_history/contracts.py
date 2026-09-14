@@ -73,6 +73,8 @@ def build_history_items(*, account_id, payload_hash, accepted, payload, response
         "contentSortKey": content_sk,
         "completedAtEpochMs": completed_at_ms,
         "contentExpiresAt": expires_at,
+        "lifecycleAt": expires_at,
+        "lifecycleBucket": _lifecycle_bucket(request_id),
         "expiresAt": dedup_expires_at,
         "expiryBucket": _expiry_bucket("CONTROL", dedup_expires_at, request_id),
     }
@@ -223,3 +225,8 @@ def _expiry_bucket(prefix, expires_at, request_id):
     hour = datetime.fromtimestamp(expires_at, UTC).strftime("%Y%m%d%H")
     shard = int(hashlib.sha256(request_id.encode("utf-8")).hexdigest()[:2], 16) % 16
     return f"{prefix}#{hour}#{shard:02d}"
+
+
+def _lifecycle_bucket(request_id):
+    shard = int(hashlib.sha256(request_id.encode("utf-8")).hexdigest()[:2], 16) % 16
+    return f"PENDING#{shard:02d}"

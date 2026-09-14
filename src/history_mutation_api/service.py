@@ -36,7 +36,7 @@ class HistoryMutationService:
             items.insert(1, {"Update": {
                 "TableName": self.settings.control_table_name,
                 "Key": _serialize({"PK": f"USER#{account_id}", "SK": f"REQUEST#{request_id}"}),
-                "UpdateExpression": "SET #status = :deleted, deletedAtEpoch = :now REMOVE contentSortKey",
+                "UpdateExpression": "SET #status = :deleted, deletedAtEpoch = :now REMOVE contentSortKey, lifecycleBucket, lifecycleAt",
                 "ConditionExpression": "#status = :active AND historyGeneration = :generation",
                 "ExpressionAttributeNames": {"#status": "status"},
                 "ExpressionAttributeValues": _serialize({":deleted": "DELETED", ":active": "ACTIVE", ":now": now, ":generation": int(state["historyGeneration"])}),
