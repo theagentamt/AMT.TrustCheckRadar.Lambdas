@@ -1,13 +1,16 @@
 import sys
+import os
 import types
 import unittest
 from decimal import Decimal
 from pathlib import Path
 from unittest import mock
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+MODULE_DIR = SRC_DIR / "conversation_analysis"
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 for module_name in ["config", "errors", "abuse_controls"]:
     sys.modules.pop(module_name, None)
 
@@ -326,6 +329,101 @@ class AbuseControlsTests(unittest.TestCase):
             abuse_controls.enforce_rate_limit("user-123", now_epoch=300)
 
         self.assertEqual(context.exception.code, "RATE_LIMITED")
+
+    def test_durable_replay_survives_short_ttl_without_second_processing_lock(self):
+        request_payload = payload()
+        payload_hash = abuse_controls._payload_hash(request_payload)
+        identity_hash = abuse_controls._hashed_identity("user-123")
+        short_key = (f"ANALYSIS#REQUEST#{identity_hash}", "req-1")
+        fake_table.items[short_key] = {
+            "PK": short_key[0], "SK": short_key[1], "status": "COMPLETED",
+            "payloadHash": payload_hash, "response": response(), "expiresAt": 99,
+        }
+        content_key = ("USER#user-123#HISTORY#0", "COMPLETE#0000000100000#req-1")
+        content = {
+            "PK": content_key[0], "SK": content_key[1], "recordType": "HISTORY",
+            "schemaVersion": 1, "recordVersion": 1, "requestId": "req-1",
+            "historyGeneration": 0, "recognitionGeneration": 0, "acceptedSequence": 1,
+            "acceptedAtEpochMs": 90_000, "completedAtEpochMs": 100_000,
+            "sourceType": "pasted_text", "assessment": {
+                "schemaVersion": "1.0", "scamScore": 72, "riskLevel": "high",
+                "confidence": Decimal("0.84"), "summary": "Strong scam indicators detected.",
+                "signals": ["payment_request"], "recommendedActions": ["Do not send money."],
+            },
+            "expiresAt": 1000, "expiryBucket": "HISTORY#1970010100#00",
+        }
+
+        class RoutedTable:
+            def __init__(self, items):
+                self.items = items
+
+            def get_item(self, Key, **_kwargs):
+                item = self.items.get((Key["PK"], Key["SK"]))
+                return {"Item": item} if item else {}
+
+        control = RoutedTable({
+            ("USER#user-123", "STATE"): {"accountStatus": "ACTIVE", "historyGeneration": 0},
+            ("USER#user-123", "REQUEST#req-1"): {
+                "status": "ACTIVE", "payloadHash": payload_hash, "historyGeneration": 0,
+                "contentSortKey": content_key[1], "contentExpiresAt": 1000,
+            },
+        })
+        content_table = RoutedTable({content_key: content})
+
+        class RoutedResource:
+            def Table(self, name):
+                return {"control": control, "content": content_table}[name]
+
+        with mock.patch.dict(os.environ, _history_env(), clear=True), mock.patch.object(abuse_controls, "dynamodb", RoutedResource()):
+            result = abuse_controls.check_or_lock_request("user-123", "req-1", request_payload, now_epoch=100)
+        self.assertEqual(result["state"], "completed")
+        self.assertEqual(result["response"]["requestId"], "req-1")
+        self.assertEqual(fake_table.items[short_key]["status"], "COMPLETED")
+
+    def test_clear_generation_blocks_even_unexpired_short_replay(self):
+        request_payload = payload()
+        payload_hash = abuse_controls._payload_hash(request_payload)
+        identity_hash = abuse_controls._hashed_identity("user-123")
+        fake_table.items[(f"ANALYSIS#REQUEST#{identity_hash}", "req-1")] = {
+            "status": "COMPLETED", "payloadHash": payload_hash,
+            "response": response(), "expiresAt": 999,
+        }
+
+        class RoutedTable:
+            def __init__(self, items):
+                self.items = items
+
+            def get_item(self, Key, **_kwargs):
+                item = self.items.get((Key["PK"], Key["SK"]))
+                return {"Item": item} if item else {}
+
+        control = RoutedTable({
+            ("USER#user-123", "STATE"): {"accountStatus": "ACTIVE", "historyGeneration": 2},
+            ("USER#user-123", "REQUEST#req-1"): {
+                "status": "ACTIVE", "payloadHash": payload_hash, "historyGeneration": 1,
+                "contentSortKey": "COMPLETE#0000000100000#req-1", "contentExpiresAt": 1000,
+            },
+        })
+
+        class RoutedResource:
+            def Table(self, _name):
+                return control
+
+        with mock.patch.dict(os.environ, _history_env(), clear=True), mock.patch.object(abuse_controls, "dynamodb", RoutedResource()):
+            with self.assertRaises(AppError) as raised:
+                abuse_controls.check_or_lock_request("user-123", "req-1", request_payload, now_epoch=100)
+        self.assertEqual(raised.exception.code, "RESULT_UNAVAILABLE")
+
+
+def _history_env():
+    return {
+        "APP_ENVIRONMENT": "dev", "HISTORY_DURABLE_REPLAY_ENABLED": "true",
+        "HISTORY_CONTENT_TABLE_NAME": "content", "HISTORY_CONTROL_TABLE_NAME": "control",
+        "DEVICE_BINDINGS_TABLE_NAME": "bindings", "ANALYSIS_ABUSE_TABLE_NAME": "abuse",
+        "HISTORY_PITR_POLICY_APPROVED": "true", "HISTORY_CONTROL_RETENTION_POLICY_APPROVED": "true",
+        "HISTORY_DEDUP_RETENTION_DAYS": "400", "HISTORY_MAX_SUMMARY_BYTES": "2048",
+        "HISTORY_MAX_LIST_ITEMS": "20", "HISTORY_MAX_TEXT_FIELD_BYTES": "512",
+    }
 
 
 if __name__ == "__main__":

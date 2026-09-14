@@ -3,9 +3,11 @@ import types
 import unittest
 from pathlib import Path
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "conversation_analysis"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+MODULE_DIR = SRC_DIR / "conversation_analysis"
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 
 class FakeTable:

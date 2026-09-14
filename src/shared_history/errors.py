@@ -1,23 +1,19 @@
 HTTP_STATUS_BY_CODE = {
     "INVALID_REQUEST": 400,
-    "UNSUPPORTED_SCHEMA_VERSION": 400,
     "UNAUTHORIZED": 401,
     "FORBIDDEN": 403,
     "DEVICE_BINDING_REQUIRED": 403,
     "DEVICE_BINDING_MISMATCH": 403,
-    "ENTITLEMENT_EXHAUSTED": 403,
-    "IDEMPOTENCY_CONFLICT": 409,
-    "REQUEST_IN_PROGRESS": 409,
-    "RESULT_UNAVAILABLE": 410,
-    "RATE_LIMITED": 429,
-    "SERVER_UNAVAILABLE": 500,
+    "NOT_FOUND": 404,
+    "CONFLICT": 409,
+    "FEATURE_DISABLED": 503,
+    "SERVER_UNAVAILABLE": 503,
     "INTERNAL_ERROR": 500,
-    "ANALYSIS_TIMEOUT": 504,
 }
 
 
-class AppError(Exception):
-    def __init__(self, code: str, message: str, *, retryable: bool, details: list[dict] | None = None):
+class HistoryError(Exception):
+    def __init__(self, code: str, message: str, *, retryable: bool = False, details=None):
         super().__init__(message)
         self.code = code
         self.message = message

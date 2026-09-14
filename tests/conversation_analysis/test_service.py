@@ -180,6 +180,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             mock.patch.object(service, "analyze_conversation", return_value=ANALYSIS),
             mock.patch.object(service, "store_result") as mocked_store,
             mock.patch.object(service, "commit_scan_and_request") as mocked_commit,
+            mock.patch.object(service, "assert_history_result_visible"),
             mock.patch.object(service, "release_request"),
             mock.patch.object(service.uuid, "uuid4", return_value=uuid.UUID(event_id)) as mocked_uuid4,
         ):
@@ -218,6 +219,7 @@ class ConversationAnalysisServiceTests(unittest.TestCase):
             mock.patch.object(service, "prepare_scan_access") as mocked_prepare,
             mock.patch.object(service, "store_result") as mocked_store,
             mock.patch.object(service, "commit_scan_and_request") as mocked_commit,
+            mock.patch.object(service, "assert_history_result_visible"),
             mock.patch.object(service, "analyze_conversation") as mocked_analyze,
         ):
             response = service.handle_analysis_request(PAYLOAD, "user-123")

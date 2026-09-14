@@ -19,6 +19,7 @@ from config import (
     USERS_TABLE_NAME,
 )
 from errors import AppError
+from history_completion import append_history_completion
 from shared_campaign_contracts import AppFeaturesContractError, validate_app_features
 from shared_entitlements import (
     EntitlementStoreNotConfiguredError,
@@ -91,6 +92,7 @@ def commit_scan_and_request(
     campaign_payload: dict | None = None,
     statistics_event_id: str | None = None,
     campaign_authorization: dict | None = None,
+    history_authorization: dict | None = None,
     now_epoch: int | None = None,
     now_iso: str | None = None,
 ) -> dict:
@@ -177,6 +179,18 @@ def commit_scan_and_request(
             }
         },
     ]
+    redact_replay = append_history_completion(
+        transaction,
+        account_id=account_id,
+        payload_hash=payload_hash,
+        payload=campaign_payload or {},
+        response=response,
+        authorization=history_authorization,
+        now_epoch=now_epoch,
+    )
+    if redact_replay:
+        transaction[0]["Update"]["UpdateExpression"] += " REMOVE #response"
+        transaction[0]["Update"]["ExpressionAttributeNames"]["#response"] = "response"
     intends_campaign = bool(campaign_payload and campaign_payload.get("campaignConsentGranted"))
     authorized_campaign = (
         intends_campaign

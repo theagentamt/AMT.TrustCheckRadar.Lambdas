@@ -17,6 +17,7 @@ from config import (
     REQUEST_ID_TTL_SECONDS,
 )
 from errors import AppError
+from shared_history import HistoryError, HistorySettings, response_from_history_item
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(ANALYSIS_ABUSE_TABLE_NAME) if ANALYSIS_ABUSE_TABLE_NAME else None
@@ -55,7 +56,29 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
     identity_key = _hashed_identity(identity)
     payload_hash = _payload_hash(payload)
     existing = _get_request_record(identity_key, request_id)
+    if existing:
+        if int(existing.get("expiresAt", 0)) > now_epoch or HistorySettings.from_env().durable_replay_enabled:
+            _assert_matching_payload(existing, payload_hash)
+        status = existing.get("status")
+        if status == "COMPLETED_ERASED":
+            _result_unavailable()
+        if status == "RESULT_READY" and isinstance(existing.get("response"), dict):
+            result = {
+                "state": "result_ready",
+                "payloadHash": payload_hash,
+                "response": _to_json_compatible(existing["response"]),
+                "statisticsEventId": existing.get("statisticsEventId"),
+            }
+            for field in ("campaignAuthorization", "historyAuthorization"):
+                if isinstance(existing.get(field), dict):
+                    result[field] = _to_json_compatible(existing[field])
+            return result
+        if status == "RETRYABLE":
+            return _take_over_retryable(identity_key, request_id, payload_hash, existing, now_epoch)
     if existing and int(existing.get("expiresAt", 0)) <= now_epoch:
+        durable = _durable_replay(identity, request_id, payload_hash, now_epoch)
+        if durable is not None:
+            return durable
         return _replace_expired_request(
             identity_key,
             request_id,
@@ -64,24 +87,16 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
             now_epoch,
         )
     if existing and int(existing.get("expiresAt", 0)) > now_epoch:
-        _assert_matching_payload(existing, payload_hash)
         status = existing.get("status")
         if status == "COMPLETED" and isinstance(existing.get("response"), dict):
+            durable = _durable_replay(identity, request_id, payload_hash, now_epoch)
+            if durable is not None:
+                return durable
             return {
                 "state": "completed",
                 "payloadHash": payload_hash,
                 "response": _to_json_compatible(existing["response"]),
             }
-        if status == "RESULT_READY" and isinstance(existing.get("response"), dict):
-            result = {
-                "state": "result_ready",
-                "payloadHash": payload_hash,
-                "response": _to_json_compatible(existing["response"]),
-                "statisticsEventId": existing.get("statisticsEventId"),
-            }
-            if isinstance(existing.get("campaignAuthorization"), dict):
-                result["campaignAuthorization"] = _to_json_compatible(existing["campaignAuthorization"])
-            return result
         lease_expires_at = int(existing.get("leaseExpiresAt", 0))
         if status == "PROCESSING" and lease_expires_at > now_epoch:
             retry_after = max(1, lease_expires_at - now_epoch)
@@ -105,6 +120,9 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
             retryable=False,
         )
 
+    durable = _durable_replay(identity, request_id, payload_hash, now_epoch)
+    if durable is not None:
+        return durable
     lease_token = str(uuid.uuid4())
     try:
         table.put_item(
@@ -173,6 +191,7 @@ def store_result(
     response: dict,
     statistics_event_id: str | None = None,
     campaign_authorization: dict | None = None,
+    history_authorization: dict | None = None,
     now_epoch: int | None = None,
 ):
     _require_table()
@@ -198,6 +217,9 @@ def store_result(
     if campaign_authorization:
         update_expression += ", campaignAuthorization = :campaign_authorization"
         expression_values[":campaign_authorization"] = _to_dynamodb_compatible(campaign_authorization)
+    if history_authorization:
+        update_expression += ", historyAuthorization = :history_authorization"
+        expression_values[":history_authorization"] = _to_dynamodb_compatible(history_authorization)
     update_expression += " REMOVE leaseToken, leaseExpiresAt"
     table.update_item(
         Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
@@ -214,6 +236,23 @@ def release_request(identity: str, request_id: str, lease_token: str | None = No
     if not table:
         return
     identity_key = _hashed_identity(identity)
+    existing = _get_request_record(identity_key, request_id)
+    if lease_token and isinstance((existing or {}).get("historyAuthorization"), dict):
+        try:
+            table.update_item(
+                Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
+                UpdateExpression="SET #status = :retryable, updatedAt = :updated_at REMOVE leaseToken, leaseExpiresAt",
+                ConditionExpression="#status = :processing AND leaseToken = :lease_token AND attribute_exists(historyAuthorization)",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":retryable": "RETRYABLE", ":processing": "PROCESSING",
+                    ":lease_token": lease_token, ":updated_at": _iso_now(),
+                },
+            )
+            return
+        except ClientError as err:
+            if err.response.get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+                raise
     kwargs = {"Key": {"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id}}
     if lease_token:
         kwargs |= {
@@ -280,7 +319,83 @@ def _take_over_expired_lease(
         "payloadHash": payload_hash,
         "leaseToken": lease_token,
         "takeover": True,
+        **({"historyAuthorization": _to_json_compatible(existing["historyAuthorization"])} if isinstance(existing.get("historyAuthorization"), dict) else {}),
     }
+
+
+def _take_over_retryable(identity_key, request_id, payload_hash, existing, now_epoch):
+    lease_token = str(uuid.uuid4())
+    try:
+        table.update_item(
+            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
+            UpdateExpression="SET #status = :processing, leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at",
+            ConditionExpression="#status = :retryable AND payloadHash = :payload_hash",
+            ExpressionAttributeNames={"#status": "status", "#ttl": "ttl"},
+            ExpressionAttributeValues={
+                ":processing": "PROCESSING", ":retryable": "RETRYABLE", ":payload_hash": payload_hash,
+                ":lease_token": lease_token, ":lease_expires_at": now_epoch + PROCESSING_LEASE_SECONDS,
+                ":updated_at": _iso_now(), ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
+            },
+        )
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+            raise AppError("REQUEST_IN_PROGRESS", "This analysis request changed while retrying.", retryable=True) from err
+        raise
+    return {
+        "state": "processing", "payloadHash": payload_hash, "leaseToken": lease_token,
+        "historyAuthorization": _to_json_compatible(existing["historyAuthorization"]), "takeover": True,
+    }
+
+
+def _durable_replay(identity, request_id, payload_hash, now_epoch):
+    settings = HistorySettings.from_env()
+    if not settings.durable_replay_enabled:
+        return None
+    try:
+        settings.validate_durable_replay()
+    except HistoryError as err:
+        raise AppError("SERVER_UNAVAILABLE", err.message, retryable=err.retryable) from err
+    control = dynamodb.Table(settings.control_table_name)
+    locator = control.get_item(
+        Key={"PK": f"USER#{identity}", "SK": f"REQUEST#{request_id}"}, ConsistentRead=True
+    ).get("Item")
+    if not locator:
+        return None
+    if locator.get("payloadHash") != payload_hash:
+        raise AppError("IDEMPOTENCY_CONFLICT", "The request ID is already bound to different analysis content.", retryable=False)
+    state = control.get_item(
+        Key={"PK": f"USER#{identity}", "SK": "STATE"}, ConsistentRead=True
+    ).get("Item")
+    if (
+        not state
+        or state.get("accountStatus") != "ACTIVE"
+        or locator.get("status") != "ACTIVE"
+        or int(locator.get("historyGeneration", -1)) != int(state.get("historyGeneration", -2))
+        or int(locator.get("contentExpiresAt", 0)) <= now_epoch
+    ):
+        _result_unavailable()
+    content = dynamodb.Table(settings.content_table_name).get_item(
+        Key={
+            "PK": f"USER#{identity}#HISTORY#{int(locator['historyGeneration'])}",
+            "SK": locator.get("contentSortKey"),
+        },
+        ConsistentRead=True,
+    ).get("Item")
+    if not content or int(content.get("expiresAt", 0)) <= now_epoch:
+        _result_unavailable()
+    try:
+        response = response_from_history_item(content, settings)
+    except HistoryError as err:
+        raise AppError("SERVER_UNAVAILABLE", err.message, retryable=False) from err
+    return {"state": "completed", "payloadHash": payload_hash, "response": response}
+
+
+def _result_unavailable():
+    raise AppError(
+        "RESULT_UNAVAILABLE",
+        "This request was completed but its retained result is no longer available.",
+        retryable=False,
+    )
 
 
 def _replace_expired_request(

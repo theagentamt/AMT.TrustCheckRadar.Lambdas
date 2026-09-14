@@ -892,3 +892,13 @@ can be aligned without weakening the privacy boundary.
   - request body shape
   - authenticated identity requirements
   - expected HTTP method
+
+## Sprint 7 History and recognition addendum
+
+The disabled runtime contract for `conversation_analysis.zip`,
+`history_read_api.zip`, `history_mutation_api.zip`, and `history_lifecycle.zip` is
+maintained in [docs/history-lambda-infrastructure-contract.md](docs/history-lambda-infrastructure-contract.md).
+That addendum is authoritative for the two-table key/index contract, activation
+gates, exact environment names, IAM actions and leading-key restrictions,
+scheduled event shape, metrics, and remaining decision blockers. None of those
+features may be activated merely because the ZIP artifacts exist.

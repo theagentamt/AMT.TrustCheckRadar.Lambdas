@@ -23,6 +23,9 @@ FUNCTIONS=(
   device_registration
   device_recovery
   entitlement_snapshot
+  history_lifecycle
+  history_mutation_api
+  history_read_api
   purchase_handoff
   web_risk_communication
   post_confirmation
@@ -85,6 +88,13 @@ needs_shared_entitlements() {
 needs_shared_campaign_contracts() {
   case "$1" in
     campaign_cluster_aggregator|campaign_observation_publisher|conversation_analysis) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+needs_shared_history() {
+  case "$1" in
+    conversation_analysis|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -161,6 +171,10 @@ build_function() {
 
   if needs_shared_campaign_contracts "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"
+  fi
+
+  if needs_shared_history "$function_name"; then
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
   fi
 
   if [[ -f "$requirements_file" && "$SKIP_DEPENDENCIES" == false ]]; then

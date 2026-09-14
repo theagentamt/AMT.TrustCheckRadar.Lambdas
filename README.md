@@ -20,6 +20,9 @@ this repository owns function code, tests, and immutable deployment packages.
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
 | `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
 | `entitlement_snapshot.zip` | `GET /entitlements/snapshot` | Returns the current subscription and scan-usage view. |
+| `history_lifecycle.zip` | EventBridge Scheduler | Expires History records and processes durable erasure/completion control jobs. |
+| `history_mutation_api.zip` | History delete/clear/reset routes | Applies idempotent History and recognition lifecycle mutations. |
+| `history_read_api.zip` | History/progress read routes | Returns authenticated, device-bound History and recognition progress. |
 | `purchase_handoff.zip` | `POST /purchase-handoff` | Verifies Google Play purchases and updates entitlement state. |
 | `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
@@ -58,7 +61,7 @@ make package
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
 metadata so identical inputs produce identical archives. Full builds include the
-15 Lambda packages and the immutable `campaign-contracts-1.0.0.zip` handoff from
+18 Lambda packages and the immutable `campaign-contracts-1.0.0.zip` handoff from
 `contracts/campaign/v1/`.
 
 Build one function or target x86_64 explicitly:

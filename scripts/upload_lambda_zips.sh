@@ -16,7 +16,7 @@ REQUIRED_FUNCTIONS=(
   entitlement_snapshot
   post_confirmation
 )
-OPTIONAL_FUNCTIONS=(campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends device_recovery web_risk_communication)
+OPTIONAL_FUNCTIONS=(campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends device_recovery history_lifecycle history_mutation_api history_read_api web_risk_communication)
 CONTRACT_ARTIFACT="campaign-contracts-1.0.0.zip"
 
 usage() {

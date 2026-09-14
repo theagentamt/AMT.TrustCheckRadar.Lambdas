@@ -4,6 +4,7 @@ import uuid
 from abuse_controls import check_or_lock_request, release_request, store_result
 from analysis_client import analyze_conversation
 from errors import AppError
+from history_completion import assert_history_result_visible, reserve_history_acceptance
 from response_builders import build_success_response
 from safety import build_safe_low_confidence_response, is_instruction_style_abuse
 from scan_access import campaign_authorization, commit_scan_and_request, prepare_scan_access
@@ -21,6 +22,9 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
     if request_state["state"] == "result_ready":
         LOGGER.info("Stage completed: request_result_recovery")
         access_grant = prepare_scan_access(identity)
+        history_kwargs = {}
+        if request_state.get("historyAuthorization") is not None:
+            history_kwargs["history_authorization"] = request_state["historyAuthorization"]
         commit_scan_and_request(
             access_grant,
             request_id,
@@ -29,7 +33,10 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             campaign_payload=payload,
             statistics_event_id=request_state.get("statisticsEventId"),
             campaign_authorization=request_state.get("campaignAuthorization"),
+            **history_kwargs,
         )
+        if request_state.get("historyAuthorization") is not None:
+            assert_history_result_visible(identity, request_id)
         return request_state["response"]
     LOGGER.info("Stage completed: request_processing_lease")
 
@@ -39,6 +46,11 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
     try:
         LOGGER.info("Stage started: quota_precheck")
         access_grant = prepare_scan_access(identity)
+        history_authorization = request_state.get("historyAuthorization")
+        if history_authorization is None:
+            history_authorization = reserve_history_acceptance(
+                identity, request_id, payload_hash, lease_token
+            )
         snapshot = access_grant.get("snapshot") or {}
         LOGGER.info(
             "Stage completed: quota_precheck | consumptionType=%s remainingMonthlyScans=%s remainingCredits=%s",
@@ -72,6 +84,9 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             else None
         )
         statistics_event_id = str(uuid.uuid4()) if authorization else None
+        history_kwargs = {}
+        if history_authorization is not None:
+            history_kwargs["history_authorization"] = history_authorization
         store_result(
             identity,
             request_id,
@@ -80,6 +95,7 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             response_body,
             statistics_event_id=statistics_event_id,
             campaign_authorization=authorization,
+            **history_kwargs,
         )
         result_stored = True
         LOGGER.info("Stage completed: result_store")
@@ -93,7 +109,10 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             campaign_payload=payload,
             statistics_event_id=statistics_event_id,
             campaign_authorization=authorization,
+            **history_kwargs,
         )
+        if history_authorization is not None:
+            assert_history_result_visible(identity, request_id)
         LOGGER.info("Stage completed: atomic_commit")
         return response_body
     except Exception:
