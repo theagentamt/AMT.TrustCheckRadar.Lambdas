@@ -1,6 +1,7 @@
 from decimal import Decimal
 import hashlib
 import re
+import time
 
 
 REQUEST_FIELDS = {
@@ -20,6 +21,12 @@ def parse_account_deletion_record(record, *, environment, schema_version):
     event_type = item.get("eventType")
     if event_type != "account.deletion.requested":
         return None
+    return validate_account_deletion_command(
+        item, environment=environment, schema_version=schema_version
+    )
+
+
+def validate_account_deletion_command(item, *, environment, schema_version):
     account_id = item.get("accountId")
     occurred_at = _exact_nonnegative_int(item.get("occurredAtEpoch"))
     if (
@@ -35,6 +42,66 @@ def parse_account_deletion_record(record, *, environment, schema_version):
     ):
         raise ValueError("Invalid authoritative account-deletion command")
     return item
+
+
+def reconcile_account_deletions(
+    *, environment, schema_version, control_table, control_table_name,
+    deletion_ledger_table, deletion_ledger_table_name, dynamodb_client,
+    erasure_sla_hours, scan_limit, max_pages, now=lambda: int(time.time()),
+):
+    checkpoint_key = {
+        "PK": f"LIFECYCLE#{environment}",
+        "SK": "ACCOUNT_DELETION_RECONCILIATION",
+    }
+    checkpoint = control_table.get_item(
+        Key=checkpoint_key, ConsistentRead=True
+    ).get("Item") or {}
+    start_key = checkpoint.get("lastEvaluatedKey")
+    if start_key is not None and not _valid_ledger_key(start_key):
+        raise ValueError("Invalid account-deletion reconciliation checkpoint")
+    totals = {"scanned": 0, "matched": 0, "started": 0, "alreadyPending": 0, "completed": 0}
+    workset_truncated = False
+    for page_number in range(max_pages):
+        kwargs = {
+            "ConsistentRead": True,
+            "Limit": scan_limit,
+            "FilterExpression": "eventType = :event_type AND #status = :requested",
+            "ExpressionAttributeNames": {"#status": "status"},
+            "ExpressionAttributeValues": {
+                ":event_type": "account.deletion.requested",
+                ":requested": "REQUESTED",
+            },
+        }
+        if start_key:
+            kwargs["ExclusiveStartKey"] = start_key
+        page = deletion_ledger_table.scan(**kwargs)
+        totals["scanned"] += int(page.get("ScannedCount", 0))
+        for raw in page.get("Items") or []:
+            command = validate_account_deletion_command(
+                raw, environment=environment, schema_version=schema_version
+            )
+            totals["matched"] += 1
+            result = start_history_deletion(
+                command,
+                control_table=control_table,
+                control_table_name=control_table_name,
+                deletion_ledger_table=deletion_ledger_table,
+                deletion_ledger_table_name=deletion_ledger_table_name,
+                dynamodb_client=dynamodb_client,
+                schema_version=schema_version,
+                erasure_sla_hours=erasure_sla_hours,
+            )
+            for key in ("started", "alreadyPending", "completed"):
+                totals[key] += 1 if result.get(key) else 0
+        start_key = page.get("LastEvaluatedKey")
+        _save_reconciliation_checkpoint(
+            control_table, checkpoint_key, start_key, now(), schema_version
+        )
+        if not start_key:
+            break
+        if page_number == max_pages - 1:
+            workset_truncated = True
+    return {**totals, "worksetTruncated": workset_truncated}
 
 
 def start_history_deletion(
@@ -147,6 +214,28 @@ def _complete_without_history(command, deletion_ledger_table, *, schema_version)
 def _operation_id(command):
     material = f"{command['environment']}\0{command['accountId']}\0{command['occurredAtEpoch']}"
     return "account-" + hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
+
+
+def _save_reconciliation_checkpoint(table, key, last_evaluated_key, now_epoch, schema_version):
+    item = {
+        **key, "recordType": "ACCOUNT_DELETION_RECONCILIATION",
+        "schemaVersion": schema_version, "updatedAtEpoch": now_epoch,
+    }
+    if last_evaluated_key:
+        if not _valid_ledger_key(last_evaluated_key):
+            raise ValueError("Invalid deletion-ledger scan continuation")
+        item["lastEvaluatedKey"] = dict(last_evaluated_key)
+    else:
+        item["completedPassAtEpoch"] = now_epoch
+    table.put_item(Item=item)
+
+
+def _valid_ledger_key(value):
+    return (
+        isinstance(value, dict) and set(value) == {"PK", "SK"}
+        and isinstance(value.get("PK"), str) and isinstance(value.get("SK"), str)
+        and bool(value["PK"]) and bool(value["SK"])
+    )
 
 
 def _exact_nonnegative_int(value):

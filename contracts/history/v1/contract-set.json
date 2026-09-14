@@ -50,6 +50,14 @@
     {"id": "checks_20", "threshold": 20, "titleKey": "badges.checks_20.title", "descriptionKey": "badges.checks_20.description"}
   ],
   "recognitionQualification": "distinct_server_accepted_completed_request_ids",
+  "accountDeletionIntegration": {
+    "requestKey": {"PK": "ACCOUNT#<sub>", "SK": "ACCOUNT_DELETION"},
+    "eventType": "account.deletion.requested",
+    "requestStatus": "REQUESTED",
+    "componentReceiptKey": {"PK": "ACCOUNT#<sub>", "SK": "ACCOUNT_DELETION#HISTORY"},
+    "componentReceiptEventType": "account.deletion.component.completed",
+    "reconciliationEvent": {"schemaVersion": 1, "operation": "reconcile"}
+  },
   "independence": {
     "campaignConsentFromHistory": true,
     "historyClearFromRecognitionReset": true

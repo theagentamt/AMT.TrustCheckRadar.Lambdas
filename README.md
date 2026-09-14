@@ -23,7 +23,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `history_lifecycle.zip` | EventBridge Scheduler | Expires History records and processes durable erasure/completion control jobs. |
 | `history_mutation_api.zip` | History delete/clear/reset routes | Applies idempotent History and recognition lifecycle mutations. |
 | `history_read_api.zip` | History/progress read routes | Returns authenticated, device-bound History and recognition progress. |
-| `history_account_deletion_bridge.zip` | Account-deletion ledger stream | Fences History immediately and starts full History cleanup for authoritative account deletion. |
+| `history_account_deletion_bridge.zip` | Account-deletion ledger stream + reconciliation schedule | Fences History and durably recovers missed account-deletion events. |
 | `history-contracts-1.0.0.zip` | Versioned contract artifact | Publishes exact History routes, limits, errors, badges, and EN/ES localization keys. |
 | `purchase_handoff.zip` | `POST /purchase-handoff` | Verifies Google Play purchases and updates entitlement state. |
 | `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |

@@ -50,6 +50,17 @@ class Client:
         self.transactions.append(kwargs["TransactItems"])
 
 
+class ScanLedger(Table):
+    def __init__(self, pages):
+        super().__init__()
+        self.pages = list(pages)
+        self.scans = []
+
+    def scan(self, **kwargs):
+        self.scans.append(kwargs)
+        return self.pages.pop(0)
+
+
 class HistoryAccountDeletionBridgeTests(unittest.TestCase):
     def test_parses_only_exact_authoritative_fixed_fence(self):
         parsed = service.parse_account_deletion_record(
@@ -93,6 +104,32 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         self.assertTrue(result["completed"])
         self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
         self.assertEqual(ledger.puts[0]["component"], "HISTORY")
+
+    def test_bounded_reconciliation_recovers_stream_records_after_retention(self):
+        ledger = ScanLedger([{
+            "Items": [command()], "ScannedCount": 100,
+            "LastEvaluatedKey": {"PK": "ACCOUNT#a", "SK": "ACCOUNT_DELETION"},
+        }])
+        control = Table()
+        result = service.reconcile_account_deletions(
+            environment="dev", schema_version=1,
+            control_table=control, control_table_name="control",
+            deletion_ledger_table=ledger, deletion_ledger_table_name="ledger",
+            dynamodb_client=Client(), erasure_sla_hours=24,
+            scan_limit=100, max_pages=1, now=lambda: 200,
+        )
+        self.assertEqual(result["scanned"], 100)
+        self.assertEqual(result["matched"], 1)
+        self.assertEqual(result["completed"], 1)
+        self.assertTrue(result["worksetTruncated"])
+        checkpoint = next(
+            item for item in control.puts
+            if item["SK"] == "ACCOUNT_DELETION_RECONCILIATION"
+        )
+        self.assertEqual(
+            checkpoint["lastEvaluatedKey"],
+            {"PK": "ACCOUNT#a", "SK": "ACCOUNT_DELETION"},
+        )
 
 
 if __name__ == "__main__":

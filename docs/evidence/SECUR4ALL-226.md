@@ -42,6 +42,9 @@ Implemented Lambda scope:
   deletion-fence record, atomically fences History, and creates a resumable job
   spanning all captured generations. Lifecycle completion writes only the
   History component receipt and never completes the overall account deletion.
+- The same bridge performs a bounded, strongly consistent reconciliation scan
+  with a durable continuation checkpoint, recovering commands missed beyond
+  DynamoDB Streams retention.
 - Reads, mutations, analysis entry, acceptance, and completion check the same
   authoritative deletion fence, covering pre-issued tokens and delayed/missing
   stream delivery.
@@ -59,4 +62,6 @@ are forbidden.
 
 The story must remain open until infrastructure wiring is accepted, the Dev
 bridge/lifecycle path is exercised, deployed alarms are verified, and the
-24-hour deletion evidence is recorded.
+24-hour deletion evidence is recorded. No Lambda in this repository currently
+writes the authoritative fixed account-deletion fence, so the owning
+`SECUR4ALL-200` producer remains a genuine external prerequisite.

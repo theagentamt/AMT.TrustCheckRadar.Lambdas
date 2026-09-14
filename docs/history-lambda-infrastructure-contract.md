@@ -18,7 +18,11 @@ claim that any story is complete.
 | `history-contracts-1.0.0.zip` | n/a | Canonical routes, limits, errors, badge IDs, and EN/ES localization contract. |
 
 Only `history_account_deletion_bridge` requires a DynamoDB stream. It consumes
-the deletion-ledger `NEW_IMAGE` for the fixed account fence described below.
+the deletion-ledger `NEW_IMAGE` for the fixed account fence described below and
+also accepts the scheduled reconciliation input
+`{"schemaVersion":1,"operation":"reconcile"}`. A strongly consistent, bounded
+ledger scan uses a durable control-table continuation and starts a new pass after
+reaching the end. This recovers fixed fences missed beyond Streams retention.
 No queue, projector, campaign table, or paid-model dependency is required.
 
 ## Physical resources and indexes
@@ -185,6 +189,9 @@ Minimal `history_account_deletion_bridge`:
 
 - `APP_ENVIRONMENT`, `HISTORY_CONTROL_TABLE_NAME`,
   `DELETION_LEDGER_TABLE_NAME`, `HISTORY_ACCOUNT_DELETION_ENABLED`
+- optional bounded defaults:
+  `HISTORY_ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT=100` and
+  `HISTORY_ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES=10`
 
 Optional explicit common values:
 
@@ -305,8 +312,11 @@ per-request IAM principal tag.
 - index leading keys `HISTORY#*`, `CONTROL#*`, and `PENDING#*`
 
 `history_account_deletion_bridge` needs deletion-ledger stream read permissions,
-control `GetItem`, transaction `UpdateItem`/`PutItem`, and transaction
-`ConditionCheckItem` on the exact source deletion-ledger item. No artifact
+deletion-ledger `Scan`, `GetItem`, and `PutItem` (the latter only for the History
+component completion receipt), control `GetItem`/`PutItem`, transaction
+`UpdateItem`/`PutItem`, and transaction `ConditionCheckItem` on the exact source
+deletion-ledger item. Configure reserved concurrency 1 for its reconciliation
+checkpoint. No artifact
 requires SQS, SNS, S3 data access, or campaign table access.
 
 ## Metrics and alarms
@@ -365,7 +375,12 @@ input content.
 ## Remaining activation blockers
 
 - infrastructure wiring of the new routes, exact IAM, cursor-secret container,
-  deletion-ledger stream filter, and component receipt
+  deletion-ledger stream filter, five-minute reconciliation schedule, and
+  component receipt
+- a genuine full-account deletion producer: no Lambda in this repository writes
+  the fixed `ACCOUNT#<sub>/ACCOUNT_DELETION` request. `SECUR4ALL-200` remains
+  incomplete until the owning account-deletion endpoint atomically creates and
+  durably retains that fence
 - authenticated Dev integration, race tests against deployed AWS resources, and
   measured 24-hour physical-erasure evidence
 - explicit infrastructure acceptance before enabling any feature flag

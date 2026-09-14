@@ -9,6 +9,12 @@ HISTORY_ERASURE_SLA_HOURS = int(os.environ.get("HISTORY_ERASURE_SLA_HOURS", "24"
 HISTORY_ACCOUNT_DELETION_ENABLED = (
     os.environ.get("HISTORY_ACCOUNT_DELETION_ENABLED", "false").strip().lower() == "true"
 )
+RECONCILIATION_SCAN_LIMIT = int(
+    os.environ.get("HISTORY_ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT", "100")
+)
+RECONCILIATION_MAX_PAGES = int(
+    os.environ.get("HISTORY_ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES", "10")
+)
 
 
 def validate_config():
@@ -20,3 +26,5 @@ def validate_config():
         raise RuntimeError("Invalid History account-deletion storage configuration")
     if HISTORY_SCHEMA_VERSION != 1 or HISTORY_ERASURE_SLA_HOURS != 24:
         raise RuntimeError("Invalid History account-deletion policy")
+    if not 1 <= RECONCILIATION_SCAN_LIMIT <= 100 or not 1 <= RECONCILIATION_MAX_PAGES <= 10:
+        raise RuntimeError("Invalid History account-deletion reconciliation bounds")
