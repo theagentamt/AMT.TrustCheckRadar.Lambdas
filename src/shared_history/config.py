@@ -22,6 +22,19 @@ def _optional_positive_int(name: str) -> int | None:
     return value
 
 
+def _optional_nonnegative_int(name: str) -> int | None:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        value = int(raw)
+    except ValueError as err:
+        raise HistoryError("SERVER_UNAVAILABLE", f"{name} must be a nonnegative integer.") from err
+    if value < 0:
+        raise HistoryError("SERVER_UNAVAILABLE", f"{name} must be a nonnegative integer.")
+    return value
+
+
 @dataclass(frozen=True)
 class HistorySettings:
     environment: str
@@ -56,11 +69,13 @@ class HistorySettings:
     max_text_field_bytes: int | None
     badge_catalog: tuple[dict, ...]
     new_id_recognition_policy: str
-    lifecycle_lookback_hours: int | None
+    lifecycle_start_epoch_hour: int | None
     badge_qualification_policy: str
     lifecycle_max_items_per_sweep: int | None
     erasure_batch_size: int | None
     completion_stuck_seconds: int | None
+    completion_recheck_seconds: int | None
+    lifecycle_max_bucket_queries_per_sweep: int | None
 
     @classmethod
     def from_env(cls):
@@ -108,11 +123,13 @@ class HistorySettings:
             max_text_field_bytes=_optional_positive_int("HISTORY_MAX_TEXT_FIELD_BYTES"),
             badge_catalog=catalog,
             new_id_recognition_policy=os.environ.get("HISTORY_NEW_ID_RECOGNITION_POLICY", "pending"),
-            lifecycle_lookback_hours=_optional_positive_int("HISTORY_LIFECYCLE_LOOKBACK_HOURS"),
+            lifecycle_start_epoch_hour=_optional_nonnegative_int("HISTORY_LIFECYCLE_START_EPOCH_HOUR"),
             badge_qualification_policy=os.environ.get("HISTORY_BADGE_QUALIFICATION_POLICY", "pending"),
             lifecycle_max_items_per_sweep=_optional_positive_int("HISTORY_LIFECYCLE_MAX_ITEMS_PER_SWEEP"),
             erasure_batch_size=_optional_positive_int("HISTORY_ERASURE_BATCH_SIZE"),
             completion_stuck_seconds=_optional_positive_int("HISTORY_COMPLETION_STUCK_SECONDS"),
+            completion_recheck_seconds=_optional_positive_int("HISTORY_COMPLETION_RECHECK_SECONDS"),
+            lifecycle_max_bucket_queries_per_sweep=_optional_positive_int("HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP"),
         )
 
     def validate_common(self) -> None:
@@ -202,17 +219,23 @@ class HistorySettings:
             raise HistoryError("FEATURE_DISABLED", "History lifecycle processing is not enabled.", retryable=True)
         self.validate_common()
         if (
-            self.lifecycle_lookback_hours is None
-            or self.lifecycle_lookback_hours < self.erasure_sla_hours
-            or self.lifecycle_lookback_hours > 168
+            self.lifecycle_start_epoch_hour is None
+            or self.lifecycle_start_epoch_hour % 3600 != 0
             or self.lifecycle_max_items_per_sweep is None
+            or self.lifecycle_max_items_per_sweep < 3
             or self.lifecycle_max_items_per_sweep > 1000
+            or self.lifecycle_max_bucket_queries_per_sweep is None
+            or self.lifecycle_max_bucket_queries_per_sweep < 2
+            or self.lifecycle_max_bucket_queries_per_sweep > 1000
             or self.erasure_batch_size is None
             or self.erasure_batch_size > 25
             or self.completion_stuck_seconds is None
+            or self.completion_recheck_seconds is None
             or self.mutation_retention_days is None
+            or self.dedup_retention_days is None
+            or not self.analysis_abuse_table_name
         ):
-            self._unavailable("The History lifecycle recovery window must cover the erasure SLA.")
+            self._unavailable("The bounded History lifecycle checkpoint policy is incomplete.")
 
     @staticmethod
     def _unavailable(message: str):

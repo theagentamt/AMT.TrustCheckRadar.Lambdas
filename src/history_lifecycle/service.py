@@ -1,68 +1,154 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from decimal import Decimal
+import hashlib
 import time
 
 from shared_history.errors import HistoryError
 
 
 class HistoryLifecycleService:
-    def __init__(self, *, settings, content_table, control_table, now=lambda: int(time.time())):
+    def __init__(self, *, settings, content_table, control_table, abuse_table, now=lambda: int(time.time())):
         self.settings = settings
         self.content_table = content_table
         self.control_table = control_table
+        self.abuse_table = abuse_table
         self.now = now
 
     def sweep(self):
         now = self.now()
-        budget = self.settings.lifecycle_max_items_per_sweep
-        expired_content = self._expire_table(self.content_table, "HISTORY", now, content=True, limit=budget)
-        budget -= expired_content
-        expired_control = self._expire_table(self.control_table, "CONTROL", now, content=False, limit=budget)
-        budget -= expired_control
-        pending = self._process_pending_jobs(now, budget)
+        item_budget = self.settings.lifecycle_max_items_per_sweep
+        content_budget = item_budget // 3
+        control_budget = item_budget // 3
+        pending_budget = item_budget - content_budget - control_budget
+        query_budget = self.settings.lifecycle_max_bucket_queries_per_sweep
+        content_queries = query_budget // 2
+        control_queries = query_budget - content_queries
+        expired_content = self._expire_table(
+            self.content_table, "HISTORY", now, content=True,
+            item_limit=content_budget, query_limit=content_queries,
+        )
+        expired_control = self._expire_table(
+            self.control_table, "CONTROL", now, content=False,
+            item_limit=control_budget, query_limit=control_queries,
+        )
+        pending = self._process_pending_jobs(now, pending_budget)
+        truncated = (
+            expired_content["checkpointBacklog"]
+            or expired_control["checkpointBacklog"]
+            or pending["worksetTruncated"]
+        )
         return {
             "schemaVersion": self.settings.schema_version,
             "operation": "sweep",
-            "expiredContentRecords": expired_content,
-            "expiredControlRecords": expired_control,
+            "expiredContentRecords": expired_content["deleted"],
+            "expiredControlRecords": expired_control["deleted"],
+            "expirationBucketQueries": expired_content["queries"] + expired_control["queries"],
+            "expirationCheckpointLagSeconds": max(
+                expired_content["checkpointLagSeconds"], expired_control["checkpointLagSeconds"]
+            ),
             "completedErasureJobs": pending["completedErasureJobs"],
             "overdueErasureJobs": pending["overdueErasureJobs"],
             "observedPendingCompletions": pending["observedPendingCompletions"],
             "oldestPendingCompletionAgeSeconds": pending["oldestPendingCompletionAgeSeconds"],
             "oldestPendingErasureAgeSeconds": pending["oldestPendingErasureAgeSeconds"],
             "stuckPendingCompletions": pending["stuckPendingCompletions"],
-            "worksetTruncated": pending["worksetTruncated"] or budget <= 0,
+            "redactedReplayRecords": pending["redactedReplayRecords"] + expired_content["redactedReplayRecords"],
+            "worksetTruncated": truncated,
             "completedAtEpoch": now,
         }
 
-    def _expire_table(self, table, prefix, now, *, content, limit):
-        deleted = 0
-        if limit <= 0:
-            return 0
-        for hour in reversed(_hour_buckets(now, self.settings.lifecycle_lookback_hours)):
-            for shard in range(16):
-                if deleted >= limit:
-                    return deleted
-                bucket = f"{prefix}#{hour}#{shard:02d}"
-                page = table.query(
-                    IndexName=self.settings.expiration_index_name,
-                    KeyConditionExpression="expiryBucket = :bucket AND expiresAt <= :now",
-                    ExpressionAttributeValues={":bucket": bucket, ":now": now},
-                    ProjectionExpression="PK, SK, expiresAt",
-                    Limit=min(25, limit - deleted),
-                )
-                for item in page.get("Items") or []:
+    def _expire_table(self, table, prefix, now, *, content, item_limit, query_limit):
+        checkpoint = self._load_checkpoint(prefix, now)
+        current_hour = now - (now % 3600)
+        deleted = queries = redacted = 0
+        page_backlog = False
+        while checkpoint["hourEpoch"] <= current_hour and deleted < item_limit and queries < query_limit:
+            bucket = f"{prefix}#{_hour_label(checkpoint['hourEpoch'])}#{checkpoint['shard']:02d}"
+            page = table.query(
+                IndexName=self.settings.expiration_index_name,
+                KeyConditionExpression="expiryBucket = :bucket AND expiresAt <= :now",
+                ExpressionAttributeValues={":bucket": bucket, ":now": now},
+                ProjectionExpression="PK, SK, expiresAt",
+                Limit=min(25, item_limit - deleted),
+            )
+            queries += 1
+            for item in page.get("Items") or []:
+                try:
                     table.delete_item(
                         Key={"PK": item["PK"], "SK": item["SK"]},
                         ConditionExpression="expiresAt <= :now",
                         ExpressionAttributeValues={":now": now},
                     )
                     deleted += 1
-                    if content:
-                        self._expire_locator(item, now)
-        return deleted
+                except Exception as err:
+                    if _error_code(err) != "ConditionalCheckFailedException":
+                        raise
+                if content:
+                    redacted += self._expire_locator_and_replay(item, now)
+            if page.get("LastEvaluatedKey"):
+                page_backlog = True
+                break
+            checkpoint = self._advance_checkpoint(prefix, checkpoint, now)
+        caught_up = checkpoint["hourEpoch"] > current_hour
+        return {
+            "deleted": deleted,
+            "queries": queries,
+            "checkpointBacklog": page_backlog or not caught_up,
+            "checkpointLagSeconds": max(0, current_hour - checkpoint["hourEpoch"] + (0 if caught_up else 3600)),
+            "redactedReplayRecords": redacted,
+        }
 
-    def _expire_locator(self, content_item, now):
+    def _load_checkpoint(self, prefix, now):
+        key = {"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"EXPIRATION#{prefix}"}
+        item = self.control_table.get_item(Key=key, ConsistentRead=True).get("Item")
+        if not item:
+            initial = key | {
+                "recordType": "LIFECYCLE_CHECKPOINT", "schemaVersion": self.settings.schema_version,
+                "hourEpoch": self.settings.lifecycle_start_epoch_hour, "shard": 0,
+                "stateVersion": 1, "updatedAtEpoch": now,
+            }
+            try:
+                self.control_table.put_item(
+                    Item=initial,
+                    ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+                )
+                item = initial
+            except Exception as err:
+                if _error_code(err) != "ConditionalCheckFailedException":
+                    raise
+                item = self.control_table.get_item(Key=key, ConsistentRead=True).get("Item")
+        hour_epoch = _exact_nonnegative_int((item or {}).get("hourEpoch"))
+        shard = _exact_nonnegative_int((item or {}).get("shard"))
+        version = _exact_nonnegative_int((item or {}).get("stateVersion"))
+        if (
+            (item or {}).get("recordType") != "LIFECYCLE_CHECKPOINT"
+            or hour_epoch is None or hour_epoch % 3600 != 0
+            or hour_epoch > (now - (now % 3600)) + 3600
+            or shard is None or shard > 15 or version is None or version < 1
+        ):
+            raise HistoryError("SERVER_UNAVAILABLE", "The expiration checkpoint is invalid.")
+        return {"hourEpoch": hour_epoch, "shard": shard, "stateVersion": version}
+
+    def _advance_checkpoint(self, prefix, checkpoint, now):
+        next_shard = checkpoint["shard"] + 1
+        next_hour = checkpoint["hourEpoch"]
+        if next_shard == 16:
+            next_shard = 0
+            next_hour += 3600
+        next_version = checkpoint["stateVersion"] + 1
+        self.control_table.update_item(
+            Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"EXPIRATION#{prefix}"},
+            UpdateExpression="SET hourEpoch = :hour, shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
+            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND shard = :previous_shard",
+            ExpressionAttributeValues={
+                ":hour": next_hour, ":shard": next_shard, ":next_version": next_version,
+                ":now": now, ":previous_version": checkpoint["stateVersion"],
+                ":previous_hour": checkpoint["hourEpoch"], ":previous_shard": checkpoint["shard"],
+            },
+        )
+        return {"hourEpoch": next_hour, "shard": next_shard, "stateVersion": next_version}
+
+    def _expire_locator_and_replay(self, content_item, now):
         request_id = _request_id_from_sort_key(content_item.get("SK"))
         account_id = _account_id_from_partition(content_item.get("PK"))
         generation = _generation_from_partition(content_item.get("PK"))
@@ -80,15 +166,16 @@ class HistoryLifecycleService:
                 },
             )
         except Exception as err:
-            if getattr(err, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+            if _error_code(err) != "ConditionalCheckFailedException":
                 raise
+        return self._redact_analysis_replay(account_id, request_id, now, require_response=True)
 
     def _process_pending_jobs(self, now, limit):
         result = {
             "completedErasureJobs": 0, "overdueErasureJobs": 0,
             "observedPendingCompletions": 0, "oldestPendingCompletionAgeSeconds": None,
             "oldestPendingErasureAgeSeconds": None, "stuckPendingCompletions": 0,
-            "worksetTruncated": limit <= 0,
+            "redactedReplayRecords": 0, "worksetTruncated": limit <= 0,
         }
         examined = 0
         for shard in range(16):
@@ -109,7 +196,10 @@ class HistoryLifecycleService:
                 job = self.control_table.get_item(
                     Key={"PK": key_item["PK"], "SK": key_item["SK"]}, ConsistentRead=True
                 ).get("Item")
-                if not job or job.get("status") != "PENDING":
+                if (
+                    not job or job.get("status") != "PENDING"
+                    or int(job.get("lifecycleAt", now + 1)) > now
+                ):
                     continue
                 if job.get("recordType") == "COMPLETION":
                     age = max(0, now - int(job.get("acceptedAtEpoch", now)))
@@ -119,6 +209,7 @@ class HistoryLifecycleService:
                     )
                     if age >= self.settings.completion_stuck_seconds:
                         result["stuckPendingCompletions"] += 1
+                    result["redactedReplayRecords"] += self._observe_completion(job, now)
                     continue
                 if job.get("recordType") != "ERASURE":
                     raise HistoryError("SERVER_UNAVAILABLE", "A pending lifecycle record is invalid.")
@@ -128,18 +219,72 @@ class HistoryLifecycleService:
                 )
                 if int(job.get("deleteByEpoch", now)) < now:
                     result["overdueErasureJobs"] += 1
-                if self._process_erasure_job(job, now):
+                complete, redacted = self._process_erasure_job(job, now)
+                result["redactedReplayRecords"] += redacted
+                if complete:
                     result["completedErasureJobs"] += 1
         if not result["worksetTruncated"]:
             result["oldestPendingCompletionAgeSeconds"] = result["oldestPendingCompletionAgeSeconds"] or 0
             result["oldestPendingErasureAgeSeconds"] = result["oldestPendingErasureAgeSeconds"] or 0
         return result
 
+    def _observe_completion(self, job, now):
+        account_id = _account_id_from_user_pk(job.get("PK"))
+        generation = _exact_nonnegative_int(job.get("historyGeneration"))
+        request_id = job.get("requestId")
+        if account_id is None or generation is None or not isinstance(request_id, str):
+            raise HistoryError("SERVER_UNAVAILABLE", "A pending completion record is invalid.")
+        state = self.control_table.get_item(
+            Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
+        ).get("Item")
+        stale = (
+            not state or state.get("accountStatus") != "ACTIVE"
+            or int(state.get("historyGeneration", -1)) != generation
+        )
+        if stale:
+            redacted = self._redact_analysis_replay(
+                account_id, request_id, now, generation=generation, force_cancel=True
+            )
+            self.control_table.update_item(
+                Key={"PK": job["PK"], "SK": job["SK"]},
+                UpdateExpression="SET #status = :cancelled, completedAtEpoch = :now, expiresAt = :expires_at, expiryBucket = :expiry_bucket REMOVE lifecycleBucket, lifecycleAt",
+                ConditionExpression="#status = :pending AND acceptedSequence = :accepted_sequence",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":cancelled": "CANCELLED_ERASED", ":pending": "PENDING",
+                    ":accepted_sequence": job["acceptedSequence"], ":now": now,
+                    ":expires_at": now + self.settings.dedup_retention_days * 86400,
+                    ":expiry_bucket": _control_expiry_bucket(
+                        now + self.settings.dedup_retention_days * 86400, request_id
+                    ),
+                },
+            )
+            return redacted
+        self.control_table.update_item(
+            Key={"PK": job["PK"], "SK": job["SK"]},
+            UpdateExpression="SET lifecycleAt = :next",
+            ConditionExpression="#status = :pending AND lifecycleAt = :previous",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={
+                ":next": now + self.settings.completion_recheck_seconds,
+                ":pending": "PENDING", ":previous": job["lifecycleAt"],
+            },
+        )
+        return 0
+
     def _process_erasure_job(self, job, now):
         account_id = _account_id_from_user_pk(job.get("PK"))
         generation = _exact_nonnegative_int(job.get("historyGeneration"))
         if account_id is None or generation is None:
             raise HistoryError("SERVER_UNAVAILABLE", "A pending erasure job is invalid.")
+        stage = job.get("stage", "HISTORY")
+        if stage == "HISTORY":
+            return self._process_history_erasure_stage(job, account_id, generation, now), 0
+        if stage == "REPLAY":
+            return self._process_replay_erasure_stage(job, account_id, generation, now)
+        raise HistoryError("SERVER_UNAVAILABLE", "A pending erasure stage is invalid.")
+
+    def _process_history_erasure_stage(self, job, account_id, generation, now):
         partition = f"USER#{account_id}#HISTORY#{generation}"
         kwargs = {
             "KeyConditionExpression": "PK = :pk", "ExpressionAttributeValues": {":pk": partition},
@@ -154,14 +299,68 @@ class HistoryLifecycleService:
             self._mark_locator_erased(account_id, generation, item, now)
         start_key = page.get("LastEvaluatedKey")
         if start_key:
-            self.control_table.update_item(
-                Key={"PK": job["PK"], "SK": job["SK"]},
-                UpdateExpression="SET continuationSortKey = :continuation, lifecycleAt = :next",
-                ConditionExpression="#status = :pending AND historyGeneration = :generation",
-                ExpressionAttributeNames={"#status": "status"},
-                ExpressionAttributeValues={":continuation": start_key["SK"], ":next": now + 1, ":pending": "PENDING", ":generation": generation},
-            )
+            self._reschedule_erasure(job, now, continuation=start_key["SK"])
             return False
+        self.control_table.update_item(
+            Key={"PK": job["PK"], "SK": job["SK"]},
+            UpdateExpression="SET #stage = :replay, lifecycleAt = :next REMOVE continuationSortKey",
+            ConditionExpression="#status = :pending AND historyGeneration = :generation",
+            ExpressionAttributeNames={"#status": "status", "#stage": "stage"},
+            ExpressionAttributeValues={
+                ":replay": "REPLAY", ":next": now + 1,
+                ":pending": "PENDING", ":generation": generation,
+            },
+        )
+        return False
+
+    def _process_replay_erasure_stage(self, job, account_id, generation, now):
+        partition = f"ANALYSIS#REQUEST#{_account_hash(account_id)}"
+        kwargs = {
+            "KeyConditionExpression": "PK = :pk", "ExpressionAttributeValues": {":pk": partition},
+            "ConsistentRead": True,
+            "ProjectionExpression": "PK, SK, #status, historyAuthorization, #response",
+            "ExpressionAttributeNames": {"#status": "status", "#response": "response"},
+            "Limit": self.settings.erasure_batch_size,
+        }
+        if job.get("continuationSortKey"):
+            kwargs["ExclusiveStartKey"] = {"PK": partition, "SK": job["continuationSortKey"]}
+        page = self.abuse_table.query(**kwargs)
+        redacted = 0
+        account_deletion = job.get("reason") == "ACCOUNT_DELETION"
+        for item in page.get("Items") or []:
+            authorization = item.get("historyAuthorization")
+            old_generation = (
+                isinstance(authorization, dict)
+                and _exact_nonnegative_int(authorization.get("historyGeneration")) == generation
+            )
+            legacy_response = not isinstance(authorization, dict) and "response" in item
+            if account_deletion or old_generation or legacy_response:
+                redacted += self._redact_analysis_replay(
+                    account_id, item["SK"], now,
+                    generation=generation if old_generation else None,
+                    require_response=True, account_deletion=account_deletion, legacy=legacy_response,
+                )
+        start_key = page.get("LastEvaluatedKey")
+        if start_key:
+            self._reschedule_erasure(job, now, continuation=start_key["SK"])
+            return False, redacted
+        self._complete_erasure(job, generation, now)
+        return True, redacted
+
+    def _reschedule_erasure(self, job, now, *, continuation):
+        self.control_table.update_item(
+            Key={"PK": job["PK"], "SK": job["SK"]},
+            UpdateExpression="SET continuationSortKey = :continuation, lifecycleAt = :next",
+            ConditionExpression="#status = :pending AND historyGeneration = :generation",
+            ExpressionAttributeNames={"#status": "status"},
+            ExpressionAttributeValues={
+                ":continuation": continuation, ":next": now + 1,
+                ":pending": "PENDING", ":generation": job["historyGeneration"],
+            },
+        )
+
+    def _complete_erasure(self, job, generation, now):
+        expires_at = now + self.settings.mutation_retention_days * 86400
         self.control_table.update_item(
             Key={"PK": job["PK"], "SK": job["SK"]},
             UpdateExpression="SET #status = :complete, completedAtEpoch = :now, expiresAt = :expires_at, expiryBucket = :expiry_bucket REMOVE lifecycleBucket, lifecycleAt, continuationSortKey",
@@ -169,15 +368,12 @@ class HistoryLifecycleService:
             ExpressionAttributeNames={"#status": "status"},
             ExpressionAttributeValues={
                 ":complete": "COMPLETE", ":pending": "PENDING", ":now": now,
-                ":generation": generation,
-                ":expires_at": now + self.settings.mutation_retention_days * 86400,
+                ":generation": generation, ":expires_at": expires_at,
                 ":expiry_bucket": _control_expiry_bucket(
-                    now + self.settings.mutation_retention_days * 86400,
-                    str(job.get("operationId") or job.get("SK")),
+                    expires_at, str(job.get("operationId") or job.get("SK"))
                 ),
             },
         )
-        return True
 
     def _mark_locator_erased(self, account_id, generation, content, now):
         request_id = content.get("requestId") or _request_id_from_sort_key(content.get("SK"))
@@ -195,13 +391,44 @@ class HistoryLifecycleService:
                 },
             )
         except Exception as err:
-            if getattr(err, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+            if _error_code(err) != "ConditionalCheckFailedException":
                 raise
 
+    def _redact_analysis_replay(
+        self, account_id, request_id, now, *, generation=None,
+        require_response=False, force_cancel=False, account_deletion=False, legacy=False,
+    ):
+        conditions = ["attribute_exists(PK)"]
+        values = {
+            ":erased": "COMPLETED_ERASED", ":updated": _iso(now),
+            ":expires_at": now + self.settings.dedup_retention_days * 86400,
+        }
+        if generation is not None:
+            conditions.append("historyAuthorization.historyGeneration = :generation")
+            values[":generation"] = generation
+        elif legacy:
+            conditions.append("attribute_not_exists(historyAuthorization)")
+        if require_response and not force_cancel:
+            conditions.append("attribute_exists(#response)")
+        if not account_deletion and generation is None and not legacy and not require_response:
+            raise HistoryError("SERVER_UNAVAILABLE", "Replay redaction is not safely scoped.")
+        try:
+            self.abuse_table.update_item(
+                Key={"PK": f"ANALYSIS#REQUEST#{_account_hash(account_id)}", "SK": request_id},
+                UpdateExpression="SET #status = :erased, updatedAt = :updated, expiresAt = :expires_at, #ttl = :expires_at REMOVE #response",
+                ConditionExpression=" AND ".join(conditions),
+                ExpressionAttributeNames={"#status": "status", "#ttl": "ttl", "#response": "response"},
+                ExpressionAttributeValues=values,
+            )
+            return 1
+        except Exception as err:
+            if _error_code(err) == "ConditionalCheckFailedException":
+                return 0
+            raise
 
-def _hour_buckets(now, lookback_hours):
-    current = datetime.fromtimestamp(now, UTC).replace(minute=0, second=0, microsecond=0)
-    return [(current - timedelta(hours=offset)).strftime("%Y%m%d%H") for offset in range(lookback_hours + 1)]
+
+def _hour_label(epoch):
+    return datetime.fromtimestamp(epoch, UTC).strftime("%Y%m%d%H")
 
 
 def _request_id_from_sort_key(value):
@@ -239,7 +466,18 @@ def _exact_nonnegative_int(value):
 
 
 def _control_expiry_bucket(expires_at, value):
-    import hashlib
-    hour = datetime.fromtimestamp(expires_at, UTC).strftime("%Y%m%d%H")
+    hour = _hour_label(expires_at)
     shard = int(hashlib.sha256(value.encode()).hexdigest()[:2], 16) % 16
     return f"CONTROL#{hour}#{shard:02d}"
+
+
+def _account_hash(account_id):
+    return hashlib.sha256(account_id.encode("utf-8")).hexdigest()
+
+
+def _iso(epoch):
+    return datetime.fromtimestamp(epoch, UTC).isoformat().replace("+00:00", "Z")
+
+
+def _error_code(err):
+    return getattr(err, "response", {}).get("Error", {}).get("Code")

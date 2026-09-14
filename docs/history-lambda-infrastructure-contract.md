@@ -40,6 +40,13 @@ table strongly and newest-first. The control table uses:
 - `PK=USER#<sub>`, `SK=COMPLETION#<requestId>`
 - `PK=USER#<sub>`, `SK=ERASURE#<operationId>`
 - `PK=CURSOR#<sha256(randomHandle)>`, `SK=CURSOR`
+- `PK=LIFECYCLE#<environment>`, `SK=EXPIRATION#<HISTORY|CONTROL>`
+
+The two lifecycle checkpoint records durably retain the next expiration
+hour/shard. A bucket is not advanced until its index query has no continuation,
+so outages and large backlogs cannot age records out of a moving query window.
+Pending completion records are rescheduled after observation, moving them behind
+other due work instead of permanently occupying the first index page.
 
 Cursor values returned to clients are random URL-safe handles. DynamoDB keys,
 subjects, assessments, and other payload data are not encoded in the handle.
@@ -126,10 +133,12 @@ Approval/configuration gates:
 - `HISTORY_BADGE_CATALOG_JSON`
 - `HISTORY_NEW_ID_RECOGNITION_POLICY`
 - `HISTORY_BADGE_QUALIFICATION_POLICY`
-- `HISTORY_LIFECYCLE_LOOKBACK_HOURS`
+- `HISTORY_LIFECYCLE_START_EPOCH_HOUR` (Unix seconds, UTC-hour aligned)
 - `HISTORY_LIFECYCLE_MAX_ITEMS_PER_SWEEP`
+- `HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP`
 - `HISTORY_ERASURE_BATCH_SIZE` (maximum 25)
 - `HISTORY_COMPLETION_STUCK_SECONDS`
+- `HISTORY_COMPLETION_RECHECK_SECONDS`
 
 `HISTORY_WRITES_ENABLED=true` is rejected unless durable replay is also enabled.
 Turning off new writes does not abandon already accepted work: an analysis with
@@ -146,8 +155,12 @@ per-request IAM principal tag.
 `conversation_analysis` needs:
 
 - `dynamodb:GetItem` on History control/content (`USER#*`)
-- `dynamodb:TransactWriteItems` on History control/content plus its existing
-  abuse/entitlement/campaign transaction resources
+- transaction member permissions `dynamodb:PutItem`, `dynamodb:UpdateItem`, and
+  `dynamodb:ConditionCheckItem` on the exact History content/control resources,
+  each constrained by
+  `dynamodb:EnclosingOperation = TransactWriteItems`; retain the equivalent
+  underlying member permissions for its existing abuse/entitlement/campaign
+  transaction resources
 
 `history_read_api` needs:
 
@@ -161,16 +174,20 @@ per-request IAM principal tag.
 
 - control `GetItem` with `USER#*`
 - device-binding GSI `Query` with `USER#*#ACTIVE`
-- `dynamodb:TransactWriteItems` on History content/control and the analysis
-  abuse table; transaction leading keys are `USER#*` and
-  `ANALYSIS#REQUEST#*`
+- transaction member permissions `dynamodb:PutItem`, `dynamodb:UpdateItem`, and
+  `dynamodb:DeleteItem` on the exact History content/control and analysis-abuse
+  resources, each constrained by
+  `dynamodb:EnclosingOperation = TransactWriteItems`; transaction leading keys
+  are `USER#*` and `ANALYSIS#REQUEST#*`
 
 `history_lifecycle` needs:
 
 - `Query` on both base tables and their exact indexes
-- control `GetItem`, `UpdateItem`, `DeleteItem`
+- control `GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`
 - content `DeleteItem`
-- base-table leading keys `USER#*` and `CURSOR#*`
+- analysis-abuse `Query`, `UpdateItem` on `ANALYSIS#REQUEST#*`
+- base-table leading keys `USER#*`, `CURSOR#*`, and
+  `LIFECYCLE#<environment>`
 - index leading keys `HISTORY#*`, `CONTROL#*`, and `PENDING#*`
 
 No artifact requires SQS, SNS, DynamoDB Streams, S3 data access, or campaign
@@ -192,11 +209,15 @@ The lifecycle artifact emits Embedded Metric Format values under
 - `LifecycleWorksetTruncated`
 - `LifecycleSweepSuccess`
 - `LifecycleSweepFailure`
+- `ExpirationBucketQueries`
+- `RedactedReplayRecords`
+- `ExpirationCheckpointLagSeconds`
 - `HistoryReadSuccess`, `HistoryReadFailure`
 - `HistoryMutationSuccess`, `HistoryMutationFailure`
 - `HistoryAuthorizationFailure`
 
-Count metrics use `Count`; age metrics use `Seconds`. They are emitted once per
+Count metrics, including bucket queries and replay redactions, use `Count`;
+pending ages and checkpoint lag use `Seconds`. They are emitted once per
 lifecycle invocation. The infrastructure schedule should run every five minutes.
 `LifecycleSweepSuccess=1` is the success heartbeat, including a successful empty
 check. A missing heartbeat is missing data, not zero backlog, and its alarm must
@@ -204,6 +225,13 @@ treat missing data as breaching after two expected periods. Age values are zero
 only after a successful non-truncated empty check. When the approved work cap is
 reached, `LifecycleWorksetTruncated=1`; an unobserved age is omitted instead of
 reported as zero.
+
+History/content expiration, clear-History erasure, and account-deletion erasure
+explicitly remove the content-bearing `response` attribute from the matching
+analysis-abuse replay partition. An erasure job uses bounded, resumable
+`HISTORY` and `REPLAY` stages. This is required even when table TTL is enabled:
+asynchronous DynamoDB TTL is supplementary cleanup and is never treated as proof
+of the 24-hour physical purge.
 
 Alarm on missing success heartbeat, `LifecycleSweepFailure > 0`,
 `LifecycleWorksetTruncated > 0`, `StuckPendingCompletions > 0`,

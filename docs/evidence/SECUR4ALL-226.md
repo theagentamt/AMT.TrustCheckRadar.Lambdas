@@ -14,6 +14,12 @@ Implemented Lambda scope:
 - A scheduled lifecycle Lambda discovers work through `ExpirationIndex` and
   `PendingLifecycleIndex`, physically removes content, and content-free
   tombstones locators without a scan, stream, or queue.
+- Durable per-table hour/shard checkpoints prevent expiration backlogs from
+  aging out of a moving query window; a bucket advances only after it is drained.
+- Pending completion observations advance `lifecycleAt`, preventing stuck
+  completions from starving later erasure jobs in the same shard.
+- Bounded resumable erasure stages explicitly remove content-bearing cached and
+  `RESULT_READY` analysis responses. Tests do not simulate DynamoDB TTL cleanup.
 - Lifecycle metrics include overdue erasure jobs for the 24-hour SLA alarm.
 
 Automated evidence is in `tests/history_mutation_api`,

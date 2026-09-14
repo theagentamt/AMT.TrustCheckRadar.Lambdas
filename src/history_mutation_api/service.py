@@ -148,6 +148,7 @@ class HistoryMutationService:
             "PK": f"USER#{account_id}", "SK": f"ERASURE#{operation_id}",
             "recordType": "ERASURE", "schemaVersion": self.settings.schema_version,
             "operationId": operation_id, "reason": reason, "status": "PENDING",
+            "stage": "HISTORY",
             "historyGeneration": generation, "createdAtEpoch": now,
             "deleteByEpoch": now + self.settings.erasure_sla_hours * 3600,
             "lifecycleBucket": f"PENDING#{shard:02d}", "lifecycleAt": now,

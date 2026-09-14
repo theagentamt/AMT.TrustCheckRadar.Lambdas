@@ -24,6 +24,7 @@ def lambda_handler(event, _context):
             settings=settings,
             content_table=resource.Table(settings.content_table_name),
             control_table=resource.Table(settings.control_table_name),
+            abuse_table=resource.Table(settings.analysis_abuse_table_name),
         ).sweep()
         _success_metric(result)
         return result
@@ -47,6 +48,8 @@ def _success_metric(result):
         {"Name": "StuckPendingCompletions", "Unit": "Count"},
         {"Name": "LifecycleWorksetTruncated", "Unit": "Count"},
         {"Name": "LifecycleSweepSuccess", "Unit": "Count"},
+        {"Name": "ExpirationBucketQueries", "Unit": "Count"},
+        {"Name": "RedactedReplayRecords", "Unit": "Count"},
     ]
     values = {
         "ExpiredContentRecords": result["expiredContentRecords"],
@@ -57,10 +60,13 @@ def _success_metric(result):
         "StuckPendingCompletions": result["stuckPendingCompletions"],
         "LifecycleWorksetTruncated": 1 if result["worksetTruncated"] else 0,
         "LifecycleSweepSuccess": 1,
+        "ExpirationBucketQueries": result["expirationBucketQueries"],
+        "RedactedReplayRecords": result["redactedReplayRecords"],
     }
     for name, key in (
         ("OldestPendingCompletionAgeSeconds", "oldestPendingCompletionAgeSeconds"),
         ("OldestPendingErasureAgeSeconds", "oldestPendingErasureAgeSeconds"),
+        ("ExpirationCheckpointLagSeconds", "expirationCheckpointLagSeconds"),
     ):
         if result[key] is not None:
             metrics.append({"Name": name, "Unit": "Seconds"})

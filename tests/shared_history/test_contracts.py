@@ -50,6 +50,22 @@ class HistoryContractTests(unittest.TestCase):
         with self.assertRaisesRegex(HistoryError, "not approved"):
             settings.validate_reads()
 
+    def test_lifecycle_requires_durable_checkpoint_and_bounded_batch_policy(self):
+        incomplete = BASE_ENV | {"HISTORY_LIFECYCLE_ENABLED": "true"}
+        with mock.patch.dict(os.environ, incomplete, clear=True):
+            with self.assertRaisesRegex(HistoryError, "checkpoint policy"):
+                HistorySettings.from_env().validate_lifecycle()
+        complete = incomplete | {
+            "HISTORY_LIFECYCLE_START_EPOCH_HOUR": "0",
+            "HISTORY_LIFECYCLE_MAX_ITEMS_PER_SWEEP": "300",
+            "HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP": "64",
+            "HISTORY_ERASURE_BATCH_SIZE": "25",
+            "HISTORY_COMPLETION_STUCK_SECONDS": "300",
+            "HISTORY_COMPLETION_RECHECK_SECONDS": "600",
+        }
+        with mock.patch.dict(os.environ, complete, clear=True):
+            HistorySettings.from_env().validate_lifecycle()
+
     def test_history_record_has_exact_privacy_allowlist_and_90_day_expiry(self):
         with mock.patch.dict(os.environ, BASE_ENV | {"HISTORY_WRITES_ENABLED": "true", "HISTORY_DURABLE_REPLAY_ENABLED": "true"}, clear=True):
             settings = HistorySettings.from_env()
