@@ -26,6 +26,10 @@ Implemented Lambda scope:
   redaction failure leaves the marker retryable after the History GSI entry is
   gone, and the same marker still purges replay if native TTL removed History
   before lifecycle observed it.
+- Write, mutation, and lifecycle validation require the locator's whole-day
+  deduplication retention to cover the 90-day content deadline plus the 24-hour
+  cleanup allowance. Longer outage/restore coverage remains a separate policy
+  gate.
 - Bounded resumable erasure stages explicitly remove content-bearing cached and
   `RESULT_READY` analysis responses. Regression tests explicitly simulate both
   replay update failure after content deletion and History-first native TTL.

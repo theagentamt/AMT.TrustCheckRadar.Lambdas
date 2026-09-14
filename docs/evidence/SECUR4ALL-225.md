@@ -18,6 +18,10 @@ Implemented Lambda scope:
   completions accepted in the current recognition generation.
 - Badge thresholds are constrained to 1, 5, and 20 and have no entitlement or
   quota side effects.
+- Lambda activation rejects durable-locator retention shorter than History
+  retention plus the 24-hour cleanup allowance. Boundary tests reject 89 and 90
+  days and accept 91 days as the exact minimum, without selecting a deployment
+  default.
 
 Privacy evidence: the content builder copies only the approved assessment,
 source type, server times, and control metadata. Sanitized input text, entities,

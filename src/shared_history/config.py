@@ -178,6 +178,10 @@ class HistorySettings:
         )
         if any(value is None for value in required):
             self._unavailable("History content and durable deduplication bounds must be configured.")
+        if not self._dedup_retention_covers_cleanup():
+            self._unavailable(
+                "Durable deduplication retention must cover History retention plus the erasure cleanup allowance."
+            )
 
     def validate_durable_replay(self) -> None:
         if not self.durable_replay_enabled:
@@ -191,6 +195,7 @@ class HistorySettings:
         if (
             self.api_contract_status != "approved"
             or self.mutation_retention_days is None
+            or not self._dedup_retention_covers_cleanup()
             or not self.analysis_abuse_table_name
         ):
             self._unavailable("The History mutation and receipt-retention contract is not approved.")
@@ -220,6 +225,10 @@ class HistorySettings:
         if not self.lifecycle_enabled:
             raise HistoryError("FEATURE_DISABLED", "History lifecycle processing is not enabled.", retryable=True)
         self.validate_common()
+        if not self._dedup_retention_covers_cleanup():
+            self._unavailable(
+                "Durable deduplication retention must cover History retention plus the erasure cleanup allowance."
+            )
         if (
             self.lifecycle_start_epoch_hour is None
             or self.lifecycle_start_epoch_hour % 3600 != 0
@@ -236,10 +245,16 @@ class HistorySettings:
             or self.completion_stuck_seconds is None
             or self.completion_recheck_seconds is None
             or self.mutation_retention_days is None
-            or self.dedup_retention_days is None
             or not self.analysis_abuse_table_name
         ):
             self._unavailable("The bounded History lifecycle checkpoint policy is incomplete.")
+
+    def _dedup_retention_covers_cleanup(self) -> bool:
+        if self.dedup_retention_days is None:
+            return False
+        dedup_seconds = self.dedup_retention_days * 86400
+        required_seconds = self.retention_days * 86400 + self.erasure_sla_hours * 3600
+        return dedup_seconds >= required_seconds
 
     @staticmethod
     def _unavailable(message: str):

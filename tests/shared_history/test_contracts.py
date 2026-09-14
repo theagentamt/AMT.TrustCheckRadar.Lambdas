@@ -56,6 +56,7 @@ class HistoryContractTests(unittest.TestCase):
             with self.assertRaisesRegex(HistoryError, "checkpoint policy"):
                 HistorySettings.from_env().validate_lifecycle()
         complete = incomplete | {
+            "HISTORY_DEDUP_RETENTION_DAYS": "91",
             "HISTORY_LIFECYCLE_START_EPOCH_HOUR": "0",
             "HISTORY_LIFECYCLE_MAX_ITEMS_PER_SWEEP": "300",
             "HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP": "64",
@@ -66,6 +67,31 @@ class HistoryContractTests(unittest.TestCase):
         }
         with mock.patch.dict(os.environ, complete, clear=True):
             HistorySettings.from_env().validate_lifecycle()
+        for insufficient_days in (89, 90):
+            with self.subTest(dedup_retention_days=insufficient_days):
+                invalid = complete | {
+                    "HISTORY_DEDUP_RETENTION_DAYS": str(insufficient_days),
+                }
+                with mock.patch.dict(os.environ, invalid, clear=True):
+                    with self.assertRaisesRegex(HistoryError, "cleanup allowance"):
+                        HistorySettings.from_env().validate_lifecycle()
+
+    def test_write_contract_rejects_dedup_shorter_than_content_retention(self):
+        invalid = BASE_ENV | {"HISTORY_DEDUP_RETENTION_DAYS": "89"}
+        with mock.patch.dict(os.environ, invalid, clear=True):
+            with self.assertRaisesRegex(HistoryError, "cleanup allowance"):
+                HistorySettings.from_env().validate_write_contract()
+
+    def test_write_contract_rejects_equal_retention_without_cleanup_allowance(self):
+        invalid = BASE_ENV | {"HISTORY_DEDUP_RETENTION_DAYS": "90"}
+        with mock.patch.dict(os.environ, invalid, clear=True):
+            with self.assertRaisesRegex(HistoryError, "cleanup allowance"):
+                HistorySettings.from_env().validate_write_contract()
+
+    def test_write_contract_accepts_exact_content_plus_cleanup_boundary(self):
+        valid = BASE_ENV | {"HISTORY_DEDUP_RETENTION_DAYS": "91"}
+        with mock.patch.dict(os.environ, valid, clear=True):
+            HistorySettings.from_env().validate_write_contract()
 
     def test_history_record_has_exact_privacy_allowlist_and_90_day_expiry(self):
         with mock.patch.dict(os.environ, BASE_ENV | {"HISTORY_WRITES_ENABLED": "true", "HISTORY_DURABLE_REPLAY_ENABLED": "true"}, clear=True):

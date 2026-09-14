@@ -146,7 +146,8 @@ Approval/configuration gates:
 - `HISTORY_RECOGNITION_CONTRACT_STATUS`
 - `HISTORY_PITR_POLICY_APPROVED`
 - `HISTORY_CONTROL_RETENTION_POLICY_APPROVED`
-- `HISTORY_DEDUP_RETENTION_DAYS`
+- `HISTORY_DEDUP_RETENTION_DAYS` (whole days; must cover
+  `HISTORY_RETENTION_DAYS * 86400 + HISTORY_ERASURE_SLA_HOURS * 3600`)
 - `HISTORY_MUTATION_RETENTION_DAYS`
 - `HISTORY_CURSOR_SECRET_NAME`
 - `HISTORY_CURSOR_TTL_SECONDS`
@@ -171,6 +172,13 @@ Approval/configuration gates:
 Turning off new writes does not abandon already accepted work: an analysis with
 a persisted History authorization finishes by writing content or a content-free
 tombstone, preserving at-most-once charging.
+
+Write, mutation, and lifecycle validation reject a durable-locator retention
+window that ends before the content-retention deadline plus the erasure SLA.
+With the fixed 90-day content and 24-hour cleanup contracts, 91 whole days is
+the minimum valid boundary, not a selected deployment default. The approved
+duration must still be supplied explicitly. Longer outage and restore coverage
+remains a separate backup/PITR policy and activation gate.
 
 ## IAM contract
 
