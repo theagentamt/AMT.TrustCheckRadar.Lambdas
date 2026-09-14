@@ -1,0 +1,11 @@
+{
+  "locale": "es",
+  "translations": {
+    "badges.checks_1.title": "Primera verificación",
+    "badges.checks_1.description": "Completaste tu primera verificación de confianza.",
+    "badges.checks_5.title": "Verificador cuidadoso",
+    "badges.checks_5.description": "Completaste 5 verificaciones de confianza distintas.",
+    "badges.checks_20.title": "Campeón de verificaciones",
+    "badges.checks_20.description": "Completaste 20 verificaciones de confianza distintas."
+  }
+}

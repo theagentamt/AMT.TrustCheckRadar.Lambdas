@@ -114,8 +114,8 @@ class HistoryReadService:
                 if int(raw.get("expiresAt", 0)) <= self.now():
                     continue
                 public = public_history_item(raw, self.settings)
-                candidate = items + [public]
-                if _encoded_size({"items": candidate}) > self.settings.max_response_bytes:
+                candidate = self._history_envelope(state, items + [public], next_cursor="x" * 43)
+                if _encoded_size(candidate) + 128 > self.settings.max_response_bytes:
                     if not items:
                         raise HistoryError("SERVER_UNAVAILABLE", "A stored History record exceeds the approved response bound.")
                     more = True
@@ -132,9 +132,16 @@ class HistoryReadService:
                 break
             exclusive_start = lek
         next_cursor = self.cursor_store.create(account_id, generation, last_included) if more and last_included else None
-        result = {"schemaVersion": self.settings.schema_version, "items": items}
-        if next_cursor:
-            result["nextCursor"] = next_cursor
+        result = self._history_envelope(state, items, next_cursor=next_cursor)
+        if _encoded_size(result) > self.settings.max_response_bytes:
+            raise HistoryError("SERVER_UNAVAILABLE", "The History response exceeds the approved response bound.")
+        return result
+
+    def export_history(self, account_id, *, cursor=None, requested_limit=None):
+        result = self.list_history(account_id, cursor=cursor, requested_limit=requested_limit)
+        result["exportFormat"] = "application/vnd.amt.trustcheckradar.history.v1+json"
+        if _encoded_size(result) > self.settings.max_response_bytes:
+            raise HistoryError("SERVER_UNAVAILABLE", "The History export exceeds the approved response bound.")
         return result
 
     def get_history(self, account_id, request_id):
@@ -160,7 +167,14 @@ class HistoryReadService:
         ).get("Item")
         if not item or int(item.get("expiresAt", 0)) <= self.now():
             raise HistoryError("NOT_FOUND", "The History record was not found.")
-        return {"schemaVersion": self.settings.schema_version, "item": public_history_item(item, self.settings)}
+        return {
+            "schemaVersion": self.settings.schema_version,
+            "contractVersion": "1.0.0",
+            "serverTimeEpoch": self.now(),
+            "historyGeneration": generation,
+            "recognitionGeneration": int(state["recognitionGeneration"]),
+            "item": public_history_item(item, self.settings),
+        }
 
     def get_progress(self, account_id):
         state = self._state(account_id)
@@ -186,9 +200,36 @@ class HistoryReadService:
             raise HistoryError("SERVER_UNAVAILABLE", "Stored recognition progress is invalid.")
         return {
             "schemaVersion": self.settings.schema_version,
+            "contractVersion": "1.0.0",
+            "serverTimeEpoch": self.now(),
+            "historyGeneration": int(state["historyGeneration"]),
+            "recognitionGeneration": generation,
             "qualifyingChecks": count,
             "awardedBadgeIds": awarded,
+            "badges": [
+                {
+                    "id": item["id"],
+                    "threshold": item["threshold"],
+                    "titleKey": item["titleKey"],
+                    "descriptionKey": item["descriptionKey"],
+                    "awarded": item["id"] in awarded,
+                }
+                for item in self.settings.badge_catalog
+            ],
         }
+
+    def _history_envelope(self, state, items, *, next_cursor=None):
+        result = {
+            "schemaVersion": self.settings.schema_version,
+            "contractVersion": "1.0.0",
+            "serverTimeEpoch": self.now(),
+            "historyGeneration": int(state["historyGeneration"]),
+            "recognitionGeneration": int(state["recognitionGeneration"]),
+            "items": items,
+        }
+        if next_cursor:
+            result["nextCursor"] = next_cursor
+        return result
 
     def _state(self, account_id):
         state = self.control_table.get_item(

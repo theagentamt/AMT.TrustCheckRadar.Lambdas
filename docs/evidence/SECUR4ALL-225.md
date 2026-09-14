@@ -18,6 +18,11 @@ Implemented Lambda scope:
   completions accepted in the current recognition generation.
 - Badge thresholds are constrained to 1, 5, and 20 and have no entitlement or
   quota side effects.
+- Stable IDs are `checks_1`, `checks_5`, and `checks_20`, with exact EN/ES
+  localization keys in the versioned contract artifact.
+- History acceptance and completion transactions condition-check the active
+  foundation profile and absence of the fixed account-deletion fence. A delayed
+  stream bridge cannot permit a post-deletion write.
 - Lambda activation rejects durable-locator retention shorter than History
   retention plus the 24-hour cleanup allowance. Boundary tests reject 89 and 90
   days and accept 91 days as the exact minimum, without selecting a deployment
@@ -32,6 +37,5 @@ Automated evidence is in
 `tests/conversation_analysis/test_history_completion.py`, the existing analysis
 replay/atomic-commit suite, and `tests/shared_history`.
 
-The story must remain open until dedup/tombstone retention, pre-activation replay
-handling, stable badge identifiers/localization/qualification, new-ID duplicate
-policy, account-state bootstrap, and Dev integration evidence are approved.
+The story must remain open until infrastructure acceptance and authenticated
+Dev replay/reset/deletion-race evidence are complete.

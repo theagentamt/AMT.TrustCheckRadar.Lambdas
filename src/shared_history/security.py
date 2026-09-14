@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import re
+import time
 
 from .errors import HistoryError
 
@@ -9,12 +10,49 @@ FINGERPRINT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$")
 SUBJECT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$")
 
 
-def jwt_subject(event: dict) -> str:
+def jwt_subject(event: dict, settings, *, now=lambda: int(time.time())) -> str:
     claims = (((event.get("requestContext") or {}).get("authorizer") or {}).get("jwt") or {}).get("claims")
-    subject = claims.get("sub") if isinstance(claims, dict) else None
-    if not isinstance(subject, str) or not SUBJECT_PATTERN.fullmatch(subject.strip()):
-        raise HistoryError("UNAUTHORIZED", "A verified Cognito JWT subject is required.")
+    if not isinstance(claims, dict):
+        raise HistoryError("UNAUTHORIZED", "A verified Cognito access token is required.")
+    subject = claims.get("sub")
+    expiration = _exact_epoch(claims.get("exp"))
+    scopes = claims.get("scope", "").split() if isinstance(claims.get("scope"), str) else []
+    if (
+        not isinstance(subject, str)
+        or not SUBJECT_PATTERN.fullmatch(subject.strip())
+        or claims.get("iss") != settings.cognito_issuer
+        or claims.get("client_id") != settings.cognito_app_client_id
+        or claims.get("token_use") != "access"
+        or expiration is None
+        or expiration <= now()
+        or settings.cognito_required_scope not in scopes
+    ):
+        raise HistoryError("UNAUTHORIZED", "A verified Cognito access token is required.")
     return subject.strip()
+
+
+def _exact_epoch(value):
+    if isinstance(value, str) and value.isdigit():
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return None
+    return value
+
+
+def assert_authoritative_account_active(account_id: str, users_table, deletion_ledger_table) -> None:
+    profile = users_table.get_item(
+        Key={"PK": f"USER#{account_id}", "SK": "PROFILE"}, ConsistentRead=True
+    ).get("Item")
+    deletion = deletion_ledger_table.get_item(
+        Key={"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"},
+        ConsistentRead=True,
+    ).get("Item")
+    if (
+        not profile or profile.get("sub") != account_id
+        or profile.get("status") != "ACTIVE" or profile.get("ageVerified") is not True
+        or deletion is not None
+    ):
+        raise HistoryError("FORBIDDEN", "The account is not active.")
 
 
 def assert_active_device_binding(event: dict, account_id: str, table) -> None:

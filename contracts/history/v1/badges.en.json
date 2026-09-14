@@ -1,0 +1,11 @@
+{
+  "locale": "en",
+  "translations": {
+    "badges.checks_1.title": "First Check",
+    "badges.checks_1.description": "Completed your first Trust Check.",
+    "badges.checks_5.title": "Careful Checker",
+    "badges.checks_5.description": "Completed 5 distinct Trust Checks.",
+    "badges.checks_20.title": "Trust Check Champion",
+    "badges.checks_20.description": "Completed 20 distinct Trust Checks."
+  }
+}

@@ -65,14 +65,16 @@ ENV = {
     "HISTORY_CONTROL_TABLE_NAME": "control",
     "ANALYSIS_ABUSE_TABLE_NAME": "abuse",
     "DEVICE_BINDINGS_TABLE_NAME": "bindings",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
     "HISTORY_WRITES_ENABLED": "true",
     "HISTORY_DURABLE_REPLAY_ENABLED": "true",
     "HISTORY_PITR_POLICY_APPROVED": "true",
     "HISTORY_CONTROL_RETENTION_POLICY_APPROVED": "true",
     "HISTORY_DEDUP_RETENTION_DAYS": "400",
-    "HISTORY_MAX_SUMMARY_BYTES": "2048",
+    "HISTORY_MAX_SUMMARY_BYTES": "4096",
     "HISTORY_MAX_LIST_ITEMS": "20",
-    "HISTORY_MAX_TEXT_FIELD_BYTES": "512",
+    "HISTORY_MAX_TEXT_FIELD_BYTES": "1024",
 }
 STATE = {"accountStatus": "ACTIVE", "historyGeneration": 2, "recognitionGeneration": 3, "acceptedSequence": 8}
 AUTH = {"historyGeneration": 2, "recognitionGeneration": 3, "acceptedSequence": 8, "acceptedAtEpochMs": 99_000}
@@ -94,7 +96,9 @@ class CompletionTests(unittest.TestCase):
                 "account-1", "request-1", "a" * 64, "lease-1", now_epoch=100
             )
         self.assertEqual(authorization["acceptedSequence"], 9)
-        self.assertEqual(len(client.calls[0]), 3)
+        self.assertEqual(len(client.calls[0]), 5)
+        self.assertEqual(client.calls[0][0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(client.calls[0][1]["ConditionCheck"]["TableName"], "ledger")
         encoded = repr(client.calls[0])
         self.assertIn("COMPLETION#request-1", encoded)
         self.assertIn("PENDING#", encoded)
@@ -109,7 +113,7 @@ class CompletionTests(unittest.TestCase):
                 payload=PAYLOAD, response=RESPONSE, authorization=AUTH, now_epoch=100,
             )
         self.assertFalse(redacted)
-        self.assertEqual(len(transaction), 4)
+        self.assertEqual(len(transaction), 6)
         encoded = repr(transaction)
         self.assertIn("HISTORY#2", encoded)
         self.assertIn("REQUEST#request-1", encoded)
@@ -137,7 +141,7 @@ class CompletionTests(unittest.TestCase):
             "HISTORY_RECOGNITION_CONTRACT_STATUS": "approved",
             "HISTORY_NEW_ID_RECOGNITION_POLICY": "count",
             "HISTORY_BADGE_QUALIFICATION_POLICY": "all_server_accepted_completed_assessments",
-            "HISTORY_BADGE_CATALOG_JSON": '[{"id":"check-1","threshold":1},{"id":"check-5","threshold":5},{"id":"check-20","threshold":20}]',
+            "HISTORY_BADGE_CATALOG_JSON": '[{"id":"checks_1","threshold":1,"titleKey":"badges.checks_1.title","descriptionKey":"badges.checks_1.description"},{"id":"checks_5","threshold":5,"titleKey":"badges.checks_5.title","descriptionKey":"badges.checks_5.description"},{"id":"checks_20","threshold":20,"titleKey":"badges.checks_20.title","descriptionKey":"badges.checks_20.description"}]',
         }
         changed = STATE | {"recognitionGeneration": 4}
         history_completion.dynamodb = Resource(Table(changed))

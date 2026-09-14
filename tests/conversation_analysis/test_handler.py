@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import types
 import unittest
@@ -14,6 +15,25 @@ for path in (SRC_DIR, MODULE_DIR):
 for module_name in ["config", "errors", "verification", "validation", "service", "app", "scan_access", "abuse_controls", "device_binding", "analysis_client", "response_builders", "safety", "shared_entitlements", "shared_entitlements.service", "shared_entitlements.config"]:
     sys.modules.pop(module_name, None)
 
+os.environ.update({
+    "COGNITO_ISSUER": "https://cognito-idp.us-east-1.amazonaws.com/test",
+    "COGNITO_APP_CLIENT_ID": "test-client",
+    "COGNITO_REQUIRED_SCOPE": "aws.cognito.signin.user.admin",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
+})
+
+
+def _claims(sub):
+    return {
+        "sub": sub,
+        "iss": os.environ["COGNITO_ISSUER"],
+        "client_id": os.environ["COGNITO_APP_CLIENT_ID"],
+        "token_use": "access",
+        "exp": "4102444800",
+        "scope": os.environ["COGNITO_REQUIRED_SCOPE"],
+    }
+
 class _FakeTable:
     def get_item(self, **kwargs):
         return {}
@@ -27,6 +47,17 @@ class _FakeTable:
 
 class _FakeResource:
     def Table(self, name):
+        if name == "users":
+            class Users:
+                def get_item(self, Key, **_kwargs):
+                    sub = Key["PK"].removeprefix("USER#")
+                    return {"Item": {"sub": sub, "status": "ACTIVE", "ageVerified": True}}
+            return Users()
+        if name == "ledger":
+            class Ledger:
+                def get_item(self, **_kwargs):
+                    return {}
+            return Ledger()
         return _FakeTable()
 
 
@@ -49,7 +80,7 @@ from errors import AppError  # noqa: E402
 class ConversationAnalysisHandlerTests(unittest.TestCase):
     def test_returns_success_contract(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
@@ -84,7 +115,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_structured_validation_error(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
@@ -108,7 +139,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_unsupported_schema_error(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
@@ -130,7 +161,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_service_error_with_request_id(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
@@ -182,7 +213,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_device_binding_required_when_header_missing(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "body": json.dumps(
                 {
                     "schemaVersion": "1.0",
@@ -204,7 +235,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
 
     def test_returns_device_binding_mismatch_when_active_binding_differs(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": json.dumps(
                 {
@@ -247,7 +278,7 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
             "confidence": 0.9,
         }
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "private-account"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims("private-account")}}},
             "headers": {"X-Device-Binding-Fingerprint": "fp-1"},
             "body": {
                 "schemaVersion": "1.0",

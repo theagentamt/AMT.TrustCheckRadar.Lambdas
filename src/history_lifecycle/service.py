@@ -7,11 +7,15 @@ from shared_history.errors import HistoryError
 
 
 class HistoryLifecycleService:
-    def __init__(self, *, settings, content_table, control_table, abuse_table, now=lambda: int(time.time())):
+    def __init__(
+        self, *, settings, content_table, control_table, abuse_table,
+        deletion_ledger_table=None, now=lambda: int(time.time()),
+    ):
         self.settings = settings
         self.content_table = content_table
         self.control_table = control_table
         self.abuse_table = abuse_table
+        self.deletion_ledger_table = deletion_ledger_table
         self.now = now
 
     def sweep(self):
@@ -418,16 +422,19 @@ class HistoryLifecycleService:
     def _process_erasure_job(self, job, now):
         account_id = _account_id_from_user_pk(job.get("PK"))
         generation = _exact_nonnegative_int(job.get("historyGeneration"))
-        if account_id is None or generation is None:
+        max_generation = _exact_nonnegative_int(job.get("maxHistoryGeneration", generation))
+        if account_id is None or generation is None or max_generation is None or generation > max_generation:
             raise HistoryError("SERVER_UNAVAILABLE", "A pending erasure job is invalid.")
         stage = job.get("stage", "HISTORY")
         if stage == "HISTORY":
-            return self._process_history_erasure_stage(job, account_id, generation, now), 0
+            return self._process_history_erasure_stage(
+                job, account_id, generation, max_generation, now
+            ), 0
         if stage == "REPLAY":
             return self._process_replay_erasure_stage(job, account_id, generation, now)
         raise HistoryError("SERVER_UNAVAILABLE", "A pending erasure stage is invalid.")
 
-    def _process_history_erasure_stage(self, job, account_id, generation, now):
+    def _process_history_erasure_stage(self, job, account_id, generation, max_generation, now):
         partition = f"USER#{account_id}#HISTORY#{generation}"
         kwargs = {
             "KeyConditionExpression": "PK = :pk", "ExpressionAttributeValues": {":pk": partition},
@@ -443,6 +450,18 @@ class HistoryLifecycleService:
         start_key = page.get("LastEvaluatedKey")
         if start_key:
             self._reschedule_erasure(job, now, continuation=start_key["SK"])
+            return False
+        if generation < max_generation:
+            self.control_table.update_item(
+                Key={"PK": job["PK"], "SK": job["SK"]},
+                UpdateExpression="SET historyGeneration = :next_generation, lifecycleAt = :next REMOVE continuationSortKey",
+                ConditionExpression="#status = :pending AND historyGeneration = :generation",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":next_generation": generation + 1, ":next": now + 1,
+                    ":pending": "PENDING", ":generation": generation,
+                },
+            )
             return False
         self.control_table.update_item(
             Key={"PK": job["PK"], "SK": job["SK"]},
@@ -470,6 +489,9 @@ class HistoryLifecycleService:
         page = self.abuse_table.query(**kwargs)
         redacted = 0
         account_deletion = job.get("reason") == "ACCOUNT_DELETION"
+        full_history_deletion = job.get("reason") in {
+            "ACCOUNT_DELETION", "HISTORY_ACCOUNT_DELETION",
+        }
         for item in page.get("Items") or []:
             authorization = item.get("historyAuthorization")
             old_generation = (
@@ -477,11 +499,11 @@ class HistoryLifecycleService:
                 and _exact_nonnegative_int(authorization.get("historyGeneration")) == generation
             )
             legacy_response = not isinstance(authorization, dict) and "response" in item
-            if account_deletion or old_generation or legacy_response:
+            if full_history_deletion or old_generation or legacy_response:
                 redacted += self._redact_analysis_replay(
                     account_id, item["SK"], now,
                     generation=generation if old_generation else None,
-                    require_response=True, account_deletion=account_deletion, legacy=legacy_response,
+                    require_response=True, account_deletion=full_history_deletion, legacy=legacy_response,
                 )
         start_key = page.get("LastEvaluatedKey")
         if start_key:
@@ -503,6 +525,17 @@ class HistoryLifecycleService:
         )
 
     def _complete_erasure(self, job, generation, now):
+        reason = job.get("reason")
+        account_id = _account_id_from_user_pk(job.get("PK"))
+        if reason == "HISTORY_ACCOUNT_DELETION":
+            self._finalize_account_state(
+                account_id, "HISTORY_DELETING", "HISTORY_DELETED", now,
+                also_accept={"DELETING", "DELETED"},
+            )
+            self._complete_pending_mutation(job, now)
+        elif reason == "ACCOUNT_DELETION":
+            self._finalize_account_state(account_id, "DELETING", "DELETED", now)
+            self._write_account_deletion_receipt(job, now)
         expires_at = now + self.settings.mutation_retention_days * 86400
         self.control_table.update_item(
             Key={"PK": job["PK"], "SK": job["SK"]},
@@ -517,6 +550,86 @@ class HistoryLifecycleService:
                 ),
             },
         )
+
+    def _finalize_account_state(self, account_id, previous, final, now, *, also_accept=frozenset()):
+        try:
+            self.control_table.update_item(
+                Key={"PK": f"USER#{account_id}", "SK": "STATE"},
+                UpdateExpression="SET accountStatus = :final, updatedAtEpoch = :now",
+                ConditionExpression="accountStatus = :previous",
+                ExpressionAttributeValues={
+                    ":final": final, ":previous": previous, ":now": now,
+                },
+            )
+        except Exception as err:
+            if _error_code(err) != "ConditionalCheckFailedException":
+                raise
+            state = self.control_table.get_item(
+                Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
+            ).get("Item")
+            if not state or state.get("accountStatus") not in ({final} | set(also_accept)):
+                raise
+
+    def _complete_pending_mutation(self, job, now):
+        operation_id = job.get("operationId")
+        expires_at = now + self.settings.mutation_retention_days * 86400
+        try:
+            self.control_table.update_item(
+                Key={"PK": job["PK"], "SK": f"MUTATION#{operation_id}"},
+                UpdateExpression="SET #status = :complete, completedAtEpoch = :now, expiresAt = :expires_at, expiryBucket = :expiry_bucket",
+                ConditionExpression="#status = :pending AND operationId = :operation_id",
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":complete": "COMPLETE", ":pending": "PENDING", ":now": now,
+                    ":operation_id": operation_id, ":expires_at": expires_at,
+                    ":expiry_bucket": _control_expiry_bucket(expires_at, operation_id),
+                },
+            )
+        except Exception as err:
+            if _error_code(err) != "ConditionalCheckFailedException":
+                raise
+            receipt = self.control_table.get_item(
+                Key={"PK": job["PK"], "SK": f"MUTATION#{operation_id}"}, ConsistentRead=True
+            ).get("Item")
+            if not receipt or receipt.get("status") != "COMPLETE":
+                raise
+
+    def _write_account_deletion_receipt(self, job, now):
+        if self.deletion_ledger_table is None:
+            raise HistoryError("SERVER_UNAVAILABLE", "The deletion ledger is unavailable.")
+        ledger_pk = job.get("deletionLedgerPK")
+        ledger_sk = job.get("deletionLedgerSK")
+        requested_at = _exact_nonnegative_int(job.get("deletionRequestedAtEpoch"))
+        if (
+            not isinstance(ledger_pk, str) or not ledger_pk.startswith("ACCOUNT#")
+            or ledger_sk != "ACCOUNT_DELETION" or requested_at is None
+        ):
+            raise HistoryError("SERVER_UNAVAILABLE", "The account-deletion job binding is invalid.")
+        receipt = {
+            "PK": ledger_pk, "SK": "ACCOUNT_DELETION#HISTORY",
+            "schemaVersion": self.settings.schema_version, "recordVersion": 1,
+            "environment": self.settings.environment,
+            "eventType": "account.deletion.component.completed",
+            "component": "HISTORY", "status": "COMPLETE",
+            "occurredAtEpoch": now, "requestOccurredAtEpoch": requested_at,
+        }
+        try:
+            self.deletion_ledger_table.put_item(
+                Item=receipt,
+                ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+            )
+        except Exception as err:
+            if _error_code(err) != "ConditionalCheckFailedException":
+                raise
+            existing = self.deletion_ledger_table.get_item(
+                Key={"PK": ledger_pk, "SK": receipt["SK"]}, ConsistentRead=True
+            ).get("Item")
+            if (
+                not existing or existing.get("eventType") != receipt["eventType"]
+                or existing.get("component") != "HISTORY"
+                or existing.get("requestOccurredAtEpoch") != requested_at
+            ):
+                raise
 
     def _mark_locator_erased(self, account_id, generation, content, now):
         request_id = content.get("requestId") or _request_id_from_sort_key(content.get("SK"))

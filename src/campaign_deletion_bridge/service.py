@@ -15,6 +15,8 @@ def parse_deletion_record(record, *, environment, schema_version):
     raw = record.get("dynamodb", {}).get("NewImage")
     if not raw: raise ValueError("Deletion stream record has no NewImage")
     item = deserialize(raw)
+    if item.get("eventType") == "account.deletion.component.completed":
+        return None
     if item.get("eventType") == "campaign.consent.withdrawn" and item.get("status") == "COMPLETE":
         return None
     common = {"schemaVersion", "recordVersion", "environment", "eventType", "accountId", "status", "occurredAtEpoch"}

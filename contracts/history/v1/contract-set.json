@@ -1,0 +1,57 @@
+{
+  "contractVersion": "1.0.0",
+  "schemaVersion": 1,
+  "schemas": "api-schemas.json",
+  "identity": {
+    "source": "validated_cognito_access_token_sub",
+    "requiredScope": "aws.cognito.signin.user.admin",
+    "clientTargetingFieldsAllowed": false
+  },
+  "routes": [
+    {"method": "POST", "path": "/v1/users/history/bootstrap", "requestSchema": "bootstrapRequest", "responseSchema": "bootstrapResponse", "allowedQuery": []},
+    {"method": "GET", "path": "/v1/users/history", "responseSchema": "historyListResponse", "allowedQuery": ["cursor", "limit"]},
+    {"method": "GET", "path": "/v1/users/history/{requestId}", "responseSchema": "historyDetailResponse", "allowedQuery": []},
+    {"method": "GET", "path": "/v1/users/history/export", "responseSchema": "historyExportResponse", "allowedQuery": ["cursor", "limit"]},
+    {"method": "GET", "path": "/v1/users/progress", "responseSchema": "progressResponse", "allowedQuery": []},
+    {"method": "DELETE", "path": "/v1/users/history/{requestId}", "requestSchema": "mutationRequest", "responseSchema": "mutationResponse", "allowedQuery": []},
+    {"method": "DELETE", "path": "/v1/users/history", "requestSchema": "mutationRequest", "responseSchema": "mutationResponse", "allowedQuery": []},
+    {"method": "POST", "path": "/v1/users/progress/reset", "requestSchema": "mutationRequest", "responseSchema": "mutationResponse", "allowedQuery": []},
+    {"method": "DELETE", "path": "/v1/users/history/account", "requestSchema": "mutationRequest", "responseSchema": "mutationResponse", "allowedQuery": [], "semantics": "history_data_only"}
+  ],
+  "limits": {
+    "historyRetentionDays": 90,
+    "physicalPurgeSlaHours": 24,
+    "pitrDays": 7,
+    "deduplicationAndTombstoneDays": 120,
+    "mutationReceiptDays": 7,
+    "defaultPageSize": 20,
+    "maximumPageSize": 50,
+    "maximumResponseUtf8Bytes": 262144,
+    "cursorTtlSeconds": 900,
+    "maximumSummaryUtf8Bytes": 4096,
+    "maximumListItems": 20,
+    "maximumSignalOrActionUtf8Bytes": 1024
+  },
+  "errors": [
+    "INVALID_REQUEST",
+    "UNAUTHORIZED",
+    "FORBIDDEN",
+    "DEVICE_BINDING_REQUIRED",
+    "DEVICE_BINDING_MISMATCH",
+    "NOT_FOUND",
+    "CONFLICT",
+    "FEATURE_DISABLED",
+    "SERVER_UNAVAILABLE",
+    "INTERNAL_ERROR"
+  ],
+  "badges": [
+    {"id": "checks_1", "threshold": 1, "titleKey": "badges.checks_1.title", "descriptionKey": "badges.checks_1.description"},
+    {"id": "checks_5", "threshold": 5, "titleKey": "badges.checks_5.title", "descriptionKey": "badges.checks_5.description"},
+    {"id": "checks_20", "threshold": 20, "titleKey": "badges.checks_20.title", "descriptionKey": "badges.checks_20.description"}
+  ],
+  "recognitionQualification": "distinct_server_accepted_completed_request_ids",
+  "independence": {
+    "campaignConsentFromHistory": true,
+    "historyClearFromRecognitionReset": true
+  }
+}

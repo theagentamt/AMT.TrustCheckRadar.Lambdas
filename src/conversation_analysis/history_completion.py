@@ -38,6 +38,7 @@ def reserve_history_acceptance(account_id, request_id, payload_hash, lease_token
     completion_job = _completion_job(settings, account_id, request_id, authorization, now_epoch)
     try:
         dynamodb_client.transact_write_items(TransactItems=[
+            *_account_authority_checks(settings, account_id),
             {"Update": {
                 "TableName": settings.control_table_name,
                 "Key": _serialize({"PK": f"USER#{account_id}", "SK": "STATE"}),
@@ -103,6 +104,7 @@ def append_history_completion(
         raise AppError("SERVER_UNAVAILABLE", "The persisted History acceptance sequence is invalid.", retryable=False)
     current_generation = int(state["historyGeneration"])
     active_generation = state.get("accountStatus") == "ACTIVE" and captured_generation == current_generation
+    transaction.extend(_account_authority_checks(settings, account_id))
     transaction.append({"ConditionCheck": {
         "TableName": settings.control_table_name,
         "Key": _serialize({"PK": f"USER#{account_id}", "SK": "STATE"}),
@@ -169,6 +171,24 @@ def assert_history_result_visible(account_id, request_id):
     if not settings.durable_replay_enabled:
         return
     _validate(settings, "durable_replay")
+    if not settings.users_table_name or not settings.deletion_ledger_table_name:
+        raise AppError("SERVER_UNAVAILABLE", "The account authority is unavailable.", retryable=False)
+    profile = dynamodb.Table(settings.users_table_name).get_item(
+        Key={"PK": f"USER#{account_id}", "SK": "PROFILE"}, ConsistentRead=True
+    ).get("Item")
+    deletion = dynamodb.Table(settings.deletion_ledger_table_name).get_item(
+        Key={"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"}, ConsistentRead=True
+    ).get("Item")
+    if (
+        not profile or profile.get("sub") != account_id
+        or profile.get("status") != "ACTIVE" or profile.get("ageVerified") is not True
+        or deletion is not None
+    ):
+        raise AppError(
+            "RESULT_UNAVAILABLE",
+            "This request was completed but its retained result is no longer available.",
+            retryable=False,
+        )
     control = dynamodb.Table(settings.control_table_name)
     state = control.get_item(
         Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
@@ -255,6 +275,27 @@ def _completion_job(settings, account_id, request_id, authorization, now_epoch):
         "expiresAt": expires_at,
         "expiryBucket": _control_expiry_bucket(expires_at, request_id),
     }
+
+
+def _account_authority_checks(settings, account_id):
+    if not settings.users_table_name or not settings.deletion_ledger_table_name:
+        raise AppError("SERVER_UNAVAILABLE", "The account authority is unavailable.", retryable=False)
+    return [
+        {"ConditionCheck": {
+            "TableName": settings.users_table_name,
+            "Key": _serialize({"PK": f"USER#{account_id}", "SK": "PROFILE"}),
+            "ConditionExpression": "#status = :active AND ageVerified = :true AND #sub = :account_id",
+            "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
+            "ExpressionAttributeValues": _serialize({
+                ":active": "ACTIVE", ":true": True, ":account_id": account_id,
+            }),
+        }},
+        {"ConditionCheck": {
+            "TableName": settings.deletion_ledger_table_name,
+            "Key": _serialize({"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"}),
+            "ConditionExpression": "attribute_not_exists(PK)",
+        }},
+    ]
 
 
 def _control_expiry_bucket(expires_at, value):

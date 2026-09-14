@@ -160,7 +160,72 @@ class AbuseTable:
         return {}
 
 
+class LedgerTable:
+    def __init__(self):
+        self.items = {}
+        self.puts = []
+
+    def put_item(self, Item, **_kwargs):
+        self.puts.append(Item)
+        self.items[(Item["PK"], Item["SK"])] = dict(Item)
+
+    def get_item(self, Key, **_kwargs):
+        item = self.items.get((Key["PK"], Key["SK"]))
+        return {"Item": item} if item else {}
+
+
+class EmptyContentTable:
+    def query(self, **_kwargs):
+        return {"Items": []}
+
+
 class HistoryLifecycleTests(unittest.TestCase):
+    def test_account_history_erasure_advances_across_every_generation(self):
+        job = {
+            "PK": "USER#a", "SK": "ERASURE#op", "recordType": "ERASURE",
+            "status": "PENDING", "stage": "HISTORY", "historyGeneration": 0,
+            "maxHistoryGeneration": 2, "operationId": "op",
+            "reason": "HISTORY_ACCOUNT_DELETION",
+        }
+        control = ControlTable({("USER#a", "ERASURE#op"): job})
+        service = HistoryLifecycleService(
+            settings=Settings(), content_table=EmptyContentTable(), control_table=control,
+            abuse_table=AbuseTable(), now=lambda: 100,
+        )
+        complete, _ = service._process_erasure_job(job, 100)
+        self.assertFalse(complete)
+        update = control.updates[-1][1]
+        self.assertIn("historyGeneration = :next_generation", update["UpdateExpression"])
+        self.assertEqual(update["ExpressionAttributeValues"][":next_generation"], 1)
+
+    def test_full_account_erasure_finishes_state_and_component_receipt(self):
+        state = {
+            "PK": "USER#a", "SK": "STATE", "accountStatus": "DELETING",
+            "historyGeneration": 0, "recognitionGeneration": 0, "acceptedSequence": 0,
+        }
+        job = {
+            "PK": "USER#a", "SK": "ERASURE#op", "recordType": "ERASURE",
+            "status": "PENDING", "stage": "REPLAY", "historyGeneration": 0,
+            "maxHistoryGeneration": 0, "operationId": "op", "reason": "ACCOUNT_DELETION",
+            "deletionLedgerPK": "ACCOUNT#a", "deletionLedgerSK": "ACCOUNT_DELETION",
+            "deletionRequestedAtEpoch": 90,
+        }
+        control = ControlTable({("USER#a", "STATE"): state, ("USER#a", "ERASURE#op"): job})
+        ledger = LedgerTable()
+        service = HistoryLifecycleService(
+            settings=Settings(), content_table=EmptyContentTable(), control_table=control,
+            abuse_table=AbuseTable(), deletion_ledger_table=ledger, now=lambda: 100,
+        )
+        complete, redacted = service._process_erasure_job(job, 100)
+        self.assertTrue(complete)
+        self.assertEqual(redacted, 0)
+        self.assertTrue(any(
+            update[1]["ExpressionAttributeValues"].get(":final") == "DELETED"
+            for update in control.updates
+        ))
+        self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
+        self.assertEqual(ledger.puts[0]["requestOccurredAtEpoch"], 90)
+
     def test_content_keys_are_parsed_without_assessment_data(self):
         partition = "USER#account-1#HISTORY#7"
         sort_key = "COMPLETE#1700000000000#request-1"

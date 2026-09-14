@@ -37,10 +37,56 @@ class Settings:
     max_summary_bytes = 2048
     max_list_items = 20
     max_text_field_bytes = 512
-    badge_catalog = ({"id": "one", "threshold": 1}, {"id": "five", "threshold": 5}, {"id": "twenty", "threshold": 20})
+    badge_catalog = (
+        {"id": "checks_1", "threshold": 1, "titleKey": "badges.checks_1.title", "descriptionKey": "badges.checks_1.description"},
+        {"id": "checks_5", "threshold": 5, "titleKey": "badges.checks_5.title", "descriptionKey": "badges.checks_5.description"},
+        {"id": "checks_20", "threshold": 20, "titleKey": "badges.checks_20.title", "descriptionKey": "badges.checks_20.description"},
+    )
 
 
 class HistoryReadTests(unittest.TestCase):
+    def test_list_and_export_include_generations_contract_and_server_time(self):
+        state = {
+            "accountStatus": "ACTIVE", "historyGeneration": 2,
+            "recognitionGeneration": 3,
+        }
+        control = Table({("USER#a", "STATE"): state})
+        service = HistoryReadService(
+            settings=Settings(), content_table=Table(query_items=[]), control_table=control,
+            cursor_store=None, now=lambda: 123,
+        )
+        listed = service.list_history("a")
+        exported = service.export_history("a")
+        self.assertEqual(listed["contractVersion"], "1.0.0")
+        self.assertEqual(listed["serverTimeEpoch"], 123)
+        self.assertEqual(listed["historyGeneration"], 2)
+        self.assertEqual(listed["recognitionGeneration"], 3)
+        self.assertEqual(exported["exportFormat"], "application/vnd.amt.trustcheckradar.history.v1+json")
+
+    def test_progress_uses_stable_badge_ids_and_localization_keys(self):
+        control = Table({
+            ("USER#a", "STATE"): {
+                "accountStatus": "ACTIVE", "historyGeneration": 2,
+                "recognitionGeneration": 3,
+            },
+            ("USER#a", "PROGRESS#3"): {
+                "recognitionGeneration": 3, "qualifyingChecks": 5,
+                "awardedBadgeIds": ["checks_1", "checks_5"],
+            },
+        })
+        service = HistoryReadService(
+            settings=Settings(), content_table=Table(), control_table=control,
+            cursor_store=None, now=lambda: 123,
+        )
+        result = service.get_progress("a")
+        self.assertEqual(result["awardedBadgeIds"], ["checks_1", "checks_5"])
+        self.assertEqual(
+            [badge["titleKey"] for badge in result["badges"]],
+            ["badges.checks_1.title", "badges.checks_5.title", "badges.checks_20.title"],
+        )
+        self.assertEqual(result["historyGeneration"], 2)
+        self.assertEqual(result["recognitionGeneration"], 3)
+
     def test_cursor_is_random_handle_and_tenant_bound(self):
         table = Table()
         cursors = CursorStore(table=table, secret=b"x" * 32, ttl_seconds=300, now=lambda: 100)

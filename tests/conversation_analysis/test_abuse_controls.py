@@ -14,6 +14,14 @@ for path in (SRC_DIR, MODULE_DIR):
 for module_name in ["config", "errors", "abuse_controls"]:
     sys.modules.pop(module_name, None)
 
+os.environ.update({
+    "COGNITO_ISSUER": "https://cognito-idp.us-east-1.amazonaws.com/test",
+    "COGNITO_APP_CLIENT_ID": "test-client",
+    "COGNITO_REQUIRED_SCOPE": "aws.cognito.signin.user.admin",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
+})
+
 
 class FakeClientError(Exception):
     def __init__(self, response=None):
@@ -132,7 +140,29 @@ fake_table = FakeTable()
 
 class FakeResource:
     def Table(self, name):
+        if name == "users":
+            class Users:
+                def get_item(self, Key, **_kwargs):
+                    sub = Key["PK"].removeprefix("USER#")
+                    return {"Item": {"sub": sub, "status": "ACTIVE", "ageVerified": True}}
+            return Users()
+        if name == "ledger":
+            class Ledger:
+                def get_item(self, **_kwargs):
+                    return {}
+            return Ledger()
         return fake_table
+
+
+class ActiveUsersTable:
+    def get_item(self, Key, **_kwargs):
+        sub = Key["PK"].removeprefix("USER#")
+        return {"Item": {"sub": sub, "status": "ACTIVE", "ageVerified": True}}
+
+
+class EmptyLedgerTable:
+    def get_item(self, **_kwargs):
+        return {}
 
 
 boto3_stub = types.ModuleType("boto3")
@@ -183,6 +213,11 @@ class AbuseControlsTests(unittest.TestCase):
                     "jwt": {
                         "claims": {
                             "sub": "user-123",
+                            "iss": os.environ["COGNITO_ISSUER"],
+                            "client_id": os.environ["COGNITO_APP_CLIENT_ID"],
+                            "token_use": "access",
+                            "exp": "4102444800",
+                            "scope": os.environ["COGNITO_REQUIRED_SCOPE"],
                         }
                     }
                 }
@@ -372,7 +407,10 @@ class AbuseControlsTests(unittest.TestCase):
 
         class RoutedResource:
             def Table(self, name):
-                return {"control": control, "content": content_table}[name]
+                return {
+                    "control": control, "content": content_table,
+                    "users": ActiveUsersTable(), "ledger": EmptyLedgerTable(),
+                }[name]
 
         with mock.patch.dict(os.environ, _history_env(), clear=True), mock.patch.object(abuse_controls, "dynamodb", RoutedResource()):
             result = abuse_controls.check_or_lock_request("user-123", "req-1", request_payload, now_epoch=100)
@@ -406,8 +444,11 @@ class AbuseControlsTests(unittest.TestCase):
         })
 
         class RoutedResource:
-            def Table(self, _name):
-                return control
+            def Table(self, name):
+                return {
+                    "control": control, "users": ActiveUsersTable(),
+                    "ledger": EmptyLedgerTable(),
+                }.get(name, control)
 
         with mock.patch.dict(os.environ, _history_env(), clear=True), mock.patch.object(abuse_controls, "dynamodb", RoutedResource()):
             with self.assertRaises(AppError) as raised:
@@ -420,9 +461,10 @@ def _history_env():
         "APP_ENVIRONMENT": "dev", "HISTORY_DURABLE_REPLAY_ENABLED": "true",
         "HISTORY_CONTENT_TABLE_NAME": "content", "HISTORY_CONTROL_TABLE_NAME": "control",
         "DEVICE_BINDINGS_TABLE_NAME": "bindings", "ANALYSIS_ABUSE_TABLE_NAME": "abuse",
+        "USERS_TABLE_NAME": "users", "DELETION_LEDGER_TABLE_NAME": "ledger",
         "HISTORY_PITR_POLICY_APPROVED": "true", "HISTORY_CONTROL_RETENTION_POLICY_APPROVED": "true",
-        "HISTORY_DEDUP_RETENTION_DAYS": "400", "HISTORY_MAX_SUMMARY_BYTES": "2048",
-        "HISTORY_MAX_LIST_ITEMS": "20", "HISTORY_MAX_TEXT_FIELD_BYTES": "512",
+        "HISTORY_DEDUP_RETENTION_DAYS": "400", "HISTORY_MAX_SUMMARY_BYTES": "4096",
+        "HISTORY_MAX_LIST_ITEMS": "20", "HISTORY_MAX_TEXT_FIELD_BYTES": "1024",
     }
 
 

@@ -18,36 +18,27 @@ from config import (
 )
 from errors import AppError
 from shared_history import HistoryError, HistorySettings, response_from_history_item
+from shared_history.security import assert_authoritative_account_active, jwt_subject
 
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(ANALYSIS_ABUSE_TABLE_NAME) if ANALYSIS_ABUSE_TABLE_NAME else None
 
 
 def extract_identity(event: dict) -> str:
-    request_context = event.get("requestContext") or {}
-    authorizer = request_context.get("authorizer") or {}
-
-    jwt_claims = (authorizer.get("jwt") or {}).get("claims")
-    if isinstance(jwt_claims, dict):
-        sub = jwt_claims.get("sub")
-        if isinstance(sub, str) and sub.strip():
-            return _normalize_identity(sub)
-
-    legacy_claims = authorizer.get("claims")
-    if isinstance(legacy_claims, dict):
-        sub = legacy_claims.get("sub")
-        if isinstance(sub, str) and sub.strip():
-            return _normalize_identity(sub)
-
-    principal_id = authorizer.get("principalId")
-    if isinstance(principal_id, str) and principal_id.strip():
-        return _normalize_identity(principal_id)
-
-    raise AppError(
-        "UNAUTHORIZED",
-        "A trusted caller identity is required for analysis requests.",
-        retryable=False,
-    )
+    try:
+        settings = HistorySettings.from_env()
+        settings.validate_api_auth()
+        identity = _normalize_identity(jwt_subject(event, settings))
+        if not settings.users_table_name or not settings.deletion_ledger_table_name:
+            raise HistoryError("SERVER_UNAVAILABLE", "The account authority is unavailable.")
+        assert_authoritative_account_active(
+            identity,
+            dynamodb.Table(settings.users_table_name),
+            dynamodb.Table(settings.deletion_ledger_table_name),
+        )
+        return identity
+    except HistoryError as err:
+        raise AppError(err.code, err.message, retryable=err.retryable) from err
 
 
 def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epoch: int | None = None):

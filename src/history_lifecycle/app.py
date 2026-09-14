@@ -25,6 +25,7 @@ def lambda_handler(event, _context):
             content_table=resource.Table(settings.content_table_name),
             control_table=resource.Table(settings.control_table_name),
             abuse_table=resource.Table(settings.analysis_abuse_table_name),
+            deletion_ledger_table=resource.Table(settings.deletion_ledger_table_name),
         ).sweep()
         _success_metric(result)
         return result

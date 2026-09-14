@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amt.example/contracts/history/v1/api-schemas.json",
+  "title": "AMT Trust Check Radar History API V1 schemas",
+  "$defs": {
+    "bootstrapRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion"],
+      "properties": {"schemaVersion": {"const": 1}}
+    },
+    "mutationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "operationId"],
+      "properties": {
+        "schemaVersion": {"const": 1},
+        "operationId": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"}
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "requestId", "scamScore", "riskLevel", "confidence", "summary", "signals", "recommendedActions"],
+      "properties": {
+        "schemaVersion": {"const": "1.0"},
+        "requestId": {"$ref": "#/$defs/requestId"},
+        "scamScore": {"type": "number", "minimum": 0, "maximum": 100},
+        "riskLevel": {"enum": ["low", "medium", "high"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "summary": {"type": "string", "minLength": 1, "x-maxUtf8Bytes": 4096},
+        "signals": {"$ref": "#/$defs/boundedTextList"},
+        "recommendedActions": {"$ref": "#/$defs/boundedTextList"}
+      }
+    },
+    "boundedTextList": {
+      "type": "array", "maxItems": 20, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "x-maxUtf8Bytes": 1024}
+    },
+    "requestId": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "historyItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "sourceType", "acceptedAtEpochMs", "completedAtEpochMs", "assessment"],
+      "properties": {
+        "requestId": {"$ref": "#/$defs/requestId"},
+        "sourceType": {"enum": ["ocr", "pasted_text", "mixed"]},
+        "acceptedAtEpochMs": {"type": "integer", "minimum": 1},
+        "completedAtEpochMs": {"type": "integer", "minimum": 1},
+        "assessment": {"$ref": "#/$defs/assessment"}
+      }
+    },
+    "historyListResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "serverTimeEpoch", "historyGeneration", "recognitionGeneration", "items"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "serverTimeEpoch": {"type": "integer", "minimum": 1},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0},
+        "items": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/historyItem"}},
+        "nextCursor": {"type": "string", "minLength": 32, "maxLength": 128}
+      },
+      "x-maxUtf8Bytes": 262144
+    },
+    "historyExportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "serverTimeEpoch", "historyGeneration", "recognitionGeneration", "items", "exportFormat"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "serverTimeEpoch": {"type": "integer", "minimum": 1},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0},
+        "items": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/historyItem"}},
+        "nextCursor": {"type": "string", "minLength": 32, "maxLength": 128},
+        "exportFormat": {"const": "application/vnd.amt.trustcheckradar.history.v1+json"}
+      },
+      "x-maxUtf8Bytes": 262144
+    },
+    "historyDetailResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "serverTimeEpoch", "historyGeneration", "recognitionGeneration", "item"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "serverTimeEpoch": {"type": "integer", "minimum": 1},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0},
+        "item": {"$ref": "#/$defs/historyItem"}
+      },
+      "x-maxUtf8Bytes": 262144
+    },
+    "badge": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "threshold", "titleKey", "descriptionKey", "awarded"],
+      "properties": {
+        "id": {"enum": ["checks_1", "checks_5", "checks_20"]},
+        "threshold": {"enum": [1, 5, 20]},
+        "titleKey": {"type": "string", "pattern": "^badges\\.checks_(1|5|20)\\.title$"},
+        "descriptionKey": {"type": "string", "pattern": "^badges\\.checks_(1|5|20)\\.description$"},
+        "awarded": {"type": "boolean"}
+      }
+    },
+    "progressResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "serverTimeEpoch", "historyGeneration", "recognitionGeneration", "qualifyingChecks", "awardedBadgeIds", "badges"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "serverTimeEpoch": {"type": "integer", "minimum": 1},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0},
+        "qualifyingChecks": {"type": "integer", "minimum": 0},
+        "awardedBadgeIds": {"type": "array", "uniqueItems": true, "items": {"enum": ["checks_1", "checks_5", "checks_20"]}},
+        "badges": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/badge"}}
+      }
+    },
+    "bootstrapResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "operation", "status", "historyGeneration", "recognitionGeneration", "serverTimeEpoch"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "operation": {"const": "bootstrap"}, "status": {"const": "COMPLETE"},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0},
+        "serverTimeEpoch": {"type": "integer", "minimum": 1}
+      }
+    },
+    "mutationResponse": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schemaVersion", "contractVersion", "operationId", "operation", "status"],
+      "properties": {
+        "schemaVersion": {"const": 1}, "contractVersion": {"const": "1.0.0"},
+        "operationId": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+        "operation": {"enum": ["delete_one", "clear_history", "reset_progress", "delete_history_account_data"]},
+        "status": {"enum": ["PENDING", "COMPLETE"]},
+        "acceptedAtEpoch": {"type": "integer", "minimum": 1},
+        "completedAtEpoch": {"type": "integer", "minimum": 1},
+        "targetRequestId": {"$ref": "#/$defs/requestId"},
+        "historyGeneration": {"type": "integer", "minimum": 0},
+        "recognitionGeneration": {"type": "integer", "minimum": 0}
+      }
+    },
+    "errorResponse": {
+      "type": "object", "additionalProperties": false, "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object", "additionalProperties": false,
+          "required": ["code", "message", "retryable"],
+          "properties": {
+            "code": {"enum": ["INVALID_REQUEST", "UNAUTHORIZED", "FORBIDDEN", "DEVICE_BINDING_REQUIRED", "DEVICE_BINDING_MISMATCH", "NOT_FOUND", "CONFLICT", "FEATURE_DISABLED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR"]},
+            "message": {"type": "string", "minLength": 1},
+            "retryable": {"type": "boolean"},
+            "details": {"type": "array", "maxItems": 20, "items": {"type": "object"}}
+          }
+        }
+      }
+    }
+  }
+}

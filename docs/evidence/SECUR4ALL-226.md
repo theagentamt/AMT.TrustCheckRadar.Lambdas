@@ -5,6 +5,10 @@ Status: **safe disabled implementation complete; story activation pending**
 Implemented Lambda scope:
 
 - Idempotent delete-one, clear-History, and reset-progress mutation receipts.
+- Secure idempotent bootstrap for new and existing eligible accounts, with
+  atomic foundation-profile and deletion-fence conditions.
+- History-only account-data deletion is explicitly separate from full product
+  account deletion.
 - Delete-one atomically removes content, tombstones its durable locator, and
   redacts the short analysis replay record.
 - Clear advances only `historyGeneration` and creates a durable erasure job.
@@ -34,16 +38,25 @@ Implemented Lambda scope:
   `RESULT_READY` analysis responses. Regression tests explicitly simulate both
   replay update failure after content deletion and History-first native TTL.
 - Lifecycle metrics include overdue erasure jobs for the 24-hour SLA alarm.
+- `history_account_deletion_bridge` consumes only the exact authoritative fixed
+  deletion-fence record, atomically fences History, and creates a resumable job
+  spanning all captured generations. Lifecycle completion writes only the
+  History component receipt and never completes the overall account deletion.
+- Reads, mutations, analysis entry, acceptance, and completion check the same
+  authoritative deletion fence, covering pre-issued tokens and delayed/missing
+  stream delivery.
 
 Automated evidence is in `tests/history_mutation_api`,
-`tests/history_lifecycle`, `tests/history_read_api`, and the analysis generation
-race tests.
+`tests/history_lifecycle`, `tests/history_read_api`,
+`tests/history_account_deletion_bridge`, `tests/shared_history`, and the
+analysis generation race tests. The local full suite result for this candidate
+is 245 passed with 126 subtests passed.
 
 Restore remains fail-closed: before restored data can be served, both expiration
 checkpoint families must be rewound to the earliest restored expiry and sweeps
 must complete. Application writes outside the configured reconciliation window
 are forbidden.
 
-The story must remain open until account deletion/consent lifecycle integration,
-backup erasure replay/PITR policy, final mutation schemas, deployed alarms, and
-authenticated Dev 24-hour deletion evidence are complete.
+The story must remain open until infrastructure wiring is accepted, the Dev
+bridge/lifecycle path is exercised, deployed alarms are verified, and the
+24-hour deletion evidence is recorded.

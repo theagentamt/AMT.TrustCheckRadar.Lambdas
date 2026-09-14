@@ -6,7 +6,11 @@ import boto3
 
 from shared_history import HistoryError, HistorySettings
 from shared_history.contracts import validate_request_id
-from shared_history.security import assert_active_device_binding, jwt_subject
+from shared_history.security import (
+    assert_active_device_binding,
+    assert_authoritative_account_active,
+    jwt_subject,
+)
 from service import CursorStore, HistoryReadService
 
 LOGGER = logging.getLogger()
@@ -18,8 +22,13 @@ def lambda_handler(event, _context):
     try:
         settings = HistorySettings.from_env()
         settings.validate_reads()
-        account_id = jwt_subject(event)
+        account_id = jwt_subject(event, settings)
         dynamodb = boto3.resource("dynamodb")
+        assert_authoritative_account_active(
+            account_id,
+            dynamodb.Table(settings.users_table_name),
+            dynamodb.Table(settings.deletion_ledger_table_name),
+        )
         assert_active_device_binding(
             event, account_id, dynamodb.Table(settings.device_bindings_table_name)
         )
@@ -30,16 +39,24 @@ def lambda_handler(event, _context):
             cursor_store=CursorStore.from_aws(settings, dynamodb.Table(settings.control_table_name)),
         )
         route = _route_key(event)
+        _no_body(event)
         if route == "GET /v1/users/history":
-            query = event.get("queryStringParameters") or {}
+            query = _query(event, {"cursor", "limit"})
             result = service.list_history(
                 account_id,
                 cursor=query.get("cursor"),
                 requested_limit=query.get("limit"),
             )
         elif route == "GET /v1/users/history/{requestId}":
+            _query(event, set())
             result = service.get_history(account_id, _path_request_id(event))
+        elif route == "GET /v1/users/history/export":
+            query = _query(event, {"cursor", "limit"})
+            result = service.export_history(
+                account_id, cursor=query.get("cursor"), requested_limit=query.get("limit")
+            )
         elif route == "GET /v1/users/progress":
+            _query(event, set())
             settings.validate_recognition()
             result = service.get_progress(account_id)
         else:
@@ -63,6 +80,8 @@ def _route_key(event):
         return route
     method = (((event.get("requestContext") or {}).get("http") or {}).get("method") or "").upper()
     path = event.get("rawPath") or ""
+    if method == "GET" and path == "/v1/users/history/export":
+        return "GET /v1/users/history/export"
     if method == "GET" and path.startswith("/v1/users/history/"):
         path = "/v1/users/history/{requestId}"
     return f"{method} {path}"
@@ -79,11 +98,24 @@ def _path_request_id(event):
         raise HistoryError("INVALID_REQUEST", "The requestId path parameter is invalid.") from err
 
 
+def _query(event, allowed):
+    query = event.get("queryStringParameters") or {}
+    if not isinstance(query, dict) or any(key not in allowed for key in query):
+        raise HistoryError("INVALID_REQUEST", "The query parameters do not match the approved contract.")
+    return query
+
+
+def _no_body(event):
+    if event.get("body") not in (None, ""):
+        raise HistoryError("INVALID_REQUEST", "History read routes do not accept a request body.")
+
+
 def _operation(event):
     route = _route_key(event)
     return {
         "GET /v1/users/history": "list",
         "GET /v1/users/history/{requestId}": "detail",
+        "GET /v1/users/history/export": "export",
         "GET /v1/users/progress": "progress",
     }.get(route, "unknown")
 

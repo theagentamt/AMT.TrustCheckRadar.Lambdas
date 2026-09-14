@@ -7,11 +7,71 @@ from shared_history.errors import HistoryError
 
 
 class HistoryMutationService:
-    def __init__(self, *, settings, control_table, dynamodb_client, now=lambda: int(time.time())):
+    def __init__(
+        self, *, settings, control_table, dynamodb_client,
+        users_table=None, deletion_ledger_table=None, now=lambda: int(time.time()),
+    ):
         self.settings = settings
         self.control_table = control_table
+        self.users_table = users_table
+        self.deletion_ledger_table = deletion_ledger_table
         self.client = dynamodb_client
         self.now = now
+
+    def bootstrap(self, account_id):
+        self._assert_foundation_eligible(account_id)
+        existing = self.control_table.get_item(
+            Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
+        ).get("Item")
+        if existing:
+            return self._public_bootstrap(existing)
+        now = self.now()
+        state = {
+            "PK": f"USER#{account_id}", "SK": "STATE", "recordType": "STATE",
+            "schemaVersion": self.settings.schema_version, "accountStatus": "ACTIVE",
+            "historyGeneration": 0, "recognitionGeneration": 0,
+            "acceptedSequence": 0, "stateVersion": 1,
+            "createdAtEpoch": now, "updatedAtEpoch": now,
+        }
+        progress = {
+            "PK": f"USER#{account_id}", "SK": "PROGRESS#0", "recordType": "PROGRESS",
+            "schemaVersion": self.settings.schema_version, "recognitionGeneration": 0,
+            "qualifyingChecks": 0, "awardedBadgeIds": [], "stateVersion": 1,
+            "updatedAtEpoch": now,
+        }
+        transaction = [
+            {"ConditionCheck": {
+                "TableName": self.settings.users_table_name,
+                "Key": _serialize({"PK": f"USER#{account_id}", "SK": "PROFILE"}),
+                "ConditionExpression": "#status = :active AND ageVerified = :true AND #sub = :account_id",
+                "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
+                "ExpressionAttributeValues": _serialize({
+                    ":active": "ACTIVE", ":true": True, ":account_id": account_id,
+                }),
+            }},
+            {"ConditionCheck": {
+                "TableName": self.settings.deletion_ledger_table_name,
+                "Key": _serialize({"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"}),
+                "ConditionExpression": "attribute_not_exists(PK)",
+            }},
+            {"Put": self._put(self.settings.control_table_name, state)},
+            {"Put": self._put(self.settings.control_table_name, progress)},
+        ]
+        try:
+            self.client.transact_write_items(TransactItems=transaction)
+        except Exception as err:
+            if _error_code(err) != "TransactionCanceledException":
+                raise
+            self._assert_foundation_eligible(account_id)
+            existing = self.control_table.get_item(
+                Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
+            ).get("Item")
+            if existing:
+                return self._public_bootstrap(existing)
+            raise HistoryError(
+                "CONFLICT", "The account changed during History bootstrap.", retryable=True
+            ) from err
+        return self._public_bootstrap(state)
 
     def delete_one(self, account_id, request_id, operation_id):
         previous = self._receipt(account_id, operation_id, "delete_one", request_id)
@@ -49,7 +109,7 @@ class HistoryMutationService:
                 "ExpressionAttributeNames": {"#status": "status", "#response": "response", "#ttl": "ttl"},
                 "ExpressionAttributeValues": _serialize({":erased": "COMPLETED_ERASED", ":updated": _iso(now), ":payload_hash": locator.get("payloadHash", ""), ":expires_at": now + self.settings.dedup_retention_days * 86400}),
             }})
-        self._transact(items)
+        self._transact(items, account_id=account_id)
         return self._public_receipt(receipt)
 
     def clear_history(self, account_id, operation_id):
@@ -74,7 +134,7 @@ class HistoryMutationService:
             {"Put": self._put(self.settings.control_table_name, job)},
             {"Put": self._put(self.settings.control_table_name, receipt)},
         ]
-        self._transact(items)
+        self._transact(items, account_id=account_id)
         return self._public_receipt(receipt)
 
     def reset_progress(self, account_id, operation_id):
@@ -104,7 +164,38 @@ class HistoryMutationService:
             }},
             {"Put": self._put(self.settings.control_table_name, progress)},
             {"Put": self._put(self.settings.control_table_name, receipt)},
-        ])
+        ], account_id=account_id)
+        return self._public_receipt(receipt)
+
+    def delete_account_history(self, account_id, operation_id):
+        operation = "delete_history_account_data"
+        previous = self._receipt(account_id, operation_id, operation, None)
+        if previous:
+            return self._public_receipt(previous)
+        state = self._state(account_id)
+        now = self.now()
+        maximum_generation = int(state["historyGeneration"])
+        receipt = self._receipt_item(
+            account_id, operation_id, operation, None, now, status="PENDING"
+        )
+        job = self._erasure_job(
+            account_id, operation_id, "HISTORY_ACCOUNT_DELETION", 0, now,
+            max_generation=maximum_generation,
+        )
+        self._transact([
+            {"Update": {
+                "TableName": self.settings.control_table_name,
+                "Key": _serialize({"PK": f"USER#{account_id}", "SK": "STATE"}),
+                "UpdateExpression": "SET accountStatus = :deleting, updatedAtEpoch = :now",
+                "ConditionExpression": "accountStatus = :active AND historyGeneration = :generation",
+                "ExpressionAttributeValues": _serialize({
+                    ":deleting": "HISTORY_DELETING", ":active": "ACTIVE",
+                    ":generation": maximum_generation, ":now": now,
+                }),
+            }},
+            {"Put": self._put(self.settings.control_table_name, job)},
+            {"Put": self._put(self.settings.control_table_name, receipt)},
+        ], account_id=account_id)
         return self._public_receipt(receipt)
 
     def _state(self, account_id):
@@ -129,22 +220,25 @@ class HistoryMutationService:
             raise HistoryError("CONFLICT", "The operationId is already bound to a different mutation.")
         return item
 
-    def _receipt_item(self, account_id, operation_id, operation, target, now):
+    def _receipt_item(self, account_id, operation_id, operation, target, now, *, status="COMPLETE"):
         item = {
             "PK": f"USER#{account_id}", "SK": f"MUTATION#{operation_id}",
             "recordType": "MUTATION", "schemaVersion": self.settings.schema_version,
-            "operationId": operation_id, "operation": operation, "status": "COMPLETE",
-            "completedAtEpoch": now,
+            "operationId": operation_id, "operation": operation, "status": status,
             "expiresAt": now + self.settings.mutation_retention_days * 86400,
         }
+        if status == "COMPLETE":
+            item["completedAtEpoch"] = now
+        else:
+            item["acceptedAtEpoch"] = now
         item["expiryBucket"] = _expiry_bucket(item["expiresAt"], operation_id)
         if target is not None:
             item["targetRequestId"] = target
         return item
 
-    def _erasure_job(self, account_id, operation_id, reason, generation, now):
+    def _erasure_job(self, account_id, operation_id, reason, generation, now, *, max_generation=None):
         shard = int(hashlib.sha256(operation_id.encode()).hexdigest()[:2], 16) % 16
-        return {
+        result = {
             "PK": f"USER#{account_id}", "SK": f"ERASURE#{operation_id}",
             "recordType": "ERASURE", "schemaVersion": self.settings.schema_version,
             "operationId": operation_id, "reason": reason, "status": "PENDING",
@@ -153,11 +247,69 @@ class HistoryMutationService:
             "deleteByEpoch": now + self.settings.erasure_sla_hours * 3600,
             "lifecycleBucket": f"PENDING#{shard:02d}", "lifecycleAt": now,
         }
+        if max_generation is not None:
+            result["maxHistoryGeneration"] = max_generation
+        return result
+
+    def _assert_foundation_eligible(self, account_id):
+        if self.users_table is None or self.deletion_ledger_table is None:
+            raise HistoryError("SERVER_UNAVAILABLE", "The account authority is unavailable.")
+        profile = self.users_table.get_item(
+            Key={"PK": f"USER#{account_id}", "SK": "PROFILE"}, ConsistentRead=True
+        ).get("Item")
+        deletion = self.deletion_ledger_table.get_item(
+            Key={"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"},
+            ConsistentRead=True,
+        ).get("Item")
+        if (
+            not profile or profile.get("sub") != account_id
+            or profile.get("status") != "ACTIVE" or profile.get("ageVerified") is not True
+            or deletion is not None
+        ):
+            raise HistoryError("FORBIDDEN", "The account is not eligible for History bootstrap.")
+
+    def _public_bootstrap(self, state):
+        if (
+            state.get("accountStatus") != "ACTIVE"
+            or _exact_nonnegative_int(state.get("historyGeneration")) is None
+            or _exact_nonnegative_int(state.get("recognitionGeneration")) is None
+            or _exact_nonnegative_int(state.get("acceptedSequence")) is None
+        ):
+            raise HistoryError("FORBIDDEN", "The account is not eligible for History bootstrap.")
+        return {
+            "schemaVersion": self.settings.schema_version,
+            "contractVersion": "1.0.0",
+            "operation": "bootstrap",
+            "status": "COMPLETE",
+            "historyGeneration": int(state["historyGeneration"]),
+            "recognitionGeneration": int(state["recognitionGeneration"]),
+            "serverTimeEpoch": self.now(),
+        }
 
     def _put(self, table_name, item):
         return {"TableName": table_name, "Item": _serialize(item), "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}
 
-    def _transact(self, items):
+    def _authority_condition_checks(self, account_id):
+        return [
+            {"ConditionCheck": {
+                "TableName": self.settings.users_table_name,
+                "Key": _serialize({"PK": f"USER#{account_id}", "SK": "PROFILE"}),
+                "ConditionExpression": "#status = :active AND ageVerified = :true AND #sub = :account_id",
+                "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
+                "ExpressionAttributeValues": _serialize({
+                    ":active": "ACTIVE", ":true": True, ":account_id": account_id,
+                }),
+            }},
+            {"ConditionCheck": {
+                "TableName": self.settings.deletion_ledger_table_name,
+                "Key": _serialize({"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"}),
+                "ConditionExpression": "attribute_not_exists(PK)",
+            }},
+        ]
+
+    def _transact(self, items, *, account_id=None):
+        if account_id is not None:
+            items = self._authority_condition_checks(account_id) + items
         try:
             self.client.transact_write_items(TransactItems=items)
         except Exception as err:
@@ -169,9 +321,13 @@ class HistoryMutationService:
     def _public_receipt(item):
         result = {
             "schemaVersion": int(item["schemaVersion"]), "operationId": item["operationId"],
-            "operation": item["operation"], "status": item["status"],
-            "completedAtEpoch": int(item["completedAtEpoch"]),
+            "contractVersion": "1.0.0", "operation": item["operation"],
+            "status": item["status"],
         }
+        if "completedAtEpoch" in item:
+            result["completedAtEpoch"] = int(item["completedAtEpoch"])
+        if "acceptedAtEpoch" in item:
+            result["acceptedAtEpoch"] = int(item["acceptedAtEpoch"])
         for key in ("targetRequestId", "historyGeneration", "recognitionGeneration"):
             if key in item:
                 result[key] = int(item[key]) if key.endswith("Generation") else item[key]
@@ -210,3 +366,14 @@ def _expiry_bucket(expires_at, value):
     hour = datetime.fromtimestamp(expires_at, UTC).strftime("%Y%m%d%H")
     shard = int(hashlib.sha256(value.encode()).hexdigest()[:2], 16) % 16
     return f"CONTROL#{hour}#{shard:02d}"
+
+
+def _exact_nonnegative_int(value):
+    if isinstance(value, bool) or not isinstance(value, (int, Decimal)):
+        return None
+    integer = int(value)
+    return integer if integer == value and integer >= 0 else None
+
+
+def _error_code(err):
+    return getattr(err, "response", {}).get("Error", {}).get("Code")
