@@ -41,12 +41,27 @@ table strongly and newest-first. The control table uses:
 - `PK=USER#<sub>`, `SK=ERASURE#<operationId>`
 - `PK=CURSOR#<sha256(randomHandle)>`, `SK=CURSOR`
 - `PK=LIFECYCLE#<environment>`, `SK=EXPIRATION#<HISTORY|CONTROL>`
+- `PK=LIFECYCLE#<environment>`, `SK=RECONCILIATION#<HISTORY|CONTROL>`
 
-The two lifecycle checkpoint records durably retain the next expiration
-hour/shard. A bucket is not advanced until its index query has no continuation,
-so outages and large backlogs cannot age records out of a moving query window.
-Pending completion records are rescheduled after observation, moving them behind
-other due work instead of permanently occupying the first index page.
+The four lifecycle checkpoint records support three bounded expiration lanes.
+Every invocation re-queries all 16 current-hour shards, so a record that becomes
+due later in the hour is not skipped. The monotonic `EXPIRATION` checkpoints
+drain closed-hour backlog from the configured start hour, and a bucket is not
+advanced until its index query has no continuation. The rolling
+`RECONCILIATION` checkpoints repeatedly revisit recent closed-hour shards to
+recover records that were backdated or temporarily absent from the eventually
+consistent GSI. Application writers must not create expirations outside that
+window. Pending completion records are rescheduled after observation, moving
+them behind other due work instead of permanently occupying the first index
+page.
+
+A restore that can reintroduce records older than the reconciliation window is
+not ready to serve immediately. The restore runbook must first set both tables'
+`EXPIRATION` and `RECONCILIATION` checkpoints to the earliest restored expiry,
+run lifecycle sweeps until the expiration checkpoint lag is zero and the
+reconciliation window has completed, and only then admit reads or analysis
+traffic. This is an activation gate; DynamoDB TTL is not accepted as the purge
+mechanism.
 
 Cursor values returned to clients are random URL-safe handles. DynamoDB keys,
 subjects, assessments, and other payload data are not encoded in the handle.
@@ -136,6 +151,7 @@ Approval/configuration gates:
 - `HISTORY_LIFECYCLE_START_EPOCH_HOUR` (Unix seconds, UTC-hour aligned)
 - `HISTORY_LIFECYCLE_MAX_ITEMS_PER_SWEEP`
 - `HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP`
+- `HISTORY_EXPIRATION_RECONCILIATION_HOURS` (maximum 168)
 - `HISTORY_ERASURE_BATCH_SIZE` (maximum 25)
 - `HISTORY_COMPLETION_STUCK_SECONDS`
 - `HISTORY_COMPLETION_RECHECK_SECONDS`

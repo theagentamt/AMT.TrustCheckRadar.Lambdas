@@ -58,53 +58,128 @@ class HistoryLifecycleService:
         }
 
     def _expire_table(self, table, prefix, now, *, content, item_limit, query_limit):
-        checkpoint = self._load_checkpoint(prefix, now)
         current_hour = now - (now % 3600)
-        deleted = queries = redacted = 0
-        page_backlog = False
-        while checkpoint["hourEpoch"] <= current_hour and deleted < item_limit and queries < query_limit:
-            bucket = f"{prefix}#{_hour_label(checkpoint['hourEpoch'])}#{checkpoint['shard']:02d}"
-            page = table.query(
-                IndexName=self.settings.expiration_index_name,
-                KeyConditionExpression="expiryBucket = :bucket AND expiresAt <= :now",
-                ExpressionAttributeValues={":bucket": bucket, ":now": now},
-                ProjectionExpression="PK, SK, expiresAt",
-                Limit=min(25, item_limit - deleted),
-            )
-            queries += 1
-            for item in page.get("Items") or []:
-                try:
-                    table.delete_item(
-                        Key={"PK": item["PK"], "SK": item["SK"]},
-                        ConditionExpression="expiresAt <= :now",
-                        ExpressionAttributeValues={":now": now},
-                    )
-                    deleted += 1
-                except Exception as err:
-                    if _error_code(err) != "ConditionalCheckFailedException":
-                        raise
-                if content:
-                    redacted += self._expire_locator_and_replay(item, now)
-            if page.get("LastEvaluatedKey"):
-                page_backlog = True
-                break
-            checkpoint = self._advance_checkpoint(prefix, checkpoint, now)
-        caught_up = checkpoint["hourEpoch"] > current_hour
+        lane_item_limit = max(1, item_limit // 3)
+        current = self._sweep_current_hour(
+            table, prefix, current_hour, now, content=content,
+            item_limit=lane_item_limit, query_limit=min(16, query_limit),
+        )
+        remaining_queries = max(0, query_limit - current["queries"])
+        backlog = self._sweep_backlog(
+            table, prefix, current_hour - 3600, now, content=content,
+            item_limit=lane_item_limit, query_limit=remaining_queries // 2,
+        )
+        reconciliation = self._sweep_reconciliation(
+            table, prefix, current_hour - 3600, now, content=content,
+            item_limit=max(1, item_limit - lane_item_limit * 2),
+            query_limit=remaining_queries - remaining_queries // 2,
+        )
         return {
-            "deleted": deleted,
-            "queries": queries,
-            "checkpointBacklog": page_backlog or not caught_up,
-            "checkpointLagSeconds": max(0, current_hour - checkpoint["hourEpoch"] + (0 if caught_up else 3600)),
-            "redactedReplayRecords": redacted,
+            "deleted": current["deleted"] + backlog["deleted"] + reconciliation["deleted"],
+            "queries": current["queries"] + backlog["queries"] + reconciliation["queries"],
+            "checkpointBacklog": current["pageBacklog"] or backlog["checkpointBacklog"] or reconciliation["pageBacklog"],
+            "checkpointLagSeconds": backlog["checkpointLagSeconds"],
+            "redactedReplayRecords": current["redacted"] + backlog["redacted"] + reconciliation["redacted"],
         }
 
-    def _load_checkpoint(self, prefix, now):
-        key = {"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"EXPIRATION#{prefix}"}
+    def _sweep_current_hour(self, table, prefix, hour, now, *, content, item_limit, query_limit):
+        result = {"deleted": 0, "queries": 0, "redacted": 0, "pageBacklog": False}
+        for shard in range(min(16, query_limit)):
+            if result["deleted"] >= item_limit:
+                result["pageBacklog"] = True
+                break
+            page = self._query_expiration_bucket(
+                table, prefix, hour, shard, now, content=content,
+                limit=min(25, item_limit - result["deleted"]),
+            )
+            result["deleted"] += page["deleted"]
+            result["queries"] += 1
+            result["redacted"] += page["redacted"]
+            result["pageBacklog"] = result["pageBacklog"] or page["hasMore"]
+        if query_limit < 16:
+            result["pageBacklog"] = True
+        return result
+
+    def _sweep_backlog(self, table, prefix, closed_hour, now, *, content, item_limit, query_limit):
+        checkpoint = self._load_checkpoint("EXPIRATION", prefix, now, self.settings.lifecycle_start_epoch_hour)
+        result = {"deleted": 0, "queries": 0, "redacted": 0, "checkpointBacklog": False, "checkpointLagSeconds": 0}
+        while checkpoint["hourEpoch"] <= closed_hour and result["deleted"] < item_limit and result["queries"] < query_limit:
+            page = self._query_expiration_bucket(
+                table, prefix, checkpoint["hourEpoch"], checkpoint["shard"], now,
+                content=content, limit=min(25, item_limit - result["deleted"]),
+            )
+            result["deleted"] += page["deleted"]
+            result["queries"] += 1
+            result["redacted"] += page["redacted"]
+            if page["hasMore"]:
+                result["checkpointBacklog"] = True
+                break
+            checkpoint = self._advance_checkpoint("EXPIRATION", prefix, checkpoint, now)
+        if checkpoint["hourEpoch"] <= closed_hour:
+            result["checkpointBacklog"] = True
+            result["checkpointLagSeconds"] = closed_hour - checkpoint["hourEpoch"] + 3600
+        return result
+
+    def _sweep_reconciliation(self, table, prefix, closed_hour, now, *, content, item_limit, query_limit):
+        result = {"deleted": 0, "queries": 0, "redacted": 0, "pageBacklog": False}
+        if closed_hour < self.settings.lifecycle_start_epoch_hour or query_limit <= 0:
+            return result
+        window_start = max(
+            self.settings.lifecycle_start_epoch_hour,
+            closed_hour - (self.settings.expiration_reconciliation_hours - 1) * 3600,
+        )
+        window_bucket_count = ((closed_hour - window_start) // 3600 + 1) * 16
+        query_limit = min(query_limit, window_bucket_count)
+        checkpoint = self._load_checkpoint("RECONCILIATION", prefix, now, window_start)
+        if checkpoint["hourEpoch"] < window_start or checkpoint["hourEpoch"] > closed_hour:
+            checkpoint = self._reset_checkpoint("RECONCILIATION", prefix, checkpoint, window_start, now)
+        while result["queries"] < query_limit and result["deleted"] < item_limit:
+            page = self._query_expiration_bucket(
+                table, prefix, checkpoint["hourEpoch"], checkpoint["shard"], now,
+                content=content, limit=min(25, item_limit - result["deleted"]),
+            )
+            result["deleted"] += page["deleted"]
+            result["queries"] += 1
+            result["redacted"] += page["redacted"]
+            result["pageBacklog"] = result["pageBacklog"] or page["hasMore"]
+            if page["hasMore"]:
+                continue
+            checkpoint = self._advance_reconciliation_checkpoint(
+                prefix, checkpoint, window_start, closed_hour, now
+            )
+        return result
+
+    def _query_expiration_bucket(self, table, prefix, hour, shard, now, *, content, limit):
+        bucket = f"{prefix}#{_hour_label(hour)}#{shard:02d}"
+        page = table.query(
+            IndexName=self.settings.expiration_index_name,
+            KeyConditionExpression="expiryBucket = :bucket AND expiresAt <= :now",
+            ExpressionAttributeValues={":bucket": bucket, ":now": now},
+            ProjectionExpression="PK, SK, expiresAt", Limit=limit,
+        )
+        deleted = redacted = 0
+        for item in page.get("Items") or []:
+            try:
+                table.delete_item(
+                    Key={"PK": item["PK"], "SK": item["SK"]},
+                    ConditionExpression="expiresAt <= :now",
+                    ExpressionAttributeValues={":now": now},
+                )
+                deleted += 1
+            except Exception as err:
+                if _error_code(err) != "ConditionalCheckFailedException":
+                    raise
+            if content:
+                redacted += self._expire_locator_and_replay(item, now)
+        return {"deleted": deleted, "redacted": redacted, "hasMore": bool(page.get("LastEvaluatedKey"))}
+
+    def _load_checkpoint(self, kind, prefix, now, initial_hour):
+        key = {"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"{kind}#{prefix}"}
         item = self.control_table.get_item(Key=key, ConsistentRead=True).get("Item")
         if not item:
             initial = key | {
                 "recordType": "LIFECYCLE_CHECKPOINT", "schemaVersion": self.settings.schema_version,
-                "hourEpoch": self.settings.lifecycle_start_epoch_hour, "shard": 0,
+                "hourEpoch": initial_hour, "shard": 0,
                 "stateVersion": 1, "updatedAtEpoch": now,
             }
             try:
@@ -129,7 +204,7 @@ class HistoryLifecycleService:
             raise HistoryError("SERVER_UNAVAILABLE", "The expiration checkpoint is invalid.")
         return {"hourEpoch": hour_epoch, "shard": shard, "stateVersion": version}
 
-    def _advance_checkpoint(self, prefix, checkpoint, now):
+    def _advance_checkpoint(self, kind, prefix, checkpoint, now):
         next_shard = checkpoint["shard"] + 1
         next_hour = checkpoint["hourEpoch"]
         if next_shard == 16:
@@ -137,7 +212,7 @@ class HistoryLifecycleService:
             next_hour += 3600
         next_version = checkpoint["stateVersion"] + 1
         self.control_table.update_item(
-            Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"EXPIRATION#{prefix}"},
+            Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"{kind}#{prefix}"},
             UpdateExpression="SET hourEpoch = :hour, shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
             ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND shard = :previous_shard",
             ExpressionAttributeValues={
@@ -147,6 +222,35 @@ class HistoryLifecycleService:
             },
         )
         return {"hourEpoch": next_hour, "shard": next_shard, "stateVersion": next_version}
+
+    def _advance_reconciliation_checkpoint(self, prefix, checkpoint, window_start, closed_hour, now):
+        next_shard = checkpoint["shard"] + 1
+        next_hour = checkpoint["hourEpoch"]
+        if next_shard == 16:
+            next_shard = 0
+            next_hour += 3600
+        if next_hour > closed_hour:
+            next_hour = window_start
+        return self._write_checkpoint(
+            "RECONCILIATION", prefix, checkpoint, next_hour, next_shard, now
+        )
+
+    def _reset_checkpoint(self, kind, prefix, checkpoint, hour, now):
+        return self._write_checkpoint(kind, prefix, checkpoint, hour, 0, now)
+
+    def _write_checkpoint(self, kind, prefix, checkpoint, hour, shard, now):
+        next_version = checkpoint["stateVersion"] + 1
+        self.control_table.update_item(
+            Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"{kind}#{prefix}"},
+            UpdateExpression="SET hourEpoch = :hour, shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
+            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND shard = :previous_shard",
+            ExpressionAttributeValues={
+                ":hour": hour, ":shard": shard, ":next_version": next_version, ":now": now,
+                ":previous_version": checkpoint["stateVersion"],
+                ":previous_hour": checkpoint["hourEpoch"], ":previous_shard": checkpoint["shard"],
+            },
+        )
+        return {"hourEpoch": hour, "shard": shard, "stateVersion": next_version}
 
     def _expire_locator_and_replay(self, content_item, now):
         request_id = _request_id_from_sort_key(content_item.get("SK"))

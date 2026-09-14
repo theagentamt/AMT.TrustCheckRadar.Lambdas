@@ -76,6 +76,7 @@ class HistorySettings:
     completion_stuck_seconds: int | None
     completion_recheck_seconds: int | None
     lifecycle_max_bucket_queries_per_sweep: int | None
+    expiration_reconciliation_hours: int | None
 
     @classmethod
     def from_env(cls):
@@ -130,6 +131,7 @@ class HistorySettings:
             completion_stuck_seconds=_optional_positive_int("HISTORY_COMPLETION_STUCK_SECONDS"),
             completion_recheck_seconds=_optional_positive_int("HISTORY_COMPLETION_RECHECK_SECONDS"),
             lifecycle_max_bucket_queries_per_sweep=_optional_positive_int("HISTORY_LIFECYCLE_MAX_BUCKET_QUERIES_PER_SWEEP"),
+            expiration_reconciliation_hours=_optional_positive_int("HISTORY_EXPIRATION_RECONCILIATION_HOURS"),
         )
 
     def validate_common(self) -> None:
@@ -225,8 +227,10 @@ class HistorySettings:
             or self.lifecycle_max_items_per_sweep < 3
             or self.lifecycle_max_items_per_sweep > 1000
             or self.lifecycle_max_bucket_queries_per_sweep is None
-            or self.lifecycle_max_bucket_queries_per_sweep < 2
+            or self.lifecycle_max_bucket_queries_per_sweep < 40
             or self.lifecycle_max_bucket_queries_per_sweep > 1000
+            or self.expiration_reconciliation_hours is None
+            or self.expiration_reconciliation_hours > 168
             or self.erasure_batch_size is None
             or self.erasure_batch_size > 25
             or self.completion_stuck_seconds is None

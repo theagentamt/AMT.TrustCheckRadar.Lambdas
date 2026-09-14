@@ -14,8 +14,11 @@ Implemented Lambda scope:
 - A scheduled lifecycle Lambda discovers work through `ExpirationIndex` and
   `PendingLifecycleIndex`, physically removes content, and content-free
   tombstones locators without a scan, stream, or queue.
-- Durable per-table hour/shard checkpoints prevent expiration backlogs from
-  aging out of a moving query window; a bucket advances only after it is drained.
+- Every sweep revisits all current-hour shards, while durable monotonic
+  per-table checkpoints drain closed-hour backlogs and rolling reconciliation
+  checkpoints revisit recent closed hours. This prevents later-in-hour due
+  records and delayed GSI visibility from being permanently skipped; a backlog
+  bucket advances only after it is drained.
 - Pending completion observations advance `lifecycleAt`, preventing stuck
   completions from starving later erasure jobs in the same shard.
 - Bounded resumable erasure stages explicitly remove content-bearing cached and
@@ -25,6 +28,11 @@ Implemented Lambda scope:
 Automated evidence is in `tests/history_mutation_api`,
 `tests/history_lifecycle`, `tests/history_read_api`, and the analysis generation
 race tests.
+
+Restore remains fail-closed: before restored data can be served, both expiration
+checkpoint families must be rewound to the earliest restored expiry and sweeps
+must complete. Application writes outside the configured reconciliation window
+are forbidden.
 
 The story must remain open until account deletion/consent lifecycle integration,
 backup erasure replay/PITR policy, final mutation schemas, deployed alarms, and

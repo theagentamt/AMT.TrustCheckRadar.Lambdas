@@ -62,6 +62,7 @@ class HistoryContractTests(unittest.TestCase):
             "HISTORY_ERASURE_BATCH_SIZE": "25",
             "HISTORY_COMPLETION_STUCK_SECONDS": "300",
             "HISTORY_COMPLETION_RECHECK_SECONDS": "600",
+            "HISTORY_EXPIRATION_RECONCILIATION_HOURS": "24",
         }
         with mock.patch.dict(os.environ, complete, clear=True):
             HistorySettings.from_env().validate_lifecycle()
