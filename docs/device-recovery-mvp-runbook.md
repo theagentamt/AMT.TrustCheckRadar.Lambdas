@@ -2,11 +2,18 @@
 
 ## Purpose
 
-This runbook defines the MVP support process for recovering users affected by stale or incorrect device bindings under the one-active-device-per-account policy.
+This runbook defines the disabled Lambda contract for recovering users affected by stale or incorrect device bindings under the one-active-device-per-account policy.
+
+The legacy `scripts/device_binding_recovery.py` writer predates the authoritative
+pointer transaction and must not be used for live mutation. It is retained only
+for offline inspection/dry-run compatibility until it can be removed. Every live
+binding writer must use the Lambda transaction described below.
 
 ## Scope
 
-This process is for support/admin use only. It is intended for cases where the normal automatic device-registration flow does not resolve the problem.
+The operator route is support/admin-only. A separate consumer route is present
+but remains disabled until recovery policy, audit retention, and the coordinated
+five-artifact release are approved.
 
 ## When To Use This Runbook
 
@@ -44,7 +51,7 @@ Expected next step:
 
 - user retries login/device registration on the intended device
 
-Example:
+Legacy inspection only:
 
 ```bash
 python3 scripts/device_binding_recovery.py \
@@ -52,7 +59,8 @@ python3 scripts/device_binding_recovery.py \
   --account-id user-123 \
   --operator-id support-1 \
   --table-name <device-bindings-table> \
-  --region us-east-1
+  --region us-east-1 \
+  --dry-run
 ```
 
 ## Action 2: `RECOVER_BINDING`
@@ -71,7 +79,7 @@ Expected next step:
 
 - user retries on the restored device if needed
 
-Example:
+Legacy inspection only:
 
 ```bash
 python3 scripts/device_binding_recovery.py \
@@ -80,7 +88,8 @@ python3 scripts/device_binding_recovery.py \
   --binding-fingerprint fp-1 \
   --operator-id support-1 \
   --table-name <device-bindings-table> \
-  --region us-east-1
+  --region us-east-1 \
+  --dry-run
 ```
 
 ## Recommended Process
@@ -88,8 +97,9 @@ python3 scripts/device_binding_recovery.py \
 1. Verify the user through the normal support verification process.
 2. Confirm the affected `accountId`.
 3. Prefer `RESET_ACTIVE_BINDING` unless support is certain which existing binding should be restored.
-4. Use `--dry-run` first when possible.
-5. Run the real recovery command.
+4. Invoke the AWS_IAM-protected `POST /device-recovery` route from an exact
+   allowlisted principal. Do not run the legacy CLI without `--dry-run`.
+5. Confirm the Lambda transaction completed.
 6. Confirm the returned result.
 7. Ask the user to retry on the intended device.
 8. Record the action in the support ticket.
@@ -131,7 +141,23 @@ python3 scripts/device_binding_recovery.py \
   - timestamp
   - support ticket reference
 
-## MVP Recommendation
+## Lambda authorization and consistency contract
 
-- use the CLI/runbook first
-- defer deployment of a privileged recovery endpoint until the team is ready for infra exposure and admin authorization controls
+- `POST /device-recovery` requires API Gateway `AWS_IAM` and an exact ARN in
+  `DEVICE_RECOVERY_ALLOWED_PRINCIPAL_ARNS_JSON`. JWT, legacy claims, and
+  `principalId` are rejected.
+- `POST /v1/users/device-recovery` targets only the Cognito access-token `sub`,
+  requires signed `auth_time` no older than 300 seconds, and accepts an exact
+  UUIDv4 idempotency request.
+- Both routes and normal device registration serialize changes through
+  `PK=USER#<sub>, SK=ACTIVE_BINDING` with `stateVersion` conditions.
+- `bindingFingerprint=NONE` is the authoritative reset sentinel. GSI1 is a
+  legacy discovery path only and cannot establish uniqueness.
+- Profile-active and fixed deletion-fence checks run inside the same DynamoDB
+  transaction as pointer and device changes.
+- Consumer recovery remains disabled while
+  `DEVICE_SELF_RECOVERY_ENABLED=false`, policy status is `pending`, or audit
+  retention is not exactly 30 or 90 days.
+- Activation requires one immutable release of `device_recovery`,
+  `device_registration`, `history_read_api`, `history_mutation_api`, and
+  `conversation_analysis`, because all readers must enforce the pointer.

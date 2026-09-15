@@ -14,7 +14,9 @@ def command():
         "PK": "ACCOUNT#a", "SK": "ACCOUNT_DELETION",
         "schemaVersion": 1, "recordVersion": 1, "environment": "dev",
         "eventType": "account.deletion.requested", "accountId": "a",
+        "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
         "status": "REQUESTED", "occurredAtEpoch": 100,
+        "deleteByEpoch": 86_500,
     }
 
 
@@ -104,6 +106,10 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         self.assertTrue(result["completed"])
         self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
         self.assertEqual(ledger.puts[0]["component"], "HISTORY")
+        self.assertEqual(
+            ledger.puts[0]["operationId"],
+            "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+        )
 
     def test_bounded_reconciliation_recovers_stream_records_after_retention(self):
         ledger = ScanLedger([{
@@ -122,6 +128,8 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         self.assertEqual(result["matched"], 1)
         self.assertEqual(result["completed"], 1)
         self.assertTrue(result["worksetTruncated"])
+        self.assertFalse(result["completedFullPass"])
+        self.assertIsNone(result["fullPassAgeSeconds"])
         checkpoint = next(
             item for item in control.puts
             if item["SK"] == "ACCOUNT_DELETION_RECONCILIATION"
@@ -130,6 +138,24 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
             checkpoint["lastEvaluatedKey"],
             {"PK": "ACCOUNT#a", "SK": "ACCOUNT_DELETION"},
         )
+
+    def test_full_reconciliation_pass_records_zero_age_success_heartbeat(self):
+        ledger = ScanLedger([{"Items": [], "ScannedCount": 0}])
+        control = Table()
+
+        result = service.reconcile_account_deletions(
+            environment="dev", schema_version=1,
+            control_table=control, control_table_name="control",
+            deletion_ledger_table=ledger, deletion_ledger_table_name="ledger",
+            dynamodb_client=Client(), erasure_sla_hours=24,
+            scan_limit=100, max_pages=1, now=lambda: 300,
+        )
+
+        self.assertTrue(result["completedFullPass"])
+        self.assertEqual(result["completedPassAtEpoch"], 300)
+        self.assertEqual(result["fullPassAgeSeconds"], 0)
+        checkpoint = control.puts[-1]
+        self.assertEqual(checkpoint["completedPassAtEpoch"], 300)
 
 
 if __name__ == "__main__":

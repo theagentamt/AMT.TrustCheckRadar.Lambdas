@@ -600,9 +600,11 @@ class HistoryLifecycleService:
         ledger_pk = job.get("deletionLedgerPK")
         ledger_sk = job.get("deletionLedgerSK")
         requested_at = _exact_nonnegative_int(job.get("deletionRequestedAtEpoch"))
+        operation_id = job.get("deletionOperationId")
         if (
             not isinstance(ledger_pk, str) or not ledger_pk.startswith("ACCOUNT#")
             or ledger_sk != "ACCOUNT_DELETION" or requested_at is None
+            or not isinstance(operation_id, str) or not operation_id
         ):
             raise HistoryError("SERVER_UNAVAILABLE", "The account-deletion job binding is invalid.")
         receipt = {
@@ -612,6 +614,7 @@ class HistoryLifecycleService:
             "eventType": "account.deletion.component.completed",
             "component": "HISTORY", "status": "COMPLETE",
             "occurredAtEpoch": now, "requestOccurredAtEpoch": requested_at,
+            "operationId": operation_id,
         }
         try:
             self.deletion_ledger_table.put_item(
@@ -628,6 +631,7 @@ class HistoryLifecycleService:
                 not existing or existing.get("eventType") != receipt["eventType"]
                 or existing.get("component") != "HISTORY"
                 or existing.get("requestOccurredAtEpoch") != requested_at
+                or existing.get("operationId") != operation_id
             ):
                 raise
 

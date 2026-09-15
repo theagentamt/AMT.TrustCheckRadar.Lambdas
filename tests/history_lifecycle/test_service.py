@@ -209,6 +209,7 @@ class HistoryLifecycleTests(unittest.TestCase):
             "maxHistoryGeneration": 0, "operationId": "op", "reason": "ACCOUNT_DELETION",
             "deletionLedgerPK": "ACCOUNT#a", "deletionLedgerSK": "ACCOUNT_DELETION",
             "deletionRequestedAtEpoch": 90,
+            "deletionOperationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
         }
         control = ControlTable({("USER#a", "STATE"): state, ("USER#a", "ERASURE#op"): job})
         ledger = LedgerTable()
@@ -225,6 +226,10 @@ class HistoryLifecycleTests(unittest.TestCase):
         ))
         self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
         self.assertEqual(ledger.puts[0]["requestOccurredAtEpoch"], 90)
+        self.assertEqual(
+            ledger.puts[0]["operationId"],
+            "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+        )
 
     def test_content_keys_are_parsed_without_assessment_data(self):
         partition = "USER#account-1#HISTORY#7"

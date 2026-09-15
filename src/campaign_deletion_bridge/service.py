@@ -38,7 +38,12 @@ def parse_deletion_record(record, *, environment, schema_version):
                 or item["deleteByEpoch"] != item["occurredAtEpoch"] + 24 * 3600:
             raise ValueError("Invalid deletion command")
     elif item.get("eventType") == "account.deletion.requested":
-        if frozenset(item) not in {frozenset(common), frozenset(common | {"PK", "SK"})} or item["status"] != "REQUESTED":
+        required = common | {"PK", "SK", "operationId", "deleteByEpoch"}
+        if set(item) != required or item["status"] != "REQUESTED" \
+                or item["PK"] != f"ACCOUNT#{item['accountId']}" or item["SK"] != "ACCOUNT_DELETION" \
+                or not _is_uuid4(item["operationId"]) \
+                or isinstance(item["deleteByEpoch"], bool) or not isinstance(item["deleteByEpoch"], int) \
+                or item["deleteByEpoch"] != item["occurredAtEpoch"] + 24 * 3600:
             raise ValueError("Invalid deletion command")
     else:
         raise ValueError("Invalid deletion command")
@@ -181,6 +186,52 @@ def complete_campaign_withdrawal(
                     and completed.get("operationId") == operation_id:
                 return False
         raise
+    return True
+
+
+def complete_account_deletion_component(command, *, deletion_ledger_table_name, dynamodb, now_epoch=None):
+    if command.get("eventType") != "account.deletion.requested" or command.get("status") != "REQUESTED":
+        return False
+    now_epoch = int(time.time()) if now_epoch is None else now_epoch
+    receipt = {
+        "PK": {"S": command["PK"]},
+        "SK": {"S": "ACCOUNT_DELETION#CAMPAIGN"},
+        "schemaVersion": {"N": "1"},
+        "recordVersion": {"N": "1"},
+        "environment": {"S": command["environment"]},
+        "eventType": {"S": "account.deletion.component.completed"},
+        "component": {"S": "CAMPAIGN"},
+        "status": {"S": "COMPLETE"},
+        "operationId": {"S": command["operationId"]},
+        "occurredAtEpoch": {"N": str(now_epoch)},
+        "requestOccurredAtEpoch": {"N": str(command["occurredAtEpoch"])},
+    }
+    try:
+        dynamodb.put_item(
+            TableName=deletion_ledger_table_name,
+            Item=receipt,
+            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        )
+    except Exception as err:
+        if getattr(err, "response", {}).get("Error", {}).get("Code") != "ConditionalCheckFailedException":
+            raise
+        existing = dynamodb.get_item(
+            TableName=deletion_ledger_table_name,
+            Key={"PK": receipt["PK"], "SK": receipt["SK"]},
+            ConsistentRead=True,
+        ).get("Item")
+        if not existing:
+            raise
+        value = deserialize(existing)
+        if (
+            value.get("eventType") != "account.deletion.component.completed"
+            or value.get("component") != "CAMPAIGN"
+            or value.get("status") != "COMPLETE"
+            or value.get("operationId") != command["operationId"]
+            or value.get("requestOccurredAtEpoch") != command["occurredAtEpoch"]
+        ):
+            raise
+        return False
     return True
 
 

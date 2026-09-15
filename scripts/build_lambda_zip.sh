@@ -11,6 +11,7 @@ SKIP_DEPENDENCIES=false
 CONTRACT_VERSION="1.0.0"
 
 FUNCTIONS=(
+  account_data_api
   age_attestation
   campaign_cluster_aggregator
   campaign_deletion_bridge
@@ -95,7 +96,7 @@ needs_shared_campaign_contracts() {
 
 needs_shared_history() {
   case "$1" in
-    conversation_analysis|device_recovery|device_registration|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
+    account_data_api|conversation_analysis|device_recovery|device_registration|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
     *) return 1 ;;
   esac
 }

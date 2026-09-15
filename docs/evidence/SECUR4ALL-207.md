@@ -1,49 +1,80 @@
 # SECUR4ALL-207 Lambda Evidence
 
-Status: **Lambda and infrastructure contract implemented; deployed UAT evidence remains**
+Status: **Lambda component work advanced; story completion blocked**
 
-Implemented and tested:
+Previously implemented campaign lifecycle and withdrawal evidence remains:
 
-- Current-period `HMAC_256` key creation with the required project, environment,
-  purpose, and period tags.
-- A DynamoDB period-key registry consumed by the publisher and deletion bridge.
+- Current-period `HMAC_256` key creation with the required project,
+  environment, purpose, and period tags, plus the DynamoDB period-key registry
+  consumed by the publisher and deletion bridge.
 - Key disablement after the 14-day period plus seven-day recovery window and
   seven-day scheduled deletion.
-- Threshold finalization based on a fresh contribution query; cohorts below 10 are
-  suppressed, and qualifying output excludes contributor tokens and centroids.
-- Consent-withdrawal/account-deletion token derivation only for active/recovery
-  periods.
-- Tombstone-before-delete, targeted `ContributorPeriodIndex` deletion, and
-  feature/contribution/event-dedupe deletion plus centroid/count recomputation
+- Threshold finalization from a fresh contribution query. Cohorts below 10 are
+  suppressed and qualifying output excludes contributor tokens and centroids.
+- Consent-withdrawal/account-deletion token derivation is restricted to active
+  and recovery periods.
+- Tombstone-before-delete, targeted `ContributorPeriodIndex` deletion,
+  feature/contribution/event-dedupe deletion, and centroid/count recomputation
   from surviving contributions.
-- Cluster-side tombstone check prevents queued work from resurrecting a deleted
+- Cluster-side tombstone checks prevent queued work from resurrecting a deleted
   contribution.
-- Content-free lifecycle/deletion logs and environment/version validation.
-- Exact pending campaign-withdrawal command validation, successful-deletion-only
+- Exact pending campaign-withdrawal validation, successful-deletion-only
   transition to `withdrawn`, a privacy-safe 400-day completion receipt, atomic
-  ledger `COMPLETE` status, and completed-stream loop suppression.
-- A privacy-safe normal/failure/manual-repair runbook in
-  `docs/campaign-lifecycle-runbook.md`.
-- Sparse, environment-bound expiration keys on features, publisher/cluster
-  dedupe records, candidates, contributions, creation controls, and withdrawal
-  tombstones.
-- An hourly, index-query-only explicit expiration operation that deletes in
-  bounded batches and fails on unprocessed writes; DynamoDB TTL remains a
-  defense-in-depth fallback.
+  ledger completion, and completed-stream loop suppression.
+- Sparse environment-bound expiration keys and an hourly index-query-only
+  explicit expiration operation; DynamoDB TTL remains defense in depth.
+- Content-free lifecycle/deletion logs and the privacy-safe operational runbook
+  in `docs/campaign-lifecycle-runbook.md`.
 
-Reproduce:
+Implemented Lambda evidence:
 
-```bash
-python3 -m pytest -q tests/campaign_lifecycle tests/campaign_deletion_bridge tests/campaign_cluster_aggregator
-./scripts/build_lambda_zip.sh --function campaign_lifecycle --skip-dependencies
-./scripts/build_lambda_zip.sh --function campaign_deletion_bridge --skip-dependencies
-```
+- Campaign consent withdrawal uses an idempotent UUIDv4 command, atomically
+  transitions the current consent epoch to withdrawal-pending, adjusts quota,
+  and writes the deletion-ledger command. The deletion bridge removes active
+  contributions/features/dedupe siblings, recomputes affected candidates, and
+  completes the matching withdrawal state and receipt.
+- `account_data_api` contains disabled `POST`/`GET` account-deletion request and
+  status handlers. Identity is only the strict Cognito access-token `sub`; POST
+  additionally requires signed reauthentication no older than 300 seconds.
+- The producer atomically changes the authoritative profile to
+  `DELETION_REQUESTED` and writes the fixed account-deletion fence. Every device,
+  History, and analysis writer checks that fence, including transaction-time
+  checks for device registration/recovery.
+- History and campaign deletion workers accept only the exact environment-bound
+  command and emit component receipts bound to its operation ID and request
+  timestamp.
+- Session revocation occurs only after the durable fence. DynamoDB stream
+  failures use sequence numbers for partial-batch retry, while configuration and
+  setup failures propagate for whole-batch retry.
+- Bounded scheduled reconciliation extends session-revocation retry beyond
+  DynamoDB Streams retention and publishes full-pass/truncation metrics.
+- Device bindings are deleted in strongly consistent pages of 100. Progress is
+  resumable and the completion receipt is written only after the final page.
+  Transactional fence checks prevent a device writer from recreating bindings.
+- All component/status responses are private/no-store and logs/metrics use only
+  bounded operation/environment dimensions.
 
-Remaining environment evidence:
+Automated evidence:
 
-1. Backup/restore non-resurrection, DLQ re-drive, alarm delivery, and authenticated
-   UAT withdrawal evidence require deployed infrastructure.
-2. A deployed time-travel check must prove the hourly operation removes indexed
-   records at or after their deadline without relying on DynamoDB TTL.
-Because those are environment-level checks, this evidence does not claim the whole
-story is complete.
+- `tests/account_data_api`
+- `tests/campaign_deletion_bridge`
+- `tests/history_account_deletion_bridge`
+- `tests/history_lifecycle`
+- `tests/device_registration` and `tests/device_recovery`
+- `tests/shared_history` and analysis/history race coverage
+
+Current local result: **279 passed, 129 subtests passed**. Deterministic package
+builds and checksum verification also pass.
+
+The story must not be marked complete or activated yet. Remaining prerequisites
+are the approved complete account-data inventory, deletion/final receipts for
+all additional inventory components, final Cognito identity deletion, an
+overall finalizer, deletion-fence retention policy, infrastructure wiring and
+observability acceptance, authenticated Dev validation, and measured erasure
+SLA evidence. `ACCOUNT_DELETION_ENABLED=false`, policy/inventory `pending`,
+completion `incomplete`, and `COGNITO_USERNAME_IS_SUB=false` are deliberate
+independent gates.
+
+Full-account export is also not implemented. Paginated JSON is the preferred
+direction, but implementation remains blocked until the inventory and protected
+delivery contract are complete.

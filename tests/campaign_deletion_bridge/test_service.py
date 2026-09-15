@@ -15,7 +15,7 @@ class Kms:
 
 class Dynamo:
     def __init__(self):
-        self.updates, self.deletes, self.queries, self.transactions = [], [], [], []
+        self.updates, self.deletes, self.queries, self.transactions, self.puts = [], [], [], [], []
         self.key = {"status": {"S": "ENABLED"}, "keyArn": {"S": "arn:key"}}
         self.index_items = [{"PK": {"S": "CANDIDATE#c1"}, "SK": {"S": "CONTRIB#token"}}]
         self.remaining = [{"PK": {"S": "CANDIDATE#c1"}, "SK": {"S": "CONTRIB#other"},
@@ -24,6 +24,7 @@ class Dynamo:
     def get_item(self, **_kwargs): return {"Item": self.key}
     def update_item(self, **kwargs): self.updates.append(kwargs)
     def delete_item(self, **kwargs): self.deletes.append(kwargs)
+    def put_item(self, **kwargs): self.puts.append(kwargs)
     def query(self, IndexName=None, **kwargs):
         self.queries.append(kwargs)
         return {"Items": self.index_items if IndexName else self.remaining}
@@ -43,6 +44,19 @@ def campaign_command(**changes):
         "eventType": "campaign.consent.withdrawn", "accountId": "account-123",
         "status": "PENDING", "occurredAtEpoch": 1_780_000_000,
         "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+        "deleteByEpoch": 1_780_086_400,
+        "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+    }
+    value.update(changes)
+    return value
+
+
+def account_command(**changes):
+    value = {
+        "PK": "ACCOUNT#account-123", "SK": "ACCOUNT_DELETION",
+        "schemaVersion": 1, "recordVersion": 1, "environment": "dev",
+        "eventType": "account.deletion.requested", "accountId": "account-123",
+        "status": "REQUESTED", "occurredAtEpoch": 1_780_000_000,
         "deleteByEpoch": 1_780_086_400,
         "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
     }
@@ -115,6 +129,38 @@ class DeletionTests(unittest.TestCase):
             record = {"eventName": "INSERT", "dynamodb": {"NewImage": {k: av(v) for k, v in item.items()}}}
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 service.parse_deletion_record(record, environment="dev", schema_version=1)
+
+    def test_parses_exact_account_deletion_command(self):
+        def av(value): return {"N": str(value)} if isinstance(value, int) else {"S": value}
+        item = account_command()
+        record = {"eventName": "INSERT", "dynamodb": {"NewImage": {k: av(v) for k, v in item.items()}}}
+
+        self.assertEqual(
+            service.parse_deletion_record(record, environment="dev", schema_version=1),
+            item,
+        )
+        for changes in ({"deleteByEpoch": 1}, {"operationId": "not-a-uuid"}, {"extra": "bad"}):
+            invalid = account_command(**changes)
+            record = {"eventName": "INSERT", "dynamodb": {"NewImage": {k: av(v) for k, v in invalid.items()}}}
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                service.parse_deletion_record(record, environment="dev", schema_version=1)
+
+    def test_account_deletion_writes_campaign_component_receipt(self):
+        dynamo = Dynamo()
+
+        result = service.complete_account_deletion_component(
+            account_command(), deletion_ledger_table_name="ledger",
+            dynamodb=dynamo, now_epoch=1_780_000_010,
+        )
+
+        self.assertTrue(result)
+        receipt = dynamo.puts[0]["Item"]
+        self.assertEqual(receipt["SK"], {"S": "ACCOUNT_DELETION#CAMPAIGN"})
+        self.assertEqual(receipt["component"], {"S": "CAMPAIGN"})
+        self.assertEqual(
+            receipt["operationId"],
+            {"S": "47debb73-444b-4bb1-9889-fb56885b7922"},
+        )
 
     def test_successful_deletion_completion_is_atomic_and_privacy_safe(self):
         dynamo = Dynamo()

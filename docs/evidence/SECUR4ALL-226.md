@@ -45,6 +45,10 @@ Implemented Lambda scope:
 - The same bridge performs a bounded, strongly consistent reconciliation scan
   with a durable continuation checkpoint, recovering commands missed beyond
   DynamoDB Streams retention.
+- Reconciliation emits a success/failure heartbeat, bounded work counts,
+  truncation, full-pass completion, and full-pass age. Unknown age is omitted
+  rather than reported as zero, and truncated passes preserve the previous
+  completed-pass timestamp.
 - Reads, mutations, analysis entry, acceptance, and completion check the same
   authoritative deletion fence, covering pre-issued tokens and delayed/missing
   stream delivery.
@@ -53,7 +57,7 @@ Automated evidence is in `tests/history_mutation_api`,
 `tests/history_lifecycle`, `tests/history_read_api`,
 `tests/history_account_deletion_bridge`, `tests/shared_history`, and the
 analysis generation race tests. The local full suite result for this candidate
-is 245 passed with 126 subtests passed.
+is 278 passed with 129 subtests passed.
 
 Restore remains fail-closed: before restored data can be served, both expiration
 checkpoint families must be rewound to the earliest restored expiry and sweeps
@@ -62,6 +66,7 @@ are forbidden.
 
 The story must remain open until infrastructure wiring is accepted, the Dev
 bridge/lifecycle path is exercised, deployed alarms are verified, and the
-24-hour deletion evidence is recorded. No Lambda in this repository currently
-writes the authoritative fixed account-deletion fence, so the owning
-`SECUR4ALL-200` producer remains a genuine external prerequisite.
+24-hour deletion evidence is recorded. `account_data_api` now contains a
+disabled atomic fence producer and receipt-based status contract, but full
+product deletion remains blocked by the unapproved complete data inventory,
+final-identity cleanup, overall finalization, and fence-retention policy.

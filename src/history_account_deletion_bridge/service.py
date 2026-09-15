@@ -6,7 +6,8 @@ import time
 
 REQUEST_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "environment",
-    "eventType", "accountId", "status", "occurredAtEpoch",
+    "eventType", "accountId", "operationId", "status", "occurredAtEpoch",
+    "deleteByEpoch",
 }
 ACCOUNT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$")
 
@@ -29,6 +30,7 @@ def parse_account_deletion_record(record, *, environment, schema_version):
 def validate_account_deletion_command(item, *, environment, schema_version):
     account_id = item.get("accountId")
     occurred_at = _exact_nonnegative_int(item.get("occurredAtEpoch"))
+    delete_by = _exact_nonnegative_int(item.get("deleteByEpoch"))
     if (
         set(item) != REQUEST_FIELDS
         or item.get("schemaVersion") != schema_version
@@ -37,6 +39,8 @@ def validate_account_deletion_command(item, *, environment, schema_version):
         or item.get("status") != "REQUESTED"
         or not isinstance(account_id, str) or not ACCOUNT_ID_PATTERN.fullmatch(account_id)
         or occurred_at is None
+        or delete_by != occurred_at + 24 * 3600
+        or not _is_uuid4(item.get("operationId"))
         or item.get("PK") != f"ACCOUNT#{account_id}"
         or item.get("SK") != "ACCOUNT_DELETION"
     ):
@@ -57,6 +61,7 @@ def reconcile_account_deletions(
         Key=checkpoint_key, ConsistentRead=True
     ).get("Item") or {}
     start_key = checkpoint.get("lastEvaluatedKey")
+    completed_pass_at = _exact_nonnegative_int(checkpoint.get("completedPassAtEpoch"))
     if start_key is not None and not _valid_ledger_key(start_key):
         raise ValueError("Invalid account-deletion reconciliation checkpoint")
     totals = {"scanned": 0, "matched": 0, "started": 0, "alreadyPending": 0, "completed": 0}
@@ -94,14 +99,29 @@ def reconcile_account_deletions(
             for key in ("started", "alreadyPending", "completed"):
                 totals[key] += 1 if result.get(key) else 0
         start_key = page.get("LastEvaluatedKey")
+        checkpoint_time = now()
+        if not start_key:
+            completed_pass_at = checkpoint_time
         _save_reconciliation_checkpoint(
-            control_table, checkpoint_key, start_key, now(), schema_version
+            control_table, checkpoint_key, start_key, checkpoint_time,
+            schema_version, completed_pass_at=completed_pass_at,
         )
         if not start_key:
             break
         if page_number == max_pages - 1:
             workset_truncated = True
-    return {**totals, "worksetTruncated": workset_truncated}
+    completed_at = now()
+    return {
+        **totals,
+        "worksetTruncated": workset_truncated,
+        "completedFullPass": not workset_truncated and not start_key,
+        "completedPassAtEpoch": completed_pass_at,
+        "fullPassAgeSeconds": (
+            max(0, completed_at - completed_pass_at)
+            if completed_pass_at is not None else None
+        ),
+        "completedAtEpoch": completed_at,
+    }
 
 
 def start_history_deletion(
@@ -149,6 +169,7 @@ def start_history_deletion(
         "lifecycleBucket": f"PENDING#{shard:02d}", "lifecycleAt": now,
         "deletionLedgerPK": command["PK"], "deletionLedgerSK": command["SK"],
         "deletionRequestedAtEpoch": now,
+        "deletionOperationId": command["operationId"],
     }
     transaction = [
         {"Update": {
@@ -197,6 +218,7 @@ def _complete_without_history(command, deletion_ledger_table, *, schema_version)
         "component": "HISTORY", "status": "COMPLETE",
         "occurredAtEpoch": command["occurredAtEpoch"],
         "requestOccurredAtEpoch": command["occurredAtEpoch"],
+        "operationId": command["operationId"],
     }
     try:
         deletion_ledger_table.put_item(
@@ -216,7 +238,18 @@ def _operation_id(command):
     return "account-" + hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
 
 
-def _save_reconciliation_checkpoint(table, key, last_evaluated_key, now_epoch, schema_version):
+def _is_uuid4(value):
+    from uuid import UUID
+    try:
+        parsed = UUID(value)
+    except (TypeError, ValueError, AttributeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value
+
+
+def _save_reconciliation_checkpoint(
+    table, key, last_evaluated_key, now_epoch, schema_version, *, completed_pass_at,
+):
     item = {
         **key, "recordType": "ACCOUNT_DELETION_RECONCILIATION",
         "schemaVersion": schema_version, "updatedAtEpoch": now_epoch,
@@ -225,8 +258,8 @@ def _save_reconciliation_checkpoint(table, key, last_evaluated_key, now_epoch, s
         if not _valid_ledger_key(last_evaluated_key):
             raise ValueError("Invalid deletion-ledger scan continuation")
         item["lastEvaluatedKey"] = dict(last_evaluated_key)
-    else:
-        item["completedPassAtEpoch"] = now_epoch
+    if completed_pass_at is not None:
+        item["completedPassAtEpoch"] = completed_pass_at
     table.put_item(Item=item)
 
 

@@ -193,6 +193,12 @@ Minimal `history_account_deletion_bridge`:
   `HISTORY_ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT=100` and
   `HISTORY_ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES=10`
 
+The canonical product-wide producer is `account_data_api.zip`. Its exact route,
+fence, receipt, retry, and activation-gate contract is maintained in
+`lambda_deployment_dependency_contract.md`. History accepts only its exact V1
+fence, carries the producer UUIDv4 into the erasure job, and binds the HISTORY
+component receipt to that operation.
+
 Optional explicit common values:
 
 - `APP_ENVIRONMENT`
@@ -372,15 +378,22 @@ failures use the same namespace with `Count` and only the bounded dimensions
 they do not contain account IDs, request IDs, assessments, cursor handles, or
 input content.
 
+The account-deletion bridge reconciliation emits
+`AccountDeletionReconciliationSuccess`/`Failure`, scanned/matched/started/
+already-pending/completed counts, workset truncation, full-pass completion, and
+full-pass age under the History namespace. Full-pass age is omitted until a
+real full pass has been recorded; truncated runs preserve the prior checkpoint.
+
 ## Remaining activation blockers
 
 - infrastructure wiring of the new routes, exact IAM, cursor-secret container,
   deletion-ledger stream filter, five-minute reconciliation schedule, and
   component receipt
-- a genuine full-account deletion producer: no Lambda in this repository writes
-  the fixed `ACCOUNT#<sub>/ACCOUNT_DELETION` request. `SECUR4ALL-200` remains
-  incomplete until the owning account-deletion endpoint atomically creates and
-  durably retains that fence
+- activation of the disabled `account_data_api` producer only after the complete
+  data inventory, component list, Cognito username/sub mapping, overall
+  finalizer, fence retention, and final identity deletion are
+  approved and implemented. The producer source exists, but the full product
+  deletion outcome remains incomplete
 - authenticated Dev integration, race tests against deployed AWS resources, and
   measured 24-hour physical-erasure evidence
 - explicit infrastructure acceptance before enabling any feature flag
