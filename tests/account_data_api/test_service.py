@@ -476,6 +476,15 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ledger.items,
         )
 
+    def test_analysis_cleanup_rejects_nonstandard_request_retention(self):
+        with self.assertRaisesRegex(
+            ValueError, "Invalid analysis-abuse deletion policy"
+        ):
+            service.delete_analysis_abuse_control(
+                command(), abuse_table=RecoveryTable([]), ledger_table=Table(),
+                request_retention_seconds=86400,
+            )
+
     def test_analysis_abuse_cleanup_erases_content_but_blocks_legacy_retention(self):
         account_hash = service.hashlib.sha256(b"account-1").hexdigest()
         partition = f"ANALYSIS#REQUEST#{account_hash}"
@@ -484,7 +493,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "status": "COMPLETED", "payloadHash": "a" * 64,
             "response": {"summary": "private"},
             "expiresAt": 200 + 901, "ttl": 200 + 901,
-        }]}, {"Items": []}, {"Items": []}, {"Items": []}])
+        }]}, {"Items": []}, {"Items": []}, {"Items": []}, {"Items": []}])
         ledger = Table()
 
         results = []
@@ -501,12 +510,86 @@ class AccountDeletionServiceTests(unittest.TestCase):
         )
         self.assertEqual(abuse.items[(partition, "request-1")], {
             "PK": partition, "SK": "request-1", "status": "COMPLETED_ERASED",
-            "payloadHash": "a" * 64, "expiresAt": 1101, "ttl": 1101,
+            "payloadHash": "a" * 64, "expiresAt": 1000, "ttl": 1000,
         })
         self.assertNotIn(
             ("ACCOUNT#account-1", "ACCOUNT_DELETION#ANALYSIS_ABUSE"),
             ledger.items,
         )
+
+        approved = service.delete_analysis_abuse_control(
+            command(), abuse_table=abuse, ledger_table=ledger,
+            page_size=100, now_epoch=200,
+            request_dedupe_policy_status="approved",
+            legacy_request_retention_policy_status="approved",
+            consumption_deletion_policy_status="approved",
+        )
+
+        self.assertTrue(approved["complete"])
+        self.assertEqual(abuse.items[(partition, "request-1")], {
+            "PK": partition, "SK": "request-1", "status": "COMPLETED_ERASED",
+            "payloadHash": "a" * 64, "expiresAt": 1000, "ttl": 1000,
+        })
+
+    def test_approved_legacy_request_is_shortened_without_extending_retention(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        partition = f"ANALYSIS#REQUEST#{account_hash}"
+        long_lived = {
+            "PK": partition, "SK": "request-1", "status": "RESULT_READY",
+            "payloadHash": "a" * 64, "response": {"summary": "private"},
+            "expiresAt": 2000, "ttl": 2000,
+        }
+        shorter = {
+            "PK": partition, "SK": "request-2", "status": "COMPLETED",
+            "payloadHash": "b" * 64, "response": {"summary": "private"},
+            "expiresAt": 500, "ttl": 500,
+        }
+        abuse = RecoveryTable(
+            [{"Items": [long_lived, shorter]}, {"Items": []},
+             {"Items": []}, {"Items": []}, {"Items": []}],
+            {
+                (partition, "request-1"): long_lived,
+                (partition, "request-2"): shorter,
+            },
+        )
+        ledger = Table()
+
+        results = [service.delete_analysis_abuse_control(
+            command(), abuse_table=abuse, ledger_table=ledger, now_epoch=200,
+            request_dedupe_policy_status="approved",
+            legacy_request_retention_policy_status="approved",
+            consumption_deletion_policy_status="approved",
+        ) for _ in range(5)]
+
+        self.assertTrue(results[-1]["complete"])
+        self.assertEqual(abuse.items[(partition, "request-1")], {
+            "PK": partition, "SK": "request-1", "status": "COMPLETED_ERASED",
+            "payloadHash": "a" * 64, "expiresAt": 1000, "ttl": 1000,
+        })
+        self.assertEqual(abuse.items[(partition, "request-2")], {
+            "PK": partition, "SK": "request-2", "status": "COMPLETED_ERASED",
+            "payloadHash": "b" * 64, "expiresAt": 500, "ttl": 500,
+        })
+
+    def test_approved_legacy_request_past_normalized_boundary_is_deleted(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        partition = f"ANALYSIS#REQUEST#{account_hash}"
+        request = {
+            "PK": partition, "SK": "request-1", "status": "RESULT_READY",
+            "payloadHash": "a" * 64, "response": {"summary": "private"},
+            "expiresAt": 2000, "ttl": 2000,
+        }
+        abuse = RecoveryTable(
+            [{"Items": [request]}], {(partition, "request-1"): request},
+        )
+
+        result = service.delete_analysis_abuse_control(
+            command(), abuse_table=abuse, ledger_table=Table(), now_epoch=1001,
+            legacy_request_retention_policy_status="approved",
+        )
+
+        self.assertEqual(result["deleted"], 1)
+        self.assertNotIn((partition, "request-1"), abuse.items)
 
     def test_legacy_component_receipt_is_not_accepted_or_overwritten(self):
         receipt_key = (
@@ -576,7 +659,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
     def test_analysis_cleanup_accepts_history_120_day_content_free_tombstone(self):
         account_hash = service.hashlib.sha256(b"account-1").hexdigest()
         partition = f"ANALYSIS#REQUEST#{account_hash}"
-        expires_at = 200 + 120 * 86400
+        expires_at = 100 + 120 * 86400
         tombstone = {
             "PK": partition, "SK": "request-1", "status": "COMPLETED_ERASED",
             "payloadHash": "a" * 64, "updatedAt": "private-metadata",

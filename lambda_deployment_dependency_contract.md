@@ -534,13 +534,15 @@ Required environment:
   days, recovery audit 90 days, recovery rate state 86400 seconds, History dedupe
   120 days, and account component receipt 120 days; reconciliation defaults 100
   items and ten pages
-- `ANALYSIS_REQUEST_ID_TTL_SECONDS` must match the separately approved
-  conversation-analysis `REQUEST_ID_TTL_SECONDS`; prior source default is 900
-  seconds and the older 86400-second deployment example is not approval
+- `ANALYSIS_REQUEST_ID_TTL_SECONDS=900`, matching the owner-approved ordinary
+  conversation-analysis `REQUEST_ID_TTL_SECONDS`; the older 86400-second
+  deployment example is not an approved value
 - `ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS=pending` and
   `ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS=pending` and
   `ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS=pending` by default; all three must be
-  explicitly approved before activation or an `ANALYSIS_ABUSE` receipt
+  explicitly set to `approved` in a coordinated activation before an
+  `ANALYSIS_ABUSE` receipt. The decisions themselves are owner-approved; pending
+  defaults prevent an artifact-only change from activating destructive behavior
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -575,7 +577,7 @@ full-pass age, plus the analysis-abuse policy-blocked count; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 
-Activation remains blocked by the unapproved complete inventory, final identity
+Activation remains blocked by the unverified complete inventory, final identity
 deletion, any additional inventory components, overall
 finalization, and fence-retention policy. Full-account export is also blocked;
 paginated JSON is preferred, but the complete inventory and protected delivery
@@ -589,15 +591,15 @@ fixed fence exists, without a late writer recreating it. `release_request` can o
 delete or conditionally downgrade an existing processing row; after minimization
 its condition cannot match.
 
-The analysis-abuse worker deliberately stops before CONSUMPTION and cannot issue
-its component receipt while any policy status is pending. REQUEST cleanup
-preserves the original expiry. Ordinary request rows are checked against the
-configured request TTL; History `COMPLETED_ERASED` rows are accepted through the
-separately approved 120-day History dedupe period. History account cleanup writes
-the same exact content-free shape with expiry anchored to the deletion-request
-timestamp, so retries do not extend retention and History-first/analysis-first
-order does not retain response/authorization/event content or silently shorten
-History retention.
+The analysis-abuse worker stops before CONSUMPTION and cannot issue its component
+receipt while any explicit policy status is pending. With those activation guards
+approved, it deletes CONSUMPTION completely. REQUEST cleanup uses an exact
+content-free allowlist: ordinary and longer-lived non-History legacy rows expire no
+later than the original deletion request plus 900 seconds, while an earlier expiry
+is never extended. History `COMPLETED_ERASED` rows within the separately approved
+deletion-anchored 120-day ceiling retain that expiry. History account cleanup writes
+the same shape and anchor, so retries cannot extend retention and either worker
+order removes response, authorization, and event content.
 
 Compatibility gate: exact component validators reject legacy receipts that lack
 `retainUntilEpoch`, while conditional receipt creation cannot replace them. Before

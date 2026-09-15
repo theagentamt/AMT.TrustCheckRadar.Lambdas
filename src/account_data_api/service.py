@@ -383,7 +383,7 @@ def delete_analysis_abuse_control(
     command = validate_command(command, command["environment"])
     if (
         page_size != 100
-        or request_retention_seconds < 1
+        or request_retention_seconds != ANALYSIS_REQUEST_ID_TTL_SECONDS
         or history_dedup_retention_days != 120
         or request_dedupe_policy_status not in {"pending", "approved"}
         or legacy_request_retention_policy_status not in {"pending", "approved"}
@@ -441,7 +441,9 @@ def delete_analysis_abuse_control(
             deleted += 1
             continue
         minimal, retention_class = _minimal_analysis_request(
-            item, now_epoch=now, retention_seconds=request_retention_seconds,
+            item, now_epoch=now,
+            deletion_requested_epoch=command["occurredAtEpoch"],
+            retention_seconds=request_retention_seconds,
             history_dedup_retention_days=history_dedup_retention_days,
         )
         if minimal is None:
@@ -453,7 +455,7 @@ def delete_analysis_abuse_control(
                 ConditionExpression="payloadHash = :payload_hash AND expiresAt = :expires_at",
                 ExpressionAttributeValues={
                     ":payload_hash": minimal["payloadHash"],
-                    ":expires_at": minimal["expiresAt"],
+                    ":expires_at": item["expiresAt"],
                 },
             )
             minimized += 1
@@ -777,7 +779,8 @@ def _validate_analysis_abuse_key(item, partition):
 
 
 def _minimal_analysis_request(
-    item, *, now_epoch, retention_seconds, history_dedup_retention_days,
+    item, *, now_epoch, deletion_requested_epoch, retention_seconds,
+    history_dedup_retention_days,
 ):
     expires = _exact_int(item.get("expiresAt"))
     ttl = _exact_int(item.get("ttl"))
@@ -795,18 +798,25 @@ def _minimal_analysis_request(
         or expires is None or ttl != expires
     ):
         raise ValueError("Invalid analysis request replay record")
-    retention_class = (
-        "HISTORY"
-        if status == "COMPLETED_ERASED"
-        and expires <= now_epoch + history_dedup_retention_days * 86400
-        else "ORDINARY"
-        if expires <= now_epoch + retention_seconds
-        else "UNVERIFIED_LEGACY"
+    history_boundary = (
+        deletion_requested_epoch + history_dedup_retention_days * 86400
     )
+    ordinary_boundary = deletion_requested_epoch + retention_seconds
+    if status == "COMPLETED_ERASED" and expires <= history_boundary:
+        retention_class = "HISTORY"
+        retained_until = expires
+    elif expires <= ordinary_boundary:
+        retention_class = "ORDINARY"
+        retained_until = expires
+    else:
+        retention_class = "UNVERIFIED_LEGACY"
+        retained_until = ordinary_boundary
+    if retained_until <= now_epoch:
+        return None, retention_class
     return {
         "PK": item["PK"], "SK": item["SK"],
         "status": "COMPLETED_ERASED", "payloadHash": payload_hash,
-        "expiresAt": expires, "ttl": expires,
+        "expiresAt": retained_until, "ttl": retained_until,
     }, retention_class
 
 

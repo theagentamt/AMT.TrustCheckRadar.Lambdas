@@ -4,8 +4,8 @@ Status: **Lambda component work advanced; story completion blocked**
 
 The complete Lambda-source account-data inventory and the remaining deletion,
 export, identity-finalization, retention, IAM, queue and backup gaps are recorded
-in `docs/account-data-inventory.md`. Inventory status remains `pending`; the
-document does not approve any retention or activation decision.
+in `docs/account-data-inventory.md`. Overall inventory status remains `pending`;
+the analysis decisions below do not approve activation or unrelated data families.
 
 Owner decisions dated 2026-09-14 now approve the Dev device-recovery split of
 90-day minimal audit, seven-day replay receipt, 24-hour rate state and seven-day
@@ -14,13 +14,19 @@ PITR when provisioned, plus 120-day minimal account-deletion receipts. The
 late-writer fencing in source. Overall deletion remains gated by every other
 inventory component and verified backup/replay coverage.
 
-Billing is app-store authoritative, but that does not establish whether local scan
-consumption has an independent quota/dedup/security retention purpose. The
+Owner direction dated 2026-09-15 applies best-practice minimization to the analysis
+retention and inventory questions: ordinary request dedupe is exactly 900 seconds,
+non-History legacy rows are content-minimized and capped at the deletion request
+plus 900 seconds without extending an earlier expiry, valid History tombstones keep
+their separate deletion-anchored 120-day ceiling, and local scan-consumption is
+deleted completely. Purchase-token replay protection and financial evidence remain
+separate and unchanged. The
 `ANALYSIS_ABUSE` component processes deterministic REQUEST, RATE and SCAN_RATE
 partitions in strongly consistent pages of 100, persists operation-bound progress,
-then stops before CONSUMPTION while its policy is pending. It removes request
-content and authorization/event metadata without extending or silently shortening
-the existing expiry. History-first 120-day `COMPLETED_ERASED` tombstones are
+then stops before CONSUMPTION while its explicit activation policy is pending and
+deletes that family when approved. It removes request content and
+authorization/event metadata without extending retention. History-first 120-day
+`COMPLETED_ERASED` tombstones are
 accepted and minimized, and History cleanup after analysis cleanup writes the same
 exact content-free shape with expiry anchored to the deletion request so retries
 cannot extend retention. Every analysis write that can create or restore those
@@ -29,7 +35,7 @@ transaction. No analysis-abuse component receipt can be issued while any ordinar
 request-dedupe, legacy-request-retention, or scan-consumption policy gate is
 pending.
 
-Retention evidence and recommendation:
+Retention evidence and approved decision:
 
 - The pre-change conversation-analysis source default for
   `REQUEST_ID_TTL_SECONDS` is 900 seconds. Current Dev infrastructure inputs do
@@ -40,16 +46,18 @@ Retention evidence and recommendation:
   `COMPLETED_ERASED` analysis replay tombstone. This is not the 120-day account
   component-receipt retention contract even though the number is the same.
 - No live analysis rows were read, so the presence or provenance of legacy
-  ordinary request rows with longer expiry is unknown.
-- Recommendation: keep the ordinary writer default at 900 seconds and do not
-  expand it until product/security approves an exact need. Content-minimize any
-  valid longer-lived History tombstone without shortening its approved expiry.
-  For any other longer-lived legacy row, fail closed pending provenance rather
-  than shorten, delete, or bless it automatically.
-- Required decisions: approve the ordinary request-dedupe duration and legacy
-  longer-expiry treatment; separately approve whether local scan-consumption is
-  deleted or minimized, with exact retained fields, purpose, duration, access,
-  and backup/restore treatment.
+  ordinary request rows with longer expiry is unknown. This is evidence still to
+  collect, not permission to retain them longer.
+- Ordinary request dedupe remains 900 seconds. Valid History tombstones retain
+  their separate approved expiry. Every other longer-lived valid replay row is
+  reduced to the exact content-free allowlist and capped at the deletion request
+  plus 900 seconds, or deleted when that boundary has passed.
+- Local `ANALYSIS#CONSUMPTION#<sha256(sub)>` rows are fully erased after the
+  explicit activation gate is approved; no consumption tombstone survives.
+- The authorized Dev inventory is read-only and aggregate-only by family, status,
+  field-name set and expiry-age bucket. It must not output/log content, identifiers,
+  keys, hashes, authorizations, event IDs, or samples, and must stop if the access
+  path cannot uphold those exclusions. This inventory was not executed here.
 
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 
@@ -116,8 +124,10 @@ Automated evidence:
 - `tests/device_registration` and `tests/device_recovery`
 - `tests/shared_history` and analysis/history race coverage
 
-Current local result: **296 passed, 129 subtests passed**. Deterministic package
-builds and checksum verification also pass.
+Current local result: **299 passed, 129 subtests passed**. Compile and shell checks,
+the campaign artifact validator, and the complete `dist/SHA256SUMS` verification
+pass. The changed `account_data_api.zip` SHA-256 is
+`aa0d3fe00a0a6ab06090d8a69304b386c8d8e55d6224ae7566471b1245b17a01`.
 
 The story must not be marked complete or activated yet. Remaining prerequisites
 are the approved complete account-data inventory, deletion/final receipts for

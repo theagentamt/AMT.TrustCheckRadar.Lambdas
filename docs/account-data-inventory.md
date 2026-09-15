@@ -8,7 +8,7 @@ that the Lambda source reads or writes. It is evidence for completing the accoun
 data design; it is not privacy/legal approval, an authorization to deploy, or proof
 that expired records have been physically removed.
 
-## Owner decisions recorded 2026-09-14
+## Owner decisions recorded 2026-09-14 and 2026-09-15
 
 The following decisions are approved for Dev and are now reflected in the source
 contract where applicable:
@@ -28,6 +28,20 @@ contract where applicable:
   identity removal;
 - billing is handled by app stores and no separate local billing-retention period is
   required.
+- ordinary analysis request dedupe is exactly 900 seconds; deletion retries anchor
+  that boundary to the original deletion-request timestamp and never extend it;
+- a valid History `COMPLETED_ERASED` replay tombstone keeps its separately approved
+  deletion-anchored retention, up to 120 days;
+- a non-History legacy request row longer than 900 seconds is immediately stripped
+  to the exact content-free dedupe allowlist and shortened to no later than the
+  deletion request plus 900 seconds, or deleted if that boundary has passed;
+- local scan-consumption rows are erasable service state and are deleted completely;
+  no local consumption tombstone is retained. Purchase-token anti-replay and any
+  required financial evidence remain separate data families;
+- Dev legacy inventory is read-only and aggregate-only: counts by family, status,
+  field-name set, and expiry-age bucket, with no content, identifiers, key values,
+  hashes, authorization values, event IDs, samples, or mutation. The audit must stop
+  if its execution path cannot enforce those exclusions.
 
 The billing decision does **not** authorize deleting or reassigning token-keyed
 anti-replay records, inventing a retention duration, or assuming there are no
@@ -105,10 +119,10 @@ separate locally erasable copies from records Google or the merchant must retain
 
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
-| Analysis request/replay | Abuse table `PK=ANALYSIS#REQUEST#<sha256(sub)>`, `SK=<requestId>`; payload hash, lease/status, response, optional campaign/history authorization and event ID | `conversation_analysis/abuse_controls.py`, `scan_access.py` and History integration | The `ANALYSIS_ABUSE` component queries this deterministic partition in strongly consistent pages of 100, deletes expired rows, and replaces unexpired rows with the exact content-free `PK`/`SK`/`COMPLETED_ERASED`/payload-hash/original-expiry allowlist. It accepts the separately approved 120-day History tombstone written by History-first cleanup and removes any remaining authorization/event metadata without shortening its expiry. | Response, leases, authorizations and event IDs are **erasable**. The ordinary analysis writer's prior source default is 900 seconds; an older deployment example says 86400 seconds, but no approved Dev value or legacy-row inventory was supplied. Exact ordinary-request dedupe retention remains an activation decision. |
+| Analysis request/replay | Abuse table `PK=ANALYSIS#REQUEST#<sha256(sub)>`, `SK=<requestId>`; payload hash, lease/status, response, optional campaign/history authorization and event ID | `conversation_analysis/abuse_controls.py`, `scan_access.py` and History integration | The `ANALYSIS_ABUSE` component queries this deterministic partition in strongly consistent pages of 100, deletes expired rows, and replaces unexpired rows with the exact content-free `PK`/`SK`/`COMPLETED_ERASED`/payload-hash/expiry allowlist. Ordinary dedupe is capped at the original deletion request plus 900 seconds without extending a shorter expiry. A non-History legacy row is shortened to that boundary or deleted if it has passed. A History `COMPLETED_ERASED` tombstone at or inside the separately approved deletion-anchored 120-day ceiling is preserved and content-minimized. | Response, leases, authorizations and event IDs are **erasable**. The exact 900-second ordinary dedupe and legacy normalization policy is owner-approved. The explicit policy status remains an activation guard, not an unresolved policy question. |
 | Request rate | `PK=ANALYSIS#RATE#<sha256(sub)>`, `SK=<windowStart>`; count/time with logical TTL | `abuse_controls.enforce_rate_limit` | The `ANALYSIS_ABUSE` component deletes the whole deterministic partition in bounded pages. | **Erasable operational state.** TTL remains supplementary, not proof. |
 | Scan rate | `PK=ANALYSIS#SCAN_RATE#<sha256(sub)>`, `SK=<windowStart>`; count/time with logical TTL | `scan_access._enforce_scan_rate_limit` | The `ANALYSIS_ABUSE` component deletes the whole deterministic partition in bounded pages. | **Erasable operational state.** No tombstone is retained. |
-| Scan consumption | `PK=ANALYSIS#CONSUMPTION#<sha256(sub)>`, `SK=<requestId>`; hashed account marker, consumption type/time with logical TTL | `scan_access.commit_scan_and_request` writes it atomically with request/entitlement state | The worker can deterministically query this partition, but deletion is policy-blocked and no `ANALYSIS_ABUSE` receipt is written while `ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS=pending`. All request, result, rate and consumption writers now condition-check the active profile and fixed deletion fence in the same transaction. | **Proposed erasable operational state, not approved.** App-store billing does not by itself prove that local quota/dedup/security evidence has no independent purpose. Owner/security must approve delete-versus-minimize fields and duration. |
+| Scan consumption | `PK=ANALYSIS#CONSUMPTION#<sha256(sub)>`, `SK=<requestId>`; hashed account marker, consumption type/time with logical TTL | `scan_access.commit_scan_and_request` writes it atomically with request/entitlement state | The worker deterministically queries and completely deletes this partition after the explicit consumption-deletion gate is approved for activation. All request, result, rate and consumption writers condition-check the active profile and fixed deletion fence in the same transaction. | **Erasable operational state.** Owner-approved deletion retains no local tombstone or fields. Purchase-token anti-replay and financial evidence are separate and unaffected. |
 | OpenAI request/response processing | Source text is sent to the configured Responses API; the API key is in Secrets Manager | `conversation_analysis/analysis_client.py` | No repository-controlled provider deletion/export mechanism | External-processing blocker: approve vendor data-use/retention configuration and incident/export responsibilities. No paid/model call is authorized by this inventory. |
 
 The conversation-analysis Lambda now requires the canonical
@@ -144,7 +158,7 @@ expiry lanes and replay redactions reconciled before traffic is admitted.
 | Consent audit | Users `PK=USER#<sub>`, `SK=CAMPAIGN_CONSENT#<epoch>#<time>#<operationId>` and completion variant; notice/policy/state/limit/time | Participation and deletion bridge write | 400-day `expiresAt`; no product-wide export or explicit users-table sweep | Likely **necessary minimal consent audit**. Direct subject linkage and 400-day retention need privacy/legal approval plus backup non-resurrection rules. |
 | Campaign withdrawal command | Ledger `PK=ACCOUNT#<sub>`, `SK=CAMPAIGN_WITHDRAWAL#<operationId>`; direct account, epoch, deadline/status | Participation writes; deletion bridge consumes/updates | Remains as protected operation evidence; no TTL in Lambda contract | **Necessary work record then minimal audit.** Retention and final minimization are unresolved. |
 | Account deletion command | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION`; operation/status/deadline | `account_data_api` writes; all protected writers fence against it; deletion bridges/reconcilers read | Fixed fence intentionally persists; overall completion/finalizer is absent | **Necessary deletion fence/tombstone.** Exact retained fields and duration must be approved. It must survive long enough to prevent restored/queued work from recreating data. |
-| Component/progress receipts | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION#<COMPONENT>` and bounded progress items; request binding, completion time and `retainUntilEpoch` | Account, History and campaign workers | Session, device, device-recovery, History and campaign receipts exist. The analysis-abuse receipt shape exists in source but cannot be emitted until its ordinary-request, legacy-request and consumption policy gates are approved. New receipts use the approved 120-day minimal contract. Progress is removed after completion. | **Necessary work/idempotency evidence.** Ledger TTL remains disabled; controlled retirement is blocked until verified backup/replay coverage and overall finalization exist. |
+| Component/progress receipts | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION#<COMPONENT>` and bounded progress items; request binding, completion time and `retainUntilEpoch` | Account, History and campaign workers | Session, device, device-recovery, History and campaign receipts exist. The analysis-abuse receipt is emitted only when all three owner-approved analysis policy decisions are explicitly enabled. New receipts use the approved 120-day minimal contract. Progress is removed after completion. | **Necessary work/idempotency evidence.** Ledger TTL remains disabled; controlled retirement is blocked until verified backup/replay coverage and overall finalization exist. |
 | Ledger reconciliation checkpoints | `PK=LIFECYCLE#<environment>`, fixed reconciliation sort keys | Account and History reconcilers | Operational, no per-user content | **Necessary environment control**, not user export data. |
 
 The 120-day component-receipt schema is intentionally strict. A pre-existing
@@ -237,14 +251,13 @@ token, raw content, reviewer identity or subject mapping is added.
 The overall account-deletion required-component list must not be approved until
 these component responsibilities have stable names, exact receipts and workers:
 
-`ANALYSIS_ABUSE` is source-implemented but policy-blocked. Safe response and
+`ANALYSIS_ABUSE` is source-implemented and its retention/deletion decisions are
+owner-approved, but activation remains explicitly gated. Safe response and
 authorization minimization, REQUEST/RATE/SCAN_RATE pagination, late-writer fences,
 History-first 120-day tombstone compatibility, and an exact receipt contract are
-covered. The worker stops before CONSUMPTION and cannot receipt until the owner
-approves (1) the exact ordinary analysis-request dedupe duration and handling of
-legacy rows longer than it, and (2) deletion or an exact minimal-retention contract
-for local scan-consumption evidence. App-store billing alone does not answer the
-second question.
+covered. With the three policy flags explicitly approved, the worker caps ordinary
+dedupe at 900 seconds from the deletion request, normalizes longer non-History
+legacy rows, completely deletes local scan-consumption, and then may receipt.
 
 1. `ENTITLEMENTS`: drain `USER#<sub>` entitlement/usage rows and discover every
    `TOKEN#.../IDEMPOTENCY` record through an approved existing-table account access
@@ -351,6 +364,9 @@ campaign contribution cleanup only. It deliberately cannot mark overall completi
   legacy locator/backfill, existing entitlement/usage transactions and any local
   evidence that must survive deletion. No financial retention duration may be
   invented merely because separate local billing retention is unnecessary.
+- Aggregate-only Dev legacy inventory evidence using the approved field and value
+  exclusions. If DynamoDB/API access cannot avoid exposing prohibited key or value
+  data to logs or output, stop rather than weaken the inventory contract.
 
 Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
 `ACCOUNT_DELETION_COMPLETION_STATUS=incomplete`.
@@ -376,12 +392,13 @@ Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
   write transaction. Pre-issued tokens cannot replay binding details after the
   deletion fence exists.
 - `account_data_api` now performs bounded, resumable `ANALYSIS_ABUSE` cleanup over
-  the deterministic request, request-rate and scan-rate partitions and can resume
-  at scan-consumption. It deletes rate state and strips request responses and
-  authorizations while preserving the existing bounded expiry, including valid
-  History 120-day tombstones. It stops before scan-consumption and cannot receipt
-  while either retention gate is pending. Corresponding conversation-analysis
-  writers share the fixed deletion fence transactionally.
+  deterministic request, request-rate, scan-rate and scan-consumption partitions.
+  It deletes rate and consumption state, strips request responses and
+  authorizations, caps ordinary/legacy non-History dedupe at the deletion request
+  plus 900 seconds without extending a shorter expiry, and preserves valid History
+  tombstones within their separately approved 120-day ceiling. It cannot receipt
+  unless all three explicit policy flags are approved. Corresponding
+  conversation-analysis writers share the fixed deletion fence transactionally.
 - Account deletion component receipts now carry `retainUntilEpoch` at the approved
   120-day boundary. This is retention metadata, not DynamoDB TTL; ledger TTL remains
   disabled and retirement requires backup/replay evidence. Legacy receipts missing
