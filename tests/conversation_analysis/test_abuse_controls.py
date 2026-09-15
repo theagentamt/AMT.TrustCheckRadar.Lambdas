@@ -11,7 +11,7 @@ MODULE_DIR = SRC_DIR / "conversation_analysis"
 for path in (SRC_DIR, MODULE_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
-for module_name in ["config", "errors", "abuse_controls"]:
+for module_name in ["config", "errors", "account_fence", "abuse_controls"]:
     sys.modules.pop(module_name, None)
 
 os.environ.update({
@@ -61,6 +61,11 @@ class FakeTable:
         values = ExpressionAttributeValues or {}
         if "ADD requestCount" in (UpdateExpression or ""):
             self._assert_ttl_alias(ExpressionAttributeNames)
+            if (
+                ":maximum" in values
+                and int(item.get("requestCount", 0)) >= int(values[":maximum"])
+            ):
+                raise conditional_failure()
             item["requestCount"] = int(item.get("requestCount", 0)) + int(values[":one"])
             item["expiresAt"] = values[":expires_at"]
             item["ttl"] = values[":expires_at"]
@@ -138,15 +143,77 @@ class FakeTable:
 fake_table = FakeTable()
 
 
+def _deserialize_item(item):
+    result = {}
+    for key, value in item.items():
+        kind, raw = next(iter(value.items()))
+        if kind == "S":
+            result[key] = raw
+        elif kind == "N":
+            result[key] = Decimal(raw)
+            if result[key] == result[key].to_integral_value():
+                result[key] = int(result[key])
+        elif kind == "BOOL":
+            result[key] = raw
+        elif kind == "NULL":
+            result[key] = None
+        elif kind == "M":
+            result[key] = _deserialize_item(raw)
+        elif kind == "L":
+            result[key] = [
+                _deserialize_item({"value": nested})["value"] for nested in raw
+            ]
+    return result
+
+
+class FakeDynamoClient:
+    def __init__(self):
+        self.transactions = []
+        self.error = None
+
+    def transact_write_items(self, TransactItems):
+        if self.error:
+            raise self.error
+        self.transactions.append(TransactItems)
+        write = TransactItems[-1]
+        try:
+            if "Put" in write:
+                operation = write["Put"]
+                fake_table.put_item(
+                    _deserialize_item(operation["Item"]),
+                    ConditionExpression=operation.get("ConditionExpression"),
+                )
+            elif "Update" in write:
+                operation = write["Update"]
+                fake_table.update_item(
+                    _deserialize_item(operation["Key"]),
+                    UpdateExpression=operation.get("UpdateExpression"),
+                    ConditionExpression=operation.get("ConditionExpression"),
+                    ExpressionAttributeNames=operation.get("ExpressionAttributeNames"),
+                    ExpressionAttributeValues=_deserialize_item(
+                        operation.get("ExpressionAttributeValues") or {}
+                    ),
+                )
+        except FakeClientError as err:
+            if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                raise FakeClientError({
+                    "Error": {"Code": "TransactionCanceledException"},
+                }) from err
+            raise
+
+
+fake_client = FakeDynamoClient()
+
+
 class FakeResource:
     def Table(self, name):
-        if name == "users":
+        if name in {"users", "test-users"}:
             class Users:
                 def get_item(self, Key, **_kwargs):
                     sub = Key["PK"].removeprefix("USER#")
                     return {"Item": {"sub": sub, "status": "ACTIVE", "ageVerified": True}}
             return Users()
-        if name == "ledger":
+        if name in {"ledger", "test-ledger"}:
             class Ledger:
                 def get_item(self, **_kwargs):
                     return {}
@@ -167,7 +234,7 @@ class EmptyLedgerTable:
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: FakeResource()
-boto3_stub.client = lambda *args, **kwargs: object()
+boto3_stub.client = lambda *args, **kwargs: fake_client
 sys.modules["boto3"] = boto3_stub
 botocore_ex = types.ModuleType("botocore.exceptions")
 botocore_ex.ClientError = FakeClientError
@@ -204,7 +271,10 @@ def response():
 class AbuseControlsTests(unittest.TestCase):
     def setUp(self):
         fake_table.items.clear()
+        fake_client.transactions.clear()
+        fake_client.error = None
         abuse_controls.table = fake_table
+        abuse_controls.dynamodb_client = fake_client
 
     def test_extract_identity_prefers_jwt_sub(self):
         event = {
@@ -243,6 +313,34 @@ class AbuseControlsTests(unittest.TestCase):
         self.assertEqual(item["status"], "PROCESSING")
         self.assertEqual(item["payloadHash"], abuse_controls._payload_hash(payload()))
         self.assertEqual(item["leaseExpiresAt"], 160)
+        transaction = fake_client.transactions[0]
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "ledger")
+        self.assertEqual(
+            transaction[2]["Put"]["TableName"],
+            abuse_controls.ANALYSIS_ABUSE_TABLE_NAME,
+        )
+
+    def test_account_deletion_fence_blocks_late_request_creation(self):
+        fake_client.error = FakeClientError({
+            "Error": {"Code": "TransactionCanceledException"},
+        })
+        forbidden = AppError(
+            "FORBIDDEN", "The account is not active.", retryable=False
+        )
+
+        with mock.patch.object(
+            abuse_controls, "assert_account_active", side_effect=forbidden
+        ), self.assertRaises(AppError) as context:
+            abuse_controls.check_or_lock_request(
+                "user-123", "req-1", payload(), now_epoch=100
+            )
+
+        self.assertEqual(context.exception.code, "FORBIDDEN")
+        identity_hash = abuse_controls._hashed_identity("user-123")
+        self.assertNotIn(
+            (f"ANALYSIS#REQUEST#{identity_hash}", "req-1"), fake_table.items
+        )
 
     def test_same_request_id_with_different_payload_is_permanent_conflict(self):
         lock = abuse_controls.check_or_lock_request("user-123", "req-1", payload(), now_epoch=100)
@@ -326,6 +424,17 @@ class AbuseControlsTests(unittest.TestCase):
                 "noticeVersion": "notice-2026-09",
                 "stateVersion": 2,
             },
+        )
+        result_store_transaction = fake_client.transactions[1]
+        self.assertEqual(
+            result_store_transaction[0]["ConditionCheck"]["TableName"], "users"
+        )
+        self.assertEqual(
+            result_store_transaction[1]["ConditionCheck"]["TableName"], "ledger"
+        )
+        self.assertEqual(
+            result_store_transaction[2]["Update"]["TableName"],
+            abuse_controls.ANALYSIS_ABUSE_TABLE_NAME,
         )
 
     def test_completed_response_replays_without_reprocessing(self):

@@ -279,6 +279,9 @@ per-request IAM principal tag.
 `conversation_analysis` needs:
 
 - `dynamodb:GetItem` on History control/content (`USER#*`)
+- users/deletion-ledger `GetItem` and transaction
+  `dynamodb:ConditionCheckItem` on exact `USER#<sub>/PROFILE` and
+  `ACCOUNT#<sub>/ACCOUNT_DELETION` keys for every abuse-control/result write
 - transaction member permissions `dynamodb:PutItem`, `dynamodb:UpdateItem`, and
   `dynamodb:ConditionCheckItem` on the exact History content/control resources,
   each constrained by

@@ -6,6 +6,11 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
+from account_fence import (
+    append_account_authority_checks,
+    assert_account_active,
+    serialize_item,
+)
 from config import (
     ANALYSIS_ABUSE_TABLE_NAME,
     APP_ENVIRONMENT,
@@ -179,6 +184,9 @@ def commit_scan_and_request(
             }
         },
     ]
+    authority_checks = []
+    append_account_authority_checks(authority_checks, account_id)
+    transaction[0:0] = authority_checks
     redact_replay = append_history_completion(
         transaction,
         account_id=account_id,
@@ -278,6 +286,7 @@ def commit_scan_and_request(
         dynamodb_client.transact_write_items(TransactItems=transaction)
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") == "TransactionCanceledException":
+            assert_account_active(account_id)
             raise AppError(
                 "REQUEST_IN_PROGRESS",
                 "Account access changed while this analysis result was being committed.",
@@ -398,31 +407,41 @@ def _enforce_scan_rate_limit(account_id: str, now_epoch: int) -> None:
     account_key = _hashed_account_id(account_id)
     key = {"PK": f"ANALYSIS#SCAN_RATE#{account_key}", "SK": str(window_start)}
 
-    response = abuse_table.update_item(
-        Key=key,
-        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, #ttl = :expires_at, updatedAt = :updated_at",
-        ExpressionAttributeNames={
-            "#ttl": "ttl",
-        },
-        ExpressionAttributeValues={
+    transaction = []
+    append_account_authority_checks(transaction, account_id)
+    transaction.append({"Update": {
+        "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+        "Key": serialize_item(key),
+        "UpdateExpression": (
+            "ADD requestCount :one SET expiresAt = :expires_at, "
+            "#ttl = :expires_at, updatedAt = :updated_at"
+        ),
+        "ConditionExpression": (
+            "attribute_not_exists(requestCount) OR requestCount < :maximum"
+        ),
+        "ExpressionAttributeNames": {"#ttl": "ttl"},
+        "ExpressionAttributeValues": serialize_item({
             ":one": 1,
+            ":maximum": SCAN_RATE_LIMIT_MAX_REQUESTS,
             ":expires_at": expires_at,
             ":updated_at": _iso_now(),
-        },
-        ReturnValues="UPDATED_NEW",
-    )
-    request_count = int(response["Attributes"]["requestCount"])
-    if request_count > SCAN_RATE_LIMIT_MAX_REQUESTS:
+        }),
+    }})
+    try:
+        dynamodb_client.transact_write_items(TransactItems=transaction)
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
+            raise
+        assert_account_active(account_id)
         LOGGER.warning(
-            "Scan abuse cap exceeded | requestCount=%s windowStart=%s",
-            request_count,
+            "Scan abuse cap exceeded | windowStart=%s",
             window_start,
         )
         raise AppError(
             "RATE_LIMITED",
             "Too many scans have been submitted for this account. Please retry later.",
             retryable=True,
-        )
+        ) from err
 
 
 def _require_abuse_table() -> None:

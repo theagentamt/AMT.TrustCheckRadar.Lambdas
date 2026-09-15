@@ -9,6 +9,11 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
+from account_fence import (
+    append_account_authority_checks,
+    assert_account_active,
+    serialize_item,
+)
 from config import (
     ANALYSIS_ABUSE_TABLE_NAME,
     PROCESSING_LEASE_SECONDS,
@@ -21,6 +26,7 @@ from shared_history import HistoryError, HistorySettings, response_from_history_
 from shared_history.security import assert_authoritative_account_active, jwt_subject
 
 dynamodb = boto3.resource("dynamodb")
+dynamodb_client = boto3.client("dynamodb")
 table = dynamodb.Table(ANALYSIS_ABUSE_TABLE_NAME) if ANALYSIS_ABUSE_TABLE_NAME else None
 
 
@@ -65,12 +71,15 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
                     result[field] = _to_json_compatible(existing[field])
             return result
         if status == "RETRYABLE":
-            return _take_over_retryable(identity_key, request_id, payload_hash, existing, now_epoch)
+            return _take_over_retryable(
+                identity, identity_key, request_id, payload_hash, existing, now_epoch
+            )
     if existing and int(existing.get("expiresAt", 0)) <= now_epoch:
         durable = _durable_replay(identity, request_id, payload_hash, now_epoch)
         if durable is not None:
             return durable
         return _replace_expired_request(
+            identity,
             identity_key,
             request_id,
             payload_hash,
@@ -99,6 +108,7 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
             )
         if status == "PROCESSING":
             return _take_over_expired_lease(
+                identity,
                 identity_key,
                 request_id,
                 payload_hash,
@@ -115,9 +125,11 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
     if durable is not None:
         return durable
     lease_token = str(uuid.uuid4())
-    try:
-        table.put_item(
-            Item={
+    _transact_abuse_write(
+        identity,
+        {"Put": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Item": serialize_item({
                 "PK": f"ANALYSIS#REQUEST#{identity_key}",
                 "SK": request_id,
                 "status": "PROCESSING",
@@ -128,18 +140,16 @@ def check_or_lock_request(identity: str, request_id: str, payload: dict, now_epo
                 "updatedAt": _iso_now(),
                 "expiresAt": now_epoch + REQUEST_ID_TTL_SECONDS,
                 "ttl": now_epoch + REQUEST_ID_TTL_SECONDS,
-            },
-            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
-        )
-    except ClientError as err:
-        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            raise AppError(
-                "REQUEST_IN_PROGRESS",
-                "This analysis request is already processing.",
-                retryable=True,
-                details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
-            ) from err
-        raise
+            }),
+            "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        }},
+        AppError(
+            "REQUEST_IN_PROGRESS",
+            "This analysis request is already processing.",
+            retryable=True,
+            details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
+        ),
+    )
     return {
         "state": "processing",
         "payloadHash": payload_hash,
@@ -154,24 +164,32 @@ def enforce_rate_limit(identity: str, now_epoch: int | None = None):
     expires_at = window_start + RATE_LIMIT_WINDOW_SECONDS
     identity_key = _hashed_identity(identity)
 
-    response = table.update_item(
-        Key={"PK": f"ANALYSIS#RATE#{identity_key}", "SK": str(window_start)},
-        UpdateExpression="ADD requestCount :one SET expiresAt = :expires_at, #ttl = :expires_at, updatedAt = :updated_at",
-        ExpressionAttributeNames={"#ttl": "ttl"},
-        ExpressionAttributeValues={
-            ":one": 1,
-            ":expires_at": expires_at,
-            ":updated_at": _iso_now(),
-        },
-        ReturnValues="UPDATED_NEW",
-    )
-    request_count = int(response["Attributes"]["requestCount"])
-    if request_count > RATE_LIMIT_MAX_REQUESTS:
-        raise AppError(
+    _transact_abuse_write(
+        identity,
+        {"Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": serialize_item({
+                "PK": f"ANALYSIS#RATE#{identity_key}", "SK": str(window_start),
+            }),
+            "UpdateExpression": (
+                "ADD requestCount :one SET expiresAt = :expires_at, "
+                "#ttl = :expires_at, updatedAt = :updated_at"
+            ),
+            "ConditionExpression": (
+                "attribute_not_exists(requestCount) OR requestCount < :maximum"
+            ),
+            "ExpressionAttributeNames": {"#ttl": "ttl"},
+            "ExpressionAttributeValues": serialize_item({
+                ":one": 1, ":maximum": RATE_LIMIT_MAX_REQUESTS,
+                ":expires_at": expires_at, ":updated_at": _iso_now(),
+            }),
+        }},
+        AppError(
             "RATE_LIMITED",
             "Too many analysis requests have been submitted. Please retry later.",
             retryable=True,
-        )
+        ),
+    )
 
 
 def store_result(
@@ -212,14 +230,28 @@ def store_result(
         update_expression += ", historyAuthorization = :history_authorization"
         expression_values[":history_authorization"] = _to_dynamodb_compatible(history_authorization)
     update_expression += " REMOVE leaseToken, leaseExpiresAt"
-    table.update_item(
-        Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-        UpdateExpression=update_expression,
-        ConditionExpression=(
-            "#status = :processing AND payloadHash = :payload_hash AND leaseToken = :lease_token"
+    _transact_abuse_write(
+        identity,
+        {"Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": serialize_item({
+                "PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id,
+            }),
+            "UpdateExpression": update_expression,
+            "ConditionExpression": (
+                "#status = :processing AND payloadHash = :payload_hash "
+                "AND leaseToken = :lease_token"
+            ),
+            "ExpressionAttributeNames": {
+                "#status": "status", "#response": "response", "#ttl": "ttl",
+            },
+            "ExpressionAttributeValues": serialize_item(expression_values),
+        }},
+        AppError(
+            "REQUEST_IN_PROGRESS",
+            "This analysis request changed while its result was stored.",
+            retryable=True,
         ),
-        ExpressionAttributeNames={"#status": "status", "#response": "response", "#ttl": "ttl"},
-        ExpressionAttributeValues=expression_values,
     )
 
 
@@ -267,6 +299,7 @@ def _get_request_record(identity_key: str, request_id: str):
 
 
 def _take_over_expired_lease(
+    identity: str,
     identity_key: str,
     request_id: str,
     payload_hash: str,
@@ -274,19 +307,23 @@ def _take_over_expired_lease(
     now_epoch: int,
 ) -> dict:
     lease_token = str(uuid.uuid4())
-    try:
-        table.update_item(
-            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-            UpdateExpression=(
+    _transact_abuse_write(
+        identity,
+        {"Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": serialize_item({
+                "PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id,
+            }),
+            "UpdateExpression": (
                 "SET leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, "
                 "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
             ),
-            ConditionExpression=(
+            "ConditionExpression": (
                 "#status = :processing AND payloadHash = :payload_hash "
                 "AND leaseExpiresAt = :previous_lease_expires_at"
             ),
-            ExpressionAttributeNames={"#status": "status", "#ttl": "ttl"},
-            ExpressionAttributeValues={
+            "ExpressionAttributeNames": {"#status": "status", "#ttl": "ttl"},
+            "ExpressionAttributeValues": serialize_item({
                 ":processing": "PROCESSING",
                 ":payload_hash": payload_hash,
                 ":previous_lease_expires_at": int(existing.get("leaseExpiresAt", 0)),
@@ -294,17 +331,15 @@ def _take_over_expired_lease(
                 ":lease_expires_at": now_epoch + PROCESSING_LEASE_SECONDS,
                 ":updated_at": _iso_now(),
                 ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
-            },
-        )
-    except ClientError as err:
-        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            raise AppError(
-                "REQUEST_IN_PROGRESS",
-                "This analysis request is already processing.",
-                retryable=True,
-                details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
-            ) from err
-        raise
+            }),
+        }},
+        AppError(
+            "REQUEST_IN_PROGRESS",
+            "This analysis request is already processing.",
+            retryable=True,
+            details=[{"retryAfterSeconds": PROCESSING_LEASE_SECONDS}],
+        ),
+    )
     return {
         "state": "processing",
         "payloadHash": payload_hash,
@@ -314,24 +349,38 @@ def _take_over_expired_lease(
     }
 
 
-def _take_over_retryable(identity_key, request_id, payload_hash, existing, now_epoch):
+def _take_over_retryable(
+    identity, identity_key, request_id, payload_hash, existing, now_epoch,
+):
     lease_token = str(uuid.uuid4())
-    try:
-        table.update_item(
-            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-            UpdateExpression="SET #status = :processing, leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at",
-            ConditionExpression="#status = :retryable AND payloadHash = :payload_hash",
-            ExpressionAttributeNames={"#status": "status", "#ttl": "ttl"},
-            ExpressionAttributeValues={
+    _transact_abuse_write(
+        identity,
+        {"Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": serialize_item({
+                "PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id,
+            }),
+            "UpdateExpression": (
+                "SET #status = :processing, leaseToken = :lease_token, "
+                "leaseExpiresAt = :lease_expires_at, updatedAt = :updated_at, "
+                "expiresAt = :expires_at, #ttl = :expires_at"
+            ),
+            "ConditionExpression": (
+                "#status = :retryable AND payloadHash = :payload_hash"
+            ),
+            "ExpressionAttributeNames": {"#status": "status", "#ttl": "ttl"},
+            "ExpressionAttributeValues": serialize_item({
                 ":processing": "PROCESSING", ":retryable": "RETRYABLE", ":payload_hash": payload_hash,
                 ":lease_token": lease_token, ":lease_expires_at": now_epoch + PROCESSING_LEASE_SECONDS,
                 ":updated_at": _iso_now(), ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
-            },
-        )
-    except ClientError as err:
-        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            raise AppError("REQUEST_IN_PROGRESS", "This analysis request changed while retrying.", retryable=True) from err
-        raise
+            }),
+        }},
+        AppError(
+            "REQUEST_IN_PROGRESS",
+            "This analysis request changed while retrying.",
+            retryable=True,
+        ),
+    )
     return {
         "state": "processing", "payloadHash": payload_hash, "leaseToken": lease_token,
         "historyAuthorization": _to_json_compatible(existing["historyAuthorization"]), "takeover": True,
@@ -390,6 +439,7 @@ def _result_unavailable():
 
 
 def _replace_expired_request(
+    identity: str,
     identity_key: str,
     request_id: str,
     payload_hash: str,
@@ -398,23 +448,27 @@ def _replace_expired_request(
 ) -> dict:
     lease_token = str(uuid.uuid4())
     previous_expires_at = int(existing.get("expiresAt", 0))
-    try:
-        table.update_item(
-            Key={"PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id},
-            UpdateExpression=(
+    _transact_abuse_write(
+        identity,
+        {"Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": serialize_item({
+                "PK": f"ANALYSIS#REQUEST#{identity_key}", "SK": request_id,
+            }),
+            "UpdateExpression": (
                 "SET #status = :processing, payloadHash = :payload_hash, "
                 "leaseToken = :lease_token, leaseExpiresAt = :lease_expires_at, "
                 "createdAt = :created_at, updatedAt = :updated_at, "
                 "expiresAt = :expires_at, #ttl = :expires_at "
                 "REMOVE #response, resultReadyAt, completedAt"
             ),
-            ConditionExpression="expiresAt = :previous_expires_at",
-            ExpressionAttributeNames={
+            "ConditionExpression": "expiresAt = :previous_expires_at",
+            "ExpressionAttributeNames": {
                 "#status": "status",
                 "#response": "response",
                 "#ttl": "ttl",
             },
-            ExpressionAttributeValues={
+            "ExpressionAttributeValues": serialize_item({
                 ":processing": "PROCESSING",
                 ":payload_hash": payload_hash,
                 ":lease_token": lease_token,
@@ -423,17 +477,15 @@ def _replace_expired_request(
                 ":updated_at": _iso_now(),
                 ":expires_at": now_epoch + REQUEST_ID_TTL_SECONDS,
                 ":previous_expires_at": previous_expires_at,
-            },
-        )
-    except ClientError as err:
-        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            raise AppError(
-                "REQUEST_IN_PROGRESS",
-                "This analysis request changed while an expired record was being replaced.",
-                retryable=True,
-                details=[{"retryAfterSeconds": 1}],
-            ) from err
-        raise
+            }),
+        }},
+        AppError(
+            "REQUEST_IN_PROGRESS",
+            "This analysis request changed while an expired record was being replaced.",
+            retryable=True,
+            details=[{"retryAfterSeconds": 1}],
+        ),
+    )
     return {
         "state": "processing",
         "payloadHash": payload_hash,
@@ -468,6 +520,22 @@ def _hashed_identity(identity: str) -> str:
 def _require_table():
     if not table:
         raise AppError("SERVER_UNAVAILABLE", "The analysis abuse-control table is not configured.", retryable=False)
+
+
+def _transact_abuse_write(identity: str, write: dict, conflict: AppError) -> None:
+    transaction = []
+    append_account_authority_checks(transaction, identity)
+    transaction.append(write)
+    try:
+        dynamodb_client.transact_write_items(TransactItems=transaction)
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
+            raise
+        # Re-read the authorities only to distinguish an account-deletion fence
+        # from the write's own optimistic condition. The canceled transaction
+        # has already guaranteed that no partial abuse-control write occurred.
+        assert_account_active(identity)
+        raise conflict from err
 
 
 def _iso_now() -> str:

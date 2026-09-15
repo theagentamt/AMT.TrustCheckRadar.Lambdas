@@ -486,7 +486,8 @@ can be aligned without weakening the privacy boundary.
   `GET /v1/users/account-deletion`.
 - Optional retry sources: deletion-ledger DynamoDB stream with
   `ReportBatchItemFailures` for session revocation, bounded device cleanup and
-  bounded device-recovery control cleanup/minimization,
+  bounded device-recovery control cleanup/minimization, and bounded
+  analysis-abuse cleanup/minimization,
   plus the exact scheduled input
   `{"schemaVersion":1,"operation":"reconcile-session-revocation"}`.
   Failed item identifiers are DynamoDB sequence numbers; configuration and
@@ -517,7 +518,8 @@ can be aligned without weakening the privacy boundary.
 Required environment:
 
 - `APP_ENVIRONMENT`, `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`,
-  `DEVICE_BINDINGS_TABLE_NAME`, `DEVICE_RECOVERY_CONTROL_TABLE_NAME`
+  `DEVICE_BINDINGS_TABLE_NAME`, `DEVICE_RECOVERY_CONTROL_TABLE_NAME`,
+  `ANALYSIS_ABUSE_TABLE_NAME`
 - `COGNITO_ISSUER`, `COGNITO_APP_CLIENT_ID`, `COGNITO_USER_POOL_ID`
 - `ACCOUNT_DELETION_ENABLED=false` by default
 - `ACCOUNT_DELETION_POLICY_STATUS=pending` by default
@@ -526,11 +528,12 @@ Required environment:
 - `COGNITO_USERNAME_IS_SUB=false` by default
 - `ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON`; once approved it must include
   at least `SESSION_REVOCATION`, `DEVICE_BINDINGS`, `DEVICE_RECOVERY`, `HISTORY`,
-  and `CAMPAIGN`
+  `ANALYSIS_ABUSE`, and `CAMPAIGN`
 - exact policy constants: reauthentication 300 seconds, deletion SLA 24 hours,
-  device/recovery deletion page sizes 100, recovery receipt 7 days, recovery audit
-  90 days, recovery rate state 86400 seconds, and account component receipt 120
-  days; reconciliation defaults 100 items and ten pages
+  device/recovery/analysis-abuse deletion page sizes 100, recovery receipt 7
+  days, recovery audit 90 days, recovery rate state 86400 seconds, analysis
+  request dedupe 86400 seconds, and account component receipt 120 days;
+  reconciliation defaults 100 items and ten pages
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -545,6 +548,10 @@ IAM:
 - device recovery control table `dynamodb:Query`, `dynamodb:PutItem`, and
   `dynamodb:DeleteItem`, scoped to `USER#*`; `PutItem` replaces a source row with
   its exact minimal allowlist under operation/expiry conditions
+- analysis-abuse table `dynamodb:Query`, `dynamodb:PutItem`, and
+  `dynamodb:DeleteItem`, scoped to the four deterministic
+  `ANALYSIS#REQUEST|RATE|SCAN_RATE|CONSUMPTION#<sha256(sub)>` partitions;
+  request `PutItem` replaces source rows with the exact content-free allowlist
 - `cognito-idp:AdminUserGlobalSignOut` on the configured user pool
 - standard deletion-ledger stream read actions on the event-source role
 
@@ -555,8 +562,9 @@ partition keys only; the application enforces exact sort-key families.
 Metrics use `AMT/TrustCheckRadar/AccountData`. HTTP/stream counters have bounded
 Environment/Operation dimensions. Reconciliation reports success, scanned,
 matched, revoked, already-complete, device and recovery records deleted, recovery
-records minimized, completed device/recovery components, truncation, full-pass
-completion, and full-pass age; unknown
+records minimized, analysis-abuse records deleted/minimized, completed
+device/recovery/analysis-abuse components, truncation, full-pass completion, and
+full-pass age; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 
@@ -565,6 +573,21 @@ deletion, any additional inventory components, overall
 finalization, and fence-retention policy. Full-account export is also blocked;
 paginated JSON is preferred, but the complete inventory and protected delivery
 contract are not yet proven.
+
+Conversation-analysis request creation, lease takeover, result storage, scan-rate
+updates, request-rate updates, and the atomic result/consumption commit all include
+the active-profile and absent-deletion-ledger conditions in the same DynamoDB
+transaction. Destructive cleanup may therefore finish a partition only after the
+fixed fence exists, without a late writer recreating it. `release_request` can only
+delete or conditionally downgrade an existing processing row; after minimization
+its condition cannot match.
+
+Compatibility gate: exact component validators reject legacy receipts that lack
+`retainUntilEpoch`, while conditional receipt creation cannot replace them. Before
+the paired Lambda release is activated, infrastructure/operations must perform a
+read-only inventory of component receipt keys. Activation requires either proof
+that none exist or a separately approved migration contract. These Lambdas do not
+mutate live legacy receipts.
 
 ---
 
@@ -716,6 +739,7 @@ contract are not yet proven.
 | `DEVICE_BINDINGS_TABLE_NAME` | Yes | `trustcheckradar-dev-device-bindings` | Device binding validation fails and request is rejected/unavailable |
 | `ENTITLEMENTS_TABLE_NAME` | Yes for entitlement enforcement, unless fallback aliases are set | `trustcheckradar-dev-purchase-entitlements` | Monthly/credit entitlement gating fails |
 | `USERS_TABLE_NAME` | Yes for server-authoritative campaign publishing | `trustcheckradar-dev-users` | Participation state cannot be read or condition-checked during an outbox write |
+| `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | Transaction-time account-deletion fencing fails closed |
 | `RATE_LIMIT_WINDOW_SECONDS` | No | `60` | Default request throttling windows are used |
 | `RATE_LIMIT_MAX_REQUESTS` | No | `10` | Default request throttling caps are used |
 | `REQUEST_ID_TTL_SECONDS` | No | `86400` | Dedupe retention defaults are used |
@@ -743,6 +767,7 @@ contract are not yet proven.
 | DynamoDB device bindings table | `DEVICE_BINDINGS_TABLE_NAME` | `dynamodb:Query` | Name required by code |
 | DynamoDB entitlements table | `ENTITLEMENTS_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem` | Name required by code |
 | DynamoDB users participation item | `USERS_TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name required for server-authorized campaign publishing |
+| DynamoDB deletion ledger | `DELETION_LEDGER_TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Fixed account-deletion fence |
 | Campaign outbox table | `CAMPAIGN_OUTBOX_TABLE_NAME` | `dynamodb:PutItem` through the existing completion transaction | Name required only for explicitly opted-in submissions |
 | Secrets Manager OpenAI secret | `OPENAI_SECRET_NAME` | `secretsmanager:GetSecretValue` | Name required by code |
 | OpenAI Responses API | runtime outbound call | outbound HTTPS | No AWS identifier |
@@ -762,6 +787,9 @@ contract are not yet proven.
   - scan abuse cap:
     - `PK = ANALYSIS#SCAN_RATE#<sha256(accountId)>`
     - `SK = <windowStart>`
+  - scan consumption idempotency:
+    - `PK = ANALYSIS#CONSUMPTION#<sha256(accountId)>`
+    - `SK = <requestId>`
 - TTL fields:
   - `ttl`
   - `expiresAt`
@@ -779,6 +807,8 @@ contract are not yet proven.
 ### Runtime assumptions
 
 - Expects authenticated request.
+- Every abuse-control write and result/consumption transaction condition-checks
+  the active profile and absence of the fixed account-deletion fence.
 - Expects `Authorization: Bearer <id-token-or-jwt>`.
 - Expects device-binding header:
   - `X-Device-Binding-Fingerprint`
@@ -976,7 +1006,8 @@ retention task and TTL expiry is not evidence of physical deletion. See
 
 ### Conversation Analysis
 - `dynamodb:GetItem`
-- `dynamodb:ConditionCheckItem` for the participation-state transaction check
+- `dynamodb:ConditionCheckItem` for participation state, active profile, and the
+  fixed deletion-ledger fence
 - `dynamodb:PutItem`
 - `dynamodb:UpdateItem`
 - `dynamodb:DeleteItem`

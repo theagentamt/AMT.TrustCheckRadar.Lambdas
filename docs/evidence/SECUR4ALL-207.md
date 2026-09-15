@@ -14,6 +14,16 @@ PITR when provisioned, plus 120-day minimal account-deletion receipts. The
 late-writer fencing in source. Overall deletion remains gated by every other
 inventory component and verified backup/replay coverage.
 
+The owner also confirmed that billing is app-store authoritative with no separate
+local scan-consumption retention requirement. The `ANALYSIS_ABUSE` component now
+drains the deterministic REQUEST, RATE, SCAN_RATE and CONSUMPTION partitions in
+strongly consistent pages of 100. It deletes rate/consumption rows and expired
+requests, reduces unexpired requests to the exact content-free dedupe allowlist
+without extending their approved 24-hour expiry, persists operation-bound family
+progress, and writes the exact component receipt only after all four families.
+Every analysis write that can create or restore those records now shares the
+active-profile/deletion-ledger fence in the same DynamoDB transaction.
+
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 
 - Current-period `HMAC_256` key creation with the required project,
@@ -65,6 +75,10 @@ Implemented Lambda evidence:
   Transactional fence checks prevent a device writer from recreating bindings.
 - All component/status responses are private/no-store and logs/metrics use only
   bounded operation/environment dimensions.
+- Strict legacy-receipt compatibility is documented: receipts without
+  `retainUntilEpoch` remain pending and are never overwritten. Paired activation
+  requires a read-only inventory proving they are absent or a separately approved
+  audited migration.
 
 Automated evidence:
 
@@ -75,7 +89,7 @@ Automated evidence:
 - `tests/device_registration` and `tests/device_recovery`
 - `tests/shared_history` and analysis/history race coverage
 
-Current local result: **279 passed, 129 subtests passed**. Deterministic package
+Current local result: **293 passed, 129 subtests passed**. Deterministic package
 builds and checksum verification also pass.
 
 The story must not be marked complete or activated yet. Remaining prerequisites

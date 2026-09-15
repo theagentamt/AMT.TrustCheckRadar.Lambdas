@@ -30,8 +30,18 @@ class Table:
         return {"Item": item} if item else {}
 
     def put_item(self, Item, **_kwargs):
+        key = (Item["PK"], Item["SK"])
+        if (
+            "attribute_not_exists" in (_kwargs.get("ConditionExpression") or "")
+            and key in self.items
+        ):
+            error = RuntimeError("conditional failure")
+            error.response = {
+                "Error": {"Code": "ConditionalCheckFailedException"},
+            }
+            raise error
         self.puts.append(Item)
-        self.items[(Item["PK"], Item["SK"])] = dict(Item)
+        self.items[key] = dict(Item)
 
     def delete_item(self, Key):
         self.items.pop((Key["PK"], Key["SK"]), None)
@@ -230,6 +240,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         ledger = ScanTable([{"Items": [command()], "ScannedCount": 1}])
         devices = DeviceTable([{"Items": []}])
         recovery = RecoveryTable([{"Items": []}])
+        abuse = RecoveryTable([{"Items": []}])
 
         class Cognito:
             def __init__(self):
@@ -240,7 +251,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         cognito = Cognito()
         result = service.reconcile_session_revocations(
             environment="dev", ledger_table=ledger, device_table=devices,
-            recovery_table=recovery,
+            recovery_table=recovery, abuse_table=abuse,
             user_pool_id="pool",
             cognito=cognito, scan_limit=100, max_pages=1, now=lambda: 200,
         )
@@ -380,6 +391,138 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ("ACCOUNT#account-1", "ACCOUNT_DELETION#DEVICE_RECOVERY"),
             ledger.items,
         )
+
+    def test_analysis_abuse_cleanup_is_bounded_content_free_and_receipted(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        request_partition = f"ANALYSIS#REQUEST#{account_hash}"
+        rate_partition = f"ANALYSIS#RATE#{account_hash}"
+        scan_partition = f"ANALYSIS#SCAN_RATE#{account_hash}"
+        consumption_partition = f"ANALYSIS#CONSUMPTION#{account_hash}"
+        first_request = {
+            "PK": request_partition, "SK": "request-1", "status": "RESULT_READY",
+            "payloadHash": "a" * 64, "response": {"summary": "private"},
+            "campaignAuthorization": {"consentEpochId": "private"},
+            "historyAuthorization": {"acceptedSequence": 1},
+            "statisticsEventId": "event-1", "leaseToken": "lease-1",
+            "expiresAt": 500, "ttl": 500,
+        }
+        second_request = {
+            "PK": request_partition, "SK": "request-2", "status": "COMPLETED",
+            "payloadHash": "b" * 64, "response": {"summary": "expired"},
+            "expiresAt": 199, "ttl": 199,
+        }
+        rate = {
+            "PK": rate_partition, "SK": "0", "requestCount": 2,
+            "expiresAt": 300, "ttl": 300,
+        }
+        scan_rate = {
+            "PK": scan_partition, "SK": "0", "requestCount": 1,
+            "expiresAt": 300, "ttl": 300,
+        }
+        consumption = {
+            "PK": consumption_partition, "SK": "request-1",
+            "accountIdHash": account_hash, "consumptionType": "monthly",
+            "createdAt": "2026-09-14T00:00:00Z", "expiresAt": 500, "ttl": 500,
+        }
+        continuation = {"PK": request_partition, "SK": "request-1"}
+        abuse = RecoveryTable([
+            {"Items": [first_request], "LastEvaluatedKey": continuation},
+            {"Items": [second_request]},
+            {"Items": [rate]},
+            {"Items": [scan_rate]},
+            {"Items": [consumption]},
+        ], {
+            (first_request["PK"], first_request["SK"]): first_request,
+            (second_request["PK"], second_request["SK"]): second_request,
+            (rate["PK"], rate["SK"]): rate,
+            (scan_rate["PK"], scan_rate["SK"]): scan_rate,
+            (consumption["PK"], consumption["SK"]): consumption,
+        })
+        ledger = Table()
+
+        results = [service.delete_analysis_abuse_control(
+            command(), abuse_table=abuse, ledger_table=ledger,
+            page_size=100, now_epoch=200 + index,
+        ) for index in range(5)]
+
+        self.assertEqual(
+            results[0],
+            {"deleted": 0, "minimized": 1, "complete": False,
+             "alreadyComplete": False, "family": "REQUEST"},
+        )
+        self.assertEqual(abuse.queries[1]["ExclusiveStartKey"], continuation)
+        self.assertEqual(
+            abuse.items[(request_partition, "request-1")],
+            {
+                "PK": request_partition, "SK": "request-1",
+                "status": "COMPLETED_ERASED", "payloadHash": "a" * 64,
+                "expiresAt": 500, "ttl": 500,
+            },
+        )
+        self.assertNotIn((request_partition, "request-2"), abuse.items)
+        self.assertNotIn((rate_partition, "0"), abuse.items)
+        self.assertNotIn((scan_partition, "0"), abuse.items)
+        self.assertNotIn((consumption_partition, "request-1"), abuse.items)
+        self.assertTrue(results[-1]["complete"])
+        receipt = ledger.items[(
+            "ACCOUNT#account-1", "ACCOUNT_DELETION#ANALYSIS_ABUSE",
+        )]
+        self.assertEqual(receipt["operationId"], command()["operationId"])
+        self.assertEqual(receipt["retainUntilEpoch"], 204 + 120 * 86400)
+        self.assertNotIn(
+            ("ACCOUNT#account-1", "ACCOUNT_DELETION#ANALYSIS_ABUSE_PROGRESS"),
+            ledger.items,
+        )
+
+    def test_analysis_abuse_cleanup_rejects_unbounded_request_retention(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        abuse = RecoveryTable([{"Items": [{
+            "PK": f"ANALYSIS#REQUEST#{account_hash}", "SK": "request-1",
+            "status": "COMPLETED", "payloadHash": "a" * 64,
+            "response": {"summary": "private"},
+            "expiresAt": 200 + 86401, "ttl": 200 + 86401,
+        }]}])
+        ledger = Table()
+
+        with self.assertRaisesRegex(ValueError, "Invalid analysis request"):
+            service.delete_analysis_abuse_control(
+                command(), abuse_table=abuse, ledger_table=ledger,
+                page_size=100, now_epoch=200,
+            )
+
+        self.assertNotIn(
+            ("ACCOUNT#account-1", "ACCOUNT_DELETION#ANALYSIS_ABUSE"),
+            ledger.items,
+        )
+
+    def test_legacy_component_receipt_is_not_accepted_or_overwritten(self):
+        receipt_key = (
+            "ACCOUNT#account-1", "ACCOUNT_DELETION#ANALYSIS_ABUSE",
+        )
+        legacy = {
+            "PK": receipt_key[0], "SK": receipt_key[1],
+            "schemaVersion": 1, "recordVersion": 1, "environment": "dev",
+            "eventType": "account.deletion.component.completed",
+            "component": "ANALYSIS_ABUSE", "status": "COMPLETE",
+            "operationId": command()["operationId"],
+            "occurredAtEpoch": 200, "requestOccurredAtEpoch": 100,
+        }
+        ledger = Table({receipt_key: legacy})
+        abuse = RecoveryTable([{"Items": []} for _ in range(4)])
+
+        for index in range(3):
+            result = service.delete_analysis_abuse_control(
+                command(), abuse_table=abuse, ledger_table=ledger,
+                page_size=100, now_epoch=200 + index,
+            )
+            self.assertFalse(result["complete"])
+        with self.assertRaises(RuntimeError):
+            service.delete_analysis_abuse_control(
+                command(), abuse_table=abuse, ledger_table=ledger,
+                page_size=100, now_epoch=203,
+            )
+
+        self.assertEqual(ledger.items[receipt_key], legacy)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from decimal import Decimal
+import hashlib
 import re
 import time
 
@@ -19,6 +20,10 @@ ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
 DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS = 7
 DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = 90
 DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS = 24 * 3600
+ANALYSIS_REQUEST_ID_TTL_SECONDS = 24 * 3600
+ANALYSIS_ABUSE_FAMILIES = ("REQUEST", "RATE", "SCAN_RATE", "CONSUMPTION")
+PAYLOAD_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 class AccountDeletionService:
@@ -363,10 +368,133 @@ def delete_device_recovery_control(
     }
 
 
+def delete_analysis_abuse_control(
+    command, *, abuse_table, ledger_table, page_size=100,
+    request_retention_seconds=ANALYSIS_REQUEST_ID_TTL_SECONDS,
+    account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
+    now_epoch=None,
+):
+    """Drain account-scoped abuse state and retain only bounded request dedupe."""
+    command = validate_command(command, command["environment"])
+    if (
+        page_size != 100
+        or request_retention_seconds != 24 * 3600
+        or account_receipt_retention_days != 120
+    ):
+        raise ValueError("Invalid analysis-abuse deletion policy")
+    receipt_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#ANALYSIS_ABUSE",
+    }
+    progress_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#ANALYSIS_ABUSE_PROGRESS",
+    }
+    existing = ledger_table.get_item(
+        Key=receipt_key, ConsistentRead=True
+    ).get("Item")
+    if _valid_component_receipt(existing, command, "ANALYSIS_ABUSE"):
+        ledger_table.delete_item(Key=progress_key)
+        return {
+            "deleted": 0, "minimized": 0, "complete": True,
+            "alreadyComplete": True, "family": None,
+        }
+    progress = ledger_table.get_item(
+        Key=progress_key, ConsistentRead=True
+    ).get("Item")
+    family_index, start_key = _analysis_progress(progress, command)
+    family = ANALYSIS_ABUSE_FAMILIES[family_index]
+    account_hash = hashlib.sha256(command["accountId"].encode("utf-8")).hexdigest()
+    partition = f"ANALYSIS#{family}#{account_hash}"
+    kwargs = {
+        "KeyConditionExpression": "PK = :pk",
+        "ExpressionAttributeValues": {":pk": partition},
+        "ConsistentRead": True,
+        "Limit": page_size,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+    page = abuse_table.query(**kwargs)
+    now = int(time.time()) if now_epoch is None else now_epoch
+    deleted = 0
+    minimized = 0
+    for item in page.get("Items") or []:
+        _validate_analysis_abuse_key(item, partition)
+        key = {"PK": item["PK"], "SK": item["SK"]}
+        if family != "REQUEST":
+            abuse_table.delete_item(Key=key)
+            deleted += 1
+            continue
+        minimal = _minimal_analysis_request(
+            item, now_epoch=now, retention_seconds=request_retention_seconds
+        )
+        if minimal is None:
+            abuse_table.delete_item(Key=key)
+            deleted += 1
+        elif item != minimal:
+            abuse_table.put_item(
+                Item=minimal,
+                ConditionExpression="payloadHash = :payload_hash AND expiresAt = :expires_at",
+                ExpressionAttributeValues={
+                    ":payload_hash": minimal["payloadHash"],
+                    ":expires_at": minimal["expiresAt"],
+                },
+            )
+            minimized += 1
+    continuation = page.get("LastEvaluatedKey")
+    if continuation and not _valid_key(continuation):
+        raise ValueError("Invalid analysis-abuse deletion continuation")
+    if continuation:
+        next_family_index = family_index
+        next_start_key = dict(continuation)
+    else:
+        next_family_index = family_index + 1
+        next_start_key = None
+    if next_family_index < len(ANALYSIS_ABUSE_FAMILIES):
+        progress_item = {
+            **progress_key,
+            "recordType": "ACCOUNT_DELETION_ANALYSIS_ABUSE_PROGRESS",
+            "schemaVersion": 1,
+            "operationId": command["operationId"],
+            "requestOccurredAtEpoch": command["occurredAtEpoch"],
+            "familyIndex": next_family_index,
+            "updatedAtEpoch": now,
+        }
+        if next_start_key:
+            progress_item["lastEvaluatedKey"] = next_start_key
+        ledger_table.put_item(Item=progress_item)
+        return {
+            "deleted": deleted, "minimized": minimized, "complete": False,
+            "alreadyComplete": False, "family": family,
+        }
+    receipt = _component_receipt(
+        command, "ANALYSIS_ABUSE", now,
+        retention_days=account_receipt_retention_days,
+    )
+    try:
+        ledger_table.put_item(
+            Item=receipt,
+            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        )
+    except Exception as err:
+        if _error_code(err) != "ConditionalCheckFailedException":
+            raise
+        existing = ledger_table.get_item(
+            Key=receipt_key, ConsistentRead=True
+        ).get("Item")
+        if not _valid_component_receipt(existing, command, "ANALYSIS_ABUSE"):
+            raise
+    if progress:
+        ledger_table.delete_item(Key=progress_key)
+    return {
+        "deleted": deleted, "minimized": minimized, "complete": True,
+        "alreadyComplete": False, "family": family,
+    }
+
+
 def reconcile_session_revocations(
-    *, environment, ledger_table, device_table, recovery_table, user_pool_id, cognito,
+    *, environment, ledger_table, device_table, recovery_table, abuse_table,
+    user_pool_id, cognito,
     scan_limit, max_pages, device_page_size=100,
-    recovery_page_size=100,
+    recovery_page_size=100, analysis_abuse_page_size=100,
     now=lambda: int(time.time()),
 ):
     checkpoint_key = {
@@ -386,6 +514,9 @@ def reconcile_session_revocations(
         "deviceComponentsCompleted": 0,
         "recoveryRecordsDeleted": 0, "recoveryRecordsMinimized": 0,
         "recoveryComponentsCompleted": 0,
+        "analysisAbuseRecordsDeleted": 0,
+        "analysisAbuseRecordsMinimized": 0,
+        "analysisAbuseComponentsCompleted": 0,
     }
     truncated = False
     for page_number in range(max_pages):
@@ -434,6 +565,15 @@ def reconcile_session_revocations(
             totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
             totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
             totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
+            abuse_result = delete_analysis_abuse_control(
+                command, abuse_table=abuse_table, ledger_table=ledger_table,
+                page_size=analysis_abuse_page_size, now_epoch=now(),
+            )
+            totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
+            totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
+            totals["analysisAbuseComponentsCompleted"] += (
+                1 if abuse_result["complete"] else 0
+            )
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
         if not start_key:
@@ -544,6 +684,59 @@ def _progress_start_key(progress, command, label):
     if start_key is not None and not _valid_key(start_key):
         raise ValueError(f"Invalid {label.lower()} continuation")
     return start_key
+
+
+def _analysis_progress(progress, command):
+    if not progress:
+        return 0, None
+    if (
+        progress.get("recordType") != "ACCOUNT_DELETION_ANALYSIS_ABUSE_PROGRESS"
+        or progress.get("schemaVersion") != 1
+        or progress.get("operationId") != command["operationId"]
+        or progress.get("requestOccurredAtEpoch") != command["occurredAtEpoch"]
+    ):
+        raise ValueError("Analysis-abuse progress belongs to another request")
+    family_index = _exact_int(progress.get("familyIndex"))
+    if family_index is None or family_index >= len(ANALYSIS_ABUSE_FAMILIES):
+        raise ValueError("Invalid analysis-abuse progress family")
+    start_key = progress.get("lastEvaluatedKey")
+    if start_key is not None and not _valid_key(start_key):
+        raise ValueError("Invalid analysis-abuse deletion continuation")
+    return family_index, start_key
+
+
+def _validate_analysis_abuse_key(item, partition):
+    if (
+        not isinstance(item, dict)
+        or item.get("PK") != partition
+        or not isinstance(item.get("SK"), str)
+        or not REQUEST_ID_PATTERN.fullmatch(item["SK"])
+    ):
+        raise ValueError("Analysis-abuse query returned an invalid key")
+
+
+def _minimal_analysis_request(item, *, now_epoch, retention_seconds):
+    expires = _exact_int(item.get("expiresAt"))
+    ttl = _exact_int(item.get("ttl"))
+    payload_hash = item.get("payloadHash")
+    if expires is not None and expires <= now_epoch:
+        return None
+    if (
+        item.get("status") not in {
+            "PROCESSING", "RETRYABLE", "RESULT_READY", "COMPLETED",
+            "COMPLETED_ERASED",
+        }
+        or not isinstance(payload_hash, str)
+        or not PAYLOAD_HASH_PATTERN.fullmatch(payload_hash)
+        or expires is None or ttl != expires
+        or expires > now_epoch + retention_seconds
+    ):
+        raise ValueError("Invalid analysis request replay record")
+    return {
+        "PK": item["PK"], "SK": item["SK"],
+        "status": "COMPLETED_ERASED", "payloadHash": payload_hash,
+        "expiresAt": expires, "ttl": expires,
+    }
 
 
 def _validate_recovery_control_key(item, account_id):

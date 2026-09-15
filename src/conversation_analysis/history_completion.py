@@ -6,6 +6,7 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
+from account_fence import append_account_authority_checks
 from errors import AppError
 from shared_history import HistoryError, HistorySettings, build_history_items
 
@@ -36,9 +37,9 @@ def reserve_history_acceptance(account_id, request_id, payload_hash, lease_token
         "acceptedAtEpochMs": now_epoch * 1000,
     }
     completion_job = _completion_job(settings, account_id, request_id, authorization, now_epoch)
-    try:
-        dynamodb_client.transact_write_items(TransactItems=[
-            *_account_authority_checks(settings, account_id),
+    transaction = []
+    append_account_authority_checks(transaction, account_id)
+    transaction.extend([
             {"Update": {
                 "TableName": settings.control_table_name,
                 "Key": _serialize({"PK": f"USER#{account_id}", "SK": "STATE"}),
@@ -67,7 +68,9 @@ def reserve_history_acceptance(account_id, request_id, payload_hash, lease_token
                 "Item": _serialize(completion_job),
                 "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
             }},
-        ])
+    ])
+    try:
+        dynamodb_client.transact_write_items(TransactItems=transaction)
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") == "TransactionCanceledException":
             raise AppError(
@@ -104,7 +107,7 @@ def append_history_completion(
         raise AppError("SERVER_UNAVAILABLE", "The persisted History acceptance sequence is invalid.", retryable=False)
     current_generation = int(state["historyGeneration"])
     active_generation = state.get("accountStatus") == "ACTIVE" and captured_generation == current_generation
-    transaction.extend(_account_authority_checks(settings, account_id))
+    append_account_authority_checks(transaction, account_id)
     transaction.append({"ConditionCheck": {
         "TableName": settings.control_table_name,
         "Key": _serialize({"PK": f"USER#{account_id}", "SK": "STATE"}),
@@ -275,27 +278,6 @@ def _completion_job(settings, account_id, request_id, authorization, now_epoch):
         "expiresAt": expires_at,
         "expiryBucket": _control_expiry_bucket(expires_at, request_id),
     }
-
-
-def _account_authority_checks(settings, account_id):
-    if not settings.users_table_name or not settings.deletion_ledger_table_name:
-        raise AppError("SERVER_UNAVAILABLE", "The account authority is unavailable.", retryable=False)
-    return [
-        {"ConditionCheck": {
-            "TableName": settings.users_table_name,
-            "Key": _serialize({"PK": f"USER#{account_id}", "SK": "PROFILE"}),
-            "ConditionExpression": "#status = :active AND ageVerified = :true AND #sub = :account_id",
-            "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
-            "ExpressionAttributeValues": _serialize({
-                ":active": "ACTIVE", ":true": True, ":account_id": account_id,
-            }),
-        }},
-        {"ConditionCheck": {
-            "TableName": settings.deletion_ledger_table_name,
-            "Key": _serialize({"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"}),
-            "ConditionExpression": "attribute_not_exists(PK)",
-        }},
-    ]
 
 
 def _control_expiry_bucket(expires_at, value):

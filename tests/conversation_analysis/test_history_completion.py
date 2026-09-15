@@ -57,6 +57,7 @@ sys.modules["botocore.exceptions"] = botocore
 for name in ("history_completion", "errors"):
     sys.modules.pop(name, None)
 import history_completion
+import account_fence
 
 
 ENV = {
@@ -91,7 +92,9 @@ class CompletionTests(unittest.TestCase):
         client = Client()
         history_completion.dynamodb = Resource(Table(STATE))
         history_completion.dynamodb_client = client
-        with mock.patch.dict(os.environ, ENV, clear=True):
+        with mock.patch.dict(os.environ, ENV, clear=True), \
+                mock.patch.object(account_fence, "USERS_TABLE_NAME", "users"), \
+                mock.patch.object(account_fence, "DELETION_LEDGER_TABLE_NAME", "ledger"):
             authorization = history_completion.reserve_history_acceptance(
                 "account-1", "request-1", "a" * 64, "lease-1", now_epoch=100
             )

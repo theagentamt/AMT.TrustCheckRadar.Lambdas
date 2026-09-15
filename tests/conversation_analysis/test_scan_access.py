@@ -1,4 +1,5 @@
 import sys
+import os
 import types
 import unittest
 from pathlib import Path
@@ -9,8 +10,15 @@ for path in (SRC_DIR, MODULE_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-for module_name in ["config", "errors", "scan_access", "shared_entitlements", "shared_entitlements.service", "shared_entitlements.config"]:
+for module_name in ["config", "errors", "account_fence", "scan_access", "shared_entitlements", "shared_entitlements.service", "shared_entitlements.config"]:
     sys.modules.pop(module_name, None)
+
+os.environ.update({
+    "ANALYSIS_ABUSE_TABLE_NAME": "test-analysis-abuse",
+    "ENTITLEMENTS_TABLE_NAME": "test-entitlements",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
+})
 
 
 class FakeClientError(Exception):
@@ -63,6 +71,35 @@ class FakeDynamoClient:
         if self.error:
             raise self.error
         self.transactions.append(TransactItems)
+        for item in TransactItems:
+            operation = item.get("Update")
+            if (
+                operation
+                and operation.get("TableName") == "test-analysis-abuse"
+                and "ADD requestCount" in operation.get("UpdateExpression", "")
+            ):
+                key = {
+                    name: next(iter(value.values()))
+                    for name, value in operation["Key"].items()
+                }
+                values = {
+                    name: int(next(iter(value.values())))
+                    if "N" in value else next(iter(value.values()))
+                    for name, value in operation["ExpressionAttributeValues"].items()
+                }
+                existing = abuse_fake.items.get(
+                    (key["PK"], key["SK"]), {"requestCount": 0}
+                )
+                if int(existing.get("requestCount", 0)) >= values[":maximum"]:
+                    raise FakeClientError({
+                        "Error": {"Code": "TransactionCanceledException"},
+                    })
+                abuse_fake.update_item(
+                    key,
+                    UpdateExpression=operation["UpdateExpression"],
+                    ExpressionAttributeNames=operation["ExpressionAttributeNames"],
+                    ExpressionAttributeValues=values,
+                )
         return {}
 
 
@@ -75,7 +112,24 @@ class FakeResource:
     def Table(self, name):
         if "analysis-abuse" in name:
             return abuse_fake
+        if name == "users":
+            return ActiveUsersTable()
+        if name == "ledger":
+            return EmptyLedgerTable()
         return entitlements_fake
+
+
+class ActiveUsersTable:
+    def get_item(self, Key, **_kwargs):
+        account_id = Key["PK"].removeprefix("USER#")
+        return {"Item": {
+            "sub": account_id, "status": "ACTIVE", "ageVerified": True,
+        }}
+
+
+class EmptyLedgerTable:
+    def get_item(self, **_kwargs):
+        return {}
 
 
 boto3_stub = types.ModuleType("boto3")
@@ -119,8 +173,33 @@ class ScanAccessTests(unittest.TestCase):
         transaction_fake.transactions.clear()
         transaction_fake.error = None
 
+    def test_scan_rate_write_is_transactionally_fenced(self):
+        scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        transaction = transaction_fake.transactions[0]
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "ledger")
+        self.assertEqual(transaction[2]["Update"]["TableName"], "test-analysis-abuse")
+
+    def test_account_deletion_fence_blocks_late_scan_rate_write(self):
+        transaction_fake.error = FakeClientError({
+            "Error": {"Code": "TransactionCanceledException"},
+        })
+        forbidden = AppError(
+            "FORBIDDEN", "The account is not active.", retryable=False
+        )
+
+        from unittest import mock
+        with mock.patch.object(
+            scan_access, "assert_account_active", side_effect=forbidden
+        ), self.assertRaises(AppError) as context:
+            scan_access.prepare_scan_access("user-123", now_epoch=60)
+
+        self.assertEqual(context.exception.code, "FORBIDDEN")
+
     def test_default_free_entitlement_consumes_monthly_scan(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
 
         updated = scan_access.consume_scan_access(grant, "request-123", now_iso="2026-05-11T00:00:00+00:00")
 
@@ -164,6 +243,7 @@ class ScanAccessTests(unittest.TestCase):
 
     def test_result_completion_and_quota_consumption_share_one_transaction(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
 
         updated = scan_access.commit_scan_and_request(
             grant,
@@ -177,16 +257,18 @@ class ScanAccessTests(unittest.TestCase):
         self.assertEqual(updated["remainingMonthlyScans"], 9)
         self.assertEqual(len(transaction_fake.transactions), 1)
         transaction = transaction_fake.transactions[0]
-        self.assertEqual(len(transaction), 3)
-        request_update = transaction[0]["Update"]
+        self.assertEqual(len(transaction), 5)
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "ledger")
+        request_update = transaction[2]["Update"]
         self.assertEqual(request_update["TableName"], "test-analysis-abuse")
         self.assertIn("#status = :result_ready", request_update["ConditionExpression"])
-        consumption_event = transaction[1]["Put"]
+        consumption_event = transaction[3]["Put"]
         self.assertEqual(
             consumption_event["Item"]["PK"],
             {"S": f"ANALYSIS#CONSUMPTION#{scan_access._hashed_account_id('user-123')}"},
         )
-        entitlement_put = transaction[2]["Put"]
+        entitlement_put = transaction[4]["Put"]
         self.assertEqual(entitlement_put["TableName"], "test-entitlements")
         self.assertEqual(
             entitlement_put["Item"]["remainingMonthlyScans"],
@@ -195,6 +277,7 @@ class ScanAccessTests(unittest.TestCase):
 
     def test_transaction_conflict_is_retryable_without_partial_local_success(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
         try:
             error = scan_access.ClientError(
                 {"Error": {"Code": "TransactionCanceledException"}},
@@ -222,6 +305,7 @@ class ScanAccessTests(unittest.TestCase):
             "noticeVersion": "notice-2026-09", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
         event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
         scan_access.CAMPAIGN_OBSERVATION_RETENTION_HOURS = 168
 
@@ -253,11 +337,11 @@ class ScanAccessTests(unittest.TestCase):
         )
 
         transaction = transaction_fake.transactions[0]
-        self.assertEqual(len(transaction), 5)
-        condition = transaction[3]["ConditionCheck"]
+        self.assertEqual(len(transaction), 7)
+        condition = transaction[5]["ConditionCheck"]
         self.assertEqual(condition["TableName"], "test-users")
         self.assertIn("consentEpochId = :consent_epoch_id", condition["ConditionExpression"])
-        outbox = transaction[4]["Put"]
+        outbox = transaction[6]["Put"]
         self.assertEqual(outbox["TableName"], "test-campaign-outbox")
         self.assertEqual(outbox["Item"]["PK"], {"S": f"EVENT#{event_id}"})
         self.assertEqual(outbox["Item"]["accountId"], {"S": "user-123"})
@@ -297,6 +381,7 @@ class ScanAccessTests(unittest.TestCase):
             "noticeVersion": "notice-2026-09", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
 
         for event_id in (None, "not-a-uuid", "550e8400-e29b-11d4-a716-446655440000"):
             with self.subTest(event_id=event_id):
@@ -323,6 +408,7 @@ class ScanAccessTests(unittest.TestCase):
 
     def test_declined_campaign_consent_does_not_write_outbox(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
 
         scan_access.commit_scan_and_request(
             grant,
@@ -333,17 +419,18 @@ class ScanAccessTests(unittest.TestCase):
             now_epoch=100,
         )
 
-        self.assertEqual(len(transaction_fake.transactions[0]), 3)
+        self.assertEqual(len(transaction_fake.transactions[0]), 5)
 
     def test_app_intent_without_server_enrollment_does_not_write_outbox(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
         scan_access.commit_scan_and_request(
             grant, "request-123", "payload-hash",
             {"schemaVersion": "1.0", "requestId": "request-123"},
             campaign_payload={"campaignConsentGranted": True, "appFeatures": APP_FEATURES},
             now_epoch=100,
         )
-        self.assertEqual(len(transaction_fake.transactions[0]), 3)
+        self.assertEqual(len(transaction_fake.transactions[0]), 5)
 
     def test_changed_consent_epoch_does_not_publish_recovered_result(self):
         entitlements_fake.put_item({
@@ -352,6 +439,7 @@ class ScanAccessTests(unittest.TestCase):
             "noticeVersion": "notice-2026-09", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
         authorization = scan_access.campaign_authorization(grant)
         grant["campaignParticipation"] = dict(grant["campaignParticipation"]) | {"stateVersion": 3}
         scan_access.commit_scan_and_request(
@@ -362,10 +450,11 @@ class ScanAccessTests(unittest.TestCase):
             campaign_authorization=authorization,
             now_epoch=100,
         )
-        self.assertEqual(len(transaction_fake.transactions[0]), 3)
+        self.assertEqual(len(transaction_fake.transactions[0]), 5)
 
     def test_atomic_commit_rejects_a_result_for_another_request(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
 
         with self.assertRaises(AppError) as context:
             scan_access.commit_scan_and_request(
