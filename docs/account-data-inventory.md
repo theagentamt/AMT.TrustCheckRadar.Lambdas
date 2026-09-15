@@ -69,7 +69,7 @@ explicit environment log retention remains an activation requirement.
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
 | Entitlement state | Entitlements table `PK=USER#<sub>`, `SK=ENTITLEMENT#google_play#trustcheck_radar_pro_monthly`; compatibility `SK=ENTITLEMENT`; account ID, platform/product, billing periods, status, order/token hashes, access and quota state | `purchase_handoff`, `conversation_analysis`, and `campaign_participation` write; `entitlement_snapshot`, analysis and participation read | No account deletion worker or full export. | Mixed **erasable service state** and potentially **necessary purchase/audit evidence**. Finance/legal must approve exact retained receipt fields and duration before a minimizer is implemented. Raw entitlement state must not survive merely because some billing evidence is retained. |
-| Purchase-token idempotency | `PK=TOKEN#<sha256(purchaseToken)>`, `SK=IDEMPOTENCY`; plaintext `accountId`, product/platform, verification and billing-period values; no TTL | `src/purchase_handoff/idempotency.py` reads/writes by token hash | A `USER#<sub>` query cannot discover these rows. No GSI, deletion worker or export path exists. | **Blocking discovery gap.** Add an account-derived access path (for example a sparse account GSI on existing items) or an approved bounded registry, then minimize/delete under the purchase policy. Do not add a store or choose retention without approval. |
+| Purchase-token idempotency | `PK=TOKEN#<sha256(purchaseToken)>`, `SK=IDEMPOTENCY`; plaintext `accountId`, product/platform, verification and billing-period values; no TTL | `src/purchase_handoff/idempotency.py` reads/writes by token hash | A `USER#<sub>` query cannot discover these rows. No account locator, deletion worker or export path exists. | **Blocking discovery gap.** Preferred proposal: atomically add a `USER#<sub>/PURCHASE_TOKEN#<hash>` locator in the existing entitlements table for new writes, without a new table/GSI. Deletion can enumerate locators while the token-keyed record continues to prevent cross-account token reuse. Exact minimization/retention and legacy backfill remain unapproved. |
 | Usage counters | `PK=USER#<sub>`, `SK=USAGE#<periodKey>`; usage counts/period | `entitlement_snapshot` reads. No Lambda writer exists in this repository, so the external producer must be identified. Infrastructure reports a current 548-day default. | No deletion/export worker. | **Inventory-owner blocker.** Identify the writer and authoritative retention basis. Do not silently replace 548 days with the unrelated History retention. |
 
 Google Play is an external source/processor for purchase verification. Its account,
@@ -207,8 +207,12 @@ these component responsibilities have stable names, exact receipts and workers:
    four `ANALYSIS#...#*` prefixes and exact ledger receipt.
 3. `ENTITLEMENTS`: drain `USER#<sub>` entitlement/usage rows and discover every
    `TOKEN#.../IDEMPOTENCY` record through an approved existing-table account access
-   path; minimize approved purchase evidence; write a receipt. IAM must not allow a
-   table scan. The access path and financial retention require approval first.
+   path. The preferred new-write design is a transactional
+   `USER#<sub>/PURCHASE_TOKEN#<hash>` locator alongside the token-keyed anti-replay
+   record; it adds no table or GSI and preserves cross-account replay protection.
+   Minimize approved purchase evidence and write a receipt. IAM must not allow a
+   table scan. Legacy discovery/backfill, locator retention and financial evidence
+   retention require approval first.
 4. `CAMPAIGN_OUTBOX`: discover direct-account outbox records through an approved
    existing-table access path, delete content, and ensure publisher retries cannot
    recreate pipeline records; write a receipt distinct from pseudonymous campaign
