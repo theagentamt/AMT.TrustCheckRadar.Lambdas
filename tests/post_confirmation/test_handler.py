@@ -18,6 +18,15 @@ class _FakeTable:
         return {}
 
 
+class _FakeClient:
+    def __init__(self):
+        self.transact_calls = []
+
+    def transact_write_items(self, **kwargs):
+        self.transact_calls.append(kwargs)
+        return {}
+
+
 class _FakeResource:
     def __init__(self, table):
         self.table = table
@@ -34,9 +43,11 @@ class _FakeClientError(Exception):
 
 def _load_app(environment):
     fake_table = _FakeTable()
+    fake_client = _FakeClient()
     fake_resource = _FakeResource(fake_table)
     boto3_stub = types.ModuleType("boto3")
     boto3_stub.resource = lambda *_args, **_kwargs: fake_resource
+    boto3_stub.client = lambda *_args, **_kwargs: fake_client
     botocore_stub = types.ModuleType("botocore")
     botocore_exceptions_stub = types.ModuleType("botocore.exceptions")
     botocore_exceptions_stub.ClientError = _FakeClientError
@@ -55,17 +66,18 @@ def _load_app(environment):
         },
     ), mock.patch.dict(os.environ, environment, clear=True):
         spec.loader.exec_module(module)
-    return module, fake_resource, fake_table
+    return module, fake_resource, fake_table, fake_client
 
 
 class PostConfirmationHandlerTests(unittest.TestCase):
     def test_derives_table_name_from_infrastructure_arn(self):
-        app, resource, _table = _load_app(
+        app, resource, _table, _client = _load_app(
             {
                 "USERS_TABLE_ARN": (
                     "arn:aws:dynamodb:us-east-1:123456789012:table/"
                     "trustcheckradar-dev-users"
-                )
+                ),
+                "DELETION_LEDGER_TABLE_NAME": "ledger",
             }
         )
 
@@ -73,7 +85,12 @@ class PostConfirmationHandlerTests(unittest.TestCase):
         self.assertEqual(resource.requested_table_name, "trustcheckradar-dev-users")
 
     def test_creates_profile_without_overwriting_existing_item(self):
-        app, _resource, table = _load_app({"USERS_TABLE_NAME": "users"})
+        app, _resource, table, client = _load_app(
+            {
+                "USERS_TABLE_NAME": "users",
+                "DELETION_LEDGER_TABLE_NAME": "ledger",
+            }
+        )
         event = {
             "request": {
                 "userAttributes": {
@@ -88,10 +105,16 @@ class PostConfirmationHandlerTests(unittest.TestCase):
         result = app.lambda_handler(event, None)
 
         self.assertIs(result, event)
-        self.assertEqual(len(table.put_calls), 1)
-        call = table.put_calls[0]
-        self.assertEqual(call["Item"]["PK"], "USER#user-123")
-        self.assertEqual(call["Item"]["SK"], "PROFILE")
+        self.assertEqual(table.put_calls, [])
+        self.assertEqual(len(client.transact_calls), 1)
+        actions = client.transact_calls[0]["TransactItems"]
+        fence = actions[0]["ConditionCheck"]
+        call = actions[1]["Put"]
+        self.assertEqual(fence["TableName"], "ledger")
+        self.assertEqual(fence["Key"]["PK"], {"S": "ACCOUNT#user-123"})
+        self.assertEqual(fence["Key"]["SK"], {"S": "ACCOUNT_DELETION"})
+        self.assertEqual(call["Item"]["PK"], {"S": "USER#user-123"})
+        self.assertEqual(call["Item"]["SK"], {"S": "PROFILE"})
         self.assertEqual(
             call["ConditionExpression"],
             "attribute_not_exists(PK) AND attribute_not_exists(SK)",
@@ -100,3 +123,7 @@ class PostConfirmationHandlerTests(unittest.TestCase):
     def test_requires_a_table_identifier(self):
         with self.assertRaisesRegex(RuntimeError, "USERS_TABLE_NAME"):
             _load_app({})
+
+    def test_requires_deletion_ledger_for_resurrection_fence(self):
+        with self.assertRaisesRegex(RuntimeError, "DELETION_LEDGER_TABLE_NAME"):
+            _load_app({"USERS_TABLE_NAME": "users"})

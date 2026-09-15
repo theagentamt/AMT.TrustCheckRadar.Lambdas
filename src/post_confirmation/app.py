@@ -21,9 +21,23 @@ def _table_name_from_environment():
     raise RuntimeError("USERS_TABLE_NAME, TABLE_NAME, or USERS_TABLE_ARN is required")
 
 
+def _ledger_table_name_from_environment():
+    table_name = os.environ.get("DELETION_LEDGER_TABLE_NAME")
+    if table_name:
+        return table_name
+    table_arn = os.environ.get("DELETION_LEDGER_TABLE_ARN")
+    if table_arn and "/" in table_arn:
+        return table_arn.rsplit("/", 1)[-1]
+    raise RuntimeError(
+        "DELETION_LEDGER_TABLE_NAME or DELETION_LEDGER_TABLE_ARN is required"
+    )
+
+
 TABLE_NAME = _table_name_from_environment()
+DELETION_LEDGER_TABLE_NAME = _ledger_table_name_from_environment()
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(TABLE_NAME)
+dynamodb_client = boto3.client("dynamodb")
 
 
 def lambda_handler(event, _context):
@@ -49,9 +63,27 @@ def lambda_handler(event, _context):
             "updatedAt": now,
         }
 
-        table.put_item(
-            Item=item,
-            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        dynamodb_client.transact_write_items(
+            TransactItems=[
+                {
+                    "ConditionCheck": {
+                        "TableName": DELETION_LEDGER_TABLE_NAME,
+                        "Key": _serialize_map(
+                            {"PK": f"ACCOUNT#{sub}", "SK": "ACCOUNT_DELETION"}
+                        ),
+                        "ConditionExpression": "attribute_not_exists(PK)",
+                    }
+                },
+                {
+                    "Put": {
+                        "TableName": TABLE_NAME,
+                        "Item": _serialize_map(item),
+                        "ConditionExpression": (
+                            "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+                        ),
+                    }
+                },
+            ]
         )
         return event
     except KeyError as err:
@@ -75,3 +107,17 @@ def _optional_attribute(attributes, key):
         value = value.strip()
         return value or None
     return None
+
+
+def _serialize_map(value):
+    return {key: _serialize_value(item) for key, item in value.items()}
+
+
+def _serialize_value(value):
+    if value is None:
+        return {"NULL": True}
+    if isinstance(value, bool):
+        return {"BOOL": value}
+    if isinstance(value, str):
+        return {"S": value}
+    raise TypeError(type(value).__name__)

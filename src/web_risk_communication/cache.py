@@ -40,7 +40,11 @@ def get_cache_item(cache_scope: str, cache_hash: str) -> dict[str, Any] | None:
 
 def deserialize_cache(item: dict[str, Any]) -> dict[str, Any]:
     return {
-        "uri": item.get("uri"),
+        # The caller only consumes the bounded threat assessment.  The cache key
+        # already binds the normalized lookup by SHA-256, so retaining or
+        # replaying the URL would add account-data exposure without affecting
+        # scoring.
+        "uri": None,
         "threats": item.get("threats", []),
     }
 
@@ -50,7 +54,6 @@ def put_cache_item(*, cache_scope: str, cache_hash: str, lookup_value: str, thre
     item = {
         "PK": f"WEBRISK#{cache_scope}#{cache_hash}",
         "SK": "RESULT",
-        "uri": lookup_value,
         "threats": threats,
         "expiresAt": expires_at,
         "ttl": expires_at,

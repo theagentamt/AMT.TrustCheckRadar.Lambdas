@@ -215,13 +215,15 @@ can be aligned without weakening the privacy boundary.
 |---|---|---:|---|
 | `USERS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-users` | DynamoDB profile updates cannot run |
 | `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
+| `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | The profile writer fails closed because it cannot prove that account deletion has not started |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
 ### External resources
 
 | Resource | Env/config key used | Needs | ARN, name, or both |
 |---|---|---|---|
-| DynamoDB users table | `USERS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:UpdateItem` | Name required by code |
+| DynamoDB users table | `USERS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:UpdateItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name required by code |
+| DynamoDB deletion ledger | `DELETION_LEDGER_TABLE_NAME` | `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name required by code |
 | CloudWatch Logs | Lambda runtime default | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Managed by Lambda execution role |
 
 ### Storage contract
@@ -244,7 +246,10 @@ can be aligned without weakening the privacy boundary.
 ### Runtime assumptions
 
 - Expects authenticated caller context to resolve the Cognito `sub` for API mode.
-- Writes only to an existing user profile; it should not create the base profile record.
+- Writes only to an existing `ACTIVE` or `PENDING_AGE_GATE` profile whose `sub`
+  matches the authenticated account. The profile update and absence of the fixed
+  account-deletion fence are one DynamoDB transaction, so age attestation cannot
+  reactivate a deleting account.
 - Route expectation: POST-style API invocation if exposed through API Gateway.
 
 ### Compatibility aliases
@@ -270,13 +275,16 @@ can be aligned without weakening the privacy boundary.
 | `USERS_TABLE_NAME` | Preferred | `trustcheckradar-dev-users` | New profile record cannot be created if no table identifier is provided |
 | `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-users` | Same as above if `USERS_TABLE_NAME` is not provided |
 | `USERS_TABLE_ARN` | Infrastructure fallback | `arn:aws:dynamodb:us-east-1:123456789012:table/trustcheckradar-dev-users` | The table name is derived from the ARN when neither name variable is present |
+| `DELETION_LEDGER_TABLE_NAME` | Preferred | `trustcheckradar-dev-deletion-ledger` | New profile creation fails closed because it cannot prove that a prior/finalized account deletion is absent |
+| `DELETION_LEDGER_TABLE_ARN` | Infrastructure fallback | `arn:aws:dynamodb:us-east-1:123456789012:table/trustcheckradar-dev-deletion-ledger` | The ledger name is derived from the ARN when the name is absent |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
 ### External resources
 
 | Resource | Env/config key used | Needs | ARN, name, or both |
 |---|---|---|---|
-| DynamoDB users table | `USERS_TABLE_NAME`, `TABLE_NAME`, or `USERS_TABLE_ARN` | `dynamodb:PutItem` | Name or ARN required by code |
+| DynamoDB users table | `USERS_TABLE_NAME`, `TABLE_NAME`, or `USERS_TABLE_ARN` | `dynamodb:PutItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name or ARN required by code |
+| DynamoDB deletion ledger | `DELETION_LEDGER_TABLE_NAME` or `DELETION_LEDGER_TABLE_ARN` | `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name or ARN required by code |
 | Cognito user pool trigger event | direct event payload | invoke permission only | No env var |
 | CloudWatch Logs | Lambda runtime default | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Managed by Lambda execution role |
 
@@ -307,7 +315,9 @@ can be aligned without weakening the privacy boundary.
 ### Runtime assumptions
 
 - Triggered by Cognito after signup confirmation.
-- Uses a conditional put to avoid overwriting an existing profile.
+- Uses one DynamoDB transaction to require absence of the fixed account-deletion
+  fence and conditionally create the profile. This prevents a delayed/replayed
+  Cognito trigger from recreating a profile for a deleted subject.
 
 ### Compatibility aliases
 
@@ -315,6 +325,9 @@ can be aligned without weakening the privacy boundary.
   - `USERS_TABLE_NAME`
   - `TABLE_NAME`
   - `USERS_TABLE_ARN`
+- Deletion-ledger identifiers accepted:
+  - `DELETION_LEDGER_TABLE_NAME`
+  - `DELETION_LEDGER_TABLE_ARN`
 - The ARN fallback matches the identity-workflows Terraform stack contract.
 
 ---
@@ -817,6 +830,13 @@ contract are not yet proven.
 - Item families:
   - cached full-url assessment
   - cached domain assessment
+
+New cache writes retain the SHA-256-bound key and bounded threat assessment but do
+not persist or replay the normalized URL/domain in an item attribute. Legacy rows
+may still contain `uri`; the Lambda suppresses that field on cache hits. Because
+the legacy key has no subject index, cleanup/migration remains a separately gated
+retention task and TTL expiry is not evidence of physical deletion. See
+`docs/account-data-inventory.md`.
 
 ### Runtime assumptions
 

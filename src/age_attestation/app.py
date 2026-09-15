@@ -12,6 +12,7 @@ LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 
 TABLE_NAME = os.environ.get("USERS_TABLE_NAME") or os.environ["TABLE_NAME"]
+DELETION_LEDGER_TABLE_NAME = os.environ.get("DELETION_LEDGER_TABLE_NAME", "")
 dynamodb_client = boto3.client("dynamodb")
 serializer = TypeSerializer()
 
@@ -85,12 +86,7 @@ def _handle_cognito_trigger(event, context):
 
         return event
     except Exception as err:
-        LOGGER.exception(
-            "Cognito age attestation trigger failed | request_id=%s sub=%s",
-            getattr(context, "aws_request_id", None),
-            sub,
-            exc_info=err,
-        )
+        LOGGER.exception("Cognito age attestation trigger failed", exc_info=err)
         raise
 
 
@@ -246,32 +242,68 @@ def _update_user_attestation(
     attested_at: str,
     age_policy_version: str,
 ):
+    if not DELETION_LEDGER_TABLE_NAME:
+        raise RuntimeError("DELETION_LEDGER_TABLE_NAME is required")
     try:
-        dynamodb_client.update_item(
-            TableName=TABLE_NAME,
-            Key=_serialize_map({"PK": f"USER#{sub}", "SK": "PROFILE"}),
-            UpdateExpression=(
-                "SET ageVerified = :age_verified, "
-                "ageVerifiedAt = :age_verified_at, "
-                "agePolicyVersion = :age_policy_version, "
-                "updatedAt = :updated_at, "
-                "#status = :status"
-            ),
-            ExpressionAttributeNames={"#status": "status"},
-            ExpressionAttributeValues=_serialize_map(
+        dynamodb_client.transact_write_items(
+            TransactItems=[
                 {
-                    ":age_verified": over_18_acknowledged,
-                    ":age_verified_at": attested_at if over_18_acknowledged else None,
-                    ":age_policy_version": age_policy_version,
-                    ":updated_at": attested_at,
-                    ":status": "ACTIVE" if over_18_acknowledged else "PENDING_AGE_GATE",
-                }
-            ),
-            ConditionExpression="attribute_exists(PK) AND attribute_exists(SK)",
-            ReturnValues="ALL_NEW",
+                    "ConditionCheck": {
+                        "TableName": DELETION_LEDGER_TABLE_NAME,
+                        "Key": _serialize_map(
+                            {"PK": f"ACCOUNT#{sub}", "SK": "ACCOUNT_DELETION"}
+                        ),
+                        "ConditionExpression": "attribute_not_exists(PK)",
+                    }
+                },
+                {
+                    "Update": {
+                        "TableName": TABLE_NAME,
+                        "Key": _serialize_map(
+                            {"PK": f"USER#{sub}", "SK": "PROFILE"}
+                        ),
+                        "UpdateExpression": (
+                            "SET ageVerified = :age_verified, "
+                            "ageVerifiedAt = :age_verified_at, "
+                            "agePolicyVersion = :age_policy_version, "
+                            "updatedAt = :updated_at, "
+                            "#status = :status"
+                        ),
+                        "ExpressionAttributeNames": {
+                            "#status": "status",
+                            "#sub": "sub",
+                        },
+                        "ExpressionAttributeValues": _serialize_map(
+                            {
+                                ":age_verified": over_18_acknowledged,
+                                ":age_verified_at": (
+                                    attested_at if over_18_acknowledged else None
+                                ),
+                                ":age_policy_version": age_policy_version,
+                                ":updated_at": attested_at,
+                                ":status": (
+                                    "ACTIVE"
+                                    if over_18_acknowledged
+                                    else "PENDING_AGE_GATE"
+                                ),
+                                ":pending": "PENDING_AGE_GATE",
+                                ":active": "ACTIVE",
+                                ":account": sub,
+                            }
+                        ),
+                        "ConditionExpression": (
+                            "#sub = :account AND "
+                            "(#status = :pending OR #status = :active)"
+                        ),
+                    }
+                },
+            ]
         )
     except ClientError as err:
-        if err.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+        if err.response.get("Error", {}).get("Code") in {
+            "ConditionalCheckFailedException",
+            "TransactionCanceledException",
+        }:
             raise ValueError("User profile not found for sub") from err
         raise
 
@@ -291,13 +323,7 @@ def _response(status_code: int, body: dict):
 def _internal_error_response(*, context, err: Exception, sub: str | None):
     error_code = "AGE_ATTESTATION_INTERNAL_ERROR"
     request_id = getattr(context, "aws_request_id", None) or str(uuid.uuid4())
-    LOGGER.exception(
-        "Age attestation failed | error_code=%s request_id=%s sub=%s",
-        error_code,
-        request_id,
-        sub,
-        exc_info=err,
-    )
+    LOGGER.exception("Age attestation failed | error_code=%s", error_code, exc_info=err)
     return _response(
         500,
         {

@@ -2,6 +2,11 @@
 
 Status: **Lambda component work advanced; story completion blocked**
 
+The complete Lambda-source account-data inventory and the remaining deletion,
+export, identity-finalization, retention, IAM, queue and backup gaps are recorded
+in `docs/account-data-inventory.md`. Inventory status remains `pending`; the
+document does not approve any retention or activation decision.
+
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 
 - Current-period `HMAC_256` key creation with the required project,
