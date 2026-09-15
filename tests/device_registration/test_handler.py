@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import sys
 import types
 import unittest
@@ -7,8 +8,25 @@ from pathlib import Path
 from unittest import mock
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_registration"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = MODULE_DIR.parent
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+os.environ.update({
+    "COGNITO_ISSUER": "https://cognito-idp.us-east-1.amazonaws.com/test",
+    "COGNITO_APP_CLIENT_ID": "test-client",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
+})
+
+
+def _claims(sub="user-123"):
+    return {
+        "sub": sub, "iss": os.environ["COGNITO_ISSUER"],
+        "client_id": os.environ["COGNITO_APP_CLIENT_ID"], "token_use": "access",
+        "exp": "4102444800", "scope": "aws.cognito.signin.user.admin",
+    }
 
 
 class _FakeTable:
@@ -23,12 +41,19 @@ class _FakeTable:
 
 
 class _FakeResource:
-    def Table(self, _name):
+    def Table(self, name):
+        if name == "users":
+            class Users:
+                def get_item(self, Key, **_kwargs):
+                    sub = Key["PK"].removeprefix("USER#")
+                    return {"Item": {"sub": sub, "status": "ACTIVE", "ageVerified": True}}
+            return Users()
         return _FakeTable()
 
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: _FakeResource()
+boto3_stub.client = lambda *args, **kwargs: object()
 sys.modules.setdefault("boto3", boto3_stub)
 
 
@@ -49,9 +74,12 @@ app = _load_module("app", MODULE_DIR / "app.py")
 
 
 class DeviceRegistrationHandlerTests(unittest.TestCase):
+    def setUp(self):
+        app.boto3.resource = lambda *args, **kwargs: _FakeResource()
+
     def test_returns_success_response(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims()}}},
             "body": json.dumps(
                 {
                     "bindingFingerprint": "fp-1",
@@ -83,7 +111,7 @@ class DeviceRegistrationHandlerTests(unittest.TestCase):
 
     def test_returns_validation_error(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "user-123"}}}},
+            "requestContext": {"authorizer": {"jwt": {"claims": _claims()}}},
             "body": json.dumps(
                 {
                     "bindingFingerprint": "fp-1",
@@ -116,6 +144,16 @@ class DeviceRegistrationHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 401)
         body = json.loads(response["body"])
         self.assertEqual(body["error"]["code"], "UNAUTHORIZED")
+
+    def test_rejects_legacy_claim_and_principal_fallbacks(self):
+        for authorizer in ({"claims": {"sub": "user-123"}}, {"principalId": "user-123"}):
+            response = app.lambda_handler({
+                "requestContext": {"authorizer": authorizer},
+                "body": json.dumps({
+                    "bindingFingerprint": "fp-1", "platform": "ios", "osVersion": "18.4",
+                }),
+            }, None)
+            self.assertEqual(response["statusCode"], 401)
 
 
 if __name__ == "__main__":

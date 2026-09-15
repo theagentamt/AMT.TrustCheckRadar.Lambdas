@@ -57,15 +57,49 @@ def assert_authoritative_account_active(account_id: str, users_table, deletion_l
 
 def assert_active_device_binding(event: dict, account_id: str, table) -> None:
     value = device_binding_fingerprint(event)
+    pointer = table.get_item(
+        Key={"PK": f"USER#{account_id}", "SK": "ACTIVE_BINDING"},
+        ConsistentRead=True,
+    ).get("Item")
+    if pointer is not None:
+        pointer_fingerprint = pointer.get("bindingFingerprint")
+        state_version = pointer.get("stateVersion")
+        if (
+            pointer.get("recordType") != "ACTIVE_BINDING_POINTER"
+            or not isinstance(pointer_fingerprint, str)
+            or isinstance(state_version, bool)
+            or not isinstance(state_version, int)
+            or state_version < 1
+        ):
+            raise HistoryError("SERVER_UNAVAILABLE", "The active device binding pointer is invalid.")
+        if pointer_fingerprint == "NONE" or not hmac.compare_digest(pointer_fingerprint, value):
+            raise HistoryError("DEVICE_BINDING_MISMATCH", "The active device binding does not match.")
+        binding = table.get_item(
+            Key={"PK": f"USER#{account_id}", "SK": f"DEVICE#{pointer_fingerprint}"},
+            ConsistentRead=True,
+        ).get("Item")
+        if (
+            not binding
+            or binding.get("accountId") != account_id
+            or binding.get("status") != "ACTIVE"
+            or not isinstance(binding.get("bindingFingerprint"), str)
+            or not hmac.compare_digest(binding["bindingFingerprint"], pointer_fingerprint)
+        ):
+            raise HistoryError("SERVER_UNAVAILABLE", "The active device binding pointer is inconsistent.")
+        return
+
+    # Compatibility path for accounts that have not yet been migrated to the
+    # authoritative pointer. GSI1 is discovery-only and never a uniqueness
+    # guarantee, so multiple matches fail closed.
     response = table.query(
         IndexName="GSI1",
         KeyConditionExpression="GSI1PK = :gsi1pk",
         ExpressionAttributeValues={":gsi1pk": f"USER#{account_id}#ACTIVE"},
-        Limit=1,
+        Limit=2,
         ScanIndexForward=False,
     )
     items = response.get("Items") or []
-    if not items or not hmac.compare_digest(str(items[0].get("bindingFingerprint", "")), value):
+    if len(items) != 1 or not hmac.compare_digest(str(items[0].get("bindingFingerprint", "")), value):
         raise HistoryError("DEVICE_BINDING_MISMATCH", "The active device binding does not match.")
 
 

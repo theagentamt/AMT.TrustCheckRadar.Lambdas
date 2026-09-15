@@ -95,7 +95,7 @@ needs_shared_campaign_contracts() {
 
 needs_shared_history() {
   case "$1" in
-    conversation_analysis|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
+    conversation_analysis|device_recovery|device_registration|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
     *) return 1 ;;
   esac
 }

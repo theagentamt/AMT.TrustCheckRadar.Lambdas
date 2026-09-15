@@ -2,8 +2,13 @@ import json
 import logging
 import os
 
+import boto3
+
+import config
 from errors import AppError
 from service import register_device
+from shared_history import HistoryError
+from shared_history.security import assert_authoritative_account_active, jwt_subject
 from validation import parse_and_validate_event
 
 LOGGER = logging.getLogger()
@@ -31,26 +36,24 @@ def lambda_handler(event, _context):
 
 
 def extract_account_id(event: dict) -> str:
-    request_context = event.get("requestContext") or {}
-    authorizer = request_context.get("authorizer") or {}
-
-    jwt_claims = (authorizer.get("jwt") or {}).get("claims")
-    if isinstance(jwt_claims, dict):
-        sub = jwt_claims.get("sub")
-        if isinstance(sub, str) and sub.strip():
-            return sub.strip()
-
-    legacy_claims = authorizer.get("claims")
-    if isinstance(legacy_claims, dict):
-        sub = legacy_claims.get("sub")
-        if isinstance(sub, str) and sub.strip():
-            return sub.strip()
-
-    principal_id = authorizer.get("principalId")
-    if isinstance(principal_id, str) and principal_id.strip():
-        return principal_id.strip()
-
-    raise AppError("UNAUTHORIZED", "A trusted caller identity is required for device registration.", retryable=False)
+    settings = type("RegistrationAuthSettings", (), {
+        "cognito_issuer": config.COGNITO_ISSUER,
+        "cognito_app_client_id": config.COGNITO_APP_CLIENT_ID,
+        "cognito_required_scope": config.COGNITO_REQUIRED_SCOPE,
+    })()
+    if not config.USERS_TABLE_NAME or not config.DELETION_LEDGER_TABLE_NAME:
+        raise AppError("SERVER_UNAVAILABLE", "The account authority is unavailable.", retryable=False)
+    try:
+        account_id = jwt_subject(event, settings)
+        resource = boto3.resource("dynamodb")
+        assert_authoritative_account_active(
+            account_id,
+            resource.Table(config.USERS_TABLE_NAME),
+            resource.Table(config.DELETION_LEDGER_TABLE_NAME),
+        )
+        return account_id
+    except HistoryError as err:
+        raise AppError(err.code, err.message, retryable=err.retryable) from err
 
 
 def _build_error_response(account_id: str | None, err: AppError) -> dict:

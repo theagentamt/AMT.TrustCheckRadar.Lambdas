@@ -29,6 +29,17 @@ class Table:
         return {"Items": list(self.query_items)}
 
 
+class PageTable(Table):
+    def __init__(self, pages):
+        super().__init__()
+        self.pages = list(pages)
+        self.queries = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return self.pages.pop(0)
+
+
 class Settings:
     schema_version = 1
     default_page_size = 20
@@ -44,7 +55,59 @@ class Settings:
     )
 
 
+def _history_item(request_id, completed_at):
+    return {
+        "PK": "USER#a#HISTORY#0",
+        "SK": f"COMPLETE#{completed_at:013d}#{request_id}",
+        "recordType": "HISTORY", "schemaVersion": 1, "recordVersion": 1,
+        "requestId": request_id, "historyGeneration": 0, "recognitionGeneration": 0,
+        "acceptedSequence": 1, "sourceType": "ocr", "acceptedAtEpochMs": 90,
+        "completedAtEpochMs": completed_at, "expiresAt": 999,
+        "expiryBucket": "HISTORY#bucket#00",
+        "assessment": {
+            "schemaVersion": "1.0", "scamScore": 50, "riskLevel": "medium",
+            "confidence": 0.7, "summary": "Review.", "signals": [],
+            "recommendedActions": ["Verify."],
+        },
+    }
+
+
 class HistoryReadTests(unittest.TestCase):
+    def test_exact_limit_page_with_dynamodb_continuation_returns_cursor(self):
+        state = {"accountStatus": "ACTIVE", "historyGeneration": 0, "recognitionGeneration": 0}
+        items = [_history_item("request-1", 200), _history_item("request-2", 100)]
+        content = PageTable([{
+            "Items": items,
+            "LastEvaluatedKey": {"PK": items[-1]["PK"], "SK": items[-1]["SK"]},
+        }])
+        cursors = CursorStore(table=Table(), secret=b"x" * 32, ttl_seconds=900, now=lambda: 100)
+        service = HistoryReadService(
+            settings=Settings(), content_table=content,
+            control_table=Table({("USER#a", "STATE"): state}),
+            cursor_store=cursors, now=lambda: 100,
+        )
+        result = service.list_history("a", requested_limit="2")
+        self.assertEqual([item["requestId"] for item in result["items"]], ["request-1", "request-2"])
+        self.assertIn("nextCursor", result)
+
+    def test_expired_items_are_skipped_across_capped_pages_without_losing_cursor(self):
+        state = {"accountStatus": "ACTIVE", "historyGeneration": 0, "recognitionGeneration": 0}
+        expired = _history_item("expired", 300) | {"expiresAt": 99}
+        active = _history_item("active", 200)
+        content = PageTable([
+            {"Items": [expired], "LastEvaluatedKey": {"PK": expired["PK"], "SK": expired["SK"]}},
+            {"Items": [active], "LastEvaluatedKey": {"PK": active["PK"], "SK": active["SK"]}},
+        ])
+        cursors = CursorStore(table=Table(), secret=b"x" * 32, ttl_seconds=900, now=lambda: 100)
+        service = HistoryReadService(
+            settings=Settings(), content_table=content,
+            control_table=Table({("USER#a", "STATE"): state}),
+            cursor_store=cursors, now=lambda: 100,
+        )
+        result = service.list_history("a", requested_limit="1")
+        self.assertEqual([item["requestId"] for item in result["items"]], ["active"])
+        self.assertIn("nextCursor", result)
+
     def test_list_and_export_include_generations_contract_and_server_time(self):
         state = {
             "accountStatus": "ACTIVE", "historyGeneration": 2,
@@ -98,6 +161,10 @@ class HistoryReadTests(unittest.TestCase):
         self.assertEqual(cursors.load(handle, "account-1", 2), "COMPLETE#0000000000100#request-1")
         with self.assertRaises(HistoryError):
             cursors.load(handle, "account-2", 2)
+        with self.assertRaises(HistoryError):
+            CursorStore(table=table, secret=b"x" * 32, ttl_seconds=300, now=lambda: 401).load(
+                handle, "account-1", 2
+            )
 
     def test_detail_is_scoped_to_current_account_generation(self):
         control = Table({

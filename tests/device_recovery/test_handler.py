@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import time
 import sys
 import types
 import unittest
@@ -7,8 +8,10 @@ from pathlib import Path
 from unittest import mock
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_recovery"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+SRC_DIR = MODULE_DIR.parent
+for path in (SRC_DIR, MODULE_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 
 class _FakeTable:
@@ -29,6 +32,7 @@ class _FakeResource:
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: _FakeResource()
+boto3_stub.client = lambda *args, **kwargs: object()
 sys.modules.setdefault("boto3", boto3_stub)
 
 
@@ -51,7 +55,8 @@ app = _load_module("app", MODULE_DIR / "app.py")
 class DeviceRecoveryHandlerTests(unittest.TestCase):
     def test_returns_success_response(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "support-1"}}}},
+            "routeKey": "POST /device-recovery",
+            "requestContext": {"authorizer": {"iam": {"userArn": "arn:aws:iam::123456789012:role/support"}}},
             "body": json.dumps(
                 {
                     "action": "RESET_ACTIVE_BINDING",
@@ -60,7 +65,10 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
             ),
         }
 
-        with mock.patch.object(
+        with mock.patch.dict(
+            "os.environ",
+            {"DEVICE_RECOVERY_ALLOWED_PRINCIPAL_ARNS_JSON": '["arn:aws:iam::123456789012:role/support"]'},
+        ), mock.patch.object(
             app,
             "process_recovery",
             return_value={
@@ -80,7 +88,8 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
 
     def test_returns_validation_error(self):
         event = {
-            "requestContext": {"authorizer": {"jwt": {"claims": {"sub": "support-1"}}}},
+            "routeKey": "POST /device-recovery",
+            "requestContext": {"authorizer": {"iam": {"userArn": "arn:aws:iam::123456789012:role/support"}}},
             "body": json.dumps(
                 {
                     "action": "RECOVER_BINDING",
@@ -89,7 +98,11 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
             ),
         }
 
-        response = app.lambda_handler(event, None)
+        with mock.patch.dict(
+            "os.environ",
+            {"DEVICE_RECOVERY_ALLOWED_PRINCIPAL_ARNS_JSON": '["arn:aws:iam::123456789012:role/support"]'},
+        ):
+            response = app.lambda_handler(event, None)
 
         self.assertEqual(response["statusCode"], 400)
         body = json.loads(response["body"])
@@ -98,6 +111,7 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
 
     def test_returns_unauthorized_without_trusted_identity(self):
         event = {
+            "routeKey": "POST /device-recovery",
             "body": json.dumps(
                 {
                     "action": "RESET_ACTIVE_BINDING",
@@ -111,6 +125,103 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 401)
         body = json.loads(response["body"])
         self.assertEqual(body["error"]["code"], "UNAUTHORIZED")
+
+    def test_rejects_ordinary_jwt_and_legacy_principal_as_support_authority(self):
+        body = json.dumps({"action": "RESET_ACTIVE_BINDING", "accountId": "user-123"})
+        authorizers = [
+            {"jwt": {"claims": {"sub": "user-123"}}},
+            {"claims": {"sub": "support-1"}},
+            {"principalId": "support-1"},
+        ]
+        for authorizer in authorizers:
+            response = app.lambda_handler({
+                "routeKey": "POST /device-recovery",
+                "requestContext": {"authorizer": authorizer}, "body": body,
+            }, None)
+            self.assertEqual(response["statusCode"], 401)
+
+    def test_rejects_signed_but_unapproved_iam_principal(self):
+        event = {
+            "routeKey": "POST /device-recovery",
+            "requestContext": {"authorizer": {"iam": {"userArn": "arn:aws:iam::123456789012:role/ordinary"}}},
+            "body": json.dumps({"action": "RESET_ACTIVE_BINDING", "accountId": "user-123"}),
+        }
+        with mock.patch.dict(
+            "os.environ",
+            {"DEVICE_RECOVERY_ALLOWED_PRINCIPAL_ARNS_JSON": '["arn:aws:iam::123456789012:role/support"]'},
+        ):
+            response = app.lambda_handler(event, None)
+        self.assertEqual(response["statusCode"], 403)
+
+    def test_self_recovery_uses_token_subject_and_recent_signed_auth_time(self):
+        current = int(time.time())
+        event = {
+            "routeKey": "POST /v1/users/device-recovery",
+            "requestContext": {"authorizer": {"jwt": {"claims": {
+                "sub": "user-123", "iss": app.config.COGNITO_ISSUER,
+                "client_id": app.config.COGNITO_APP_CLIENT_ID, "token_use": "access",
+                "exp": str(current + 600), "scope": app.config.COGNITO_REQUIRED_SCOPE,
+                "auth_time": str(current - 30), "iat": str(current - 30),
+            }}}},
+            "body": json.dumps({
+                "schemaVersion": 1,
+                "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                "action": "REPLACE_ACTIVE_BINDING",
+                "bindingFingerprint": "fp-new", "platform": "ios", "osVersion": "18.4",
+            }),
+        }
+        with mock.patch.object(app.config, "validate_self_recovery_config"), \
+                mock.patch.object(app, "assert_authoritative_account_active"), \
+                mock.patch.object(app, "process_self_recovery", return_value={
+                    "schemaVersion": 1, "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                    "operation": "REPLACE_ACTIVE_BINDING", "result": "RECOVERED",
+                    "status": "COMPLETE", "bindingFingerprint": "fp-new",
+                    "completedAtEpoch": current,
+                }) as process:
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 200)
+        self.assertEqual(process.call_args.kwargs["account_id"], "user-123")
+
+    def test_self_recovery_rejects_stale_auth_time(self):
+        current = int(time.time())
+        event = {
+            "routeKey": "POST /v1/users/device-recovery",
+            "requestContext": {"authorizer": {"jwt": {"claims": {
+                "sub": "user-123", "iss": app.config.COGNITO_ISSUER,
+                "client_id": app.config.COGNITO_APP_CLIENT_ID, "token_use": "access",
+                "exp": str(current + 600), "scope": app.config.COGNITO_REQUIRED_SCOPE,
+                "auth_time": str(current - 301), "iat": str(current - 301),
+            }}}},
+            "body": json.dumps({
+                "schemaVersion": 1,
+                "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                "action": "REPLACE_ACTIVE_BINDING",
+                "bindingFingerprint": "fp-new", "platform": "ios", "osVersion": "18.4",
+            }),
+        }
+        with mock.patch.object(app.config, "validate_self_recovery_config"):
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 401)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "REAUTHENTICATION_REQUIRED")
+
+    def test_self_recovery_rejects_user_supplied_account_id(self):
+        event = {
+            "routeKey": "POST /v1/users/device-recovery",
+            "body": json.dumps({
+                "schemaVersion": 1,
+                "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                "action": "REPLACE_ACTIVE_BINDING", "accountId": "victim",
+                "bindingFingerprint": "fp-new", "platform": "ios", "osVersion": "18.4",
+            }),
+        }
+        with mock.patch.object(app.config, "validate_self_recovery_config"), \
+                mock.patch.object(app, "_self_subject", return_value="user-123"):
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "INVALID_REQUEST")
 
 
 if __name__ == "__main__":

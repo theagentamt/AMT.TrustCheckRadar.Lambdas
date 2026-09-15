@@ -37,7 +37,7 @@ class FakeTable:
     def __init__(self):
         self.items = {}
 
-    def get_item(self, Key):
+    def get_item(self, Key, **_kwargs):
         item = self.items.get((Key["PK"], Key["SK"]))
         return {"Item": item} if item else {}
 

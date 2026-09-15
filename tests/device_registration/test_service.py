@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import sys
 import types
 import unittest
@@ -8,12 +9,18 @@ MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_registration"
 if str(MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(MODULE_DIR))
 
+os.environ.update({
+    "DEVICE_BINDINGS_TABLE_NAME": "device-bindings",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "deletion-ledger",
+})
+
 
 class FakeTable:
     def __init__(self):
         self.items = {}
 
-    def get_item(self, Key):
+    def get_item(self, Key, **_kwargs):
         item = self.items.get((Key["PK"], Key["SK"]))
         return {"Item": item} if item else {}
 
@@ -33,6 +40,44 @@ class FakeTable:
 fake_table = FakeTable()
 
 
+def _deserialize(item):
+    result = {}
+    for key, value in item.items():
+        kind, raw = next(iter(value.items()))
+        result[key] = raw if kind == "S" else int(raw) if kind == "N" else raw if kind == "BOOL" else None
+    return result
+
+
+class FakeClient:
+    def __init__(self):
+        self.transactions = []
+        self.cancel_next = False
+
+    def transact_write_items(self, TransactItems):
+        self.transactions.append(TransactItems)
+        if self.cancel_next:
+            self.cancel_next = False
+            error = RuntimeError("cancelled")
+            error.response = {"Error": {"Code": "TransactionCanceledException"}}
+            raise error
+        for operation in TransactItems:
+            if "Put" in operation:
+                item = _deserialize(operation["Put"]["Item"])
+                fake_table.items[(item["PK"], item["SK"])] = item
+            elif "Update" in operation:
+                update = operation["Update"]
+                key = _deserialize(update["Key"])
+                values = _deserialize(update["ExpressionAttributeValues"])
+                item = fake_table.items[(key["PK"], key["SK"])]
+                item.update({
+                    "bindingFingerprint": values[":target"],
+                    "stateVersion": values[":next"], "updatedAt": values[":now"],
+                })
+
+
+fake_client = FakeClient()
+
+
 class FakeResource:
     def Table(self, _name):
         return fake_table
@@ -40,6 +85,7 @@ class FakeResource:
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: FakeResource()
+boto3_stub.client = lambda *args, **kwargs: fake_client
 sys.modules.setdefault("boto3", boto3_stub)
 
 
@@ -60,7 +106,10 @@ service = _load_module("service", MODULE_DIR / "service.py")
 class DeviceRegistrationServiceTests(unittest.TestCase):
     def setUp(self):
         fake_table.items.clear()
+        fake_client.transactions.clear()
+        fake_client.cancel_next = False
         service.table = fake_table
+        service.dynamodb_client = fake_client
 
     def test_returns_new_for_first_device(self):
         result = service.register_device(
@@ -74,6 +123,17 @@ class DeviceRegistrationServiceTests(unittest.TestCase):
         item = fake_table.items[("USER#user-123", "DEVICE#fp-1")]
         self.assertEqual(item["status"], "ACTIVE")
         self.assertEqual(item["bindingFingerprint"], "fp-1")
+        self.assertEqual(
+            fake_table.items[("USER#user-123", "ACTIVE_BINDING")]["bindingFingerprint"],
+            "fp-1",
+        )
+        transaction = fake_client.transactions[-1]
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "deletion-ledger")
+        self.assertEqual(
+            _deserialize(transaction[1]["ConditionCheck"]["Key"]),
+            {"PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION"},
+        )
 
     def test_returns_known_for_same_active_device(self):
         fake_table.put_item(
@@ -185,6 +245,18 @@ class DeviceRegistrationServiceTests(unittest.TestCase):
         self.assertEqual(reactivated["status"], "ACTIVE")
         self.assertIsNone(reactivated["deactivatedAt"])
         self.assertEqual(previous["status"], "INACTIVE")
+
+    def test_deletion_race_cancellation_leaves_no_pointer_or_device(self):
+        fake_client.cancel_next = True
+
+        with self.assertRaises(service.AppError) as context:
+            service.register_device(
+                account_id="user-123", binding_fingerprint="fp-1",
+                platform="ios", os_version="18.4",
+            )
+
+        self.assertEqual(context.exception.code, "CONFLICT")
+        self.assertEqual(fake_table.items, {})
 
 
 if __name__ == "__main__":

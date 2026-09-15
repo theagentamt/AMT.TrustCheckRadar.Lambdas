@@ -128,6 +128,9 @@ class HistoryReadService:
             if more:
                 break
             lek = page.get("LastEvaluatedKey")
+            if len(items) == limit:
+                more = bool(lek)
+                break
             if not lek:
                 break
             exclusive_start = lek
