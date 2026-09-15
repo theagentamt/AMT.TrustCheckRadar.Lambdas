@@ -41,7 +41,8 @@ Implemented Lambda scope:
 - `history_account_deletion_bridge` consumes only the exact authoritative fixed
   deletion-fence record, atomically fences History, and creates a resumable job
   spanning all captured generations. Lifecycle completion writes only the
-  History component receipt and never completes the overall account deletion.
+  History component receipt, with the approved 120-day `retainUntilEpoch`, and
+  never completes the overall account deletion. Ledger TTL remains disabled.
 - The same bridge performs a bounded, strongly consistent reconciliation scan
   with a durable continuation checkpoint, recovering commands missed beyond
   DynamoDB Streams retention.

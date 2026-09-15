@@ -161,6 +161,10 @@ class DeletionTests(unittest.TestCase):
             receipt["operationId"],
             {"S": "47debb73-444b-4bb1-9889-fb56885b7922"},
         )
+        self.assertEqual(
+            receipt["retainUntilEpoch"],
+            {"N": str(1_780_000_010 + 120 * 86400)},
+        )
 
     def test_successful_deletion_completion_is_atomic_and_privacy_safe(self):
         dynamo = Dynamo()

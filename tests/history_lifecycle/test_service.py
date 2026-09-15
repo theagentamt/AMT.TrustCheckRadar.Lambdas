@@ -230,6 +230,7 @@ class HistoryLifecycleTests(unittest.TestCase):
             ledger.puts[0]["operationId"],
             "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
         )
+        self.assertEqual(ledger.puts[0]["retainUntilEpoch"], 100 + 120 * 86400)
 
     def test_content_keys_are_parsed_without_assessment_data(self):
         partition = "USER#account-1#HISTORY#7"

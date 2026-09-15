@@ -56,6 +56,7 @@
     "requestStatus": "REQUESTED",
     "componentReceiptKey": {"PK": "ACCOUNT#<sub>", "SK": "ACCOUNT_DELETION#HISTORY"},
     "componentReceiptEventType": "account.deletion.component.completed",
+    "componentReceiptRetentionDays": 120,
     "reconciliationEvent": {"schemaVersion": 1, "operation": "reconcile"}
   },
   "independence": {

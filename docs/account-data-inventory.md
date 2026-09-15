@@ -8,6 +8,32 @@ that the Lambda source reads or writes. It is evidence for completing the accoun
 data design; it is not privacy/legal approval, an authorization to deploy, or proof
 that expired records have been physically removed.
 
+## Owner decisions recorded 2026-09-14
+
+The following decisions are approved for Dev and are now reflected in the source
+contract where applicable:
+
+- device-recovery security audit: 90 days;
+- device-recovery retry receipt: 7 days;
+- device-recovery rate state: 24 hours;
+- device-recovery table PITR: 7 days once the table is provisioned;
+- post-confirmation CloudWatch log retention: 14 days;
+- minimal account-deletion component receipts: 120 days, containing only the
+  operation/status/timestamps, necessary account linkage and no contact or
+  submission content; the fixed fence cannot retire until backup/replay coverage
+  is verified;
+- existing minimal consent evidence: 400 days;
+- account export occurs before deletion; accepting deletion cancels every unfinished
+  export, and there is no ongoing consumer login or status access after Cognito
+  identity removal;
+- billing is handled by app stores and no separate local billing-retention period is
+  required.
+
+The billing decision does **not** authorize deleting or reassigning token-keyed
+anti-replay records, inventing a retention duration, or assuming there are no
+existing transactions. Entitlement, usage, purchase-token ownership and legacy
+locator coverage therefore remain blocked.
+
 The product-wide deletion producer remains disabled by all of these independent
 gates:
 
@@ -49,10 +75,9 @@ the product promises an erasure SLA.
 | Cognito user | User Pool username and `sub`; standard/custom attributes may include email, phone, name and age acknowledgement | Cognito creates/authenticates it. `post_confirmation`, `age_attestation`, and every protected API consume claims/trigger attributes. `account_data_api` currently calls global sign-out only. | No `AdminDeleteUser` finalizer. No account export implementation. | **Erasable identity.** Session revocation is not deletion. Decide username/sub mapping, final deletion ordering, retry behavior, attribute export, and how status remains available after the identity is deleted. |
 | Users `PROFILE` | `PK=USER#<sub>`, `SK=PROFILE`; `sub`, email, given/family name, phone, age acknowledgement/status/timestamps, and deletion operation metadata | Created by `src/post_confirmation/app.py`; updated by `src/age_attestation/app.py` and `src/account_data_api/service.py`; read/condition-checked by protected account, device, History and analysis paths. Profile creation and age updates now condition-check absence of the fixed deletion fence in the same transaction. | Deletion request atomically changes status to `DELETION_REQUESTED`, but no final profile minimizer/deleter exists. No full export. | Direct identifiers are **erasable**. A minimal account-deleted tombstone may be necessary, but its exact fields, location and retention are not approved. Do not retain contact/profile attributes in that tombstone. |
 
-Infrastructure handoff notes that the post-confirmation log group has no
-Terraform-managed retention. Even though the handler logs no profile values during
-success, its error path and Lambda service logs are persistent operational data;
-explicit environment log retention remains an activation requirement.
+The Dev metadata audit found the existing post-confirmation log group has no
+retention while 16 other matching Lambda/API groups have 14 days. The approved
+post-confirmation target is 14 days, but applying it remains infrastructure work.
 
 ### Device binding and recovery
 
@@ -60,9 +85,9 @@ explicit environment log retention remains an activation requirement.
 |---|---|---|---|---|
 | Active device pointer | Device table `PK=USER#<sub>`, `SK=ACTIVE_BINDING`; fingerprint or `NONE`, version and timestamp | `device_registration` and `device_recovery` write it transactionally; analysis and History APIs read it | `account_data_api.delete_device_bindings` queries the full user partition and deletes it. No export. | **Erasable.** Existing device component receipt covers it. |
 | Device records | Device table `PK=USER#<sub>`, `SK=DEVICE#<bindingFingerprint>`; direct account ID, fingerprint, platform, OS version, status and timestamps | Registration/recovery write; device-authorized APIs read. Inactive rows have `expiresAt` (currently 180 days). | Same bounded partition deletion as the pointer. TTL is supplementary. No export. | **Erasable.** Existing component worker is implemented, but deployed bounded retry/reconciliation evidence is still required. |
-| Self-recovery idempotency receipt | Recovery control table `PK=USER#<sub>`, `SK=RECOVERY#<operationId>`; request payload hash, fingerprint, result and completion time | `device_recovery` reads/writes; configured seven-day logical retention | Not covered by device binding deletion. No export. | Request-specific data is **erasable** after replay needs end. Add a recovery-control cleanup component; do not infer physical deletion from expiry. |
-| Self-recovery rate state | Recovery control table `PK=USER#<sub>`, `SK=RATE#<window>`; request count/time | `device_recovery` transactionally updates; 24-hour logical TTL state | Not covered by deletion/export. | **Erasable** operational state. It can be deleted with the recovery-control partition without preserving a tombstone. |
-| Self-recovery audit | Recovery control table `PK=USER#<sub>`, `SK=AUDIT#<epoch>#<operationId>`; action/result/fingerprint and time | `device_recovery` writes; configuration only permits 30 or 90 days once policy is approved | Not covered by deletion/export. | Likely **minimal retained audit**, but fingerprint and direct subject key may be excessive. Privacy/security must approve exact fields, 30-vs-90-day retention, deletion-time minimization, backup treatment and export inclusion. |
+| Self-recovery idempotency receipt | Recovery control table `PK=USER#<sub>`, `SK=RECOVERY#<operationId>`; request payload hash, fingerprint, result and completion time | `device_recovery` reads/writes; approved seven-day logical retention | `account_data_api` now removes payload hash/fingerprint, preserves only the bounded operation/result/status/times through the original expiry, explicitly deletes already-expired rows and writes an exact `DEVICE_RECOVERY` receipt after bounded completion. | **Minimal seven-day retry receipt after deletion-time minimization.** Native TTL remains supplementary. |
+| Self-recovery rate state | Recovery control table `PK=USER#<sub>`, `SK=RATE#<window>`; request count/time | `device_recovery` transactionally updates; approved 24-hour logical state | The new recovery component explicitly deletes it regardless of remaining TTL. | **Erasable operational state.** No tombstone is retained. |
+| Self-recovery audit | Recovery control table `PK=USER#<sub>`, `SK=AUDIT#<epoch>#<operationId>`; action/result/fingerprint and time | `device_recovery` writes; Dev policy now requires exactly 90 days | The new recovery component removes the fingerprint and preserves only record type/version, operation, actor type, action, result, occurrence and original expiry. Already-expired rows are explicitly deleted. | **Minimal 90-day security audit.** Seven-day PITR is approved when the currently absent Dev recovery table is provisioned; restore reconciliation evidence remains required. |
 
 ### Entitlements, purchases and usage
 
@@ -118,11 +143,15 @@ expiry lanes and replay redactions reconciled before traffic is admitted.
 | Consent audit | Users `PK=USER#<sub>`, `SK=CAMPAIGN_CONSENT#<epoch>#<time>#<operationId>` and completion variant; notice/policy/state/limit/time | Participation and deletion bridge write | 400-day `expiresAt`; no product-wide export or explicit users-table sweep | Likely **necessary minimal consent audit**. Direct subject linkage and 400-day retention need privacy/legal approval plus backup non-resurrection rules. |
 | Campaign withdrawal command | Ledger `PK=ACCOUNT#<sub>`, `SK=CAMPAIGN_WITHDRAWAL#<operationId>`; direct account, epoch, deadline/status | Participation writes; deletion bridge consumes/updates | Remains as protected operation evidence; no TTL in Lambda contract | **Necessary work record then minimal audit.** Retention and final minimization are unresolved. |
 | Account deletion command | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION`; operation/status/deadline | `account_data_api` writes; all protected writers fence against it; deletion bridges/reconcilers read | Fixed fence intentionally persists; overall completion/finalizer is absent | **Necessary deletion fence/tombstone.** Exact retained fields and duration must be approved. It must survive long enough to prevent restored/queued work from recreating data. |
-| Component/progress receipts | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION#<COMPONENT>` and device progress; request binding and completion time/continuation | Account, History and campaign workers | Session, device, History and campaign receipts exist. Other inventories have no workers/receipts. Progress is removed after completion. | **Necessary work/idempotency evidence** while deletion is retryable. Final receipt set/retention and direct linkage are unresolved. |
+| Component/progress receipts | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION#<COMPONENT>` and bounded progress items; request binding, completion time and `retainUntilEpoch` | Account, History and campaign workers | Session, device, device-recovery, History and campaign receipts exist. New receipts use the approved 120-day minimal contract. Progress is removed after completion. | **Necessary work/idempotency evidence.** Ledger TTL remains disabled; controlled retirement is blocked until verified backup/replay coverage and overall finalization exist. |
 | Ledger reconciliation checkpoints | `PK=LIFECYCLE#<environment>`, fixed reconciliation sort keys | Account and History reconcilers | Operational, no per-user content | **Necessary environment control**, not user export data. |
 
-Infrastructure reports PITR enabled with an unspecified window on the six existing
-foundation tables and no TTL on the ledger. Those are not application approval.
+The read-only Dev audit verified 11 default-name DynamoDB tables: all six existing
+foundation tables and campaign intelligence have 35-day PITR; the History pair has
+7-day PITR; outbox/pipeline PITR is disabled. Ledger TTL is disabled and its stream
+uses `NEW_IMAGE`; the other ten existing tables use `expiresAt` TTL. The recovery
+control table is not yet provisioned. Those facts do not prove purge or approve
+fence retirement.
 The restore runbook must apply the fixed deletion ledger before any restored table,
 stream, outbox or queue can serve traffic.
 
@@ -197,15 +226,11 @@ token, raw content, reviewer identity or subject mapping is added.
 The overall account-deletion required-component list must not be approved until
 these component responsibilities have stable names, exact receipts and workers:
 
-1. `DEVICE_RECOVERY`: query the recovery-control `USER#<sub>` partition; delete
-   rate and expired replay state; minimize/retain only approved audit fields; write
-   an operation-bound component receipt. IAM: Query/Delete/approved Update only on
-   the recovery table with `USER#*`, plus ledger Get/Put for its exact receipt.
-2. `ANALYSIS_ABUSE`: derive SHA-256(`sub`) and drain REQUEST, RATE, SCAN_RATE and
+1. `ANALYSIS_ABUSE`: derive SHA-256(`sub`) and drain REQUEST, RATE, SCAN_RATE and
    CONSUMPTION partitions in bounded pages; remove responses first; reconcile until
    empty/content-free; write a receipt. IAM: Query/Get/Update/Delete only for the
    four `ANALYSIS#...#*` prefixes and exact ledger receipt.
-3. `ENTITLEMENTS`: drain `USER#<sub>` entitlement/usage rows and discover every
+2. `ENTITLEMENTS`: drain `USER#<sub>` entitlement/usage rows and discover every
    `TOKEN#.../IDEMPOTENCY` record through an approved existing-table account access
    path. The preferred new-write design is a transactional
    `USER#<sub>/PURCHASE_TOKEN#<hash>` locator alongside the token-keyed anti-replay
@@ -213,16 +238,16 @@ these component responsibilities have stable names, exact receipts and workers:
    Minimize approved purchase evidence and write a receipt. IAM must not allow a
    table scan. Legacy discovery/backfill, locator retention and financial evidence
    retention require approval first.
-4. `CAMPAIGN_OUTBOX`: discover direct-account outbox records through an approved
+3. `CAMPAIGN_OUTBOX`: discover direct-account outbox records through an approved
    existing-table access path, delete content, and ensure publisher retries cannot
    recreate pipeline records; write a receipt distinct from pseudonymous campaign
    cleanup if independent completion is needed. IAM must not allow an unbounded
    scan.
-5. `USER_PROFILE`: only after all producers are fenced and their component work is
+4. `USER_PROFILE`: only after all producers are fenced and their component work is
    complete, erase profile identifiers and non-required users-partition state;
    retain only approved consent/deletion minima. IAM: exact `USER#<sub>` partition,
    conditional updates/deletes and the fixed ledger receipt.
-6. `IDENTITY`: after every required receipt and export/final-status prerequisite,
+5. `IDENTITY`: after every required receipt and export/final-status prerequisite,
    call Cognito `AdminDeleteUser` with an explicit username mapping; treat
    `UserNotFoundException` as idempotent only when the deletion command matches;
    write the final receipt without reopening the account. IAM: only
@@ -238,8 +263,9 @@ event-source batch.
 
 ## Protected full-account export contract still required
 
-The existing `GET /v1/users/history/export` is not full-account export. A product
-export API has not been approved or implemented. Its contract must define:
+The existing `GET /v1/users/history/export` is not full-account export. The owner
+approved **export before deletion**, but the product export API is not implemented.
+Its contract must define:
 
 - verified Cognito access token, exact `sub`, active device binding, no client
   subject targeting, recent signed `auth_time`, and private/no-store responses;
@@ -253,18 +279,20 @@ export API has not been approved or implemented. Its contract must define:
   model prompts, tombstone internals and other users' aggregates must be excluded;
 - idempotent retry of the same page, explicit cursor expiry/error behavior,
   invalidation at the deletion fence, and no cross-environment cursor acceptance;
-- what happens when deletion is requested during an export and whether deletion
-  waits for an already accepted export. New data creation must remain fenced;
+- accepting deletion atomically changes every unfinished export for the subject to
+  `CANCELLED_BY_ACCOUNT_DELETION`, invalidates all of its cursors/download
+  capabilities, and prevents retry from recreating export state. Deletion does not
+  wait for an unfinished export. A completed export must be downloaded before the
+  deletion request or it becomes unavailable;
 - a durable `NOT_REQUESTED` / `IN_PROGRESS` / `READY` / `EXPIRED` / `DELETED`
   status model that does not disclose whether another account exists.
 
-The last requirement conflicts with immediate Cognito deletion: after
-`AdminDeleteUser`, the caller cannot authenticate to read status or download a
-remaining page. Product/security must choose and approve either completion of a
-pre-deletion protected export, a narrowly scoped single-use retrieval credential,
-or no post-identity-deletion consumer status. The Lambda implementation must not
-invent that choice. Adding S3 export objects, cursor tables or status-token stores
-would be a new persistent surface and is not authorized by this inventory.
+After `AdminDeleteUser`, the caller cannot authenticate to read status or download
+another page. The approved behavior is no ongoing consumer login, export download
+or deletion-status access after identity removal. Before removal, the existing GET
+status route is best-effort only. Adding S3 export objects, cursor tables or status
+token stores remains a new persistent surface and is not authorized by this
+inventory.
 
 ## Final identity deletion and completion ordering
 
@@ -272,8 +300,9 @@ The safe proposed ordering is:
 
 1. Atomically fence the profile and create the fixed ledger command.
 2. Revoke sessions and reject every writer through both profile and ledger checks.
-3. Finish or explicitly cancel an approved export according to its immutable
-   contract.
+3. Atomically cancel every unfinished export and invalidate its capabilities; only
+   exports completed and downloaded before the deletion request survive at the
+   user's endpoint.
 4. Complete and validate receipts for devices, recovery control, History/analysis,
    campaign contributions/outbox, entitlements/purchases/usage, and profile
    minimization.
@@ -282,8 +311,9 @@ The safe proposed ordering is:
 7. Mark the fixed command complete and retain only the approved deletion tombstone
    and component minima for their exact approved durations.
 
-This is a proposed dependency order, not policy approval. The source currently
-implements steps 1, session revocation, device-binding cleanup, History cleanup and
+This is the accepted export/deletion dependency order, but overall activation is
+not approved. The source currently implements steps 1, session revocation,
+device-binding cleanup, recovery-control cleanup/minimization, History cleanup and
 campaign contribution cleanup only. It deliberately cannot mark overall completion.
 
 ## Evidence required before changing inventory status to approved
@@ -301,10 +331,10 @@ campaign contribution cleanup only. It deliberately cannot mark overall completi
   failure paths.
 - Cognito final deletion/retry evidence and the approved post-deletion status/export
   behavior.
-- Legal/privacy approvals for purchase, recovery, consent, ledger, logs and backup
-  retention. The current 400-day consent, reported 548-day usage, 30/90-day recovery
-  audit, 120-day History tombstone and other durations serve different purposes and
-  are not interchangeable.
+- Remaining product/security decisions for purchase-token anti-replay minimization,
+  legacy locator/backfill, existing entitlement/usage transactions and any local
+  evidence that must survive deletion. No financial retention duration may be
+  invented merely because separate local billing retention is unnecessary.
 
 Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
 `ACCOUNT_DELETION_COMPLETION_STATUS=incomplete`.
@@ -321,6 +351,17 @@ Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
   as an update and only permits matching `sub` profiles in `ACTIVE` or
   `PENDING_AGE_GATE`. It can no longer reactivate `DELETION_REQUESTED` state.
 - Age-attestation exception logs no longer include `sub` or request IDs.
+- `account_data_api` now performs bounded, resumable `DEVICE_RECOVERY` cleanup:
+  rate rows are deleted, recovery receipts and 90-day audits are reduced to exact
+  minimal allowlists without extending their original expiry, unexpected item
+  families fail closed, and a request-bound 120-day component receipt is written.
+- Self-recovery now strongly reads the active profile and fixed deletion fence
+  before returning an idempotent replay, then repeats those authority checks in the
+  write transaction. Pre-issued tokens cannot replay binding details after the
+  deletion fence exists.
+- Account deletion component receipts now carry `retainUntilEpoch` at the approved
+  120-day boundary. This is retention metadata, not DynamoDB TTL; ledger TTL remains
+  disabled and retirement requires backup/replay evidence.
 
 These changes require coordinated least-privilege ledger configuration/IAM for the
 two identity writers before their updated ZIPs are deployed. They do not authorize

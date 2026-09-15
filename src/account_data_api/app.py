@@ -11,6 +11,7 @@ from service import (
     AccountDeletionService,
     command_from_stream,
     delete_device_bindings,
+    delete_device_recovery_control,
     ensure_session_revoked,
     reconcile_session_revocations,
 )
@@ -90,6 +91,20 @@ def _attempt_post_fence_cleanup(account_id):
             ledger_table=ledger,
             page_size=config.ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE,
         )
+        delete_device_recovery_control(
+            command,
+            recovery_table=boto3.resource("dynamodb").Table(
+                config.DEVICE_RECOVERY_CONTROL_TABLE_NAME
+            ),
+            ledger_table=ledger,
+            page_size=config.ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE,
+            receipt_retention_days=config.DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS,
+            audit_retention_days=config.DEVICE_RECOVERY_AUDIT_RETENTION_DAYS,
+            rate_state_ttl_seconds=config.DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS,
+            account_receipt_retention_days=(
+                config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+            ),
+        )
     except Exception:
         # The durable stream consumer retries revocation. The deletion fence is
         # never rolled back because an external identity call failed.
@@ -103,6 +118,9 @@ def _stream_handler(event):
     failures = []
     ledger = boto3.resource("dynamodb").Table(config.DELETION_LEDGER_TABLE_NAME)
     device_table = boto3.resource("dynamodb").Table(config.DEVICE_BINDINGS_TABLE_NAME)
+    recovery_table = boto3.resource("dynamodb").Table(
+        config.DEVICE_RECOVERY_CONTROL_TABLE_NAME
+    )
     cognito = boto3.client("cognito-idp")
     for record in event["Records"]:
         try:
@@ -115,6 +133,20 @@ def _stream_handler(event):
                 delete_device_bindings(
                     command, device_table=device_table, ledger_table=ledger,
                     page_size=config.ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE,
+                )
+                delete_device_recovery_control(
+                    command, recovery_table=recovery_table, ledger_table=ledger,
+                    page_size=config.ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE,
+                    receipt_retention_days=(
+                        config.DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS
+                    ),
+                    audit_retention_days=config.DEVICE_RECOVERY_AUDIT_RETENTION_DAYS,
+                    rate_state_ttl_seconds=(
+                        config.DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS
+                    ),
+                    account_receipt_retention_days=(
+                        config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+                    ),
                 )
         except Exception:
             LOGGER.exception("Account-deletion post-fence stream record failed")
@@ -133,15 +165,20 @@ def _reconciliation_handler():
         config.validate_config()
         ledger = boto3.resource("dynamodb").Table(config.DELETION_LEDGER_TABLE_NAME)
         device_table = boto3.resource("dynamodb").Table(config.DEVICE_BINDINGS_TABLE_NAME)
+        recovery_table = boto3.resource("dynamodb").Table(
+            config.DEVICE_RECOVERY_CONTROL_TABLE_NAME
+        )
         result = reconcile_session_revocations(
             environment=config.APP_ENVIRONMENT,
             ledger_table=ledger,
             device_table=device_table,
+            recovery_table=recovery_table,
             user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"),
             scan_limit=config.ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT,
             max_pages=config.ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES,
             device_page_size=config.ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE,
+            recovery_page_size=config.ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE,
         )
         _reconciliation_metric(result)
         return {"schemaVersion": 1, "operation": "reconcile-session-revocation", **result}
@@ -219,6 +256,9 @@ def _reconciliation_metric(result):
         "SessionRevocationReconciliationAlreadyComplete": result["sessionAlreadyComplete"],
         "AccountDeletionDeviceRecordsDeleted": result["deviceRecordsDeleted"],
         "AccountDeletionDeviceComponentsCompleted": result["deviceComponentsCompleted"],
+        "AccountDeletionRecoveryRecordsDeleted": result["recoveryRecordsDeleted"],
+        "AccountDeletionRecoveryRecordsMinimized": result["recoveryRecordsMinimized"],
+        "AccountDeletionRecoveryComponentsCompleted": result["recoveryComponentsCompleted"],
         "SessionRevocationReconciliationWorksetTruncated": 1 if result["worksetTruncated"] else 0,
         "SessionRevocationReconciliationFullPassCompleted": 1 if result["completedFullPass"] else 0,
     }

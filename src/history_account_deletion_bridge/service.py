@@ -10,6 +10,7 @@ REQUEST_FIELDS = {
     "deleteByEpoch",
 }
 ACCOUNT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$")
+ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
 
 
 def parse_account_deletion_record(record, *, environment, schema_version):
@@ -219,6 +220,10 @@ def _complete_without_history(command, deletion_ledger_table, *, schema_version)
         "occurredAtEpoch": command["occurredAtEpoch"],
         "requestOccurredAtEpoch": command["occurredAtEpoch"],
         "operationId": command["operationId"],
+        "retainUntilEpoch": (
+            command["occurredAtEpoch"]
+            + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
+        ),
     }
     try:
         deletion_ledger_table.put_item(
@@ -228,6 +233,14 @@ def _complete_without_history(command, deletion_ledger_table, *, schema_version)
         created = True
     except Exception as err:
         if _error_code(err) != "ConditionalCheckFailedException":
+            raise
+        existing = deletion_ledger_table.get_item(
+            Key={"PK": receipt["PK"], "SK": receipt["SK"]},
+            ConsistentRead=True,
+        ).get("Item")
+        if not existing or set(existing) != set(receipt) or any(
+            existing.get(field) != value for field, value in receipt.items()
+        ):
             raise
         created = False
     return {"started": False, "alreadyPending": False, "completed": True, "receiptCreated": created}

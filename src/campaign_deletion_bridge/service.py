@@ -8,6 +8,7 @@ from uuid import UUID
 TOKEN_DOMAIN = b"campaign-contributor:v1\0"
 PERIOD_SECONDS = 14 * 86400
 RECOVERY_SECONDS = 7 * 86400
+ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
 
 
 def parse_deletion_record(record, *, environment, schema_version):
@@ -205,6 +206,11 @@ def complete_account_deletion_component(command, *, deletion_ledger_table_name, 
         "operationId": {"S": command["operationId"]},
         "occurredAtEpoch": {"N": str(now_epoch)},
         "requestOccurredAtEpoch": {"N": str(command["occurredAtEpoch"])},
+        "retainUntilEpoch": {
+            "N": str(
+                now_epoch + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
+            )
+        },
     }
     try:
         dynamodb.put_item(
@@ -224,11 +230,21 @@ def complete_account_deletion_component(command, *, deletion_ledger_table_name, 
             raise
         value = deserialize(existing)
         if (
-            value.get("eventType") != "account.deletion.component.completed"
+            set(value) != {
+                "PK", "SK", "schemaVersion", "recordVersion", "environment",
+                "eventType", "component", "status", "operationId",
+                "occurredAtEpoch", "requestOccurredAtEpoch", "retainUntilEpoch",
+            }
+            or value.get("eventType") != "account.deletion.component.completed"
             or value.get("component") != "CAMPAIGN"
             or value.get("status") != "COMPLETE"
             or value.get("operationId") != command["operationId"]
             or value.get("requestOccurredAtEpoch") != command["occurredAtEpoch"]
+            or isinstance(value.get("occurredAtEpoch"), bool)
+            or not isinstance(value.get("occurredAtEpoch"), int)
+            or value.get("retainUntilEpoch")
+            != value.get("occurredAtEpoch")
+            + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
         ):
             raise
         return False

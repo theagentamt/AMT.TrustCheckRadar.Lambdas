@@ -425,7 +425,7 @@ can be aligned without weakening the privacy boundary.
 | `COGNITO_ISSUER` / `COGNITO_APP_CLIENT_ID` | Consumer route | Cognito values | Consumer token cannot be bound |
 | `DEVICE_SELF_RECOVERY_ENABLED` | Yes | `false` | Consumer route remains disabled by default |
 | `DEVICE_RECOVERY_POLICY_STATUS` | Yes | `pending` | Must remain pending until approved |
-| `DEVICE_RECOVERY_AUDIT_RETENTION_DAYS` | Consumer route | `30` or `90` | Any other value fails closed |
+| `DEVICE_RECOVERY_AUDIT_RETENTION_DAYS` | Consumer route | `90` | Any other value fails closed under the approved Dev policy |
 | `DEVICE_RECOVERY_ALLOWED_PRINCIPAL_ARNS_JSON` | Operator route | JSON ARN array | AWS_IAM operator route fails closed |
 | `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
 
@@ -461,7 +461,14 @@ can be aligned without weakening the privacy boundary.
 - Operator recovery requires an exact allowlisted IAM `userArn`.
 - Consumer recovery requires a recent, verified token and exact UUIDv4 request.
 - All writes are atomic with pointer, profile, and deletion-fence conditions.
+- Consumer replay performs strongly consistent profile/fixed-fence reads before
+  returning an existing recovery receipt; a pre-issued token cannot replay device
+  details after account deletion begins. The write transaction repeats both checks
+  to close the read/write race.
 - The consumer route stays disabled until the five compatible artifacts are pinned to one release.
+- Dev recovery records use distinct approved bounds: retry receipts seven days,
+  rate state 24 hours, security audit 90 days, and table PITR seven days once the
+  currently absent recovery-control table is provisioned.
 
 ### Compatibility aliases
 
@@ -478,7 +485,8 @@ can be aligned without weakening the privacy boundary.
 - Disabled HTTP routes: `POST /v1/users/account-deletion` and
   `GET /v1/users/account-deletion`.
 - Optional retry sources: deletion-ledger DynamoDB stream with
-  `ReportBatchItemFailures` for session revocation and bounded device cleanup,
+  `ReportBatchItemFailures` for session revocation, bounded device cleanup and
+  bounded device-recovery control cleanup/minimization,
   plus the exact scheduled input
   `{"schemaVersion":1,"operation":"reconcile-session-revocation"}`.
   Failed item identifiers are DynamoDB sequence numbers; configuration and
@@ -493,7 +501,9 @@ can be aligned without weakening the privacy boundary.
 - The fence contains exact schema/record/environment/event/account/operation,
   `status=REQUESTED`, `occurredAtEpoch`, and the 24-hour `deleteByEpoch`.
 - Component receipts use `ACCOUNT_DELETION#<COMPONENT>` and are counted only
-  when their operation ID and request timestamp match the fence.
+  when their operation ID, request timestamp and exact 120-day
+  `retainUntilEpoch` match the fence/completion contract. The ledger TTL remains
+  disabled; this field is controlled-retirement metadata only.
 - Cognito session revocation occurs only after the durable fence exists.
   Direct failure never rolls the fence back; stream and bounded scheduled
   reconciliation retry it beyond stream retention.
@@ -507,7 +517,7 @@ can be aligned without weakening the privacy boundary.
 Required environment:
 
 - `APP_ENVIRONMENT`, `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`,
-  `DEVICE_BINDINGS_TABLE_NAME`
+  `DEVICE_BINDINGS_TABLE_NAME`, `DEVICE_RECOVERY_CONTROL_TABLE_NAME`
 - `COGNITO_ISSUER`, `COGNITO_APP_CLIENT_ID`, `COGNITO_USER_POOL_ID`
 - `ACCOUNT_DELETION_ENABLED=false` by default
 - `ACCOUNT_DELETION_POLICY_STATUS=pending` by default
@@ -515,9 +525,12 @@ Required environment:
 - `ACCOUNT_DELETION_COMPLETION_STATUS=incomplete` by default
 - `COGNITO_USERNAME_IS_SUB=false` by default
 - `ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON`; once approved it must include
-  at least `SESSION_REVOCATION`, `DEVICE_BINDINGS`, `HISTORY`, and `CAMPAIGN`
+  at least `SESSION_REVOCATION`, `DEVICE_BINDINGS`, `DEVICE_RECOVERY`, `HISTORY`,
+  and `CAMPAIGN`
 - exact policy constants: reauthentication 300 seconds, deletion SLA 24 hours,
-  and device deletion page size 100; reconciliation defaults 100 items and ten pages
+  device/recovery deletion page sizes 100, recovery receipt 7 days, recovery audit
+  90 days, recovery rate state 86400 seconds, and account component receipt 120
+  days; reconciliation defaults 100 items and ten pages
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -529,6 +542,9 @@ IAM:
 - deletion ledger `dynamodb:GetItem`, `dynamodb:PutItem`, and `dynamodb:Scan`
 - deletion ledger `dynamodb:DeleteItem` for device-progress cleanup
 - device bindings table `dynamodb:Query` and `dynamodb:DeleteItem`
+- device recovery control table `dynamodb:Query`, `dynamodb:PutItem`, and
+  `dynamodb:DeleteItem`, scoped to `USER#*`; `PutItem` replaces a source row with
+  its exact minimal allowlist under operation/expiry conditions
 - `cognito-idp:AdminUserGlobalSignOut` on the configured user pool
 - standard deletion-ledger stream read actions on the event-source role
 
@@ -538,8 +554,9 @@ partition keys only; the application enforces exact sort-key families.
 
 Metrics use `AMT/TrustCheckRadar/AccountData`. HTTP/stream counters have bounded
 Environment/Operation dimensions. Reconciliation reports success, scanned,
-matched, revoked, already-complete, device records deleted, completed device
-components, truncation, full-pass completion, and full-pass age; unknown
+matched, revoked, already-complete, device and recovery records deleted, recovery
+records minimized, completed device/recovery components, truncation, full-pass
+completion, and full-pass age; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 

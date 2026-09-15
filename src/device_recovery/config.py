@@ -63,6 +63,6 @@ def validate_self_recovery_config():
         or DEVICE_RECOVERY_RATE_MAX_REQUESTS != 3
         or DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS != 86400
         or DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS != 7
-        or DEVICE_RECOVERY_AUDIT_RETENTION_DAYS not in {30, 90}
+        or DEVICE_RECOVERY_AUDIT_RETENTION_DAYS != 90
     ):
         raise AppError("SERVER_UNAVAILABLE", "The self-service recovery policy is not approved.")

@@ -127,7 +127,10 @@ account deletion is the fixed deletion-ledger item
 bridge atomically changes History state to `DELETING` and creates a resumable job
 covering generations zero through the captured maximum. Lifecycle completion
 sets `DELETED` and writes `ACCOUNT_DELETION#HISTORY` as the component receipt;
-it never marks the overall account-deletion command complete.
+it never marks the overall account-deletion command complete. The minimal receipt
+is bound to the source operation/request timestamp and carries
+`retainUntilEpoch=occurredAtEpoch+120 days`. Ledger TTL remains disabled; receipt
+retirement requires the separately verified backup/replay contract.
 
 The only lifecycle invocation shape is:
 

@@ -6,6 +6,9 @@ import time
 from shared_history.errors import HistoryError
 
 
+ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
+
+
 class HistoryLifecycleService:
     def __init__(
         self, *, settings, content_table, control_table, abuse_table,
@@ -615,6 +618,9 @@ class HistoryLifecycleService:
             "component": "HISTORY", "status": "COMPLETE",
             "occurredAtEpoch": now, "requestOccurredAtEpoch": requested_at,
             "operationId": operation_id,
+            "retainUntilEpoch": (
+                now + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
+            ),
         }
         try:
             self.deletion_ledger_table.put_item(
@@ -628,10 +634,8 @@ class HistoryLifecycleService:
                 Key={"PK": ledger_pk, "SK": receipt["SK"]}, ConsistentRead=True
             ).get("Item")
             if (
-                not existing or existing.get("eventType") != receipt["eventType"]
-                or existing.get("component") != "HISTORY"
-                or existing.get("requestOccurredAtEpoch") != requested_at
-                or existing.get("operationId") != operation_id
+                not existing or set(existing) != set(receipt)
+                or any(existing.get(field) != value for field, value in receipt.items())
             ):
                 raise
 

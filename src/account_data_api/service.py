@@ -12,8 +12,13 @@ COMMAND_FIELDS = {
 RECEIPT_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "environment", "eventType",
     "component", "status", "operationId", "occurredAtEpoch", "requestOccurredAtEpoch",
+    "retainUntilEpoch",
 }
 ACCOUNT_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$")
+ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
+DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS = 7
+DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = 90
+DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS = 24 * 3600
 
 
 class AccountDeletionService:
@@ -238,9 +243,130 @@ def delete_device_bindings(
     return {"deleted": deleted, "complete": True, "alreadyComplete": False}
 
 
+def delete_device_recovery_control(
+    command, *, recovery_table, ledger_table, page_size=100,
+    receipt_retention_days=DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS,
+    audit_retention_days=DEVICE_RECOVERY_AUDIT_RETENTION_DAYS,
+    rate_state_ttl_seconds=DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS,
+    account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
+    now_epoch=None,
+):
+    """Delete rate state and minimize bounded recovery evidence for one account."""
+    command = validate_command(command, command["environment"])
+    if (
+        page_size != 100
+        or receipt_retention_days != 7
+        or audit_retention_days != 90
+        or rate_state_ttl_seconds != 24 * 3600
+        or account_receipt_retention_days != 120
+    ):
+        raise ValueError("Invalid device-recovery deletion policy")
+    receipt_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#DEVICE_RECOVERY",
+    }
+    progress_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#DEVICE_RECOVERY_PROGRESS",
+    }
+    existing = ledger_table.get_item(
+        Key=receipt_key, ConsistentRead=True
+    ).get("Item")
+    if _valid_component_receipt(existing, command, "DEVICE_RECOVERY"):
+        ledger_table.delete_item(Key=progress_key)
+        return {
+            "deleted": 0, "minimized": 0, "complete": True,
+            "alreadyComplete": True,
+        }
+    progress = ledger_table.get_item(
+        Key=progress_key, ConsistentRead=True
+    ).get("Item")
+    start_key = _progress_start_key(progress, command, "Device-recovery deletion")
+    kwargs = {
+        "KeyConditionExpression": "PK = :pk",
+        "ExpressionAttributeValues": {":pk": f"USER#{command['accountId']}"},
+        "ConsistentRead": True,
+        "Limit": page_size,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+    page = recovery_table.query(**kwargs)
+    now = int(time.time()) if now_epoch is None else now_epoch
+    deleted = 0
+    minimized = 0
+    for item in page.get("Items") or []:
+        _validate_recovery_control_key(item, command["accountId"])
+        sort_key = item["SK"]
+        if sort_key.startswith("RATE#"):
+            _validate_rate_state(item, rate_state_ttl_seconds)
+            recovery_table.delete_item(Key={"PK": item["PK"], "SK": sort_key})
+            deleted += 1
+            continue
+        if sort_key.startswith("RECOVERY#"):
+            minimal = _minimal_recovery_receipt(item, receipt_retention_days)
+        elif sort_key.startswith("AUDIT#"):
+            minimal = _minimal_recovery_audit(item, audit_retention_days)
+        else:
+            raise ValueError("Unknown device-recovery control item family")
+        if int(minimal["expiresAt"]) <= now:
+            recovery_table.delete_item(Key={"PK": item["PK"], "SK": sort_key})
+            deleted += 1
+        else:
+            recovery_table.put_item(
+                Item=minimal,
+                ConditionExpression=(
+                    "operationId = :operation_id AND expiresAt = :expires_at"
+                ),
+                ExpressionAttributeValues={
+                    ":operation_id": minimal["operationId"],
+                    ":expires_at": minimal["expiresAt"],
+                },
+            )
+            minimized += 1
+    continuation = page.get("LastEvaluatedKey")
+    if continuation:
+        if not _valid_key(continuation):
+            raise ValueError("Invalid device-recovery deletion continuation")
+        ledger_table.put_item(Item={
+            **progress_key,
+            "recordType": "ACCOUNT_DELETION_DEVICE_RECOVERY_PROGRESS",
+            "schemaVersion": 1,
+            "operationId": command["operationId"],
+            "requestOccurredAtEpoch": command["occurredAtEpoch"],
+            "lastEvaluatedKey": dict(continuation),
+            "updatedAtEpoch": now,
+        })
+        return {
+            "deleted": deleted, "minimized": minimized, "complete": False,
+            "alreadyComplete": False,
+        }
+    receipt = _component_receipt(
+        command, "DEVICE_RECOVERY", now,
+        retention_days=account_receipt_retention_days,
+    )
+    try:
+        ledger_table.put_item(
+            Item=receipt,
+            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        )
+    except Exception as err:
+        if _error_code(err) != "ConditionalCheckFailedException":
+            raise
+        existing = ledger_table.get_item(
+            Key=receipt_key, ConsistentRead=True
+        ).get("Item")
+        if not _valid_component_receipt(existing, command, "DEVICE_RECOVERY"):
+            raise
+    if progress:
+        ledger_table.delete_item(Key=progress_key)
+    return {
+        "deleted": deleted, "minimized": minimized, "complete": True,
+        "alreadyComplete": False,
+    }
+
+
 def reconcile_session_revocations(
-    *, environment, ledger_table, device_table, user_pool_id, cognito,
+    *, environment, ledger_table, device_table, recovery_table, user_pool_id, cognito,
     scan_limit, max_pages, device_page_size=100,
+    recovery_page_size=100,
     now=lambda: int(time.time()),
 ):
     checkpoint_key = {
@@ -258,6 +384,8 @@ def reconcile_session_revocations(
         "scanned": 0, "matched": 0, "revoked": 0,
         "sessionAlreadyComplete": 0, "deviceRecordsDeleted": 0,
         "deviceComponentsCompleted": 0,
+        "recoveryRecordsDeleted": 0, "recoveryRecordsMinimized": 0,
+        "recoveryComponentsCompleted": 0,
     }
     truncated = False
     for page_number in range(max_pages):
@@ -299,6 +427,13 @@ def reconcile_session_revocations(
             )
             totals["deviceRecordsDeleted"] += device_result["deleted"]
             totals["deviceComponentsCompleted"] += 1 if device_result["complete"] else 0
+            recovery_result = delete_device_recovery_control(
+                command, recovery_table=recovery_table, ledger_table=ledger_table,
+                page_size=recovery_page_size, now_epoch=now(),
+            )
+            totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
+            totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
+            totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
         if not start_key:
@@ -357,7 +492,12 @@ def validate_command(item, environment):
     return item
 
 
-def _component_receipt(command, component, completed_at):
+def _component_receipt(
+    command, component, completed_at,
+    *, retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
+):
+    if retention_days != 120:
+        raise ValueError("Invalid account-deletion receipt retention")
     return {
         "PK": command["PK"], "SK": f"ACCOUNT_DELETION#{component}",
         "schemaVersion": 1, "recordVersion": 1,
@@ -367,6 +507,7 @@ def _component_receipt(command, component, completed_at):
         "operationId": command["operationId"],
         "occurredAtEpoch": completed_at,
         "requestOccurredAtEpoch": command["occurredAtEpoch"],
+        "retainUntilEpoch": completed_at + retention_days * 86400,
     }
 
 
@@ -385,7 +526,96 @@ def _valid_component_receipt(item, command, component):
         and item.get("operationId") == command["operationId"]
         and _exact_int(item.get("requestOccurredAtEpoch")) == command["occurredAtEpoch"]
         and _exact_int(item.get("occurredAtEpoch")) is not None
+        and _exact_int(item.get("retainUntilEpoch"))
+        == _exact_int(item.get("occurredAtEpoch"))
+        + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
     )
+
+
+def _progress_start_key(progress, command, label):
+    if not progress:
+        return None
+    if (
+        progress.get("operationId") != command["operationId"]
+        or progress.get("requestOccurredAtEpoch") != command["occurredAtEpoch"]
+    ):
+        raise ValueError(f"{label} progress belongs to another request")
+    start_key = progress.get("lastEvaluatedKey")
+    if start_key is not None and not _valid_key(start_key):
+        raise ValueError(f"Invalid {label.lower()} continuation")
+    return start_key
+
+
+def _validate_recovery_control_key(item, account_id):
+    if (
+        not isinstance(item, dict)
+        or item.get("PK") != f"USER#{account_id}"
+        or not isinstance(item.get("SK"), str)
+        or not item["SK"]
+    ):
+        raise ValueError("Device-recovery query returned an invalid key")
+
+
+def _minimal_recovery_receipt(item, retention_days):
+    completed = _exact_int(item.get("completedAtEpoch"))
+    expires = _exact_int(item.get("expiresAt"))
+    operation_id = item.get("operationId")
+    if (
+        item.get("recordType") != "DEVICE_RECOVERY_RECEIPT"
+        or item.get("schemaVersion") != 1
+        or not _is_uuid4(operation_id)
+        or item.get("operation") != "REPLACE_ACTIVE_BINDING"
+        or item.get("result") != "RECOVERED"
+        or item.get("status") != "COMPLETE"
+        or completed is None or expires is None
+        or expires <= completed or expires > completed + retention_days * 86400
+    ):
+        raise ValueError("Invalid device-recovery receipt")
+    return {
+        "PK": item["PK"], "SK": item["SK"],
+        "recordType": "DEVICE_RECOVERY_RECEIPT", "schemaVersion": 1,
+        "operationId": operation_id, "operation": "REPLACE_ACTIVE_BINDING",
+        "result": "RECOVERED", "status": "COMPLETE",
+        "completedAtEpoch": completed, "expiresAt": expires,
+    }
+
+
+def _minimal_recovery_audit(item, retention_days):
+    occurred = _exact_int(item.get("occurredAtEpoch"))
+    expires = _exact_int(item.get("expiresAt"))
+    operation_id = item.get("operationId")
+    if (
+        item.get("recordType") != "DEVICE_RECOVERY_AUDIT"
+        or item.get("schemaVersion") != 1
+        or not _is_uuid4(operation_id)
+        or item.get("actorType") != "SELF"
+        or item.get("action") != "REPLACE_ACTIVE_BINDING"
+        or item.get("result") != "RECOVERED"
+        or occurred is None or expires is None
+        or expires <= occurred or expires > occurred + retention_days * 86400
+    ):
+        raise ValueError("Invalid device-recovery audit")
+    return {
+        "PK": item["PK"], "SK": item["SK"],
+        "recordType": "DEVICE_RECOVERY_AUDIT", "schemaVersion": 1,
+        "operationId": operation_id, "actorType": "SELF",
+        "action": "REPLACE_ACTIVE_BINDING", "result": "RECOVERED",
+        "occurredAtEpoch": occurred, "expiresAt": expires,
+    }
+
+
+def _validate_rate_state(item, retention_seconds):
+    try:
+        window = int(item["SK"].removeprefix("RATE#"))
+    except (TypeError, ValueError) as err:
+        raise ValueError("Invalid device-recovery rate state") from err
+    expires = _exact_int(item.get("expiresAt"))
+    count = _exact_int(item.get("requestCount"))
+    if (
+        window < 0 or expires is None or count is None
+        or expires <= window or expires > window + retention_seconds * 2
+    ):
+        raise ValueError("Invalid device-recovery rate state")
 
 
 def _save_reconciliation_checkpoint(

@@ -9,6 +9,9 @@ APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "")
 USERS_TABLE_NAME = os.environ.get("USERS_TABLE_NAME", "")
 DELETION_LEDGER_TABLE_NAME = os.environ.get("DELETION_LEDGER_TABLE_NAME", "")
 DEVICE_BINDINGS_TABLE_NAME = os.environ.get("DEVICE_BINDINGS_TABLE_NAME", "")
+DEVICE_RECOVERY_CONTROL_TABLE_NAME = os.environ.get(
+    "DEVICE_RECOVERY_CONTROL_TABLE_NAME", ""
+)
 COGNITO_ISSUER = os.environ.get("COGNITO_ISSUER", "")
 COGNITO_APP_CLIENT_ID = os.environ.get("COGNITO_APP_CLIENT_ID", "")
 COGNITO_REQUIRED_SCOPE = os.environ.get(
@@ -45,6 +48,21 @@ ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES = int(
 ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE = int(
     os.environ.get("ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE", "100")
 )
+ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE = int(
+    os.environ.get("ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE", "100")
+)
+DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS = int(
+    os.environ.get("DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS", "7")
+)
+DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = int(
+    os.environ.get("DEVICE_RECOVERY_AUDIT_RETENTION_DAYS", "90")
+)
+DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS = int(
+    os.environ.get("DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS", "86400")
+)
+ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = int(
+    os.environ.get("ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS", "120")
+)
 
 COMPONENT_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 
@@ -59,6 +77,7 @@ def validate_config():
         or not USERS_TABLE_NAME
         or not DELETION_LEDGER_TABLE_NAME
         or not DEVICE_BINDINGS_TABLE_NAME
+        or not DEVICE_RECOVERY_CONTROL_TABLE_NAME
         or not COGNITO_ISSUER.startswith("https://cognito-idp.")
         or not COGNITO_APP_CLIENT_ID
         or not COGNITO_USER_POOL_ID
@@ -75,6 +94,11 @@ def validate_config():
         or not 1 <= ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT <= 100
         or not 1 <= ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES <= 10
         or ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE != 100
+        or ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE != 100
+        or DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS != 7
+        or DEVICE_RECOVERY_AUDIT_RETENTION_DAYS != 90
+        or DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS != 86400
+        or ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS != 120
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-deletion policy is not approved.")
     required_components()
@@ -90,7 +114,10 @@ def required_components():
         or not 1 <= len(values) <= 16
         or len(set(values)) != len(values)
         or any(not isinstance(value, str) or not COMPONENT_PATTERN.fullmatch(value) for value in values)
-        or not {"SESSION_REVOCATION", "DEVICE_BINDINGS", "HISTORY", "CAMPAIGN"}.issubset(values)
+        or not {
+            "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY",
+            "HISTORY", "CAMPAIGN",
+        }.issubset(values)
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is invalid.")
     return tuple(values)

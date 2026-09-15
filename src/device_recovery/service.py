@@ -15,6 +15,13 @@ control_table = (
     dynamodb.Table(config.DEVICE_RECOVERY_CONTROL_TABLE_NAME)
     if config.DEVICE_RECOVERY_CONTROL_TABLE_NAME else None
 )
+users_table = (
+    dynamodb.Table(config.USERS_TABLE_NAME) if config.USERS_TABLE_NAME else None
+)
+deletion_ledger_table = (
+    dynamodb.Table(config.DELETION_LEDGER_TABLE_NAME)
+    if config.DELETION_LEDGER_TABLE_NAME else None
+)
 dynamodb_client = boto3.client("dynamodb")
 
 
@@ -44,6 +51,7 @@ def process_self_recovery(*, account_id: str, payload: dict, now_epoch=None) -> 
     _require_table()
     if control_table is None:
         raise AppError("SERVER_UNAVAILABLE", "The recovery control table is not configured.")
+    _assert_recovery_authority_active(account_id)
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     operation_id = payload["operationId"]
     payload_hash = hashlib.sha256(
@@ -424,6 +432,27 @@ def _recovery_authority_checks(account_id):
             "ConditionExpression": "attribute_not_exists(PK)",
         }},
     ]
+
+
+def _assert_recovery_authority_active(account_id):
+    if users_table is None or deletion_ledger_table is None:
+        raise AppError("SERVER_UNAVAILABLE", "The account authority is unavailable.")
+    profile = users_table.get_item(
+        Key={"PK": f"USER#{account_id}", "SK": "PROFILE"},
+        ConsistentRead=True,
+    ).get("Item")
+    deletion = deletion_ledger_table.get_item(
+        Key={"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"},
+        ConsistentRead=True,
+    ).get("Item")
+    if (
+        not profile
+        or profile.get("sub") != account_id
+        or profile.get("status") != "ACTIVE"
+        or profile.get("ageVerified") is not True
+        or deletion is not None
+    ):
+        raise AppError("FORBIDDEN", "The account is not eligible for device recovery.")
 
 
 def _rate_key(account_id, now_epoch):

@@ -114,12 +114,18 @@ class DeviceRecoveryServiceTests(unittest.TestCase):
         fake_client.cancel_next = False
         service.table = fake_table
         service.control_table = fake_table
+        service.users_table = fake_table
+        service.deletion_ledger_table = fake_table
         service.dynamodb_client = fake_client
         service.config.DEVICE_BINDINGS_TABLE_NAME = "device-bindings"
         service.config.DEVICE_RECOVERY_CONTROL_TABLE_NAME = "recovery-control"
         service.config.USERS_TABLE_NAME = "users"
         service.config.DELETION_LEDGER_TABLE_NAME = "deletion-ledger"
-        service.config.DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = 30
+        service.config.DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = 90
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "PROFILE", "sub": "user-123",
+            "status": "ACTIVE", "ageVerified": True,
+        })
 
     def test_reset_active_binding_clears_current_active(self):
         fake_table.put_item(
@@ -293,6 +299,14 @@ class DeviceRecoveryServiceTests(unittest.TestCase):
         transaction = fake_client.transactions[-1]
         self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
         self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "deletion-ledger")
+        self.assertEqual(
+            _deserialize(transaction[1]["ConditionCheck"]["Key"]),
+            {"PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION"},
+        )
+        self.assertEqual(
+            transaction[1]["ConditionCheck"]["ConditionExpression"],
+            "attribute_not_exists(PK)",
+        )
         self.assertIn(
             ("USER#user-123", "RECOVERY#3fefbf1a-caf4-4e72-ab61-4fb36bf925b4"),
             fake_table.items,
@@ -329,6 +343,32 @@ class DeviceRecoveryServiceTests(unittest.TestCase):
             )
 
         self.assertEqual(context.exception.code, "IDEMPOTENCY_CONFLICT")
+
+    def test_deletion_fence_blocks_late_replay_before_receipt_read_can_succeed(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-new",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=1_800_000_000
+        )
+        transaction_count = len(fake_client.transactions)
+        fake_table.put_item({
+            "PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION",
+            "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+        })
+
+        with self.assertRaises(service.AppError) as context:
+            service.process_self_recovery(
+                account_id="user-123", payload=payload, now_epoch=1_800_000_001
+            )
+
+        self.assertEqual(context.exception.code, "FORBIDDEN")
+        self.assertEqual(len(fake_client.transactions), transaction_count)
 
 
 if __name__ == "__main__":

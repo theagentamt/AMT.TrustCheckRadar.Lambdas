@@ -62,6 +62,22 @@ class DeviceTable:
         self.deletes.append(Key)
 
 
+class RecoveryTable(Table):
+    def __init__(self, pages, items=None):
+        super().__init__(items)
+        self.pages = list(pages)
+        self.queries = []
+        self.deletes = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return self.pages.pop(0)
+
+    def delete_item(self, Key):
+        self.deletes.append(Key)
+        super().delete_item(Key)
+
+
 def _deserialize(item):
     result = {}
     for key, value in item.items():
@@ -150,6 +166,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "component": "HISTORY", "status": "COMPLETE",
             "operationId": command()["operationId"],
             "occurredAtEpoch": 110, "requestOccurredAtEpoch": 100,
+            "retainUntilEpoch": 110 + 120 * 86400,
         }
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION#CAMPAIGN")] = {
             "PK": "ACCOUNT#account-1", "SK": "ACCOUNT_DELETION#CAMPAIGN",
@@ -158,6 +175,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "component": "CAMPAIGN", "status": "COMPLETE",
             "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
             "occurredAtEpoch": 111, "requestOccurredAtEpoch": 100,
+            "retainUntilEpoch": 111 + 120 * 86400,
         }
 
         result = self.subject.status("account-1")
@@ -211,6 +229,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
     def test_bounded_reconciliation_recovers_session_revocation_after_stream_window(self):
         ledger = ScanTable([{"Items": [command()], "ScannedCount": 1}])
         devices = DeviceTable([{"Items": []}])
+        recovery = RecoveryTable([{"Items": []}])
 
         class Cognito:
             def __init__(self):
@@ -221,6 +240,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         cognito = Cognito()
         result = service.reconcile_session_revocations(
             environment="dev", ledger_table=ledger, device_table=devices,
+            recovery_table=recovery,
             user_pool_id="pool",
             cognito=cognito, scan_limit=100, max_pages=1, now=lambda: 200,
         )
@@ -269,6 +289,97 @@ class AccountDeletionServiceTests(unittest.TestCase):
         )
         receipt = ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION#DEVICE_BINDINGS")]
         self.assertEqual(receipt["operationId"], command()["operationId"])
+        self.assertEqual(receipt["retainUntilEpoch"], 201 + 120 * 86400)
+
+    def test_recovery_cleanup_is_bounded_minimizes_security_evidence_and_receipts(self):
+        operation_id = command()["operationId"]
+        receipt_key = ("USER#account-1", f"RECOVERY#{operation_id}")
+        audit_key = ("USER#account-1", f"AUDIT#0000000200#{operation_id}")
+        rate_key = ("USER#account-1", "RATE#0")
+        receipt = {
+            "PK": receipt_key[0], "SK": receipt_key[1],
+            "recordType": "DEVICE_RECOVERY_RECEIPT", "schemaVersion": 1,
+            "operationId": operation_id, "operation": "REPLACE_ACTIVE_BINDING",
+            "payloadHash": "a" * 64, "result": "RECOVERED", "status": "COMPLETE",
+            "bindingFingerprint": "sensitive-fingerprint", "completedAtEpoch": 100,
+            "expiresAt": 100 + 7 * 86400,
+        }
+        audit = {
+            "PK": audit_key[0], "SK": audit_key[1],
+            "recordType": "DEVICE_RECOVERY_AUDIT", "schemaVersion": 1,
+            "operationId": operation_id, "actorType": "SELF",
+            "action": "REPLACE_ACTIVE_BINDING", "result": "RECOVERED",
+            "bindingFingerprint": "sensitive-fingerprint", "occurredAtEpoch": 200,
+            "expiresAt": 200 + 90 * 86400,
+        }
+        rate = {
+            "PK": rate_key[0], "SK": rate_key[1],
+            "requestCount": 1, "expiresAt": 24 * 3600,
+        }
+        continuation = {"PK": receipt["PK"], "SK": receipt["SK"]}
+        recovery = RecoveryTable(
+            [
+                {"Items": [receipt, rate], "LastEvaluatedKey": continuation},
+                {"Items": [audit]},
+            ],
+            {receipt_key: receipt, audit_key: audit, rate_key: rate},
+        )
+        ledger = Table()
+
+        first = service.delete_device_recovery_control(
+            command(), recovery_table=recovery, ledger_table=ledger,
+            page_size=100, now_epoch=300,
+        )
+        second = service.delete_device_recovery_control(
+            command(), recovery_table=recovery, ledger_table=ledger,
+            page_size=100, now_epoch=301,
+        )
+
+        self.assertEqual(
+            first,
+            {"deleted": 1, "minimized": 1, "complete": False,
+             "alreadyComplete": False},
+        )
+        self.assertEqual(
+            second,
+            {"deleted": 0, "minimized": 1, "complete": True,
+             "alreadyComplete": False},
+        )
+        self.assertEqual(recovery.queries[1]["ExclusiveStartKey"], continuation)
+        self.assertNotIn(rate_key, recovery.items)
+        self.assertNotIn("payloadHash", recovery.items[receipt_key])
+        self.assertNotIn("bindingFingerprint", recovery.items[receipt_key])
+        self.assertNotIn("bindingFingerprint", recovery.items[audit_key])
+        component = ledger.items[(
+            "ACCOUNT#account-1", "ACCOUNT_DELETION#DEVICE_RECOVERY"
+        )]
+        self.assertEqual(component["operationId"], operation_id)
+        self.assertEqual(component["requestOccurredAtEpoch"], 100)
+        self.assertEqual(component["retainUntilEpoch"], 301 + 120 * 86400)
+
+        replay = service.delete_device_recovery_control(
+            command(), recovery_table=recovery, ledger_table=ledger,
+            page_size=100, now_epoch=302,
+        )
+        self.assertTrue(replay["alreadyComplete"])
+        self.assertEqual(len(recovery.queries), 2)
+
+    def test_recovery_cleanup_rejects_unknown_family_without_receipt(self):
+        recovery = RecoveryTable([{"Items": [{
+            "PK": "USER#account-1", "SK": "UNKNOWN#late-write",
+        }]}])
+        ledger = Table()
+
+        with self.assertRaisesRegex(ValueError, "Unknown device-recovery"):
+            service.delete_device_recovery_control(
+                command(), recovery_table=recovery, ledger_table=ledger,
+                page_size=100, now_epoch=300,
+            )
+
+        self.assertNotIn(
+            ("ACCOUNT#account-1", "ACCOUNT_DELETION#DEVICE_RECOVERY"),
+            ledger.items,
+        )
 
 
 if __name__ == "__main__":

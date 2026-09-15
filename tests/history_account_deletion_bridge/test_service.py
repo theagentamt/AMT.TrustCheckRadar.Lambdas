@@ -105,6 +105,10 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         )
         self.assertTrue(result["completed"])
         self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
+        self.assertEqual(
+            ledger.puts[0]["retainUntilEpoch"],
+            command()["occurredAtEpoch"] + 120 * 86400,
+        )
         self.assertEqual(ledger.puts[0]["component"], "HISTORY")
         self.assertEqual(
             ledger.puts[0]["operationId"],

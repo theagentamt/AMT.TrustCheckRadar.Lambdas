@@ -7,6 +7,13 @@ export, identity-finalization, retention, IAM, queue and backup gaps are recorde
 in `docs/account-data-inventory.md`. Inventory status remains `pending`; the
 document does not approve any retention or activation decision.
 
+Owner decisions dated 2026-09-14 now approve the Dev device-recovery split of
+90-day minimal audit, seven-day replay receipt, 24-hour rate state and seven-day
+PITR when provisioned, plus 120-day minimal account-deletion receipts. The
+`DEVICE_RECOVERY` cleanup component implements bounded deletion/minimization and
+late-writer fencing in source. Overall deletion remains gated by every other
+inventory component and verified backup/replay coverage.
+
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 
 - Current-period `HMAC_256` key creation with the required project,

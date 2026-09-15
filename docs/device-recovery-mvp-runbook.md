@@ -157,7 +157,8 @@ python3 scripts/device_binding_recovery.py \
   transaction as pointer and device changes.
 - Consumer recovery remains disabled while
   `DEVICE_SELF_RECOVERY_ENABLED=false`, policy status is `pending`, or audit
-  retention is not exactly 30 or 90 days.
+  retention is not exactly the approved Dev value of 90 days. Retry receipts stay
+  seven days and rate state stays 24 hours; these durations are distinct.
 - Activation requires one immutable release of `device_recovery`,
   `device_registration`, `history_read_api`, `history_mutation_api`, and
   `conversation_analysis`, because all readers must enforce the pointer.
