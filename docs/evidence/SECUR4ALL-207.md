@@ -54,10 +54,13 @@ Retention evidence and approved decision:
   plus 900 seconds, or deleted when that boundary has passed.
 - Local `ANALYSIS#CONSUMPTION#<sha256(sub)>` rows are fully erased after the
   explicit activation gate is approved; no consumption tombstone survives.
-- The authorized Dev inventory is read-only and aggregate-only by family, status,
-  field-name set and expiry-age bucket. It must not output/log content, identifiers,
-  keys, hashes, authorizations, event IDs, or samples, and must stop if the access
-  path cannot uphold those exclusions. This inventory was not executed here.
+- Best practice for a future Dev inventory is scoped, read-only, least-privilege,
+  and aggregate-only in its output, with no content, identifiers, keys, hashes,
+  authorizations, event IDs, or samples logged or reported. This recommendation is
+  not authorization to read live rows. Because family/field classification may
+  require keys or attributes to be read inside the controlled process, its exact
+  projection and handling boundary still requires explicit approval. No inventory
+  was executed here, and an unprojected scan must not be used to discover fields.
 
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 

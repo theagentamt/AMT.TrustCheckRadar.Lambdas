@@ -38,15 +38,21 @@ contract where applicable:
 - local scan-consumption rows are erasable service state and are deleted completely;
   no local consumption tombstone is retained. Purchase-token anti-replay and any
   required financial evidence remain separate data families;
-- Dev legacy inventory is read-only and aggregate-only: counts by family, status,
-  field-name set, and expiry-age bucket, with no content, identifiers, key values,
-  hashes, authorization values, event IDs, samples, or mutation. The audit must stop
-  if its execution path cannot enforce those exclusions.
 
 The billing decision does **not** authorize deleting or reassigning token-keyed
 anti-replay records, inventing a retention duration, or assuming there are no
 existing transactions. Entitlement, usage, purchase-token ownership and legacy
 locator coverage therefore remain blocked.
+
+The owner's instruction to use best practices for inventory questions does not by
+itself authorize live Dev reads. The recommended inventory design is scoped,
+read-only and least-privilege, with only aggregate results emitted and no content,
+identifiers, key values, hashes, authorization values, event IDs, or samples in
+logs/reports. Because family and field-shape classification can require reading keys
+or attributes inside a controlled process, the exact projection and read boundary
+must be approved before execution. Do not use an unprojected scan merely to discover
+arbitrary field names, and stop if the selected access path cannot uphold the
+approved boundary.
 
 The product-wide deletion producer remains disabled by all of these independent
 gates:
@@ -364,9 +370,10 @@ campaign contribution cleanup only. It deliberately cannot mark overall completi
   legacy locator/backfill, existing entitlement/usage transactions and any local
   evidence that must survive deletion. No financial retention duration may be
   invented merely because separate local billing retention is unnecessary.
-- Aggregate-only Dev legacy inventory evidence using the approved field and value
-  exclusions. If DynamoDB/API access cannot avoid exposing prohibited key or value
-  data to logs or output, stop rather than weaken the inventory contract.
+- Aggregate-only Dev legacy inventory evidence using an explicitly approved read
+  projection and value-handling boundary. If DynamoDB/API access cannot avoid
+  exposing prohibited values to logs or output, stop rather than weaken the
+  inventory contract. No live read is authorized by this document.
 
 Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
 `ACCOUNT_DELETION_COMPLETION_STATUS=incomplete`.
