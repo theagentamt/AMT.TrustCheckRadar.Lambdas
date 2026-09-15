@@ -88,6 +88,22 @@ class RecoveryTable(Table):
         super().delete_item(Key)
 
 
+class OutboxTable(Table):
+    def __init__(self, pages, items=None):
+        super().__init__(items)
+        self.pages = list(pages)
+        self.queries = []
+        self.deletes = []
+
+    def query(self, **kwargs):
+        self.queries.append(kwargs)
+        return self.pages.pop(0)
+
+    def delete_item(self, Key, **kwargs):
+        self.deletes.append((dict(Key), kwargs))
+        super().delete_item(Key)
+
+
 def _deserialize(item):
     result = {}
     for key, value in item.items():
@@ -241,6 +257,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         devices = DeviceTable([{"Items": []}])
         recovery = RecoveryTable([{"Items": []}])
         abuse = RecoveryTable([{"Items": []}])
+        outbox = OutboxTable([{"Items": []}])
 
         class Cognito:
             def __init__(self):
@@ -251,7 +268,8 @@ class AccountDeletionServiceTests(unittest.TestCase):
         cognito = Cognito()
         result = service.reconcile_session_revocations(
             environment="dev", ledger_table=ledger, device_table=devices,
-            recovery_table=recovery, abuse_table=abuse,
+            recovery_table=recovery, abuse_table=abuse, outbox_table=outbox,
+            users_table=Table(),
             user_pool_id="pool",
             cognito=cognito, scan_limit=100, max_pages=1, now=lambda: 200,
         )
@@ -267,6 +285,177 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
         )]
         self.assertEqual(checkpoint["completedPassAtEpoch"], 200)
+
+    def test_campaign_outbox_cleanup_is_bounded_target_bound_and_receipted(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        partition = f"ACCOUNT#{account_hash}"
+        event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+        event_expiry = 500
+        locator = {
+            "PK": partition, "SK": f"OUTBOX#{event_id}",
+            "recordType": "CAMPAIGN_OUTBOX_LOCATOR", "schemaVersion": 1,
+            "recordVersion": 1, "environment": "dev",
+            "accountIdHash": account_hash, "statisticsEventId": event_id,
+            "eventPK": f"EVENT#{event_id}", "eventSK": "OBSERVATION_READY",
+            "eventExpiresAt": event_expiry,
+            "expiresAt": event_expiry + 24 * 3600,
+        }
+        event = {
+            "PK": f"EVENT#{event_id}", "SK": "OBSERVATION_READY",
+            "statisticsEventId": event_id, "accountId": "account-1",
+            "environment": "dev", "sanitizedText": "private",
+        }
+        continuation = {"PK": partition, "SK": locator["SK"]}
+        outbox = OutboxTable(
+            [{"Items": [locator], "LastEvaluatedKey": continuation},
+             {"Items": []}],
+            {
+                (locator["PK"], locator["SK"]): locator,
+                (event["PK"], event["SK"]): event,
+            },
+        )
+        ledger = Table()
+
+        first = service.delete_campaign_outbox(
+            command(), outbox_table=outbox, ledger_table=ledger,
+            locator_coverage_status="approved", now_epoch=200,
+        )
+        second = service.delete_campaign_outbox(
+            command(), outbox_table=outbox, ledger_table=ledger,
+            locator_coverage_status="approved", now_epoch=201,
+        )
+
+        self.assertEqual(first, {
+            "deleted": 2, "complete": False, "alreadyComplete": False,
+        })
+        self.assertEqual(second, {
+            "deleted": 0, "complete": True, "alreadyComplete": False,
+        })
+        self.assertEqual(outbox.queries[1]["ExclusiveStartKey"], continuation)
+        self.assertNotIn((event["PK"], event["SK"]), outbox.items)
+        self.assertNotIn((locator["PK"], locator["SK"]), outbox.items)
+        event_delete = outbox.deletes[0]
+        self.assertIn("accountId = :account_id", event_delete[1]["ConditionExpression"])
+        self.assertEqual(
+            event_delete[1]["ExpressionAttributeValues"][":account_id"],
+            "account-1",
+        )
+        receipt = ledger.items[(
+            "ACCOUNT#account-1", "ACCOUNT_DELETION#CAMPAIGN_OUTBOX",
+        )]
+        self.assertEqual(receipt["operationId"], command()["operationId"])
+        self.assertEqual(receipt["retainUntilEpoch"], 201 + 120 * 86400)
+
+    def test_campaign_outbox_cleanup_rejects_cross_account_target(self):
+        account_hash = service.hashlib.sha256(b"account-1").hexdigest()
+        event_id = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
+        locator = {
+            "PK": f"ACCOUNT#{account_hash}", "SK": f"OUTBOX#{event_id}",
+            "recordType": "CAMPAIGN_OUTBOX_LOCATOR", "schemaVersion": 1,
+            "recordVersion": 1, "environment": "dev",
+            "accountIdHash": account_hash, "statisticsEventId": event_id,
+            "eventPK": f"EVENT#{event_id}", "eventSK": "OBSERVATION_READY",
+            "eventExpiresAt": 500, "expiresAt": 500 + 24 * 3600,
+        }
+        event = {
+            "PK": f"EVENT#{event_id}", "SK": "OBSERVATION_READY",
+            "statisticsEventId": event_id, "accountId": "another-account",
+            "environment": "dev",
+        }
+        outbox = OutboxTable(
+            [{"Items": [locator]}],
+            {(event["PK"], event["SK"]): event},
+        )
+
+        with self.assertRaisesRegex(ValueError, "target is invalid"):
+            service.delete_campaign_outbox(
+                command(), outbox_table=outbox, ledger_table=Table(),
+                locator_coverage_status="approved", now_epoch=200,
+            )
+
+        self.assertEqual(outbox.deletes, [])
+
+    def test_campaign_outbox_receipt_blocks_without_locator_coverage(self):
+        result = service.delete_campaign_outbox(
+            command(), outbox_table=OutboxTable([{"Items": []}]),
+            ledger_table=Table(), now_epoch=200,
+        )
+
+        self.assertEqual(result["policyBlocked"], "CAMPAIGN_OUTBOX_LOCATOR_COVERAGE")
+        self.assertFalse(result["complete"])
+
+    def test_user_profile_cleanup_waits_for_prerequisites_then_preserves_consent(self):
+        deletion = command()
+        partition = "USER#account-1"
+        operation_id = deletion["operationId"]
+        consent_epoch = "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+        consent_operation = "47debb73-444b-4bb1-9889-fb56885b7922"
+        profile = {
+            "PK": partition, "SK": "PROFILE", "sub": "account-1",
+            "status": "DELETION_REQUESTED", "ageVerified": True,
+            "email": "private@example.com", "deletionOperationId": operation_id,
+            "deletionRequestedAtEpoch": 100,
+        }
+        participation = {
+            "PK": partition, "SK": "CAMPAIGN_PARTICIPATION",
+            "state": "enrolled", "consentEpochId": consent_epoch,
+        }
+        operation = {
+            "PK": partition, "SK": f"CAMPAIGN_OPERATION#{consent_operation}",
+            "operationId": consent_operation,
+        }
+        consent = {
+            "PK": partition,
+            "SK": f"CAMPAIGN_CONSENT#{consent_epoch}#90#{consent_operation}",
+            "schemaVersion": 1, "recordVersion": 1,
+            "eventType": "campaign.participation.joined",
+            "occurredAt": "2026-09-15T00:00:00Z",
+            "noticeVersion": "notice-1", "policyVersion": "policy-1",
+            "consentEpochId": consent_epoch, "operationId": consent_operation,
+            "resultingState": "enrolled", "stateVersion": 1,
+            "effectiveMonthlyScanLimit": 15,
+            "expiresAt": 90 + 400 * 86400,
+        }
+        users = OutboxTable(
+            [{"Items": [profile, participation, operation, consent]}],
+            {(item["PK"], item["SK"]): item
+             for item in (profile, participation, operation, consent)},
+        )
+        ledger = Table()
+
+        blocked = service.delete_user_profile_state(
+            deletion, users_table=users, ledger_table=ledger,
+            policy_status="approved", now_epoch=200,
+        )
+        self.assertEqual(blocked["policyBlocked"], "USER_PROFILE_PREREQUISITES")
+        self.assertEqual(users.queries, [])
+
+        for component in service.USER_PROFILE_PREREQUISITES:
+            receipt = service._component_receipt(deletion, component, 150)
+            ledger.items[(receipt["PK"], receipt["SK"])] = receipt
+        result = service.delete_user_profile_state(
+            deletion, users_table=users, ledger_table=ledger,
+            policy_status="approved", now_epoch=200,
+        )
+
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["deleted"], 3)
+        self.assertNotIn((partition, "PROFILE"), users.items)
+        self.assertNotIn((partition, "CAMPAIGN_PARTICIPATION"), users.items)
+        self.assertNotIn((partition, operation["SK"]), users.items)
+        self.assertEqual(users.items[(partition, consent["SK"])], consent)
+        self.assertIn(
+            ("ACCOUNT#account-1", "ACCOUNT_DELETION#USER_PROFILE"),
+            ledger.items,
+        )
+
+    def test_user_profile_cleanup_is_policy_blocked_before_reads(self):
+        users = OutboxTable([{"Items": []}])
+        result = service.delete_user_profile_state(
+            command(), users_table=users, ledger_table=Table(), now_epoch=200,
+        )
+        self.assertEqual(result["policyBlocked"], "USER_PROFILE_DELETION")
+        self.assertEqual(users.queries, [])
 
     def test_device_cleanup_is_bounded_resumable_and_receipted(self):
         ledger = Table()

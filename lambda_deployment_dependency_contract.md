@@ -87,10 +87,15 @@ This document captures the deployment dependency contract for the Lambda functio
   and ledger command. The command key is `PK=ACCOUNT#<sub>`,
   `SK=CAMPAIGN_WITHDRAWAL#<operationId>` and its deletion deadline is exactly 24
   hours after occurrence.
+- GET, PUT, and idempotent replay strongly check the authoritative active profile
+  and fixed account-deletion fence. Every PUT repeats both checks inside the same
+  DynamoDB transaction, so a concurrent deletion fence wins without recreating
+  participation, consent-operation, or entitlement state.
 - IAM requires `dynamodb:GetItem` and `dynamodb:PutItem` on the users and
-  entitlements tables, plus `dynamodb:PutItem` on the deletion ledger. These are
-  the underlying item actions authorized when the SDK calls
-  `TransactWriteItems`; IAM policies may constrain them with
+  entitlements tables, `dynamodb:GetItem` on the deletion ledger, and transaction
+  `ConditionCheckItem` access to exact `USER#*/PROFILE` and
+  `ACCOUNT#*/ACCOUNT_DELETION` keys. Withdrawal additionally needs ledger
+  `PutItem`. IAM policies may constrain transactional actions with
   `dynamodb:EnclosingOperation=TransactWriteItems`.
 
 ---
@@ -152,6 +157,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | `CAMPAIGN_SCHEMA_VERSION` | Yes | `1` | Version validation cannot run; V1 is the only supported value |
 | `PIPELINE_TABLE_NAME` | Yes | `trustcheckradar-dev-campaign-pipeline` | Transient app features and dedupe state cannot be written |
 | `USERS_TABLE_NAME` | Yes | `trustcheckradar-dev-users` | Withdrawal and consent-epoch state cannot be condition-checked; publication fails closed |
+| `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | A delayed outbox record cannot be fenced against account deletion |
 | `CLUSTER_QUEUE_URL` | Yes | `https://sqs.us-east-1.amazonaws.com/...` | Opaque clustering requests cannot be published |
 | `CONTRIBUTOR_PERIOD_DAYS` | No | `14` | Defaults to 14 and rejects any other value |
 | `TRANSIENT_RETENTION_DAYS` | No | `21` | Defaults to 21 and rejects values above the approved maximum |
@@ -164,6 +170,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
 | Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`; transaction-only grants may use `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Users participation item | `dynamodb:GetItem`, plus `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` |
+| Deletion-ledger account fence | `dynamodb:GetItem`, plus `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
 | Clustering queue | `sqs:SendMessage` |
 | Campaign metrics namespace | `cloudwatch:PutMetricData` |
@@ -180,8 +187,11 @@ This document captures the deployment dependency contract for the Lambda functio
   at `[0,1]`. Booleans are not numeric values.
 - Declined consent, withdrawn/stale server participation, and expired
   observations are successful no-ops. The publisher re-reads the authoritative
-  participation record and condition-checks the same consent epoch in its
-  pipeline transaction, so withdrawal wins over an already queued outbox record.
+  participation record and fixed deletion fence, and condition-checks the same
+  consent epoch plus absence of `ACCOUNT#<sub>/ACCOUNT_DELETION` in its pipeline
+  transaction. Withdrawal or account deletion therefore wins over an already
+  queued outbox record. A final pre-send authority read suppresses pending retries;
+  downstream contributor tombstones remain the queue-race defense.
 - The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
 - Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
 - The publisher resolves the enabled KMS key ARN from the lifecycle-owned
@@ -486,8 +496,9 @@ can be aligned without weakening the privacy boundary.
   `GET /v1/users/account-deletion`.
 - Optional retry sources: deletion-ledger DynamoDB stream with
   `ReportBatchItemFailures` for session revocation, bounded device cleanup and
-  bounded device-recovery control cleanup/minimization, and bounded
-  analysis-abuse cleanup/minimization,
+  bounded device-recovery control cleanup/minimization, bounded
+  analysis-abuse cleanup/minimization, bounded campaign-outbox locator cleanup,
+  and policy/prerequisite-gated profile/current-consent cleanup,
   plus the exact scheduled input
   `{"schemaVersion":1,"operation":"reconcile-session-revocation"}`.
   Failed item identifiers are DynamoDB sequence numbers; configuration and
@@ -519,7 +530,7 @@ Required environment:
 
 - `APP_ENVIRONMENT`, `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`,
   `DEVICE_BINDINGS_TABLE_NAME`, `DEVICE_RECOVERY_CONTROL_TABLE_NAME`,
-  `ANALYSIS_ABUSE_TABLE_NAME`
+  `ANALYSIS_ABUSE_TABLE_NAME`, `CAMPAIGN_OUTBOX_TABLE_NAME`
 - `COGNITO_ISSUER`, `COGNITO_APP_CLIENT_ID`, `COGNITO_USER_POOL_ID`
 - `ACCOUNT_DELETION_ENABLED=false` by default
 - `ACCOUNT_DELETION_POLICY_STATUS=pending` by default
@@ -528,9 +539,10 @@ Required environment:
 - `COGNITO_USERNAME_IS_SUB=false` by default
 - `ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON`; once approved it must include
   at least `SESSION_REVOCATION`, `DEVICE_BINDINGS`, `DEVICE_RECOVERY`, `HISTORY`,
-  `ANALYSIS_ABUSE`, and `CAMPAIGN`
+  `ANALYSIS_ABUSE`, `CAMPAIGN`, `CAMPAIGN_OUTBOX`, `ENTITLEMENTS`,
+  `USER_PROFILE`, and `IDENTITY`
 - exact policy constants: reauthentication 300 seconds, deletion SLA 24 hours,
-  device/recovery/analysis-abuse deletion page sizes 100, recovery receipt 7
+  device/recovery/analysis-abuse/outbox deletion page sizes 100, recovery receipt 7
   days, recovery audit 90 days, recovery rate state 86400 seconds, History dedupe
   120 days, and account component receipt 120 days; reconciliation defaults 100
   items and ten pages
@@ -543,6 +555,13 @@ Required environment:
   explicitly set to `approved` in a coordinated activation before an
   `ANALYSIS_ABUSE` receipt. The decisions themselves are owner-approved; pending
   defaults prevent an artifact-only change from activating destructive behavior
+- `ACCOUNT_DELETION_CAMPAIGN_OUTBOX_PAGE_SIZE=100`;
+  `CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS=pending` by default and must remain
+  pending until legacy/backfill coverage is proven. An empty account-locator query
+  alone is not proof that legacy event-keyed content is absent.
+- `USER_PROFILE_DELETION_POLICY_STATUS=pending` by default. Even when approved,
+  the worker refuses to query/delete profile state until exact receipts exist for
+  session, device, recovery, History, analysis, campaign, outbox, and entitlements.
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -561,6 +580,13 @@ IAM:
   `dynamodb:DeleteItem`, scoped to the four deterministic
   `ANALYSIS#REQUEST|RATE|SCAN_RATE|CONSUMPTION#<sha256(sub)>` partitions;
   request `PutItem` replaces source rows with the exact content-free allowlist
+- campaign outbox table `dynamodb:Query` on `ACCOUNT#*`, `dynamodb:GetItem` on
+  `EVENT#*`, and conditional `dynamodb:DeleteItem` on both key families. No scan,
+  put, update, or index access is needed by account-data cleanup.
+- users table `dynamodb:Query` on `USER#*` and conditional `DeleteItem` for
+  `PROFILE`, `CAMPAIGN_PARTICIPATION`, and `CAMPAIGN_OPERATION#*` only when the
+  profile policy and all prerequisites are approved. Exact 400-day
+  `CAMPAIGN_CONSENT#*` audit rows are validated and preserved.
 - `cognito-idp:AdminUserGlobalSignOut` on the configured user pool
 - standard deletion-ledger stream read actions on the event-source role
 
@@ -571,9 +597,10 @@ partition keys only; the application enforces exact sort-key families.
 Metrics use `AMT/TrustCheckRadar/AccountData`. HTTP/stream counters have bounded
 Environment/Operation dimensions. Reconciliation reports success, scanned,
 matched, revoked, already-complete, device and recovery records deleted, recovery
-records minimized, analysis-abuse records deleted/minimized, completed
-device/recovery/analysis-abuse components, truncation, full-pass completion, and
-full-pass age, plus the analysis-abuse policy-blocked count; unknown
+records minimized, analysis-abuse and campaign-outbox records deleted/minimized,
+completed device/recovery/analysis-abuse/outbox/profile components, truncation,
+full-pass completion, and full-pass age, plus analysis/outbox/profile
+policy-blocked counts; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 
@@ -623,6 +650,8 @@ mutate live legacy receipts.
 |---|---|---:|---|
 | `ENTITLEMENTS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-purchase-entitlements` | Entitlement persistence fails |
 | `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-purchase-entitlements` | Same as above if `ENTITLEMENTS_TABLE_NAME` is not provided |
+| `USERS_TABLE_NAME` | Yes | `trustcheckradar-dev-users` | Active profile authority cannot be proven and purchase handoff fails closed |
+| `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | Fixed account-deletion fencing cannot be proven and purchase handoff fails closed |
 | `PURCHASE_VERIFICATION_MODE` | No, but required for live verification behavior | `google_play` | If set to `stub`, Google Play is not called |
 | `GOOGLE_PLAY_SECRET_NAME` | Required for live Google Play verification | `trustcheckradar/dev/google-play-service-account` | Live verification cannot fetch service account credentials |
 | `GOOGLE_PLAY_PACKAGE_NAME` | Required for live Google Play verification | `com.andmorethings.trustcheckradar` | Android Publisher API calls cannot be scoped correctly |
@@ -635,7 +664,9 @@ mutate live legacy receipts.
 
 | Resource | Env/config key used | Needs | ARN, name, or both |
 |---|---|---|---|
-| DynamoDB purchase entitlements table | `ENTITLEMENTS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:PutItem` | Name required by code |
+| DynamoDB purchase entitlements table | `ENTITLEMENTS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:GetItem`, transactional `dynamodb:PutItem` | Name required by code |
+| DynamoDB users profile | `USERS_TABLE_NAME` | `dynamodb:GetItem`, transaction `dynamodb:ConditionCheckItem` on exact `USER#*/PROFILE` | Name required by code |
+| DynamoDB deletion fence | `DELETION_LEDGER_TABLE_NAME` | `dynamodb:GetItem`, transaction `dynamodb:ConditionCheckItem` on exact `ACCOUNT#*/ACCOUNT_DELETION` | Name required by code |
 | Secrets Manager Google Play service-account secret | `GOOGLE_PLAY_SECRET_NAME` | `secretsmanager:GetSecretValue` | Name required by code |
 | Google Android Publisher API | runtime outbound call | outbound HTTPS | No AWS identifier |
 | API Gateway JWT authorizer / Cognito identity | request context | invoke + authorizer context | No env var |
@@ -665,6 +696,10 @@ mutate live legacy receipts.
 - POST-style API request with authenticated Cognito user context.
 - For live verification, the code expects a full Google service-account JSON stored in Secrets Manager.
 - This Lambda is the verification point against Google Play; downstream entitlement consumers trust DynamoDB state.
+- Accepted/rejected verification state is committed in one transaction with the
+  active-profile and absent-deletion-fence checks. Replay reads are also blocked
+  after the fence. This closes late writes but does not approve token retention,
+  legacy token discovery, or an `ENTITLEMENTS` deletion receipt.
 
 ### Compatibility aliases
 

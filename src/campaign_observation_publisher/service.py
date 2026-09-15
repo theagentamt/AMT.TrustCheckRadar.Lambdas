@@ -19,6 +19,7 @@ def publish_observation(
     *,
     pipeline_table_name: str,
     users_table_name: str,
+    deletion_ledger_table_name: str,
     cluster_queue_url: str,
     hmac_key_id: str | None = None,
     hmac_key_resolver=None,
@@ -36,7 +37,9 @@ def publish_observation(
         return "expired"
 
     app_features = validate_app_features(item["appFeatures"])
-    if not _participation_authorizes(item, users_table_name, dynamodb_client):
+    if not _account_authorizes(
+        item, users_table_name, deletion_ledger_table_name, dynamodb_client
+    ):
         return "participation-suppressed"
 
     period_id = contributor_period_id(item["observedAtEpoch"])
@@ -97,6 +100,16 @@ def publish_observation(
                         }
                     },
                     {
+                        "ConditionCheck": {
+                            "TableName": deletion_ledger_table_name,
+                            "Key": {
+                                "PK": {"S": f"ACCOUNT#{item['accountId']}"},
+                                "SK": {"S": "ACCOUNT_DELETION"},
+                            },
+                            "ConditionExpression": "attribute_not_exists(PK)",
+                        }
+                    },
+                    {
                         "Put": {
                             "TableName": pipeline_table_name,
                             "Item": _serialize_item(
@@ -140,7 +153,10 @@ def publish_observation(
         except ClientError as err:
             if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
                 raise
-            if not _participation_authorizes(item, users_table_name, dynamodb_client):
+            if not _account_authorizes(
+                item, users_table_name, deletion_ledger_table_name,
+                dynamodb_client,
+            ):
                 return "participation-suppressed"
             concurrent = dynamodb_client.get_item(
                 TableName=pipeline_table_name,
@@ -154,6 +170,10 @@ def publish_observation(
             if not concurrent:
                 raise
 
+    if not _account_authorizes(
+        item, users_table_name, deletion_ledger_table_name, dynamodb_client
+    ):
+        return "participation-suppressed"
     envelope = build_cluster_envelope(item)
     sqs_client.send_message(
         QueueUrl=cluster_queue_url,
@@ -174,7 +194,9 @@ def publish_observation(
     return "published"
 
 
-def _participation_authorizes(item, users_table_name, dynamodb_client):
+def _account_authorizes(
+    item, users_table_name, deletion_ledger_table_name, dynamodb_client,
+):
     participation = dynamodb_client.get_item(
         TableName=users_table_name,
         Key={
@@ -185,7 +207,16 @@ def _participation_authorizes(item, users_table_name, dynamodb_client):
         ProjectionExpression="#state,consentEpochId,#environment,noticeVersion",
         ExpressionAttributeNames={"#state": "state", "#environment": "environment"},
     ).get("Item") or {}
-    return (
+    deletion = dynamodb_client.get_item(
+        TableName=deletion_ledger_table_name,
+        Key={
+            "PK": {"S": f"ACCOUNT#{item['accountId']}"},
+            "SK": {"S": "ACCOUNT_DELETION"},
+        },
+        ConsistentRead=True,
+        ProjectionExpression="PK",
+    ).get("Item")
+    return not deletion and (
         participation.get("state") == {"S": "enrolled"}
         and participation.get("consentEpochId") == {"S": item["consentEpochId"]}
         and participation.get("environment") == {"S": item["environment"]}

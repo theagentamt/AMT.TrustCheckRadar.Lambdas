@@ -38,20 +38,13 @@ def save_idempotency_record(
     billing_period_end_utc: str | None,
 ) -> dict:
     _require_table()
-    now_iso = _iso_now()
-    item = {
-        "PK": f"TOKEN#{token_hash}",
-        "SK": "IDEMPOTENCY",
-        "purchaseTokenHash": token_hash,
-        "accountId": account_id,
-        "platform": platform,
-        "productId": product_id,
-        "verificationStatus": verification_status,
-        "normalizedStatus": normalized_status,
-        "billingPeriodStartUtc": billing_period_start_utc,
-        "billingPeriodEndUtc": billing_period_end_utc,
-        "updatedAt": now_iso,
-    }
+    item = build_idempotency_record(
+        token_hash=token_hash, account_id=account_id, product_id=product_id,
+        verification_status=verification_status,
+        normalized_status=normalized_status, platform=platform,
+        billing_period_start_utc=billing_period_start_utc,
+        billing_period_end_utc=billing_period_end_utc,
+    )
     existing = load_idempotency_record(token_hash)
     if existing:
         if existing.get("accountId") != account_id:
@@ -72,6 +65,28 @@ def save_idempotency_record(
                 raise PurchaseReplayConflictError("Purchase token is already associated with a different account.") from err
             return replay or item
         raise
+
+
+def build_idempotency_record(
+    *, token_hash: str, account_id: str, product_id: str,
+    verification_status: str, normalized_status: str | None, platform: str,
+    billing_period_start_utc: str | None,
+    billing_period_end_utc: str | None,
+) -> dict:
+    now_iso = _iso_now()
+    return {
+        "PK": f"TOKEN#{token_hash}",
+        "SK": "IDEMPOTENCY",
+        "purchaseTokenHash": token_hash,
+        "accountId": account_id,
+        "platform": platform,
+        "productId": product_id,
+        "verificationStatus": verification_status,
+        "normalizedStatus": normalized_status,
+        "billingPeriodStartUtc": billing_period_start_utc,
+        "billingPeriodEndUtc": billing_period_end_utc,
+        "updatedAt": now_iso,
+    }
 
 
 def _require_table():

@@ -40,6 +40,7 @@ def lambda_handler(event, _context):
             item,
             pipeline_table_name=config.PIPELINE_TABLE_NAME,
             users_table_name=config.USERS_TABLE_NAME,
+            deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
             cluster_queue_url=config.CLUSTER_QUEUE_URL,
             hmac_key_resolver=_period_key,
             transient_retention_days=config.TRANSIENT_RETENTION_DAYS,

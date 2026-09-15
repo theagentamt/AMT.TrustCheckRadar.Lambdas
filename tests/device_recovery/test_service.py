@@ -2,6 +2,7 @@ import importlib.util
 import sys
 import types
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_recovery"
@@ -160,6 +161,38 @@ class DeviceRecoveryServiceTests(unittest.TestCase):
             fake_table.items[("USER#user-123", "ACTIVE_BINDING")]["bindingFingerprint"],
             "NONE",
         )
+
+    def test_sdk_decimal_pointer_version_is_normalized_for_recovery(self):
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "ACTIVE_BINDING",
+            "recordType": "ACTIVE_BINDING_POINTER",
+            "bindingFingerprint": "fp-1", "stateVersion": Decimal("1"),
+        })
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "DEVICE#fp-1",
+            "accountId": "user-123", "bindingFingerprint": "fp-1",
+            "platform": "ios", "osVersion": "18.4", "status": "ACTIVE",
+            "firstSeenAt": "2026-05-01T00:00:00+00:00",
+            "lastSeenAt": "2026-05-02T00:00:00+00:00",
+            "deactivatedAt": None, "GSI1PK": "USER#user-123#ACTIVE",
+            "GSI1SK": "2026-05-02T00:00:00+00:00",
+        })
+
+        result = service.process_recovery(
+            account_id="user-123", action="RESET_ACTIVE_BINDING",
+            binding_fingerprint=None, operator_id="support-1",
+        )
+
+        self.assertEqual(result["result"], "CLEARED")
+        self.assertEqual(
+            fake_table.items[("USER#user-123", "ACTIVE_BINDING")]["stateVersion"],
+            2,
+        )
+
+    def test_pointer_version_rejects_invalid_decimal_values(self):
+        for value in (Decimal("1.5"), Decimal("NaN"), Decimal("Infinity")):
+            with self.subTest(value=value):
+                self.assertIsNone(service._positive_version(value))
 
     def test_reset_active_binding_returns_noop_when_no_active_exists(self):
         result = service.process_recovery(

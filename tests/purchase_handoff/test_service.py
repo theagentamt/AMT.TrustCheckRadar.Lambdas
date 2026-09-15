@@ -50,6 +50,38 @@ class FakeClientError(Exception):
 fake_table = FakeTable()
 
 
+def _deserialize(item):
+    result = {}
+    for key, value in item.items():
+        kind, raw = next(iter(value.items()))
+        if kind == "S":
+            result[key] = raw
+        elif kind == "N":
+            result[key] = int(raw)
+        elif kind == "BOOL":
+            result[key] = raw
+        elif kind == "NULL":
+            result[key] = None
+        elif kind == "M":
+            result[key] = _deserialize(raw)
+    return result
+
+
+class FakeClient:
+    def __init__(self):
+        self.transactions = []
+
+    def transact_write_items(self, TransactItems):
+        self.transactions.append(TransactItems)
+        for operation in TransactItems:
+            if "Put" in operation:
+                item = _deserialize(operation["Put"]["Item"])
+                fake_table.items[(item["PK"], item["SK"])] = item
+
+
+fake_client = FakeClient()
+
+
 class FakeResource:
     def Table(self, _name):
         return fake_table
@@ -57,7 +89,7 @@ class FakeResource:
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *args, **kwargs: FakeResource()
-boto3_stub.client = lambda *args, **kwargs: object()
+boto3_stub.client = lambda *args, **kwargs: fake_client
 sys.modules["boto3"] = boto3_stub
 
 botocore_ex = types.ModuleType("botocore.exceptions")
@@ -87,9 +119,20 @@ service = _load_module("service", MODULE_DIR / "service.py")
 class PurchaseHandoffServiceTests(unittest.TestCase):
     def setUp(self):
         fake_table.items.clear()
+        fake_client.transactions.clear()
         shared_service.table = fake_table
         shared_service.participation_table = fake_table
         idempotency_module.table = fake_table
+        service.users_table = fake_table
+        service.deletion_ledger_table = fake_table
+        service.dynamodb_client = fake_client
+        service.config.ENTITLEMENTS_TABLE_NAME = "entitlements"
+        service.config.USERS_TABLE_NAME = "users"
+        service.config.DELETION_LEDGER_TABLE_NAME = "deletion-ledger"
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "PROFILE", "sub": "user-123",
+            "status": "ACTIVE", "ageVerified": True,
+        })
 
     def test_accepts_verified_google_play_purchase(self):
         payload = {
@@ -124,6 +167,11 @@ class PurchaseHandoffServiceTests(unittest.TestCase):
         self.assertEqual(result["entitlement"]["productId"], "trustcheck_radar_pro_monthly")
         self.assertEqual(result["usage"]["remainingCount"], 100)
         self.assertFalse(result["idempotencyReplay"])
+        transaction = fake_client.transactions[0]
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(
+            transaction[1]["ConditionCheck"]["TableName"], "deletion-ledger"
+        )
 
     def test_duplicate_replay_returns_safe_result_without_double_granting(self):
         token_hash = idempotency_module.hash_purchase_token("purchase-token-12345")
@@ -263,6 +311,28 @@ class PurchaseHandoffServiceTests(unittest.TestCase):
 
         self.assertEqual(result["verificationStatus"], "failed_retryable")
         self.assertFalse(result["idempotencyReplay"])
+
+    def test_fixed_account_deletion_fence_blocks_purchase_replay_and_writes(self):
+        fake_table.put_item({
+            "PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION",
+            "status": "REQUESTED",
+        })
+        payload = {
+            "productId": "trustcheck_radar_pro_monthly",
+            "platform": "google_play",
+            "purchaseToken": "purchase-token-12345",
+            "purchaseState": "PURCHASED",
+            "packageName": "com.example.app",
+            "orderId": None,
+            "purchaseTime": None,
+            "subscriptionMetadata": {},
+        }
+
+        with self.assertRaises(service.AppError) as raised:
+            service.process_purchase_handoff(account_id="user-123", payload=payload)
+
+        self.assertEqual(raised.exception.code, "FORBIDDEN")
+        self.assertEqual(fake_client.transactions, [])
 
 
 if __name__ == "__main__":

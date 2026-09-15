@@ -282,6 +282,34 @@ def commit_scan_and_request(
                 }
             }
         )
+        account_hash = hashlib.sha256(account_id.encode("utf-8")).hexdigest()
+        locator_expiry = outbox_expiry + 24 * 60 * 60
+        transaction.append(
+            {
+                "Put": {
+                    "TableName": CAMPAIGN_OUTBOX_TABLE_NAME,
+                    "Item": _serialize_item(
+                        {
+                            "PK": f"ACCOUNT#{account_hash}",
+                            "SK": f"OUTBOX#{statistics_event_id}",
+                            "recordType": "CAMPAIGN_OUTBOX_LOCATOR",
+                            "schemaVersion": CAMPAIGN_SCHEMA_VERSION,
+                            "recordVersion": 1,
+                            "environment": APP_ENVIRONMENT,
+                            "accountIdHash": account_hash,
+                            "statisticsEventId": statistics_event_id,
+                            "eventPK": f"EVENT#{statistics_event_id}",
+                            "eventSK": "OBSERVATION_READY",
+                            "eventExpiresAt": outbox_expiry,
+                            "expiresAt": locator_expiry,
+                        }
+                    ),
+                    "ConditionExpression": (
+                        "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+                    ),
+                }
+            }
+        )
     try:
         dynamodb_client.transact_write_items(TransactItems=transaction)
     except ClientError as err:

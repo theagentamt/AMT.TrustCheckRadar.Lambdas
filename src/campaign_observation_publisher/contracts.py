@@ -34,6 +34,12 @@ REQUIRED_FIELDS = {
     "appFeatures",
     "expiresAt",
 }
+LOCATOR_FIELDS = {
+    "PK", "SK", "recordType", "schemaVersion", "recordVersion",
+    "environment", "accountIdHash", "statisticsEventId", "eventPK",
+    "eventSK", "eventExpiresAt", "expiresAt",
+}
+SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 PROHIBITED_FIELD_NAMES = {
     "requestid",
@@ -64,8 +70,35 @@ def parse_stream_record(record: dict, *, environment: str, schema_version: int) 
     if not isinstance(image, dict):
         raise ContractError("DynamoDB INSERT record must contain NewImage")
     item = deserialize_item(image)
+    if item.get("recordType") == "CAMPAIGN_OUTBOX_LOCATOR":
+        _validate_locator(item, environment=environment, schema_version=schema_version)
+        return None
     _validate_item(item, environment=environment, schema_version=schema_version)
     return item
+
+
+def _validate_locator(item: dict, *, environment: str, schema_version: int) -> None:
+    if set(item) != LOCATOR_FIELDS:
+        raise ContractError("Outbox locator fields are invalid")
+    event_id = item.get("statisticsEventId")
+    account_hash = item.get("accountIdHash")
+    _require_uuid4(event_id, "statisticsEventId")
+    if (
+        item.get("schemaVersion") != schema_version
+        or item.get("recordVersion") != 1
+        or item.get("environment") != environment
+        or not isinstance(account_hash, str)
+        or not SHA256_PATTERN.fullmatch(account_hash)
+        or item.get("PK") != f"ACCOUNT#{account_hash}"
+        or item.get("SK") != f"OUTBOX#{event_id}"
+        or item.get("eventPK") != f"EVENT#{event_id}"
+        or item.get("eventSK") != "OBSERVATION_READY"
+    ):
+        raise ContractError("Outbox locator is invalid")
+    _require_integer(item.get("eventExpiresAt"), "eventExpiresAt", minimum=0)
+    _require_integer(item.get("expiresAt"), "expiresAt", minimum=0)
+    if item["expiresAt"] != item["eventExpiresAt"] + 24 * 60 * 60:
+        raise ContractError("Outbox locator expiry is invalid")
 
 
 def deserialize_item(image: dict) -> dict:

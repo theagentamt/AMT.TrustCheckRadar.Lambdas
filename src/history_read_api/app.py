@@ -11,7 +11,10 @@ from shared_history.security import (
     assert_authoritative_account_active,
     jwt_subject,
 )
-from service import CursorStore, HistoryReadService
+try:
+    from .service import CursorStore, HistoryReadService
+except ImportError:  # Lambda ZIP imports app.py as a top-level module.
+    from service import CursorStore, HistoryReadService
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())

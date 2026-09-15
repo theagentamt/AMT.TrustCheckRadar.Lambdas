@@ -41,10 +41,13 @@ class FakeDynamo:
         }
         self.transactions = []
         self.updates = []
+        self.deletion_item = None
 
     def get_item(self, TableName=None, **_kwargs):
         if TableName == "users":
             return {"Item": self.participation_item} if self.participation_item else {}
+        if TableName == "deletion-ledger":
+            return {"Item": self.deletion_item} if self.deletion_item else {}
         return {"Item": self.item} if self.item else {}
 
     def transact_write_items(self, **kwargs):
@@ -110,6 +113,7 @@ os.environ.update(
         "CAMPAIGN_SCHEMA_VERSION": "1",
         "PIPELINE_TABLE_NAME": "campaign-pipeline",
         "USERS_TABLE_NAME": "users",
+        "DELETION_LEDGER_TABLE_NAME": "deletion-ledger",
         "CLUSTER_QUEUE_URL": "https://sqs.example/cluster",
     }
 )
@@ -222,6 +226,29 @@ class ContractTests(unittest.TestCase):
                 schema_version=1,
             )
 
+    def test_locator_insert_is_validated_and_skipped(self):
+        account_hash = "a" * 64
+        event_expiry = 1_780_259_200
+        locator = {
+            "PK": f"ACCOUNT#{account_hash}", "SK": f"OUTBOX#{EVENT_ID}",
+            "recordType": "CAMPAIGN_OUTBOX_LOCATOR", "schemaVersion": 1,
+            "recordVersion": 1, "environment": "dev",
+            "accountIdHash": account_hash, "statisticsEventId": EVENT_ID,
+            "eventPK": f"EVENT#{EVENT_ID}", "eventSK": "OBSERVATION_READY",
+            "eventExpiresAt": event_expiry,
+            "expiresAt": event_expiry + 24 * 60 * 60,
+        }
+
+        self.assertIsNone(contracts.parse_stream_record(
+            stream_event(locator)["Records"][0],
+            environment="dev", schema_version=1,
+        ))
+        with self.assertRaises(contracts.ContractError):
+            contracts.parse_stream_record(
+                stream_event(locator | {"eventPK": "EVENT#other"})["Records"][0],
+                environment="dev", schema_version=1,
+            )
+
     def test_rejects_unknown_and_prohibited_fields(self):
         for field in ("unexpected", "requestId", "email"):
             with self.subTest(field=field), self.assertRaises(contracts.ContractError):
@@ -301,6 +328,7 @@ class ServiceTests(unittest.TestCase):
         }
         fake_dynamo.transactions.clear()
         fake_dynamo.updates.clear()
+        fake_dynamo.deletion_item = None
         fake_kms.calls.clear()
         fake_sqs.calls.clear()
 
@@ -309,6 +337,7 @@ class ServiceTests(unittest.TestCase):
             valid_item() if item is None else item,
             pipeline_table_name="campaign-pipeline",
             users_table_name="users",
+            deletion_ledger_table_name="deletion-ledger",
             cluster_queue_url="https://sqs.example/cluster",
             hmac_key_id="alias/period-key",
             transient_retention_days=21,
@@ -333,7 +362,12 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(condition["ExpressionAttributeValues"][":epoch"], {"S": CONSENT_EPOCH_ID})
         self.assertEqual(condition["ExpressionAttributeValues"][":environment"], {"S": "dev"})
         self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "2026-09-07"})
-        feature = fake_dynamo.transactions[0][1]["Put"]["Item"]
+        deletion_condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
+        self.assertEqual(deletion_condition["TableName"], "deletion-ledger")
+        self.assertEqual(
+            deletion_condition["ConditionExpression"], "attribute_not_exists(PK)"
+        )
+        feature = fake_dynamo.transactions[0][2]["Put"]["Item"]
         self.assertEqual(feature["SK"], {"S": "FEATURE"})
         self.assertNotIn("accountId", feature)
         self.assertNotIn("sanitizedText", feature)
@@ -361,7 +395,7 @@ class ServiceTests(unittest.TestCase):
     def test_publisher_feature_record_satisfies_cluster_input_contract(self):
         self.publish()
         persisted = aggregator_service.deserialize(
-            fake_dynamo.transactions[0][1]["Put"]["Item"]
+            fake_dynamo.transactions[0][2]["Put"]["Item"]
         )
 
         validated = aggregator_service._validated_feature(
@@ -417,6 +451,7 @@ class ServiceTests(unittest.TestCase):
             valid_item(),
             pipeline_table_name="campaign-pipeline",
             users_table_name="users",
+            deletion_ledger_table_name="deletion-ledger",
             cluster_queue_url="https://sqs.example/cluster",
             hmac_key_resolver=resolver,
             transient_retention_days=21,
@@ -428,6 +463,16 @@ class ServiceTests(unittest.TestCase):
 
         self.assertEqual(result, "participation-suppressed")
         resolver.assert_not_called()
+
+    def test_fixed_account_deletion_fence_blocks_delayed_publication(self):
+        fake_dynamo.deletion_item = {"PK": {"S": "ACCOUNT#account-123"}}
+
+        result = self.publish()
+
+        self.assertEqual(result, "participation-suppressed")
+        self.assertEqual(fake_kms.calls, [])
+        self.assertEqual(fake_dynamo.transactions, [])
+        self.assertEqual(fake_sqs.calls, [])
 
     def test_expired_observation_is_successful_noop(self):
         result = self.publish(valid_item(expiresAt=1_780_000_000))

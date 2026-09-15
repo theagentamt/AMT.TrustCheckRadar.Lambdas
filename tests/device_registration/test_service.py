@@ -3,6 +3,7 @@ import os
 import sys
 import types
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_registration"
@@ -164,6 +165,37 @@ class DeviceRegistrationServiceTests(unittest.TestCase):
         item = fake_table.items[("USER#user-123", "DEVICE#fp-1")]
         self.assertEqual(item["status"], "ACTIVE")
         self.assertEqual(item["osVersion"], "18.4")
+
+    def test_sdk_decimal_pointer_version_is_normalized_for_update(self):
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "ACTIVE_BINDING",
+            "recordType": "ACTIVE_BINDING_POINTER",
+            "bindingFingerprint": "fp-1", "stateVersion": Decimal("1"),
+        })
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "DEVICE#fp-1",
+            "accountId": "user-123", "bindingFingerprint": "fp-1",
+            "platform": "ios", "osVersion": "18.3", "status": "ACTIVE",
+            "firstSeenAt": "2026-05-01T00:00:00+00:00",
+            "lastSeenAt": "2026-05-01T00:00:00+00:00",
+            "deactivatedAt": None, "GSI1PK": "USER#user-123#ACTIVE",
+            "GSI1SK": "2026-05-01T00:00:00+00:00",
+        })
+
+        result = service.register_device(
+            account_id="user-123", binding_fingerprint="fp-1",
+            platform="ios", os_version="18.4",
+        )
+
+        self.assertEqual(result["decision"], "KNOWN")
+        self.assertEqual(
+            fake_table.items[("USER#user-123", "ACTIVE_BINDING")]["stateVersion"],
+            2,
+        )
+
+    def test_pointer_version_rejects_nonintegral_decimal(self):
+        self.assertIsNone(service._positive_version(Decimal("1.5")))
+        self.assertIsNone(service._positive_version(Decimal("NaN")))
 
     def test_returns_switch_for_different_active_device(self):
         fake_table.put_item(

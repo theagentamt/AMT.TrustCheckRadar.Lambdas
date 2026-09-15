@@ -337,7 +337,7 @@ class ScanAccessTests(unittest.TestCase):
         )
 
         transaction = transaction_fake.transactions[0]
-        self.assertEqual(len(transaction), 7)
+        self.assertEqual(len(transaction), 8)
         condition = transaction[5]["ConditionCheck"]
         self.assertEqual(condition["TableName"], "test-users")
         self.assertIn("consentEpochId = :consent_epoch_id", condition["ConditionExpression"])
@@ -373,6 +373,23 @@ class ScanAccessTests(unittest.TestCase):
         serialized = str(outbox["Item"])
         self.assertNotIn("request-123", serialized)
         self.assertNotIn("forbidden", serialized)
+        locator = transaction[7]["Put"]
+        account_hash = scan_access.hashlib.sha256(b"user-123").hexdigest()
+        self.assertEqual(locator["TableName"], "test-campaign-outbox")
+        self.assertEqual(locator["Item"], {
+            "PK": {"S": f"ACCOUNT#{account_hash}"},
+            "SK": {"S": f"OUTBOX#{event_id}"},
+            "recordType": {"S": "CAMPAIGN_OUTBOX_LOCATOR"},
+            "schemaVersion": {"N": "1"},
+            "recordVersion": {"N": "1"},
+            "environment": {"S": "dev"},
+            "accountIdHash": {"S": account_hash},
+            "statisticsEventId": {"S": event_id},
+            "eventPK": {"S": f"EVENT#{event_id}"},
+            "eventSK": {"S": "OBSERVATION_READY"},
+            "eventExpiresAt": {"N": str(100 + 72 * 60 * 60)},
+            "expiresAt": {"N": str(100 + 96 * 60 * 60)},
+        })
 
     def test_opted_in_commit_requires_the_persisted_uuid4(self):
         entitlements_fake.put_item({

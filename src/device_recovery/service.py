@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 import hashlib
 import json
 import time
@@ -71,13 +72,14 @@ def process_self_recovery(*, account_id: str, payload: dict, now_epoch=None) -> 
     ).get("Item")
     active = None
     if pointer:
+        state_version = _positive_version(pointer.get("stateVersion"))
         if (
             pointer.get("recordType") != "ACTIVE_BINDING_POINTER"
             or not isinstance(pointer.get("bindingFingerprint"), str)
-            or not isinstance(pointer.get("stateVersion"), int)
-            or pointer["stateVersion"] < 1
+            or state_version is None
         ):
             raise AppError("SERVER_UNAVAILABLE", "The active binding pointer is invalid.")
+        pointer = dict(pointer, stateVersion=state_version)
         if pointer["bindingFingerprint"] != "NONE":
             active = _get_binding(account_id, pointer["bindingFingerprint"])
             if not active or active.get("status") != "ACTIVE":
@@ -244,13 +246,14 @@ def _pointer_and_active(account_id):
     ).get("Item")
     if not pointer:
         return None, _get_single_legacy_active(account_id)
+    state_version = _positive_version(pointer.get("stateVersion"))
     if (
         pointer.get("recordType") != "ACTIVE_BINDING_POINTER"
         or not isinstance(pointer.get("bindingFingerprint"), str)
-        or not isinstance(pointer.get("stateVersion"), int)
-        or pointer["stateVersion"] < 1
+        or state_version is None
     ):
         raise AppError("SERVER_UNAVAILABLE", "The active binding pointer is invalid.")
+    pointer = dict(pointer, stateVersion=state_version)
     if pointer["bindingFingerprint"] == "NONE":
         return pointer, None
     active = _get_binding(account_id, pointer["bindingFingerprint"])
@@ -404,6 +407,18 @@ def _empty_pointer(account_id, now):
         "bindingFingerprint": "NONE", "stateVersion": 1,
         "updatedAt": now.isoformat(),
     }
+
+
+def _positive_version(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 1 else None
+    if isinstance(value, Decimal):
+        if not value.is_finite() or value != value.to_integral_value() or value < 1:
+            return None
+        return int(value)
+    return None
 
 
 def _transact_binding_change(operations):

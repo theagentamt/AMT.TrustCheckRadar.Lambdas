@@ -17,10 +17,15 @@ dynamodb = boto3.client("dynamodb")
 resource = boto3.resource("dynamodb")
 users_table = resource.Table(config.USERS_TABLE_NAME) if config.USERS_TABLE_NAME else None
 entitlements_table = resource.Table(config.ENTITLEMENTS_TABLE_NAME) if config.ENTITLEMENTS_TABLE_NAME else None
+deletion_ledger_table = (
+    resource.Table(config.DELETION_LEDGER_TABLE_NAME)
+    if config.DELETION_LEDGER_TABLE_NAME else None
+)
 
 
 def get_participation(account_id: str) -> dict:
     _require_tables()
+    _assert_account_active(account_id)
     current = _load_current(account_id)
     entitlement = _load_entitlement(account_id)
     return _response(current, entitlement)
@@ -34,6 +39,7 @@ def update_participation(
     now_iso: str | None = None,
 ) -> dict:
     _require_tables()
+    _assert_account_active(account_id)
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     now_iso = now_iso or datetime.fromtimestamp(now_epoch, UTC).isoformat().replace("+00:00", "Z")
     operation_id = payload["operationId"]
@@ -157,6 +163,8 @@ def update_participation(
             }
         )
 
+    transaction.extend(_account_authority_checks(account_id))
+
     try:
         dynamodb.transact_write_items(TransactItems=transaction)
     except ClientError as err:
@@ -164,6 +172,7 @@ def update_participation(
             raise
         replay = _load_operation(account_id, operation_id)
         if replay:
+            _assert_account_active(account_id)
             _assert_replay_action(replay, action)
             return get_participation(account_id)
         raise AppError("CONFLICT", "Campaign participation changed during this request.", retryable=True) from err
@@ -326,8 +335,52 @@ def _response(state: dict, entitlement: dict) -> dict:
 
 
 def _require_tables() -> None:
-    if not users_table or not entitlements_table:
+    if not users_table or not entitlements_table or not deletion_ledger_table:
         raise AppError("SERVER_UNAVAILABLE", "Campaign participation storage is not configured.")
+
+
+def _assert_account_active(account_id: str) -> None:
+    profile = users_table.get_item(
+        Key={"PK": f"USER#{account_id}", "SK": "PROFILE"},
+        ConsistentRead=True,
+    ).get("Item")
+    deletion = deletion_ledger_table.get_item(
+        Key={"PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION"},
+        ConsistentRead=True,
+    ).get("Item")
+    if (
+        not profile
+        or profile.get("sub") != account_id
+        or profile.get("status") != "ACTIVE"
+        or profile.get("ageVerified") is not True
+        or deletion is not None
+    ):
+        raise AppError("FORBIDDEN", "The account is not active.")
+
+
+def _account_authority_checks(account_id: str) -> list[dict]:
+    return [
+        {"ConditionCheck": {
+            "TableName": config.USERS_TABLE_NAME,
+            "Key": _serialize_item({
+                "PK": f"USER#{account_id}", "SK": "PROFILE",
+            }),
+            "ConditionExpression": (
+                "#status = :active AND ageVerified = :true AND #sub = :account"
+            ),
+            "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
+            "ExpressionAttributeValues": _serialize_item({
+                ":active": "ACTIVE", ":true": True, ":account": account_id,
+            }),
+        }},
+        {"ConditionCheck": {
+            "TableName": config.DELETION_LEDGER_TABLE_NAME,
+            "Key": _serialize_item({
+                "PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION",
+            }),
+            "ConditionExpression": "attribute_not_exists(PK)",
+        }},
+    ]
 
 
 def _is_uuid4(value) -> bool:

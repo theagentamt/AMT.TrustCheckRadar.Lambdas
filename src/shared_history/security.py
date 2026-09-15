@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import re
 import time
+from decimal import Decimal
 
 from .errors import HistoryError
 
@@ -63,13 +64,11 @@ def assert_active_device_binding(event: dict, account_id: str, table) -> None:
     ).get("Item")
     if pointer is not None:
         pointer_fingerprint = pointer.get("bindingFingerprint")
-        state_version = pointer.get("stateVersion")
+        state_version = _positive_integral_int(pointer.get("stateVersion"))
         if (
             pointer.get("recordType") != "ACTIVE_BINDING_POINTER"
             or not isinstance(pointer_fingerprint, str)
-            or isinstance(state_version, bool)
-            or not isinstance(state_version, int)
-            or state_version < 1
+            or state_version is None
         ):
             raise HistoryError("SERVER_UNAVAILABLE", "The active device binding pointer is invalid.")
         if pointer_fingerprint == "NONE" or not hmac.compare_digest(pointer_fingerprint, value):
@@ -112,6 +111,18 @@ def device_binding_fingerprint(event: dict) -> str:
     if not isinstance(value, str) or not FINGERPRINT_PATTERN.fullmatch(value.strip()):
         raise HistoryError("DEVICE_BINDING_REQUIRED", "A valid device binding fingerprint is required.")
     return value.strip()
+
+
+def _positive_integral_int(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 1 else None
+    if isinstance(value, Decimal):
+        if not value.is_finite() or value != value.to_integral_value() or value < 1:
+            return None
+        return int(value)
+    return None
 
 
 def subject_binding(account_id: str, secret: bytes) -> str:

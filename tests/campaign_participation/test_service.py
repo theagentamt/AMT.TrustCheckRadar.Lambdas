@@ -48,11 +48,16 @@ class FakeTable:
 
 users = FakeTable()
 entitlements = FakeTable()
+ledger = FakeTable()
 
 
 class FakeResource:
     def Table(self, name):
-        return users if name == "test-users" else entitlements
+        if name == "test-users":
+            return users
+        if name == "test-entitlements":
+            return entitlements
+        return ledger
 
 
 class FakeClient:
@@ -113,13 +118,19 @@ class ParticipationServiceTests(unittest.TestCase):
     def setUp(self):
         users.items.clear()
         entitlements.items.clear()
+        ledger.items.clear()
         client.transactions.clear()
         client.error = None
         service.users_table = users
         service.entitlements_table = entitlements
+        service.deletion_ledger_table = ledger
         service.dynamodb = client
         shared_service.table = entitlements
         shared_service.participation_table = users
+        users.items[("USER#user-123", "PROFILE")] = {
+            "PK": "USER#user-123", "SK": "PROFILE", "sub": "user-123",
+            "status": "ACTIVE", "ageVerified": True,
+        }
 
     def test_default_is_off_and_response_has_no_internal_identity(self):
         result = service.get_participation("user-123")
@@ -142,7 +153,7 @@ class ParticipationServiceTests(unittest.TestCase):
         self.assertEqual(result["state"], "enrolled")
         self.assertEqual(result["effectiveMonthlyScanLimit"], 15)
         transaction = client.transactions[0]
-        self.assertEqual(len(transaction), 4)
+        self.assertEqual(len(transaction), 6)
         state = transaction[0]["Put"]["Item"]
         self.assertEqual(state["state"], {"S": "enrolled"})
         self.assertEqual(state["consentEpochId"], {"S": EPOCH_ID})
@@ -154,6 +165,11 @@ class ParticipationServiceTests(unittest.TestCase):
         entitlement = transaction[3]["Put"]["Item"]
         self.assertEqual(entitlement["monthlyScanLimit"], {"N": "15"})
         self.assertEqual(entitlement["remainingMonthlyScans"], {"N": "15"})
+        self.assertEqual(transaction[4]["ConditionCheck"]["TableName"], "test-users")
+        self.assertEqual(
+            transaction[5]["ConditionCheck"]["TableName"],
+            "test-deletion-ledger",
+        )
 
     def test_withdraw_is_one_transaction_with_exact_deletion_command(self):
         users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state()
@@ -171,7 +187,7 @@ class ParticipationServiceTests(unittest.TestCase):
         self.assertEqual(result["state"], "withdrawal_pending")
         self.assertEqual(result["effectiveMonthlyScanLimit"], 10)
         transaction = client.transactions[0]
-        self.assertEqual(len(transaction), 5)
+        self.assertEqual(len(transaction), 7)
         self.assertEqual(transaction[3]["Put"]["Item"]["remainingMonthlyScans"], {"N": "3"})
         command = transaction[4]["Put"]
         self.assertEqual(command["TableName"], "test-deletion-ledger")
@@ -181,6 +197,25 @@ class ParticipationServiceTests(unittest.TestCase):
         )
         self.assertEqual(command["Item"]["status"], {"S": "PENDING"})
         self.assertEqual(command["Item"]["deleteByEpoch"], {"N": str(1_788_739_200 + 86400)})
+
+    def test_fixed_deletion_fence_blocks_reads_writes_and_replays(self):
+        ledger.items[("ACCOUNT#user-123", "ACCOUNT_DELETION")] = {
+            "PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION",
+            "status": "REQUESTED",
+        }
+        users.items[("USER#user-123", f"CAMPAIGN_OPERATION#{OPERATION_ID}")] = {
+            "PK": "USER#user-123", "SK": f"CAMPAIGN_OPERATION#{OPERATION_ID}",
+            "schemaVersion": 1, "recordVersion": 1, "operationId": OPERATION_ID,
+            "consentEpochId": EPOCH_ID, "action": "join",
+        }
+
+        for operation in (
+            lambda: service.get_participation("user-123"),
+            lambda: service.update_participation("user-123", payload()),
+        ):
+            with self.assertRaises(service.AppError) as raised:
+                operation()
+            self.assertEqual(raised.exception.code, "FORBIDDEN")
 
     def test_quota_adjustment_preserves_used_count_and_pro_is_unchanged(self):
         free = {"entitlementTier": "FREE", "monthlyScanLimit": 10, "remainingMonthlyScans": 3}

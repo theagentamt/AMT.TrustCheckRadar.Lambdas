@@ -23,6 +23,24 @@ DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS = 24 * 3600
 ANALYSIS_REQUEST_ID_TTL_SECONDS = 15 * 60
 HISTORY_DEDUP_RETENTION_DAYS = 120
 ANALYSIS_ABUSE_FAMILIES = ("REQUEST", "RATE", "SCAN_RATE", "CONSUMPTION")
+OUTBOX_LOCATOR_FIELDS = {
+    "PK", "SK", "recordType", "schemaVersion", "recordVersion",
+    "environment", "accountIdHash", "statisticsEventId", "eventPK",
+    "eventSK", "eventExpiresAt", "expiresAt",
+}
+USER_PROFILE_PREREQUISITES = (
+    "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY", "HISTORY",
+    "ANALYSIS_ABUSE", "CAMPAIGN", "CAMPAIGN_OUTBOX", "ENTITLEMENTS",
+)
+CONSENT_AUDIT_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "eventType", "occurredAt",
+    "noticeVersion", "policyVersion", "consentEpochId", "operationId",
+    "resultingState", "stateVersion", "effectiveMonthlyScanLimit", "expiresAt",
+}
+CONSENT_COMPLETION_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "eventType", "occurredAt",
+    "consentEpochId", "operationId", "resultingState", "expiresAt",
+}
 PAYLOAD_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
@@ -529,16 +547,284 @@ def delete_analysis_abuse_control(
     }
 
 
+def delete_campaign_outbox(
+    command, *, outbox_table, ledger_table, page_size=100, now_epoch=None,
+    locator_coverage_status="pending",
+    account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
+):
+    """Delete account-linked outbox content through exact same-table locators."""
+    command = validate_command(command, command["environment"])
+    if (
+        page_size != 100
+        or locator_coverage_status not in {"pending", "approved"}
+        or account_receipt_retention_days != 120
+    ):
+        raise ValueError("Invalid campaign-outbox deletion policy")
+    receipt_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#CAMPAIGN_OUTBOX",
+    }
+    progress_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#CAMPAIGN_OUTBOX_PROGRESS",
+    }
+    existing = ledger_table.get_item(
+        Key=receipt_key, ConsistentRead=True
+    ).get("Item")
+    if _valid_component_receipt(existing, command, "CAMPAIGN_OUTBOX"):
+        ledger_table.delete_item(Key=progress_key)
+        return {"deleted": 0, "complete": True, "alreadyComplete": True}
+    progress = ledger_table.get_item(
+        Key=progress_key, ConsistentRead=True
+    ).get("Item")
+    start_key = _progress_start_key(progress, command, "Campaign-outbox")
+    account_hash = hashlib.sha256(
+        command["accountId"].encode("utf-8")
+    ).hexdigest()
+    partition = f"ACCOUNT#{account_hash}"
+    kwargs = {
+        "KeyConditionExpression": "PK = :pk",
+        "ExpressionAttributeValues": {":pk": partition},
+        "ConsistentRead": True,
+        "Limit": page_size,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+    page = outbox_table.query(**kwargs)
+    deleted = 0
+    for locator in page.get("Items") or []:
+        event_id = _validate_outbox_locator(
+            locator, partition=partition, account_hash=account_hash,
+            environment=command["environment"],
+        )
+        event_key = {"PK": f"EVENT#{event_id}", "SK": "OBSERVATION_READY"}
+        event = outbox_table.get_item(
+            Key=event_key, ConsistentRead=True
+        ).get("Item")
+        if event:
+            if (
+                event.get("PK") != event_key["PK"]
+                or event.get("SK") != event_key["SK"]
+                or event.get("statisticsEventId") != event_id
+                or event.get("accountId") != command["accountId"]
+                or event.get("environment") != command["environment"]
+            ):
+                raise ValueError("Campaign-outbox locator target is invalid")
+            outbox_table.delete_item(
+                Key=event_key,
+                ConditionExpression=(
+                    "accountId = :account_id AND statisticsEventId = :event_id"
+                ),
+                ExpressionAttributeValues={
+                    ":account_id": command["accountId"], ":event_id": event_id,
+                },
+            )
+            deleted += 1
+        outbox_table.delete_item(
+            Key={"PK": locator["PK"], "SK": locator["SK"]},
+            ConditionExpression=(
+                "recordType = :record_type AND accountIdHash = :account_hash "
+                "AND statisticsEventId = :event_id"
+            ),
+            ExpressionAttributeValues={
+                ":record_type": "CAMPAIGN_OUTBOX_LOCATOR",
+                ":account_hash": account_hash,
+                ":event_id": event_id,
+            },
+        )
+        deleted += 1
+    continuation = page.get("LastEvaluatedKey")
+    if continuation and not _valid_key(continuation):
+        raise ValueError("Invalid campaign-outbox deletion continuation")
+    now = int(time.time()) if now_epoch is None else now_epoch
+    if continuation:
+        ledger_table.put_item(Item={
+            **progress_key,
+            "recordType": "ACCOUNT_DELETION_CAMPAIGN_OUTBOX_PROGRESS",
+            "schemaVersion": 1,
+            "operationId": command["operationId"],
+            "requestOccurredAtEpoch": command["occurredAtEpoch"],
+            "lastEvaluatedKey": dict(continuation),
+            "updatedAtEpoch": now,
+        })
+        return {"deleted": deleted, "complete": False, "alreadyComplete": False}
+    if locator_coverage_status != "approved":
+        return {
+            "deleted": deleted, "complete": False, "alreadyComplete": False,
+            "policyBlocked": "CAMPAIGN_OUTBOX_LOCATOR_COVERAGE",
+        }
+    receipt = _component_receipt(
+        command, "CAMPAIGN_OUTBOX", now,
+        retention_days=account_receipt_retention_days,
+    )
+    try:
+        ledger_table.put_item(
+            Item=receipt,
+            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        )
+    except Exception as err:
+        if _error_code(err) != "ConditionalCheckFailedException":
+            raise
+        existing = ledger_table.get_item(
+            Key=receipt_key, ConsistentRead=True
+        ).get("Item")
+        if not _valid_component_receipt(
+            existing, command, "CAMPAIGN_OUTBOX"
+        ):
+            raise
+    if progress:
+        ledger_table.delete_item(Key=progress_key)
+    return {"deleted": deleted, "complete": True, "alreadyComplete": False}
+
+
+def delete_user_profile_state(
+    command, *, users_table, ledger_table, page_size=100,
+    policy_status="pending", prerequisite_components=USER_PROFILE_PREREQUISITES,
+    now_epoch=None,
+    account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
+):
+    """Erase direct profile/current consent state after every producer drains."""
+    command = validate_command(command, command["environment"])
+    if (
+        page_size != 100
+        or policy_status not in {"pending", "approved"}
+        or tuple(prerequisite_components) != USER_PROFILE_PREREQUISITES
+        or account_receipt_retention_days != 120
+    ):
+        raise ValueError("Invalid user-profile deletion policy")
+    receipt_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#USER_PROFILE",
+    }
+    progress_key = {
+        "PK": command["PK"], "SK": "ACCOUNT_DELETION#USER_PROFILE_PROGRESS",
+    }
+    existing = ledger_table.get_item(
+        Key=receipt_key, ConsistentRead=True
+    ).get("Item")
+    if _valid_component_receipt(existing, command, "USER_PROFILE"):
+        ledger_table.delete_item(Key=progress_key)
+        return {"deleted": 0, "complete": True, "alreadyComplete": True}
+    if policy_status != "approved":
+        return {
+            "deleted": 0, "complete": False, "alreadyComplete": False,
+            "policyBlocked": "USER_PROFILE_DELETION",
+        }
+    missing = []
+    for component in prerequisite_components:
+        receipt = ledger_table.get_item(
+            Key={
+                "PK": command["PK"],
+                "SK": f"ACCOUNT_DELETION#{component}",
+            },
+            ConsistentRead=True,
+        ).get("Item")
+        if not _valid_component_receipt(receipt, command, component):
+            missing.append(component)
+    if missing:
+        return {
+            "deleted": 0, "complete": False, "alreadyComplete": False,
+            "policyBlocked": "USER_PROFILE_PREREQUISITES",
+            "missingComponents": missing,
+        }
+    progress = ledger_table.get_item(
+        Key=progress_key, ConsistentRead=True
+    ).get("Item")
+    start_key = _progress_start_key(progress, command, "User-profile")
+    partition = f"USER#{command['accountId']}"
+    kwargs = {
+        "KeyConditionExpression": "PK = :pk",
+        "ExpressionAttributeValues": {":pk": partition},
+        "ConsistentRead": True,
+        "Limit": page_size,
+    }
+    if start_key:
+        kwargs["ExclusiveStartKey"] = start_key
+    page = users_table.query(**kwargs)
+    deleted = 0
+    for item in page.get("Items") or []:
+        if item.get("PK") != partition or not isinstance(item.get("SK"), str):
+            raise ValueError("User-profile deletion returned an invalid key")
+        sk = item["SK"]
+        key = {"PK": partition, "SK": sk}
+        if sk == "PROFILE":
+            if (
+                item.get("sub") != command["accountId"]
+                or item.get("status") != "DELETION_REQUESTED"
+                or item.get("deletionOperationId") != command["operationId"]
+                or _exact_int(item.get("deletionRequestedAtEpoch"))
+                != command["occurredAtEpoch"]
+            ):
+                raise ValueError("Authoritative deletion profile is invalid")
+            users_table.delete_item(
+                Key=key,
+                ConditionExpression=(
+                    "#status = :requested AND deletionOperationId = :operation_id "
+                    "AND deletionRequestedAtEpoch = :requested_at"
+                ),
+                ExpressionAttributeNames={"#status": "status"},
+                ExpressionAttributeValues={
+                    ":requested": "DELETION_REQUESTED",
+                    ":operation_id": command["operationId"],
+                    ":requested_at": command["occurredAtEpoch"],
+                },
+            )
+            deleted += 1
+        elif sk == "CAMPAIGN_PARTICIPATION" or sk.startswith("CAMPAIGN_OPERATION#"):
+            users_table.delete_item(Key=key)
+            deleted += 1
+        elif sk.startswith("CAMPAIGN_CONSENT#"):
+            _validate_consent_audit(item, partition)
+        else:
+            raise ValueError("Unknown users-table item family during profile deletion")
+    continuation = page.get("LastEvaluatedKey")
+    if continuation and not _valid_key(continuation):
+        raise ValueError("Invalid user-profile deletion continuation")
+    now = int(time.time()) if now_epoch is None else now_epoch
+    if continuation:
+        ledger_table.put_item(Item={
+            **progress_key,
+            "recordType": "ACCOUNT_DELETION_USER_PROFILE_PROGRESS",
+            "schemaVersion": 1,
+            "operationId": command["operationId"],
+            "requestOccurredAtEpoch": command["occurredAtEpoch"],
+            "lastEvaluatedKey": dict(continuation),
+            "updatedAtEpoch": now,
+        })
+        return {"deleted": deleted, "complete": False, "alreadyComplete": False}
+    receipt = _component_receipt(
+        command, "USER_PROFILE", now,
+        retention_days=account_receipt_retention_days,
+    )
+    try:
+        ledger_table.put_item(
+            Item=receipt,
+            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
+        )
+    except Exception as err:
+        if _error_code(err) != "ConditionalCheckFailedException":
+            raise
+        existing = ledger_table.get_item(
+            Key=receipt_key, ConsistentRead=True
+        ).get("Item")
+        if not _valid_component_receipt(existing, command, "USER_PROFILE"):
+            raise
+    if progress:
+        ledger_table.delete_item(Key=progress_key)
+    return {"deleted": deleted, "complete": True, "alreadyComplete": False}
+
+
 def reconcile_session_revocations(
     *, environment, ledger_table, device_table, recovery_table, abuse_table,
+    outbox_table, users_table,
     user_pool_id, cognito,
     scan_limit, max_pages, device_page_size=100,
     recovery_page_size=100, analysis_abuse_page_size=100,
+    campaign_outbox_page_size=100,
     analysis_request_retention_seconds=ANALYSIS_REQUEST_ID_TTL_SECONDS,
     history_dedup_retention_days=HISTORY_DEDUP_RETENTION_DAYS,
     analysis_request_dedupe_policy_status="pending",
     analysis_legacy_request_retention_policy_status="pending",
     analysis_consumption_deletion_policy_status="pending",
+    campaign_outbox_locator_coverage_status="pending",
+    user_profile_deletion_policy_status="pending",
     now=lambda: int(time.time()),
 ):
     checkpoint_key = {
@@ -562,6 +848,12 @@ def reconcile_session_revocations(
         "analysisAbuseRecordsMinimized": 0,
         "analysisAbuseComponentsCompleted": 0,
         "analysisAbusePolicyBlocked": 0,
+        "campaignOutboxRecordsDeleted": 0,
+        "campaignOutboxComponentsCompleted": 0,
+        "campaignOutboxPolicyBlocked": 0,
+        "userProfileRecordsDeleted": 0,
+        "userProfileComponentsCompleted": 0,
+        "userProfilePolicyBlocked": 0,
     }
     truncated = False
     for page_number in range(max_pages):
@@ -633,6 +925,31 @@ def reconcile_session_revocations(
             )
             totals["analysisAbusePolicyBlocked"] += (
                 1 if abuse_result.get("policyBlocked") else 0
+            )
+            outbox_result = delete_campaign_outbox(
+                command, outbox_table=outbox_table, ledger_table=ledger_table,
+                page_size=campaign_outbox_page_size,
+                locator_coverage_status=campaign_outbox_locator_coverage_status,
+                now_epoch=now(),
+            )
+            totals["campaignOutboxRecordsDeleted"] += outbox_result["deleted"]
+            totals["campaignOutboxComponentsCompleted"] += (
+                1 if outbox_result["complete"] else 0
+            )
+            totals["campaignOutboxPolicyBlocked"] += (
+                1 if outbox_result.get("policyBlocked") else 0
+            )
+            profile_result = delete_user_profile_state(
+                command, users_table=users_table, ledger_table=ledger_table,
+                page_size=100, policy_status=user_profile_deletion_policy_status,
+                now_epoch=now(),
+            )
+            totals["userProfileRecordsDeleted"] += profile_result["deleted"]
+            totals["userProfileComponentsCompleted"] += (
+                1 if profile_result["complete"] else 0
+            )
+            totals["userProfilePolicyBlocked"] += (
+                1 if profile_result.get("policyBlocked") else 0
             )
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
@@ -776,6 +1093,63 @@ def _validate_analysis_abuse_key(item, partition):
         or not REQUEST_ID_PATTERN.fullmatch(item["SK"])
     ):
         raise ValueError("Analysis-abuse query returned an invalid key")
+
+
+def _validate_outbox_locator(
+    item, *, partition, account_hash, environment,
+):
+    event_id = item.get("statisticsEventId") if isinstance(item, dict) else None
+    event_expires = _exact_int(item.get("eventExpiresAt")) if isinstance(item, dict) else None
+    expires = _exact_int(item.get("expiresAt")) if isinstance(item, dict) else None
+    if (
+        not isinstance(item, dict)
+        or set(item) != OUTBOX_LOCATOR_FIELDS
+        or item.get("PK") != partition
+        or item.get("SK") != f"OUTBOX#{event_id}"
+        or item.get("recordType") != "CAMPAIGN_OUTBOX_LOCATOR"
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or item.get("environment") != environment
+        or item.get("accountIdHash") != account_hash
+        or not _is_uuid4(event_id)
+        or item.get("eventPK") != f"EVENT#{event_id}"
+        or item.get("eventSK") != "OBSERVATION_READY"
+        or event_expires is None
+        or expires != event_expires + 24 * 3600
+    ):
+        raise ValueError("Invalid campaign-outbox locator")
+    return event_id
+
+
+def _validate_consent_audit(item, partition):
+    fields = set(item)
+    if fields == CONSENT_AUDIT_FIELDS:
+        allowed_events = {
+            "campaign.participation.joined",
+            "campaign.participation.withdrawal_requested",
+        }
+    elif fields == CONSENT_COMPLETION_FIELDS:
+        allowed_events = {"campaign.participation.withdrawal_completed"}
+    else:
+        raise ValueError("Consent audit fields are invalid")
+    parts = item["SK"].split("#")
+    expires = _exact_int(item.get("expiresAt"))
+    occurred = (
+        int(parts[2])
+        if len(parts) >= 4 and parts[2].isdigit()
+        else None
+    )
+    if (
+        item.get("PK") != partition
+        or item.get("eventType") not in allowed_events
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or occurred is None
+        or expires != occurred + 400 * 86400
+        or not _is_uuid4(item.get("consentEpochId"))
+        or not _is_uuid4(item.get("operationId"))
+    ):
+        raise ValueError("Consent audit is invalid")
 
 
 def _minimal_analysis_request(

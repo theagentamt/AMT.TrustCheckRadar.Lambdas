@@ -11,8 +11,10 @@ from service import (
     AccountDeletionService,
     command_from_stream,
     delete_analysis_abuse_control,
+    delete_campaign_outbox,
     delete_device_bindings,
     delete_device_recovery_control,
+    delete_user_profile_state,
     ensure_session_revoked,
     reconcile_session_revocations,
 )
@@ -128,6 +130,30 @@ def _attempt_post_fence_cleanup(account_id):
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
         )
+        delete_campaign_outbox(
+            command,
+            outbox_table=boto3.resource("dynamodb").Table(
+                config.CAMPAIGN_OUTBOX_TABLE_NAME
+            ),
+            ledger_table=ledger,
+            page_size=config.ACCOUNT_DELETION_CAMPAIGN_OUTBOX_PAGE_SIZE,
+            locator_coverage_status=(
+                config.CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS
+            ),
+            account_receipt_retention_days=(
+                config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+            ),
+        )
+        delete_user_profile_state(
+            command,
+            users_table=boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME),
+            ledger_table=ledger,
+            page_size=100,
+            policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+            account_receipt_retention_days=(
+                config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+            ),
+        )
     except Exception:
         # The durable stream consumer retries revocation. The deletion fence is
         # never rolled back because an external identity call failed.
@@ -145,6 +171,10 @@ def _stream_handler(event):
         config.DEVICE_RECOVERY_CONTROL_TABLE_NAME
     )
     abuse_table = boto3.resource("dynamodb").Table(config.ANALYSIS_ABUSE_TABLE_NAME)
+    outbox_table = boto3.resource("dynamodb").Table(
+        config.CAMPAIGN_OUTBOX_TABLE_NAME
+    )
+    users_table = boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME)
     cognito = boto3.client("cognito-idp")
     for record in event["Records"]:
         try:
@@ -192,6 +222,24 @@ def _stream_handler(event):
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
                 )
+                delete_campaign_outbox(
+                    command, outbox_table=outbox_table, ledger_table=ledger,
+                    page_size=config.ACCOUNT_DELETION_CAMPAIGN_OUTBOX_PAGE_SIZE,
+                    locator_coverage_status=(
+                        config.CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS
+                    ),
+                    account_receipt_retention_days=(
+                        config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+                    ),
+                )
+                delete_user_profile_state(
+                    command, users_table=users_table, ledger_table=ledger,
+                    page_size=100,
+                    policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+                    account_receipt_retention_days=(
+                        config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
+                    ),
+                )
         except Exception:
             LOGGER.exception("Account-deletion post-fence stream record failed")
             identifier = (record.get("dynamodb") or {}).get("SequenceNumber")
@@ -215,12 +263,18 @@ def _reconciliation_handler():
         abuse_table = boto3.resource("dynamodb").Table(
             config.ANALYSIS_ABUSE_TABLE_NAME
         )
+        outbox_table = boto3.resource("dynamodb").Table(
+            config.CAMPAIGN_OUTBOX_TABLE_NAME
+        )
+        users_table = boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME)
         result = reconcile_session_revocations(
             environment=config.APP_ENVIRONMENT,
             ledger_table=ledger,
             device_table=device_table,
             recovery_table=recovery_table,
             abuse_table=abuse_table,
+            outbox_table=outbox_table,
+            users_table=users_table,
             user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"),
             scan_limit=config.ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT,
@@ -229,6 +283,15 @@ def _reconciliation_handler():
             recovery_page_size=config.ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE,
             analysis_abuse_page_size=(
                 config.ACCOUNT_DELETION_ANALYSIS_ABUSE_PAGE_SIZE
+            ),
+            campaign_outbox_page_size=(
+                config.ACCOUNT_DELETION_CAMPAIGN_OUTBOX_PAGE_SIZE
+            ),
+            campaign_outbox_locator_coverage_status=(
+                config.CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS
+            ),
+            user_profile_deletion_policy_status=(
+                config.USER_PROFILE_DELETION_POLICY_STATUS
             ),
             analysis_request_retention_seconds=(
                 config.ANALYSIS_REQUEST_ID_TTL_SECONDS
@@ -327,6 +390,12 @@ def _reconciliation_metric(result):
         "AccountDeletionAnalysisAbuseRecordsMinimized": result["analysisAbuseRecordsMinimized"],
         "AccountDeletionAnalysisAbuseComponentsCompleted": result["analysisAbuseComponentsCompleted"],
         "AccountDeletionAnalysisAbusePolicyBlocked": result["analysisAbusePolicyBlocked"],
+        "AccountDeletionCampaignOutboxRecordsDeleted": result["campaignOutboxRecordsDeleted"],
+        "AccountDeletionCampaignOutboxComponentsCompleted": result["campaignOutboxComponentsCompleted"],
+        "AccountDeletionCampaignOutboxPolicyBlocked": result["campaignOutboxPolicyBlocked"],
+        "AccountDeletionUserProfileRecordsDeleted": result["userProfileRecordsDeleted"],
+        "AccountDeletionUserProfileComponentsCompleted": result["userProfileComponentsCompleted"],
+        "AccountDeletionUserProfilePolicyBlocked": result["userProfilePolicyBlocked"],
         "SessionRevocationReconciliationWorksetTruncated": 1 if result["worksetTruncated"] else 0,
         "SessionRevocationReconciliationFullPassCompleted": 1 if result["completedFullPass"] else 0,
     }

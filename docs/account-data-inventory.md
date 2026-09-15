@@ -93,7 +93,7 @@ the product promises an erasure SLA.
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
 | Cognito user | User Pool username and `sub`; standard/custom attributes may include email, phone, name and age acknowledgement | Cognito creates/authenticates it. `post_confirmation`, `age_attestation`, and every protected API consume claims/trigger attributes. `account_data_api` currently calls global sign-out only. | No `AdminDeleteUser` finalizer. No account export implementation. | **Erasable identity.** Session revocation is not deletion. Decide username/sub mapping, final deletion ordering, retry behavior, attribute export, and how status remains available after the identity is deleted. |
-| Users `PROFILE` | `PK=USER#<sub>`, `SK=PROFILE`; `sub`, email, given/family name, phone, age acknowledgement/status/timestamps, and deletion operation metadata | Created by `src/post_confirmation/app.py`; updated by `src/age_attestation/app.py` and `src/account_data_api/service.py`; read/condition-checked by protected account, device, History and analysis paths. Profile creation and age updates now condition-check absence of the fixed deletion fence in the same transaction. | Deletion request atomically changes status to `DELETION_REQUESTED`, but no final profile minimizer/deleter exists. No full export. | Direct identifiers are **erasable**. A minimal account-deleted tombstone may be necessary, but its exact fields, location and retention are not approved. Do not retain contact/profile attributes in that tombstone. |
+| Users `PROFILE` | `PK=USER#<sub>`, `SK=PROFILE`; `sub`, email, given/family name, phone, age acknowledgement/status/timestamps, and deletion operation metadata | Created by `src/post_confirmation/app.py`; updated by `src/age_attestation/app.py` and `src/account_data_api/service.py`; read/condition-checked by protected account, device, History, campaign, purchase and analysis paths. All known writers now fence transactionally. | Deletion request atomically changes status to `DELETION_REQUESTED`. A source worker can conditionally delete the profile and current campaign state only after exact prerequisite receipts, but its explicit policy status remains pending. No full export. | Direct identifiers are **erasable**. The fixed ledger remains the anti-recreation fence; final fence/tombstone retention and identity completion are still unapproved. No contact/profile attributes are retained by the profile worker. |
 
 The Dev metadata audit found the existing post-confirmation log group has no
 retention while 16 other matching Lambda/API groups have 14 days. The approved
@@ -114,7 +114,7 @@ post-confirmation target is 14 days, but applying it remains infrastructure work
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
 | Entitlement state | Entitlements table `PK=USER#<sub>`, `SK=ENTITLEMENT#google_play#trustcheck_radar_pro_monthly`; compatibility `SK=ENTITLEMENT`; account ID, platform/product, billing periods, status, order/token hashes, access and quota state | `purchase_handoff`, `conversation_analysis`, and `campaign_participation` write; `entitlement_snapshot`, analysis and participation read | No account deletion worker or full export. | Mixed **erasable service state** and potentially **necessary purchase/audit evidence**. Finance/legal must approve exact retained receipt fields and duration before a minimizer is implemented. Raw entitlement state must not survive merely because some billing evidence is retained. |
-| Purchase-token idempotency | `PK=TOKEN#<sha256(purchaseToken)>`, `SK=IDEMPOTENCY`; plaintext `accountId`, product/platform, verification and billing-period values; no TTL | `src/purchase_handoff/idempotency.py` reads/writes by token hash | A `USER#<sub>` query cannot discover these rows. No account locator, deletion worker or export path exists. | **Blocking discovery gap.** Preferred proposal: atomically add a `USER#<sub>/PURCHASE_TOKEN#<hash>` locator in the existing entitlements table for new writes, without a new table/GSI. Deletion can enumerate locators while the token-keyed record continues to prevent cross-account token reuse. Exact minimization/retention and legacy backfill remain unapproved. |
+| Purchase-token idempotency | `PK=TOKEN#<sha256(purchaseToken)>`, `SK=IDEMPOTENCY`; plaintext `accountId`, product/platform, verification and billing-period values; no TTL | `src/purchase_handoff/idempotency.py` reads/writes by token hash | New accepted/rejected token and entitlement writes are atomic with active-profile and absent-deletion-fence checks, and replay reads fail after the fence. A `USER#<sub>` query still cannot discover token rows; no account locator, deletion worker or export path exists. | **Blocking discovery/retention gap.** Preferred locator design remains unapproved. Exact anti-replay minimization/retention and legacy backfill must be decided before an `ENTITLEMENTS` receipt exists. |
 | Usage counters | `PK=USER#<sub>`, `SK=USAGE#<periodKey>`; usage counts/period | `entitlement_snapshot` reads. No Lambda writer exists in this repository, so the external producer must be identified. Infrastructure reports a current 548-day default. | No deletion/export worker. | **Inventory-owner blocker.** Identify the writer and authoritative retention basis. Do not silently replace 548 days with the unrelated History retention. |
 
 Google Play is an external source/processor for purchase verification. Its account,
@@ -159,9 +159,9 @@ expiry lanes and replay redactions reconciled before traffic is admitted.
 
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
-| Current participation | Users `PK=USER#<sub>`, `SK=CAMPAIGN_PARTICIPATION`; state/version, notice/policy, consent epoch and effective/withdrawal timestamps | `campaign_participation` writes; entitlement, analysis and publisher read/condition-check | Withdrawal transitions to `withdrawn` only after contribution deletion. Full account deletion invokes campaign cleanup but does not minimize/remove current state. | Active consent state is **erasable** after withdrawal/account deletion. A minimal withdrawal proof may remain, but current direct-sub record policy is unapproved. |
+| Current participation | Users `PK=USER#<sub>`, `SK=CAMPAIGN_PARTICIPATION`; state/version, notice/policy, consent epoch and effective/withdrawal timestamps | `campaign_participation` writes; entitlement, analysis and publisher read/condition-check. GET/PUT/replay now strongly check the profile/fence and PUT repeats both checks transactionally. | Withdrawal transitions to `withdrawn` only after contribution deletion. The gated `USER_PROFILE` worker deletes current participation and operation records after all producer components, while preserving exact approved consent audits. | Active consent state is **erasable** after withdrawal/account deletion. Existing exact 400-day consent audit evidence is preserved separately. |
 | Participation operation | Users `PK=USER#<sub>`, `SK=CAMPAIGN_OPERATION#<operationId>`; action, epoch, resulting state/time | Participation API writes/reads for replay | 400-day `expiresAt`; no explicit full-account cleanup/export | **Minimal idempotency/audit candidate**, but 400-day retention is policy-specific and cannot be silently changed. Approve fields, duration, physical sweep and export treatment. |
-| Consent audit | Users `PK=USER#<sub>`, `SK=CAMPAIGN_CONSENT#<epoch>#<time>#<operationId>` and completion variant; notice/policy/state/limit/time | Participation and deletion bridge write | 400-day `expiresAt`; no product-wide export or explicit users-table sweep | Likely **necessary minimal consent audit**. Direct subject linkage and 400-day retention need privacy/legal approval plus backup non-resurrection rules. |
+| Consent audit | Users `PK=USER#<sub>`, `SK=CAMPAIGN_CONSENT#<epoch>#<time>#<operationId>` and completion variant; notice/policy/state/limit/time | Participation and deletion bridge write | Approved 400-day `expiresAt`. The profile worker validates the two exact source shapes and preserves them unchanged while removing current participation/operation state. | **Approved minimal consent evidence for 400 days.** Restore/non-resurrection and physical expiry evidence are still required before activation. |
 | Campaign withdrawal command | Ledger `PK=ACCOUNT#<sub>`, `SK=CAMPAIGN_WITHDRAWAL#<operationId>`; direct account, epoch, deadline/status | Participation writes; deletion bridge consumes/updates | Remains as protected operation evidence; no TTL in Lambda contract | **Necessary work record then minimal audit.** Retention and final minimization are unresolved. |
 | Account deletion command | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION`; operation/status/deadline | `account_data_api` writes; all protected writers fence against it; deletion bridges/reconcilers read | Fixed fence intentionally persists; overall completion/finalizer is absent | **Necessary deletion fence/tombstone.** Exact retained fields and duration must be approved. It must survive long enough to prevent restored/queued work from recreating data. |
 | Component/progress receipts | Ledger `PK=ACCOUNT#<sub>`, `SK=ACCOUNT_DELETION#<COMPONENT>` and bounded progress items; request binding, completion time and `retainUntilEpoch` | Account, History and campaign workers | Session, device, device-recovery, History and campaign receipts exist. The analysis-abuse receipt is emitted only when all three owner-approved analysis policy decisions are explicitly enabled. New receipts use the approved 120-day minimal contract. Progress is removed after completion. | **Necessary work/idempotency evidence.** Ledger TTL remains disabled; controlled retirement is blocked until verified backup/replay coverage and overall finalization exist. |
@@ -190,7 +190,7 @@ stream, outbox or queue can serve traffic.
 
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
-| Observation outbox | Outbox `PK=EVENT#<statisticsEventId>`, `SK=OBSERVATION_READY`; direct `accountId`, consent epoch/notice, sanitized text, bounded features/signals and assessment metadata; maximum 72-hour `expiresAt` | Analysis transaction writes; publisher stream reads and marks delivery state through its dedupe protocol | Publisher rechecks consent before downstream persistence, but account deletion cannot find/delete event-keyed rows; no account index or explicit expiry sweeper is present | **Erasable content. Critical gap:** add an existing-table subject access pattern or approved registry and a bounded outbox cleanup/reconciliation component. TTL/stream expiry is not proof. |
+| Observation outbox | Outbox `PK=EVENT#<statisticsEventId>`, `SK=OBSERVATION_READY`; direct `accountId`, consent epoch/notice, sanitized text, bounded features/signals and assessment metadata; maximum 72-hour `expiresAt` | Analysis transaction writes; publisher stream reads and marks delivery state through its dedupe protocol | New opted-in writes atomically add exact `ACCOUNT#<sha256(sub)>/OUTBOX#<eventId>` locators whose TTL is 24 hours later than the content row. Publisher validates/skips locator stream records and condition-checks the fixed deletion fence before pipeline persistence. The account worker strongly queries locators, validates the event still belongs to the same subject/environment, conditionally deletes event first and locator second, and reconciles. | **Erasable content.** Receipt is blocked while `CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS=pending`; no live legacy outbox inventory/backfill proof exists. Locator ordering covers the 24-hour deletion window for new writes, but TTL is not physical deletion proof and an explicit general expiry/restore contract is still required. |
 | Pipeline feature | `PK=EVENT#<eventId>`, `SK=FEATURE`; period HMAC contributor token, vector and bounded features; no direct account ID; 21-day transient expiry index | Publisher writes; clusterer reads; deletion bridge queries by contributor GSI | Active/recovery token derivation deletes it plus siblings and writes a tombstone first | **Erasable rotating-pseudonymous contribution.** Deployed backup/DLQ non-resurrection and expiration-sweep evidence is still required. |
 | Publisher/cluster dedupe | `EVENT#<eventId>/DEDUPE` and `EVENT#<eventId>/CLUSTERED`; event outcome/state and transient expiry | Publisher/clusterer | Deletion bridge deletes feature siblings; campaign lifecycle explicitly expires indexed transient records | **Minimal transient idempotency records**, but event linkage stays in scope while outbox or feature linkage exists. |
 | Candidate contribution | `PK=CANDIDATE#<candidateId>`, `SK=CONTRIB#<contributorToken>` plus contributor GSI; vector/features/count | Clusterer writes; lifecycle finalizer and deletion bridge query/recompute | Deletion bridge deletes matching contributions and recomputes candidate; lifecycle deletes candidates after finalization | **Erasable rotating-pseudonymous contribution.** |
@@ -273,15 +273,15 @@ legacy rows, completely deletes local scan-consumption, and then may receipt.
    Minimize approved purchase evidence and write a receipt. IAM must not allow a
    table scan. Legacy discovery/backfill, locator retention and financial evidence
    retention require approval first.
-2. `CAMPAIGN_OUTBOX`: discover direct-account outbox records through an approved
-   existing-table access path, delete content, and ensure publisher retries cannot
-   recreate pipeline records; write a receipt distinct from pseudonymous campaign
-   cleanup if independent completion is needed. IAM must not allow an unbounded
-   scan.
-3. `USER_PROFILE`: only after all producers are fenced and their component work is
-   complete, erase profile identifiers and non-required users-partition state;
-   retain only approved consent/deletion minima. IAM: exact `USER#<sub>` partition,
-   conditional updates/deletes and the fixed ledger receipt.
+2. `CAMPAIGN_OUTBOX`: the new-write locator, bounded cleanup, delayed-publisher
+   fence, receipt and reconciliation paths are source-implemented. Receipt remains
+   blocked until legacy/backfill coverage is explicitly approved; TTL ordering and
+   restore evidence remain required. IAM must not allow an unbounded scan.
+3. `USER_PROFILE`: the source worker deletes profile/current participation and
+   operation state, preserves exact approved 400-day consent audits, rejects
+   unknown families, and receipts only after every upstream component including
+   `ENTITLEMENTS`. Its policy flag remains pending and must not be enabled while
+   the entitlement component is absent.
 4. `IDENTITY`: after every required receipt and export/final-status prerequisite,
    call Cognito `AdminDeleteUser` with an explicit username mapping; treat
    `UserNotFoundException` as idempotent only when the deletion command matches;
@@ -347,9 +347,10 @@ The safe proposed ordering is:
    and component minima for their exact approved durations.
 
 This is the accepted export/deletion dependency order, but overall activation is
-not approved. The source currently implements steps 1, session revocation,
-device-binding cleanup, recovery-control cleanup/minimization, History cleanup and
-campaign contribution cleanup only. It deliberately cannot mark overall completion.
+not approved. Source now also contains gated analysis, outbox, and profile/current
+consent cleanup plus additional writer fences. `ENTITLEMENTS`, final Cognito
+identity deletion, export, restore evidence, and final fence completion remain
+absent, so it deliberately cannot mark overall completion.
 
 ## Evidence required before changing inventory status to approved
 
@@ -406,6 +407,19 @@ Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
   tombstones within their separately approved 120-day ceiling. It cannot receipt
   unless all three explicit policy flags are approved. Corresponding
   conversation-analysis writers share the fixed deletion fence transactionally.
+- Opted-in analysis writes an exact account-to-outbox locator in the same fenced
+  transaction. Publisher pipeline writes independently condition-check the fixed
+  deletion fence. Account-data outbox cleanup validates same-subject ownership and
+  deletes event content before its locator; malformed/cross-subject locators fail
+  closed. Its receipt is impossible while legacy coverage is pending.
+- Campaign-participation and purchase-handoff reads/replays now strongly reject the
+  fixed deletion fence, and every state write repeats profile/fence checks in the
+  same transaction. Purchase-token deletion/retention remains unresolved; this
+  change only prevents post-fence recreation.
+- A gated `USER_PROFILE` worker removes direct profile/current participation and
+  operation state only after exact receipts for every upstream producer. It
+  validates and preserves the approved 400-day consent audit shapes. The pending
+  policy flag and missing `ENTITLEMENTS` receipt prevent premature use.
 - Account deletion component receipts now carry `retainUntilEpoch` at the approved
   120-day boundary. This is retention metadata, not DynamoDB TTL; ledger TTL remains
   disabled and retirement requires backup/replay evidence. Legacy receipts missing

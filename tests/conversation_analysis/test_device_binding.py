@@ -1,6 +1,7 @@
 import sys
 import types
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
@@ -67,6 +68,23 @@ class ConversationAnalysisDeviceBindingTests(unittest.TestCase):
         event = {"headers": {"X-Device-Binding-Fingerprint": "fp-1"}}
 
         device_binding.assert_active_device_binding(event, "user-123")
+
+    def test_accepts_sdk_decimal_pointer_version(self):
+        fake_table.items[("USER#user-123", "ACTIVE_BINDING")] = {
+            "PK": "USER#user-123", "SK": "ACTIVE_BINDING",
+            "recordType": "ACTIVE_BINDING_POINTER", "schemaVersion": 1,
+            "bindingFingerprint": "fp-1", "stateVersion": Decimal("3"),
+        }
+        fake_table.items[("USER#user-123", "DEVICE#fp-1")] = {
+            "PK": "USER#user-123", "SK": "DEVICE#fp-1",
+            "accountId": "user-123", "bindingFingerprint": "fp-1",
+            "status": "ACTIVE",
+        }
+
+        device_binding.assert_active_device_binding(
+            {"headers": {"X-Device-Binding-Fingerprint": "fp-1"}},
+            "user-123",
+        )
 
     def test_rejects_missing_header(self):
         with self.assertRaises(AppError) as context:

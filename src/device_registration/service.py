@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import boto3
 
@@ -169,7 +170,15 @@ def _require_table():
 
 
 def _positive_version(value):
-    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 1 else None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value >= 1 else None
+    if isinstance(value, Decimal):
+        if not value.is_finite() or value != value.to_integral_value() or value < 1:
+            return None
+        return int(value)
+    return None
 
 
 def _authority_conditions(account_id):
