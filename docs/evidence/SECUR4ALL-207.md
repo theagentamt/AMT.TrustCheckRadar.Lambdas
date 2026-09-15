@@ -14,15 +14,42 @@ PITR when provisioned, plus 120-day minimal account-deletion receipts. The
 late-writer fencing in source. Overall deletion remains gated by every other
 inventory component and verified backup/replay coverage.
 
-The owner also confirmed that billing is app-store authoritative with no separate
-local scan-consumption retention requirement. The `ANALYSIS_ABUSE` component now
-drains the deterministic REQUEST, RATE, SCAN_RATE and CONSUMPTION partitions in
-strongly consistent pages of 100. It deletes rate/consumption rows and expired
-requests, reduces unexpired requests to the exact content-free dedupe allowlist
-without extending their approved 24-hour expiry, persists operation-bound family
-progress, and writes the exact component receipt only after all four families.
-Every analysis write that can create or restore those records now shares the
-active-profile/deletion-ledger fence in the same DynamoDB transaction.
+Billing is app-store authoritative, but that does not establish whether local scan
+consumption has an independent quota/dedup/security retention purpose. The
+`ANALYSIS_ABUSE` component processes deterministic REQUEST, RATE and SCAN_RATE
+partitions in strongly consistent pages of 100, persists operation-bound progress,
+then stops before CONSUMPTION while its policy is pending. It removes request
+content and authorization/event metadata without extending or silently shortening
+the existing expiry. History-first 120-day `COMPLETED_ERASED` tombstones are
+accepted and minimized, and History cleanup after analysis cleanup writes the same
+exact content-free shape with expiry anchored to the deletion request so retries
+cannot extend retention. Every analysis write that can create or restore those
+records now shares the active-profile/deletion-ledger fence in the same DynamoDB
+transaction. No analysis-abuse component receipt can be issued while any ordinary
+request-dedupe, legacy-request-retention, or scan-consumption policy gate is
+pending.
+
+Retention evidence and recommendation:
+
+- The pre-change conversation-analysis source default for
+  `REQUEST_ID_TTL_SECONDS` is 900 seconds. Current Dev infrastructure inputs do
+  not set that variable. The older 86400-second deployment example was not an
+  owner approval and has been removed as a default claim.
+- History lifecycle uses its separate `HISTORY_DEDUP_RETENTION_DAYS` contract
+  (Dev/default 120 days) and can legitimately create a longer-lived
+  `COMPLETED_ERASED` analysis replay tombstone. This is not the 120-day account
+  component-receipt retention contract even though the number is the same.
+- No live analysis rows were read, so the presence or provenance of legacy
+  ordinary request rows with longer expiry is unknown.
+- Recommendation: keep the ordinary writer default at 900 seconds and do not
+  expand it until product/security approves an exact need. Content-minimize any
+  valid longer-lived History tombstone without shortening its approved expiry.
+  For any other longer-lived legacy row, fail closed pending provenance rather
+  than shorten, delete, or bless it automatically.
+- Required decisions: approve the ordinary request-dedupe duration and legacy
+  longer-expiry treatment; separately approve whether local scan-consumption is
+  deleted or minimized, with exact retained fields, purpose, duration, access,
+  and backup/restore treatment.
 
 Previously implemented campaign lifecycle and withdrawal evidence remains:
 
@@ -89,7 +116,7 @@ Automated evidence:
 - `tests/device_registration` and `tests/device_recovery`
 - `tests/shared_history` and analysis/history race coverage
 
-Current local result: **293 passed, 129 subtests passed**. Deterministic package
+Current local result: **296 passed, 129 subtests passed**. Deterministic package
 builds and checksum verification also pass.
 
 The story must not be marked complete or activated yet. Remaining prerequisites

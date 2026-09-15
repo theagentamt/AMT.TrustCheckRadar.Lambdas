@@ -114,6 +114,16 @@ def _attempt_post_fence_cleanup(account_id):
             ledger_table=ledger,
             page_size=config.ACCOUNT_DELETION_ANALYSIS_ABUSE_PAGE_SIZE,
             request_retention_seconds=config.ANALYSIS_REQUEST_ID_TTL_SECONDS,
+            history_dedup_retention_days=config.HISTORY_DEDUP_RETENTION_DAYS,
+            request_dedupe_policy_status=(
+                config.ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS
+            ),
+            legacy_request_retention_policy_status=(
+                config.ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS
+            ),
+            consumption_deletion_policy_status=(
+                config.ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS
+            ),
             account_receipt_retention_days=(
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
@@ -166,6 +176,18 @@ def _stream_handler(event):
                     command, abuse_table=abuse_table, ledger_table=ledger,
                     page_size=config.ACCOUNT_DELETION_ANALYSIS_ABUSE_PAGE_SIZE,
                     request_retention_seconds=config.ANALYSIS_REQUEST_ID_TTL_SECONDS,
+                    history_dedup_retention_days=(
+                        config.HISTORY_DEDUP_RETENTION_DAYS
+                    ),
+                    request_dedupe_policy_status=(
+                        config.ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS
+                    ),
+                    legacy_request_retention_policy_status=(
+                        config.ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS
+                    ),
+                    consumption_deletion_policy_status=(
+                        config.ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS
+                    ),
                     account_receipt_retention_days=(
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
@@ -207,6 +229,19 @@ def _reconciliation_handler():
             recovery_page_size=config.ACCOUNT_DELETION_RECOVERY_DELETE_PAGE_SIZE,
             analysis_abuse_page_size=(
                 config.ACCOUNT_DELETION_ANALYSIS_ABUSE_PAGE_SIZE
+            ),
+            analysis_request_retention_seconds=(
+                config.ANALYSIS_REQUEST_ID_TTL_SECONDS
+            ),
+            history_dedup_retention_days=config.HISTORY_DEDUP_RETENTION_DAYS,
+            analysis_request_dedupe_policy_status=(
+                config.ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS
+            ),
+            analysis_legacy_request_retention_policy_status=(
+                config.ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS
+            ),
+            analysis_consumption_deletion_policy_status=(
+                config.ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS
             ),
         )
         _reconciliation_metric(result)
@@ -291,6 +326,7 @@ def _reconciliation_metric(result):
         "AccountDeletionAnalysisAbuseRecordsDeleted": result["analysisAbuseRecordsDeleted"],
         "AccountDeletionAnalysisAbuseRecordsMinimized": result["analysisAbuseRecordsMinimized"],
         "AccountDeletionAnalysisAbuseComponentsCompleted": result["analysisAbuseComponentsCompleted"],
+        "AccountDeletionAnalysisAbusePolicyBlocked": result["analysisAbusePolicyBlocked"],
         "SessionRevocationReconciliationWorksetTruncated": 1 if result["worksetTruncated"] else 0,
         "SessionRevocationReconciliationFullPassCompleted": 1 if result["completedFullPass"] else 0,
     }

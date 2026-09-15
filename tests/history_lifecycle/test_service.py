@@ -132,6 +132,7 @@ class AbuseTable:
     def __init__(self, items=None, *, fail_updates=0):
         self.items = items or {}
         self.updates = []
+        self.puts = []
         self.fail_updates = fail_updates
 
     def query(self, **kwargs):
@@ -157,6 +158,18 @@ class AbuseTable:
         item.pop("response", None)
         item["status"] = "COMPLETED_ERASED"
         self.updates.append(key)
+        return {}
+
+    def put_item(self, Item, **kwargs):
+        key = (Item["PK"], Item["SK"])
+        current = self.items.get(key)
+        expected = (kwargs.get("ExpressionAttributeValues") or {}).get(
+            ":payload_hash"
+        )
+        if not current or current.get("payloadHash") != expected:
+            raise ConditionalFailure()
+        self.items[key] = dict(Item)
+        self.puts.append(dict(Item))
         return {}
 
 
@@ -231,6 +244,51 @@ class HistoryLifecycleTests(unittest.TestCase):
             "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
         )
         self.assertEqual(ledger.puts[0]["retainUntilEpoch"], 100 + 120 * 86400)
+
+    def test_history_after_analysis_cleanup_keeps_replay_exact_and_content_free(self):
+        class Settings120(Settings):
+            dedup_retention_days = 120
+
+        partition = f"ANALYSIS#REQUEST#{_account_hash('a')}"
+        abuse = AbuseTable({
+            (partition, "request-1"): {
+                "PK": partition, "SK": "request-1",
+                "status": "COMPLETED_ERASED", "payloadHash": "a" * 64,
+                "expiresAt": 500, "ttl": 500,
+            },
+        })
+        state = {
+            "PK": "USER#a", "SK": "STATE", "accountStatus": "DELETING",
+            "historyGeneration": 0, "recognitionGeneration": 0,
+            "acceptedSequence": 0,
+        }
+        job = {
+            "PK": "USER#a", "SK": "ERASURE#op", "recordType": "ERASURE",
+            "status": "PENDING", "stage": "REPLAY", "historyGeneration": 0,
+            "maxHistoryGeneration": 0, "operationId": "op",
+            "reason": "ACCOUNT_DELETION", "deletionLedgerPK": "ACCOUNT#a",
+            "deletionLedgerSK": "ACCOUNT_DELETION",
+            "deletionRequestedAtEpoch": 90,
+            "deletionOperationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+        }
+        control = ControlTable({
+            ("USER#a", "STATE"): state, ("USER#a", "ERASURE#op"): job,
+        })
+        service = HistoryLifecycleService(
+            settings=Settings120(), content_table=EmptyContentTable(),
+            control_table=control, abuse_table=abuse,
+            deletion_ledger_table=LedgerTable(), now=lambda: 100,
+        )
+
+        complete, redacted = service._process_erasure_job(job, 100)
+
+        self.assertTrue(complete)
+        self.assertEqual(redacted, 1)
+        self.assertEqual(abuse.items[(partition, "request-1")], {
+            "PK": partition, "SK": "request-1",
+            "status": "COMPLETED_ERASED", "payloadHash": "a" * 64,
+            "expiresAt": 90 + 120 * 86400, "ttl": 90 + 120 * 86400,
+        })
 
     def test_content_keys_are_parsed_without_assessment_data(self):
         partition = "USER#account-1#HISTORY#7"

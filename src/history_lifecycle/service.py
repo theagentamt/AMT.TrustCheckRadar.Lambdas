@@ -483,8 +483,13 @@ class HistoryLifecycleService:
         kwargs = {
             "KeyConditionExpression": "PK = :pk", "ExpressionAttributeValues": {":pk": partition},
             "ConsistentRead": True,
-            "ProjectionExpression": "PK, SK, #status, historyAuthorization, #response",
-            "ExpressionAttributeNames": {"#status": "status", "#response": "response"},
+            "ProjectionExpression": (
+                "PK, SK, #status, historyAuthorization, #response, payloadHash, "
+                "expiresAt, #ttl"
+            ),
+            "ExpressionAttributeNames": {
+                "#status": "status", "#response": "response", "#ttl": "ttl",
+            },
             "Limit": self.settings.erasure_batch_size,
         }
         if job.get("continuationSortKey"):
@@ -506,7 +511,13 @@ class HistoryLifecycleService:
                 redacted += self._redact_analysis_replay(
                     account_id, item["SK"], now,
                     generation=generation if old_generation else None,
-                    require_response=True, account_deletion=full_history_deletion, legacy=legacy_response,
+                    require_response=True, account_deletion=full_history_deletion,
+                    legacy=legacy_response, payload_hash=item.get("payloadHash"),
+                    retention_anchor_epoch=(
+                        _exact_nonnegative_int(job.get("deletionRequestedAtEpoch"))
+                        or _exact_nonnegative_int(job.get("createdAtEpoch"))
+                        or now
+                    ),
                 )
         start_key = page.get("LastEvaluatedKey")
         if start_key:
@@ -660,8 +671,33 @@ class HistoryLifecycleService:
 
     def _redact_analysis_replay(
         self, account_id, request_id, now, *, generation=None,
-        require_response=False, force_cancel=False, account_deletion=False, legacy=False,
+        require_response=False, force_cancel=False, account_deletion=False,
+        legacy=False, payload_hash=None, retention_anchor_epoch=None,
     ):
+        if account_deletion:
+            if not _is_payload_hash(payload_hash):
+                raise HistoryError(
+                    "SERVER_UNAVAILABLE", "The analysis replay hash is invalid."
+                )
+            anchor = (
+                retention_anchor_epoch
+                if _exact_nonnegative_int(retention_anchor_epoch) is not None
+                else now
+            )
+            expires_at = anchor + self.settings.dedup_retention_days * 86400
+            self.abuse_table.put_item(
+                Item={
+                    "PK": f"ANALYSIS#REQUEST#{_account_hash(account_id)}",
+                    "SK": request_id,
+                    "status": "COMPLETED_ERASED",
+                    "payloadHash": payload_hash,
+                    "expiresAt": expires_at,
+                    "ttl": expires_at,
+                },
+                ConditionExpression="payloadHash = :payload_hash",
+                ExpressionAttributeValues={":payload_hash": payload_hash},
+            )
+            return 1
         conditions = ["attribute_exists(PK)"]
         values = {
             ":erased": "COMPLETED_ERASED", ":updated": _iso(now),
@@ -693,6 +729,13 @@ class HistoryLifecycleService:
 
 def _hour_label(epoch):
     return datetime.fromtimestamp(epoch, UTC).strftime("%Y%m%d%H")
+
+
+def _is_payload_hash(value):
+    return (
+        isinstance(value, str) and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
 
 
 def _request_id_from_sort_key(value):

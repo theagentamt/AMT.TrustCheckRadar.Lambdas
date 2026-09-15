@@ -16,6 +16,7 @@ for module_name in ["config", "errors", "verification", "validation", "service",
     sys.modules.pop(module_name, None)
 
 os.environ.update({
+    "ANALYSIS_ABUSE_TABLE_NAME": "abuse",
     "COGNITO_ISSUER": "https://cognito-idp.us-east-1.amazonaws.com/test",
     "COGNITO_APP_CLIENT_ID": "test-client",
     "COGNITO_REQUIRED_SCOPE": "aws.cognito.signin.user.admin",

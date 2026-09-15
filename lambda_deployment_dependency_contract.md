@@ -531,9 +531,16 @@ Required environment:
   `ANALYSIS_ABUSE`, and `CAMPAIGN`
 - exact policy constants: reauthentication 300 seconds, deletion SLA 24 hours,
   device/recovery/analysis-abuse deletion page sizes 100, recovery receipt 7
-  days, recovery audit 90 days, recovery rate state 86400 seconds, analysis
-  request dedupe 86400 seconds, and account component receipt 120 days;
-  reconciliation defaults 100 items and ten pages
+  days, recovery audit 90 days, recovery rate state 86400 seconds, History dedupe
+  120 days, and account component receipt 120 days; reconciliation defaults 100
+  items and ten pages
+- `ANALYSIS_REQUEST_ID_TTL_SECONDS` must match the separately approved
+  conversation-analysis `REQUEST_ID_TTL_SECONDS`; prior source default is 900
+  seconds and the older 86400-second deployment example is not approval
+- `ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS=pending` and
+  `ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS=pending` and
+  `ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS=pending` by default; all three must be
+  explicitly approved before activation or an `ANALYSIS_ABUSE` receipt
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -564,7 +571,7 @@ Environment/Operation dimensions. Reconciliation reports success, scanned,
 matched, revoked, already-complete, device and recovery records deleted, recovery
 records minimized, analysis-abuse records deleted/minimized, completed
 device/recovery/analysis-abuse components, truncation, full-pass completion, and
-full-pass age; unknown
+full-pass age, plus the analysis-abuse policy-blocked count; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 
@@ -581,6 +588,16 @@ transaction. Destructive cleanup may therefore finish a partition only after the
 fixed fence exists, without a late writer recreating it. `release_request` can only
 delete or conditionally downgrade an existing processing row; after minimization
 its condition cannot match.
+
+The analysis-abuse worker deliberately stops before CONSUMPTION and cannot issue
+its component receipt while any policy status is pending. REQUEST cleanup
+preserves the original expiry. Ordinary request rows are checked against the
+configured request TTL; History `COMPLETED_ERASED` rows are accepted through the
+separately approved 120-day History dedupe period. History account cleanup writes
+the same exact content-free shape with expiry anchored to the deletion-request
+timestamp, so retries do not extend retention and History-first/analysis-first
+order does not retain response/authorization/event content or silently shorten
+History retention.
 
 Compatibility gate: exact component validators reject legacy receipts that lack
 `retainUntilEpoch`, while conditional receipt creation cannot replace them. Before
@@ -733,16 +750,14 @@ mutate live legacy receipts.
 
 | Variable | Required | Example | What breaks if missing |
 |---|---|---:|---|
-| `ANALYSIS_ABUSE_TABLE_NAME` | Yes, unless fallback aliases are set | `trustcheckradar-dev-analysis-abuse-control` | Request dedupe/rate controls fail |
-| `TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-analysis-abuse-control` | Used only if primary name is missing |
-| `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-analysis-abuse-control` | Used only if stronger names are missing |
+| `ANALYSIS_ABUSE_TABLE_NAME` | Yes | `trustcheckradar-dev-analysis-abuse-control` | Request dedupe/rate controls fail closed |
 | `DEVICE_BINDINGS_TABLE_NAME` | Yes | `trustcheckradar-dev-device-bindings` | Device binding validation fails and request is rejected/unavailable |
 | `ENTITLEMENTS_TABLE_NAME` | Yes for entitlement enforcement, unless fallback aliases are set | `trustcheckradar-dev-purchase-entitlements` | Monthly/credit entitlement gating fails |
 | `USERS_TABLE_NAME` | Yes for server-authoritative campaign publishing | `trustcheckradar-dev-users` | Participation state cannot be read or condition-checked during an outbox write |
 | `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | Transaction-time account-deletion fencing fails closed |
 | `RATE_LIMIT_WINDOW_SECONDS` | No | `60` | Default request throttling windows are used |
 | `RATE_LIMIT_MAX_REQUESTS` | No | `10` | Default request throttling caps are used |
-| `REQUEST_ID_TTL_SECONDS` | No | `86400` | Dedupe retention defaults are used |
+| `REQUEST_ID_TTL_SECONDS` | No; policy approval still required before account-deletion activation | `900` source default | Exact Dev value and longer-lived legacy-row treatment remain unapproved |
 | `SCAN_RATE_LIMIT_WINDOW_SECONDS` | No | `3600` | Default scan abuse window is used |
 | `SCAN_RATE_LIMIT_MAX_REQUESTS` | No | `20` | Default scan abuse cap is used |
 | `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Free-tier quota math may be wrong |
@@ -763,7 +778,7 @@ mutate live legacy receipts.
 
 | Resource | Env/config key used | Needs | ARN, name, or both |
 |---|---|---|---|
-| DynamoDB abuse-control table | `ANALYSIS_ABUSE_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:DeleteItem` | Name required by code |
+| DynamoDB abuse-control table | `ANALYSIS_ABUSE_TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`, `dynamodb:DeleteItem` | Exact name required by code |
 | DynamoDB device bindings table | `DEVICE_BINDINGS_TABLE_NAME` | `dynamodb:Query` | Name required by code |
 | DynamoDB entitlements table | `ENTITLEMENTS_TABLE_NAME` or fallback aliases | `dynamodb:GetItem`, `dynamodb:PutItem` | Name required by code |
 | DynamoDB users participation item | `USERS_TABLE_NAME` | `dynamodb:GetItem`, `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` | Name required for server-authorized campaign publishing |
@@ -817,10 +832,9 @@ mutate live legacy receipts.
 
 ### Compatibility aliases
 
-- Abuse table aliases accepted:
-  - `ANALYSIS_ABUSE_TABLE_NAME`
-  - `TABLE_NAME`
-  - `USERS_TABLE_NAME`
+- Abuse storage requires the canonical `ANALYSIS_ABUSE_TABLE_NAME`; aliases are
+  intentionally not accepted because the users/profile table is a distinct
+  authority and must never become the abuse-store fallback.
 - Entitlements table aliases accepted:
   - `ENTITLEMENTS_TABLE_NAME`
   - fallback aliases in shared entitlement config

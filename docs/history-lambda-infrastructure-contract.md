@@ -316,7 +316,9 @@ per-request IAM principal tag.
 - `Query` on both base tables and their exact indexes
 - control `GetItem`, `PutItem`, `UpdateItem`, `DeleteItem`
 - content `DeleteItem`
-- analysis-abuse `Query`, `UpdateItem` on `ANALYSIS#REQUEST#*`
+- analysis-abuse `Query`, `UpdateItem`, and `PutItem` on
+  `ANALYSIS#REQUEST#*`; `PutItem` is only the conditional exact content-free
+  account-deletion tombstone replacement
 - deletion-ledger `GetItem`, `PutItem` only for
   `ACCOUNT#*/ACCOUNT_DELETION#HISTORY`
 - base-table leading keys `USER#*`, `CURSOR#*`, and
@@ -373,6 +375,16 @@ normal retention purge at `contentExpiresAt`, and remain present under their
 longer deduplication retention after becoming content-free. This is required
 even when table TTL is enabled: asynchronous DynamoDB TTL is supplementary
 cleanup and is never treated as proof of the 24-hour physical purge.
+
+For full account/History-account deletion, the replay write is the exact
+content-free `PK`, `SK`, `COMPLETED_ERASED`, `payloadHash`, `expiresAt`, `ttl`
+allowlist and uses the approved History dedupe duration. It removes any analysis
+response, lease, campaign/History authorization, event identifier, or other
+metadata. Account-deletion expiry is anchored to the authoritative deletion
+request timestamp so retries cannot extend retention. This exact replacement is
+safe whether History cleanup runs before or
+after the analysis-abuse component; the analysis worker accepts the valid
+120-day History tombstone without shortening it.
 
 Alarm on missing success heartbeat, `LifecycleSweepFailure > 0`,
 `LifecycleWorksetTruncated > 0`, `StuckPendingCompletions > 0`,

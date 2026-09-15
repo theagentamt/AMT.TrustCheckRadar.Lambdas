@@ -20,7 +20,8 @@ ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
 DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS = 7
 DEVICE_RECOVERY_AUDIT_RETENTION_DAYS = 90
 DEVICE_RECOVERY_RATE_STATE_TTL_SECONDS = 24 * 3600
-ANALYSIS_REQUEST_ID_TTL_SECONDS = 24 * 3600
+ANALYSIS_REQUEST_ID_TTL_SECONDS = 15 * 60
+HISTORY_DEDUP_RETENTION_DAYS = 120
 ANALYSIS_ABUSE_FAMILIES = ("REQUEST", "RATE", "SCAN_RATE", "CONSUMPTION")
 PAYLOAD_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -371,6 +372,10 @@ def delete_device_recovery_control(
 def delete_analysis_abuse_control(
     command, *, abuse_table, ledger_table, page_size=100,
     request_retention_seconds=ANALYSIS_REQUEST_ID_TTL_SECONDS,
+    history_dedup_retention_days=HISTORY_DEDUP_RETENTION_DAYS,
+    request_dedupe_policy_status="pending",
+    legacy_request_retention_policy_status="pending",
+    consumption_deletion_policy_status="pending",
     account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
     now_epoch=None,
 ):
@@ -378,7 +383,11 @@ def delete_analysis_abuse_control(
     command = validate_command(command, command["environment"])
     if (
         page_size != 100
-        or request_retention_seconds != 24 * 3600
+        or request_retention_seconds < 1
+        or history_dedup_retention_days != 120
+        or request_dedupe_policy_status not in {"pending", "approved"}
+        or legacy_request_retention_policy_status not in {"pending", "approved"}
+        or consumption_deletion_policy_status not in {"pending", "approved"}
         or account_receipt_retention_days != 120
     ):
         raise ValueError("Invalid analysis-abuse deletion policy")
@@ -400,8 +409,16 @@ def delete_analysis_abuse_control(
     progress = ledger_table.get_item(
         Key=progress_key, ConsistentRead=True
     ).get("Item")
-    family_index, start_key = _analysis_progress(progress, command)
+    family_index, start_key, legacy_retention_observed = _analysis_progress(
+        progress, command
+    )
     family = ANALYSIS_ABUSE_FAMILIES[family_index]
+    if family == "CONSUMPTION" and consumption_deletion_policy_status != "approved":
+        return {
+            "deleted": 0, "minimized": 0, "complete": False,
+            "alreadyComplete": False, "family": family,
+            "policyBlocked": "ANALYSIS_CONSUMPTION_DELETION",
+        }
     account_hash = hashlib.sha256(command["accountId"].encode("utf-8")).hexdigest()
     partition = f"ANALYSIS#{family}#{account_hash}"
     kwargs = {
@@ -423,8 +440,9 @@ def delete_analysis_abuse_control(
             abuse_table.delete_item(Key=key)
             deleted += 1
             continue
-        minimal = _minimal_analysis_request(
-            item, now_epoch=now, retention_seconds=request_retention_seconds
+        minimal, retention_class = _minimal_analysis_request(
+            item, now_epoch=now, retention_seconds=request_retention_seconds,
+            history_dedup_retention_days=history_dedup_retention_days,
         )
         if minimal is None:
             abuse_table.delete_item(Key=key)
@@ -439,6 +457,8 @@ def delete_analysis_abuse_control(
                 },
             )
             minimized += 1
+        if retention_class == "UNVERIFIED_LEGACY":
+            legacy_retention_observed = True
     continuation = page.get("LastEvaluatedKey")
     if continuation and not _valid_key(continuation):
         raise ValueError("Invalid analysis-abuse deletion continuation")
@@ -460,10 +480,27 @@ def delete_analysis_abuse_control(
         }
         if next_start_key:
             progress_item["lastEvaluatedKey"] = next_start_key
+        if legacy_retention_observed:
+            progress_item["legacyRequestRetentionObserved"] = True
         ledger_table.put_item(Item=progress_item)
         return {
             "deleted": deleted, "minimized": minimized, "complete": False,
             "alreadyComplete": False, "family": family,
+        }
+    if (
+        legacy_retention_observed
+        and legacy_request_retention_policy_status != "approved"
+    ):
+        return {
+            "deleted": deleted, "minimized": minimized, "complete": False,
+            "alreadyComplete": False, "family": family,
+            "policyBlocked": "ANALYSIS_LEGACY_REQUEST_RETENTION",
+        }
+    if request_dedupe_policy_status != "approved":
+        return {
+            "deleted": deleted, "minimized": minimized, "complete": False,
+            "alreadyComplete": False, "family": family,
+            "policyBlocked": "ANALYSIS_REQUEST_DEDUPE_RETENTION",
         }
     receipt = _component_receipt(
         command, "ANALYSIS_ABUSE", now,
@@ -495,6 +532,11 @@ def reconcile_session_revocations(
     user_pool_id, cognito,
     scan_limit, max_pages, device_page_size=100,
     recovery_page_size=100, analysis_abuse_page_size=100,
+    analysis_request_retention_seconds=ANALYSIS_REQUEST_ID_TTL_SECONDS,
+    history_dedup_retention_days=HISTORY_DEDUP_RETENTION_DAYS,
+    analysis_request_dedupe_policy_status="pending",
+    analysis_legacy_request_retention_policy_status="pending",
+    analysis_consumption_deletion_policy_status="pending",
     now=lambda: int(time.time()),
 ):
     checkpoint_key = {
@@ -517,6 +559,7 @@ def reconcile_session_revocations(
         "analysisAbuseRecordsDeleted": 0,
         "analysisAbuseRecordsMinimized": 0,
         "analysisAbuseComponentsCompleted": 0,
+        "analysisAbusePolicyBlocked": 0,
     }
     truncated = False
     for page_number in range(max_pages):
@@ -567,12 +610,27 @@ def reconcile_session_revocations(
             totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
             abuse_result = delete_analysis_abuse_control(
                 command, abuse_table=abuse_table, ledger_table=ledger_table,
-                page_size=analysis_abuse_page_size, now_epoch=now(),
+                page_size=analysis_abuse_page_size,
+                request_retention_seconds=analysis_request_retention_seconds,
+                history_dedup_retention_days=history_dedup_retention_days,
+                request_dedupe_policy_status=(
+                    analysis_request_dedupe_policy_status
+                ),
+                legacy_request_retention_policy_status=(
+                    analysis_legacy_request_retention_policy_status
+                ),
+                consumption_deletion_policy_status=(
+                    analysis_consumption_deletion_policy_status
+                ),
+                now_epoch=now(),
             )
             totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
             totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
             totals["analysisAbuseComponentsCompleted"] += (
                 1 if abuse_result["complete"] else 0
+            )
+            totals["analysisAbusePolicyBlocked"] += (
+                1 if abuse_result.get("policyBlocked") else 0
             )
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
@@ -688,7 +746,7 @@ def _progress_start_key(progress, command, label):
 
 def _analysis_progress(progress, command):
     if not progress:
-        return 0, None
+        return 0, None, False
     if (
         progress.get("recordType") != "ACCOUNT_DELETION_ANALYSIS_ABUSE_PROGRESS"
         or progress.get("schemaVersion") != 1
@@ -702,7 +760,10 @@ def _analysis_progress(progress, command):
     start_key = progress.get("lastEvaluatedKey")
     if start_key is not None and not _valid_key(start_key):
         raise ValueError("Invalid analysis-abuse deletion continuation")
-    return family_index, start_key
+    legacy_observed = progress.get("legacyRequestRetentionObserved", False)
+    if not isinstance(legacy_observed, bool):
+        raise ValueError("Invalid analysis-abuse retention observation")
+    return family_index, start_key, legacy_observed
 
 
 def _validate_analysis_abuse_key(item, partition):
@@ -715,28 +776,38 @@ def _validate_analysis_abuse_key(item, partition):
         raise ValueError("Analysis-abuse query returned an invalid key")
 
 
-def _minimal_analysis_request(item, *, now_epoch, retention_seconds):
+def _minimal_analysis_request(
+    item, *, now_epoch, retention_seconds, history_dedup_retention_days,
+):
     expires = _exact_int(item.get("expiresAt"))
     ttl = _exact_int(item.get("ttl"))
     payload_hash = item.get("payloadHash")
     if expires is not None and expires <= now_epoch:
-        return None
+        return None, None
+    status = item.get("status")
     if (
-        item.get("status") not in {
+        status not in {
             "PROCESSING", "RETRYABLE", "RESULT_READY", "COMPLETED",
             "COMPLETED_ERASED",
         }
         or not isinstance(payload_hash, str)
         or not PAYLOAD_HASH_PATTERN.fullmatch(payload_hash)
         or expires is None or ttl != expires
-        or expires > now_epoch + retention_seconds
     ):
         raise ValueError("Invalid analysis request replay record")
+    retention_class = (
+        "HISTORY"
+        if status == "COMPLETED_ERASED"
+        and expires <= now_epoch + history_dedup_retention_days * 86400
+        else "ORDINARY"
+        if expires <= now_epoch + retention_seconds
+        else "UNVERIFIED_LEGACY"
+    )
     return {
         "PK": item["PK"], "SK": item["SK"],
         "status": "COMPLETED_ERASED", "payloadHash": payload_hash,
         "expiresAt": expires, "ttl": expires,
-    }
+    }, retention_class
 
 
 def _validate_recovery_control_key(item, account_id):
