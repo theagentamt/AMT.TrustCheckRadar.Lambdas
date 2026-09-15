@@ -168,7 +168,7 @@ This document captures the deployment dependency contract for the Lambda functio
 | Resource | Needs |
 |---|---|
 | Campaign outbox stream | `dynamodb:DescribeStream`, `dynamodb:GetRecords`, `dynamodb:GetShardIterator`, `dynamodb:ListStreams` |
-| Campaign pipeline table | `dynamodb:GetItem`, `dynamodb:PutItem`, `dynamodb:UpdateItem`; transaction-only grants may use `dynamodb:EnclosingOperation=TransactWriteItems` |
+| Campaign pipeline table | standalone `dynamodb:GetItem`; `dynamodb:PutItem` and `dynamodb:UpdateItem` only with `dynamodb:EnclosingOperation=TransactWriteItems`; no `DeleteItem` |
 | Users participation item | `dynamodb:GetItem`, plus `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Deletion-ledger account fence | `dynamodb:GetItem`, plus `dynamodb:ConditionCheckItem` constrained to `dynamodb:EnclosingOperation=TransactWriteItems` |
 | Current-period KMS HMAC key | `kms:GenerateMac` with `HMAC_SHA_256` |
@@ -190,8 +190,12 @@ This document captures the deployment dependency contract for the Lambda functio
   participation record and fixed deletion fence, and condition-checks the same
   consent epoch plus absence of `ACCOUNT#<sub>/ACCOUNT_DELETION` in its pipeline
   transaction. Withdrawal or account deletion therefore wins over an already
-  queued outbox record. A final pre-send authority read suppresses pending retries;
-  downstream contributor tombstones remain the queue-race defense.
+  queued outbox record. A final pre-send authority read suppresses pending retries.
+  After sending, the `PENDING` to `PUBLISHED` status update is another transaction
+  with the same participation and deletion-fence checks plus exact existing-target
+  conditions. A post-send deletion race is reported as suppressed and cannot write
+  pipeline status after the fence; downstream contributor tombstones remain the
+  queue-race defense.
 - The account identifier is used only as input to `GenerateMac`; it is not written to the pipeline table, queue, logs, metrics, or handler response.
 - Contributor tokens use `HMAC(period-key, b"campaign-contributor:v1\\0" + account-id)` and are scoped to fixed 14-day UTC periods.
 - The publisher resolves the enabled KMS key ARN from the lifecycle-owned

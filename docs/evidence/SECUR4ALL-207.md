@@ -118,7 +118,9 @@ Implemented Lambda evidence:
   analysis/device consumers have SDK-realistic coverage.
 - New campaign outbox writes atomically include a bounded account locator. The
   publisher validates/skips locator stream records and condition-checks the fixed
-  deletion fence before writing pipeline state. Bounded account cleanup validates
+  deletion fence before writing pipeline state. Its post-send `PENDING` to
+  `PUBLISHED` transition is also an authority-fenced transaction and suppresses a
+  deletion race without updating status. Bounded account cleanup validates
   same-subject ownership and deletes content before locators, but cannot receipt
   until legacy coverage is approved.
 - Campaign participation and purchase handoff now strongly fence reads/replays and
@@ -144,7 +146,7 @@ Automated evidence:
 - `tests/history_lifecycle`
 - `tests/device_registration` and `tests/device_recovery`
 - `tests/shared_history` and analysis/history race coverage
-- `make check PYTHON=.venv/bin/python`: 317 tests and 139 subtests passed;
+- `make check PYTHON=.venv/bin/python`: 318 tests and 139 subtests passed;
   `compileall` and `shellcheck` passed.
 - `scripts/validate_campaign_lambdas.py --dist-dir dist`: canonical contracts,
   all 63 content-free log templates, campaign packages and absence of a
@@ -154,7 +156,7 @@ Automated evidence:
   - `account_data_api.zip`:
     `e2063d1710b1679c40e02b10691f8b47ad782d0f37c666a846efb7b6ed026a6e`
   - `campaign_observation_publisher.zip`:
-    `7395afda60de40ee99b7167d54cc8b10958361281bef2a271cb5a64113db3fd3`
+    `b43a02029b08035e1bcbeca58e37d0973b98d383bab017963ce93af6dd76cb6d`
   - `campaign_participation.zip`:
     `0ed8d92cc4b0aefd6e05cb66cfc1f930a6f610bf27e1b8378c83c7c9c4050ef9`
   - `conversation_analysis.zip`:

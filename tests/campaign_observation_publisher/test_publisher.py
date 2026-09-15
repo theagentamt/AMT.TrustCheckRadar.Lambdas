@@ -42,6 +42,7 @@ class FakeDynamo:
         self.transactions = []
         self.updates = []
         self.deletion_item = None
+        self.fail_final_transaction_with_deletion = False
 
     def get_item(self, TableName=None, **_kwargs):
         if TableName == "users":
@@ -51,14 +52,23 @@ class FakeDynamo:
         return {"Item": self.item} if self.item else {}
 
     def transact_write_items(self, **kwargs):
-        self.transactions.append(kwargs["TransactItems"])
-        self.item = {"status": {"S": "PENDING"}}
+        transaction = kwargs["TransactItems"]
+        self.transactions.append(transaction)
+        if "Update" in transaction[-1]:
+            if self.fail_final_transaction_with_deletion:
+                self.deletion_item = {"PK": {"S": "ACCOUNT#account-123"}}
+                raise FakeClientError(
+                    {"Error": {"Code": "TransactionCanceledException"}},
+                    "TransactWriteItems",
+                )
+            self.item = {"status": {"S": "PUBLISHED"}}
+        else:
+            self.item = {"status": {"S": "PENDING"}}
         return {}
 
     def update_item(self, **kwargs):
         self.updates.append(kwargs)
-        self.item = {"status": {"S": "PUBLISHED"}}
-        return {}
+        raise AssertionError("Publisher pipeline writes must be transactional")
 
 
 class FakeKms:
@@ -329,6 +339,7 @@ class ServiceTests(unittest.TestCase):
         fake_dynamo.transactions.clear()
         fake_dynamo.updates.clear()
         fake_dynamo.deletion_item = None
+        fake_dynamo.fail_final_transaction_with_deletion = False
         fake_kms.calls.clear()
         fake_sqs.calls.clear()
 
@@ -366,6 +377,18 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(deletion_condition["TableName"], "deletion-ledger")
         self.assertEqual(
             deletion_condition["ConditionExpression"], "attribute_not_exists(PK)"
+        )
+        final_transaction = fake_dynamo.transactions[1]
+        self.assertEqual(final_transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(
+            final_transaction[1]["ConditionCheck"]["TableName"],
+            "deletion-ledger",
+        )
+        final_update = final_transaction[2]["Update"]
+        self.assertEqual(final_update["TableName"], "campaign-pipeline")
+        self.assertEqual(
+            final_update["ConditionExpression"],
+            "attribute_exists(PK) AND attribute_exists(SK) AND #status = :pending",
         )
         feature = fake_dynamo.transactions[0][2]["Put"]["Item"]
         self.assertEqual(feature["SK"], {"S": "FEATURE"})
@@ -497,9 +520,26 @@ class ServiceTests(unittest.TestCase):
 
         self.assertEqual(result, "published")
         self.assertEqual(fake_kms.calls, [])
-        self.assertEqual(fake_dynamo.transactions, [])
+        self.assertEqual(len(fake_dynamo.transactions), 1)
+        self.assertIn("Update", fake_dynamo.transactions[0][2])
         self.assertEqual(len(fake_sqs.calls), 1)
-        self.assertEqual(len(fake_dynamo.updates), 1)
+        self.assertEqual(fake_dynamo.updates, [])
+
+    def test_deletion_race_after_send_suppresses_final_status_write(self):
+        fake_dynamo.fail_final_transaction_with_deletion = True
+
+        result = self.publish()
+
+        self.assertEqual(result, "participation-suppressed")
+        self.assertEqual(len(fake_sqs.calls), 1)
+        self.assertEqual(len(fake_dynamo.transactions), 2)
+        final_transaction = fake_dynamo.transactions[1]
+        self.assertEqual(
+            final_transaction[1]["ConditionCheck"]["ConditionExpression"],
+            "attribute_not_exists(PK)",
+        )
+        self.assertIn("Update", final_transaction[2])
+        self.assertEqual(fake_dynamo.updates, [])
 
     def test_period_is_fixed_fourteen_day_utc_bucket(self):
         self.assertEqual(service.contributor_period_id(0), 0)

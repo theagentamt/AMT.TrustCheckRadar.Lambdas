@@ -76,39 +76,9 @@ def publish_observation(
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
-                    {
-                        "ConditionCheck": {
-                            "TableName": users_table_name,
-                            "Key": {
-                                "PK": {"S": f"USER#{item['accountId']}"},
-                                "SK": {"S": "CAMPAIGN_PARTICIPATION"},
-                            },
-                            "ConditionExpression": (
-                                "#state = :enrolled AND consentEpochId = :epoch "
-                                "AND #environment = :environment AND noticeVersion = :notice"
-                            ),
-                            "ExpressionAttributeNames": {
-                                "#state": "state",
-                                "#environment": "environment",
-                            },
-                            "ExpressionAttributeValues": {
-                                ":enrolled": {"S": "enrolled"},
-                                ":epoch": {"S": item["consentEpochId"]},
-                                ":environment": {"S": item["environment"]},
-                                ":notice": {"S": item["noticeVersion"]},
-                            },
-                        }
-                    },
-                    {
-                        "ConditionCheck": {
-                            "TableName": deletion_ledger_table_name,
-                            "Key": {
-                                "PK": {"S": f"ACCOUNT#{item['accountId']}"},
-                                "SK": {"S": "ACCOUNT_DELETION"},
-                            },
-                            "ConditionExpression": "attribute_not_exists(PK)",
-                        }
-                    },
+                    *_authority_condition_checks(
+                        item, users_table_name, deletion_ledger_table_name
+                    ),
                     {
                         "Put": {
                             "TableName": pipeline_table_name,
@@ -179,19 +149,91 @@ def publish_observation(
         QueueUrl=cluster_queue_url,
         MessageBody=json.dumps(envelope, separators=(",", ":"), sort_keys=True),
     )
-    dynamodb_client.update_item(
-        TableName=pipeline_table_name,
-        Key=key,
-        UpdateExpression="SET #status = :published, publishedAtEpoch = :published_at",
-        ConditionExpression="#status = :pending",
-        ExpressionAttributeNames={"#status": "status"},
-        ExpressionAttributeValues={
-            ":published": {"S": "PUBLISHED"},
-            ":pending": {"S": "PENDING"},
-            ":published_at": {"N": str(now_epoch)},
-        },
-    )
+    try:
+        dynamodb_client.transact_write_items(TransactItems=[
+            *_authority_condition_checks(
+                item, users_table_name, deletion_ledger_table_name
+            ),
+            {
+                "Update": {
+                    "TableName": pipeline_table_name,
+                    "Key": key,
+                    "UpdateExpression": (
+                        "SET #status = :published, "
+                        "publishedAtEpoch = :published_at"
+                    ),
+                    "ConditionExpression": (
+                        "attribute_exists(PK) AND attribute_exists(SK) "
+                        "AND #status = :pending"
+                    ),
+                    "ExpressionAttributeNames": {"#status": "status"},
+                    "ExpressionAttributeValues": {
+                        ":published": {"S": "PUBLISHED"},
+                        ":pending": {"S": "PENDING"},
+                        ":published_at": {"N": str(now_epoch)},
+                    },
+                }
+            },
+        ])
+    except ClientError as err:
+        if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
+            raise
+        if not _account_authorizes(
+            item, users_table_name, deletion_ledger_table_name,
+            dynamodb_client,
+        ):
+            return "participation-suppressed"
+        concurrent = dynamodb_client.get_item(
+            TableName=pipeline_table_name,
+            Key=key,
+            ConsistentRead=True,
+            ProjectionExpression="#status",
+            ExpressionAttributeNames={"#status": "status"},
+        ).get("Item")
+        if concurrent and concurrent.get("status") == {"S": "PUBLISHED"}:
+            return "duplicate"
+        raise
     return "published"
+
+
+def _authority_condition_checks(
+    item, users_table_name, deletion_ledger_table_name,
+):
+    return [
+        {
+            "ConditionCheck": {
+                "TableName": users_table_name,
+                "Key": {
+                    "PK": {"S": f"USER#{item['accountId']}"},
+                    "SK": {"S": "CAMPAIGN_PARTICIPATION"},
+                },
+                "ConditionExpression": (
+                    "#state = :enrolled AND consentEpochId = :epoch "
+                    "AND #environment = :environment AND noticeVersion = :notice"
+                ),
+                "ExpressionAttributeNames": {
+                    "#state": "state",
+                    "#environment": "environment",
+                },
+                "ExpressionAttributeValues": {
+                    ":enrolled": {"S": "enrolled"},
+                    ":epoch": {"S": item["consentEpochId"]},
+                    ":environment": {"S": item["environment"]},
+                    ":notice": {"S": item["noticeVersion"]},
+                },
+            }
+        },
+        {
+            "ConditionCheck": {
+                "TableName": deletion_ledger_table_name,
+                "Key": {
+                    "PK": {"S": f"ACCOUNT#{item['accountId']}"},
+                    "SK": {"S": "ACCOUNT_DELETION"},
+                },
+                "ConditionExpression": "attribute_not_exists(PK)",
+            }
+        },
+    ]
 
 
 def _account_authorizes(
