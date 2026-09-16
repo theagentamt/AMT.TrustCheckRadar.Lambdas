@@ -3,6 +3,7 @@ import os
 import types
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
 MODULE_DIR = SRC_DIR / "conversation_analysis"
@@ -139,6 +140,7 @@ sys.modules["boto3"] = boto3_stub
 
 import shared_entitlements.service as shared_service  # noqa: E402
 import scan_access  # noqa: E402
+import history_completion  # noqa: E402
 from errors import AppError  # noqa: E402
 
 
@@ -153,6 +155,55 @@ APP_FEATURES = {
     "indicatorIds": ["payment.crypto"],
     "confidence": 0.9,
 }
+
+HISTORY_ENV = {
+    "APP_ENVIRONMENT": "dev",
+    "HISTORY_CONTENT_TABLE_NAME": "test-history-content",
+    "HISTORY_CONTROL_TABLE_NAME": "test-history-control",
+    "ANALYSIS_ABUSE_TABLE_NAME": "test-analysis-abuse",
+    "DEVICE_BINDINGS_TABLE_NAME": "test-bindings",
+    "USERS_TABLE_NAME": "users",
+    "DELETION_LEDGER_TABLE_NAME": "ledger",
+    "HISTORY_WRITES_ENABLED": "true",
+    "HISTORY_DURABLE_REPLAY_ENABLED": "true",
+    "HISTORY_PITR_POLICY_APPROVED": "true",
+    "HISTORY_CONTROL_RETENTION_POLICY_APPROVED": "true",
+    "HISTORY_DEDUP_RETENTION_DAYS": "400",
+    "HISTORY_MAX_SUMMARY_BYTES": "4096",
+    "HISTORY_MAX_LIST_ITEMS": "20",
+    "HISTORY_MAX_TEXT_FIELD_BYTES": "1024",
+    "RECOGNITION_ENABLED": "true",
+    "HISTORY_RECOGNITION_CONTRACT_STATUS": "approved",
+    "HISTORY_NEW_ID_RECOGNITION_POLICY": "count",
+    "HISTORY_BADGE_QUALIFICATION_POLICY": "all_server_accepted_completed_assessments",
+}
+HISTORY_AUTHORIZATION = {
+    "historyGeneration": 2,
+    "recognitionGeneration": 3,
+    "acceptedSequence": 8,
+    "acceptedAtEpochMs": 99_000,
+}
+
+
+class HistoryControlTable:
+    def __init__(self, state, progress=None):
+        self.state = state
+        self.progress = progress
+
+    def get_item(self, Key, **_kwargs):
+        if Key["SK"] == "STATE":
+            return {"Item": self.state}
+        if Key["SK"].startswith("PROGRESS#") and self.progress:
+            return {"Item": self.progress}
+        return {}
+
+
+class HistoryResource:
+    def __init__(self, table):
+        self.table = table
+
+    def Table(self, _name):
+        return self.table
 
 
 class ScanAccessTests(unittest.TestCase):
@@ -274,6 +325,123 @@ class ScanAccessTests(unittest.TestCase):
             entitlement_put["Item"]["remainingMonthlyScans"],
             {"N": "9"},
         )
+
+    def test_clear_redacts_the_request_and_preserves_current_recognition_progress_atomically(self):
+        state = {
+            "accountStatus": "ACTIVE",
+            "historyGeneration": 3,
+            "recognitionGeneration": 3,
+            "acceptedSequence": 8,
+        }
+        progress = {
+            "PK": "USER#user-123",
+            "SK": "PROGRESS#3",
+            "recordType": "PROGRESS",
+            "recognitionGeneration": 3,
+            "qualifyingChecks": 4,
+            "awardedBadgeIds": ["checks_1"],
+            "stateVersion": 2,
+            "updatedAtEpoch": 90,
+        }
+        history_completion.dynamodb = HistoryResource(HistoryControlTable(state, progress))
+        grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+        transaction_fake.transactions.clear()
+
+        with mock.patch.dict(os.environ, HISTORY_ENV, clear=True):
+            updated = scan_access.commit_scan_and_request(
+                grant,
+                "request-123",
+                "a" * 64,
+                {
+                    "schemaVersion": "1.0",
+                    "requestId": "request-123",
+                    "summary": "stale History content",
+                },
+                campaign_payload={
+                    "requestId": "request-123",
+                    "sourceType": "pasted_text",
+                    "sanitizedText": "private input",
+                },
+                history_authorization=HISTORY_AUTHORIZATION,
+                now_epoch=100,
+                now_iso="2026-05-11T00:00:00Z",
+            )
+
+        self.assertEqual(updated["remainingMonthlyScans"], 9)
+        self.assertEqual(len(transaction_fake.transactions), 1)
+        transaction = transaction_fake.transactions[0]
+        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(transaction[1]["ConditionCheck"]["TableName"], "ledger")
+
+        request_updates = [
+            item["Update"] for item in transaction
+            if item.get("Update", {}).get("TableName") == "test-analysis-abuse"
+        ]
+        self.assertEqual(len(request_updates), 1)
+        self.assertIn("REMOVE #response", request_updates[0]["UpdateExpression"])
+        self.assertEqual(request_updates[0]["ExpressionAttributeNames"]["#response"], "response")
+
+        puts = [item["Put"] for item in transaction if "Put" in item]
+        self.assertFalse(any(item["TableName"] == "test-history-content" for item in puts))
+        tombstones = [
+            item for item in puts
+            if item["Item"].get("SK") == {"S": "REQUEST#request-123"}
+        ]
+        self.assertEqual(tombstones[0]["Item"]["status"], {"S": "CLEARED"})
+        progress_writes = [
+            item for item in puts
+            if item["Item"].get("SK") == {"S": "PROGRESS#3"}
+        ]
+        self.assertEqual(progress_writes[0]["Item"]["qualifyingChecks"], {"N": "5"})
+        self.assertEqual(
+            progress_writes[0]["Item"]["awardedBadgeIds"],
+            {"L": [{"S": "checks_1"}, {"S": "checks_5"}]},
+        )
+        self.assertTrue(any(
+            item["Item"].get("PK") == {
+                "S": f"ANALYSIS#CONSUMPTION#{scan_access._hashed_account_id('user-123')}"
+            }
+            for item in puts
+        ))
+        self.assertTrue(any(item["TableName"] == "test-entitlements" for item in puts))
+        encoded = repr(transaction)
+        self.assertNotIn("stale History content", encoded)
+        self.assertNotIn("private input", encoded)
+
+    def test_clear_skips_recognition_only_after_reset_or_account_ineligibility(self):
+        cases = (
+            ("recognition reset", "ACTIVE", 4),
+            ("account ineligible", "DELETING", 3),
+        )
+        for label, account_status, recognition_generation in cases:
+            with self.subTest(label=label):
+                state = {
+                    "accountStatus": account_status,
+                    "historyGeneration": 3,
+                    "recognitionGeneration": recognition_generation,
+                    "acceptedSequence": 8,
+                }
+                history_completion.dynamodb = HistoryResource(HistoryControlTable(state))
+                grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
+                transaction_fake.transactions.clear()
+
+                with mock.patch.dict(os.environ, HISTORY_ENV, clear=True):
+                    scan_access.commit_scan_and_request(
+                        grant,
+                        "request-123",
+                        "a" * 64,
+                        {"schemaVersion": "1.0", "requestId": "request-123"},
+                        campaign_payload={"sanitizedText": "private input"},
+                        history_authorization=HISTORY_AUTHORIZATION,
+                        now_epoch=100,
+                        now_iso="2026-05-11T00:00:00Z",
+                    )
+
+                transaction = transaction_fake.transactions[0]
+                self.assertNotIn("PROGRESS#", repr(transaction))
+                self.assertNotIn("test-history-content", repr(transaction))
+                self.assertIn("REMOVE #response", repr(transaction))
+                self.assertIn("REQUEST#request-123", repr(transaction))
 
     def test_transaction_conflict_is_retryable_without_partial_local_success(self):
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)

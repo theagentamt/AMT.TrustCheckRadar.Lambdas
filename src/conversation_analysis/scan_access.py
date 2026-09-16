@@ -121,34 +121,35 @@ def commit_scan_and_request(
         "SK": request_id,
     }
     expires_at = now_epoch + REQUEST_ID_TTL_SECONDS
+    request_update = {
+        "Update": {
+            "TableName": ANALYSIS_ABUSE_TABLE_NAME,
+            "Key": _serialize_item(request_key),
+            "UpdateExpression": (
+                "SET #status = :completed, completedAt = :completed_at, "
+                "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
+            ),
+            "ConditionExpression": (
+                "#status = :result_ready AND payloadHash = :payload_hash"
+            ),
+            "ExpressionAttributeNames": {
+                "#status": "status",
+                "#ttl": "ttl",
+            },
+            "ExpressionAttributeValues": _serialize_item(
+                {
+                    ":completed": "COMPLETED",
+                    ":completed_at": now_iso,
+                    ":updated_at": now_iso,
+                    ":expires_at": expires_at,
+                    ":result_ready": "RESULT_READY",
+                    ":payload_hash": payload_hash,
+                }
+            ),
+        }
+    }
     transaction = [
-        {
-            "Update": {
-                "TableName": ANALYSIS_ABUSE_TABLE_NAME,
-                "Key": _serialize_item(request_key),
-                "UpdateExpression": (
-                    "SET #status = :completed, completedAt = :completed_at, "
-                    "updatedAt = :updated_at, expiresAt = :expires_at, #ttl = :expires_at"
-                ),
-                "ConditionExpression": (
-                    "#status = :result_ready AND payloadHash = :payload_hash"
-                ),
-                "ExpressionAttributeNames": {
-                    "#status": "status",
-                    "#ttl": "ttl",
-                },
-                "ExpressionAttributeValues": _serialize_item(
-                    {
-                        ":completed": "COMPLETED",
-                        ":completed_at": now_iso,
-                        ":updated_at": now_iso,
-                        ":expires_at": expires_at,
-                        ":result_ready": "RESULT_READY",
-                        ":payload_hash": payload_hash,
-                    }
-                ),
-            }
-        },
+        request_update,
         {
             "Put": {
                 "TableName": ANALYSIS_ABUSE_TABLE_NAME,
@@ -197,8 +198,8 @@ def commit_scan_and_request(
         now_epoch=now_epoch,
     )
     if redact_replay:
-        transaction[0]["Update"]["UpdateExpression"] += " REMOVE #response"
-        transaction[0]["Update"]["ExpressionAttributeNames"]["#response"] = "response"
+        request_update["Update"]["UpdateExpression"] += " REMOVE #response"
+        request_update["Update"]["ExpressionAttributeNames"]["#response"] = "response"
     intends_campaign = bool(campaign_payload and campaign_payload.get("campaignConsentGranted"))
     authorized_campaign = (
         intends_campaign
