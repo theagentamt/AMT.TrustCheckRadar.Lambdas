@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+  "action": "REPLACE_ACTIVE_BINDING",
+  "bindingFingerprint": "installation-key-1",
+  "platform": "ios",
+  "osVersion": "18.5"
+}
