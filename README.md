@@ -18,7 +18,8 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
 | `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
-| `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
+| `device_recovery.zip` | `POST /device-recovery`; disabled candidate `POST /v1/users/device-recovery` | Performs the IAM operator flow and separately gated consumer recovery. |
+| `device-recovery-contracts-1.0.0.zip` | Versioned contract artifact | Publishes the disabled consumer-recovery request, original-operation response, error, receipt, and fixture contract. |
 | `entitlement_snapshot.zip` | `GET /entitlements/snapshot` | Returns the current subscription and scan-usage view. |
 | `history_lifecycle.zip` | EventBridge Scheduler | Expires History records and processes durable erasure/completion control jobs. |
 | `history_mutation_api.zip` | History delete/clear/reset routes | Applies idempotent History and recognition lifecycle mutations. |
@@ -63,8 +64,9 @@ make package
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
 metadata so identical inputs produce identical archives. Full builds include 20
-Lambda packages plus the immutable `campaign-contracts-1.0.0.zip` and
-`history-contracts-1.0.0.zip` handoffs.
+Lambda packages plus the immutable `campaign-contracts-1.0.0.zip`,
+`history-contracts-1.0.0.zip`, and
+`device-recovery-contracts-1.0.0.zip` handoffs.
 
 Build one function or target x86_64 explicitly:
 

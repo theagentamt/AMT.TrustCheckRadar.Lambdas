@@ -19,6 +19,7 @@ REQUIRED_FUNCTIONS=(
 OPTIONAL_FUNCTIONS=(account_data_api campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends device_recovery history_account_deletion_bridge history_lifecycle history_mutation_api history_read_api web_risk_communication)
 CONTRACT_ARTIFACT="campaign-contracts-1.0.0.zip"
 HISTORY_CONTRACT_ARTIFACT="history-contracts-1.0.0.zip"
+DEVICE_RECOVERY_CONTRACT_ARTIFACT="device-recovery-contracts-1.0.0.zip"
 
 usage() {
   cat <<'USAGE'
@@ -102,11 +103,12 @@ for function_name in "${FUNCTIONS[@]}"; do
 done
 [[ -f "$DIST_DIR/$CONTRACT_ARTIFACT" ]] || fail "missing artifact: $DIST_DIR/$CONTRACT_ARTIFACT"
 [[ -f "$DIST_DIR/$HISTORY_CONTRACT_ARTIFACT" ]] || fail "missing artifact: $DIST_DIR/$HISTORY_CONTRACT_ARTIFACT"
+[[ -f "$DIST_DIR/$DEVICE_RECOVERY_CONTRACT_ARTIFACT" ]] || fail "missing artifact: $DIST_DIR/$DEVICE_RECOVERY_CONTRACT_ARTIFACT"
 
 CHECKSUM_MANIFEST="$DIST_DIR/SHA256SUMS"
 [[ -f "$CHECKSUM_MANIFEST" ]] || fail "missing checksum manifest: $CHECKSUM_MANIFEST"
 
-python3 - "$DIST_DIR" "$CONTRACT_ARTIFACT" "$HISTORY_CONTRACT_ARTIFACT" "${FUNCTIONS[@]}" <<'PY'
+python3 - "$DIST_DIR" "$CONTRACT_ARTIFACT" "$HISTORY_CONTRACT_ARTIFACT" "$DEVICE_RECOVERY_CONTRACT_ARTIFACT" "${FUNCTIONS[@]}" <<'PY'
 from hashlib import sha256
 from pathlib import Path
 import sys
@@ -114,7 +116,8 @@ import sys
 dist_dir = Path(sys.argv[1])
 contract_artifact = sys.argv[2]
 history_contract_artifact = sys.argv[3]
-function_names = sys.argv[4:]
+device_recovery_contract_artifact = sys.argv[4]
+function_names = sys.argv[5:]
 entries = {}
 for line in (dist_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
     digest, separator, name = line.partition("  ")
@@ -122,7 +125,7 @@ for line in (dist_dir / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
         raise SystemExit(f"invalid SHA256SUMS entry: {line!r}")
     entries[name] = digest
 
-for name in [f"{function_name}.zip" for function_name in function_names] + [contract_artifact, history_contract_artifact]:
+for name in [f"{function_name}.zip" for function_name in function_names] + [contract_artifact, history_contract_artifact, device_recovery_contract_artifact]:
     artifact = dist_dir / name
     expected = entries.get(name)
     actual = sha256(artifact.read_bytes()).hexdigest()
@@ -172,6 +175,10 @@ upload_immutable "$contract_path" "releases/$RELEASE_ID/$CONTRACT_ARTIFACT" "$co
 history_contract_path="$DIST_DIR/$HISTORY_CONTRACT_ARTIFACT"
 history_contract_digest="$(awk -v name="$HISTORY_CONTRACT_ARTIFACT" '$2 == name { print $1 }' "$CHECKSUM_MANIFEST")"
 upload_immutable "$history_contract_path" "releases/$RELEASE_ID/$HISTORY_CONTRACT_ARTIFACT" "$history_contract_digest"
+
+device_recovery_contract_path="$DIST_DIR/$DEVICE_RECOVERY_CONTRACT_ARTIFACT"
+device_recovery_contract_digest="$(awk -v name="$DEVICE_RECOVERY_CONTRACT_ARTIFACT" '$2 == name { print $1 }' "$CHECKSUM_MANIFEST")"
+upload_immutable "$device_recovery_contract_path" "releases/$RELEASE_ID/$DEVICE_RECOVERY_CONTRACT_ARTIFACT" "$device_recovery_contract_digest"
 
 manifest_key="releases/$RELEASE_ID/SHA256SUMS"
 manifest_digest="$(python3 -c 'from hashlib import sha256; from pathlib import Path; import sys; print(sha256(Path(sys.argv[1]).read_bytes()).hexdigest())' "$CHECKSUM_MANIFEST")"

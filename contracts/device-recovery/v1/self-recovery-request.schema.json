@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amt.example/contracts/device-recovery/1.0.0/self-recovery-request.schema.json",
+  "title": "Device self-recovery V1 request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "operationId",
+    "action",
+    "bindingFingerprint",
+    "platform",
+    "osVersion"
+  ],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "operationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "action": {"const": "REPLACE_ACTIVE_BINDING"},
+    "bindingFingerprint": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"
+    },
+    "platform": {"enum": ["ios", "android"]},
+    "osVersion": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._ -]{0,31}$"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "The submitted request is invalid.",
+    "retryable": false,
+    "details": [
+      {
+        "field": "body",
+        "issue": "Request fields do not match the self-recovery contract."
+      }
+    ]
+  }
+}

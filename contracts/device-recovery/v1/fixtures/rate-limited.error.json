@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Too many recovery attempts.",
+    "retryable": true
+  }
+}
