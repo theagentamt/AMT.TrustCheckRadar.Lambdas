@@ -34,6 +34,12 @@ The new GitHub CI job is source configuration; local results do not claim a comp
 
 ## Infrastructure handoff and live validation
 
-Infrastructure owns the reviewed Terraform provider/runtime migration and alias rollout. After deployment, the Lambda agent will run the existing narrow-role smoke harness with `--public-https` and no EC2 fixture: eight blocked/no-network cases plus one benign HTTPS request. These bounded checks must be distinguished from the earlier 22-case owned-fixture run on Python 3.13. No new fixture, customer URL, analyzer integration, UAT or production rollout is authorized by this candidate publication.
+Infrastructure owns the reviewed Terraform provider/runtime migration and alias rollout. After deployment, the Lambda agent ran the existing narrow-role smoke harness with `--public-https` and no EC2 fixture: eight blocked/no-network cases plus one benign HTTPS request. These bounded checks must be distinguished from the earlier 22-case owned-fixture run on Python 3.13. No new fixture, customer URL, analyzer integration, UAT or production rollout is authorized by this candidate publication.
 
-Live Python 3.14 results: **pending infrastructure rollout**.
+Live Python 3.14 results: **9/9 cases passed**. Infrastructure verified the `live` alias at version **2**, `python3.14`, ARM64, Active/Successful and the published hash before invocation. The Lambda agent assumed only `trustcheckradar-dev-url-resolver-dev-test` for invocation, held credentials in process memory, and disabled request retries.
+
+The cases cover direct metadata/private/loopback destinations, userinfo, encoded header injection, sensitive and nested-sensitive paths, unsupported schemes, and a successful HTTPS request to example.com. No owned redirect fixture was recreated, so this run does not re-claim the earlier 22-case Python 3.13 fixture coverage. The 77 local resolver tests include redirect, timeout, header, DNS and TLS behavior on Python 3.14.
+
+CloudWatch inspection of only this smoke window found **9** application events, all with exactly the allowed telemetry fields, zero unexpected schemas and zero URL/check-ID/metadata-address markers. Raw log records and temporary credentials were not saved.
+
+Sanitized results are retained in `docs/url-resolver-python314-evidence-20260920/lambda-smoke.jsonl` and `lambda-log-privacy.json`. Infrastructure owns final no-drift checks and release/tracker reporting.

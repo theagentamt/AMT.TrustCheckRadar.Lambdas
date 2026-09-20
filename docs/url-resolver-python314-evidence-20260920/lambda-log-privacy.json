@@ -1,0 +1,9 @@
+{
+  "logGroup": "/aws/lambda/trustcheckradar-dev-url-resolver",
+  "runtime": "python3.14",
+  "functionVersion": "2",
+  "applicationEventCount": 9,
+  "unexpectedApplicationSchemas": 0,
+  "rawInputMarkersFound": 0,
+  "passed": true
+}
