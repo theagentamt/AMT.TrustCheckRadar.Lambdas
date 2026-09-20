@@ -337,9 +337,9 @@ class Authority:
                 'ConditionExpression': 'usedChecks = :used AND reservedChecks = :reserved AND grantRevision = :revision AND policyVersion = :policy AND endEpoch > :now',
                 'ExpressionAttributeValues': {':one': 1, ':used': period['usedChecks'], ':reserved': period['reservedChecks'], ':revision': period['grantRevision'], ':policy': OWNER_POLICY, ':now': self.now()}}})
         items.append({'Update': {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': 'INFLIGHT'},
-            'UpdateExpression': 'SET expiresAt = :expires ADD activeCount :one',
+            'UpdateExpression': 'REMOVE expiresAt ADD activeCount :one',
             'ConditionExpression': 'attribute_not_exists(activeCount) OR activeCount < :cap',
-            'ExpressionAttributeValues': {':expires': self.now() + self.s.counter_retention_seconds, ':one': 1, ':cap': self.s.max_inflight}}})
+            'ExpressionAttributeValues': {':one': 1, ':cap': self.s.max_inflight}}})
         items.append({'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}})
         try: self._transact(items)
         except AuthorityError:

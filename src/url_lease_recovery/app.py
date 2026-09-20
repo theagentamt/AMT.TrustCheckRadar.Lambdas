@@ -8,6 +8,14 @@ def lambda_handler(event,context):
     if os.environ.get('STAGE')!='dev' or os.environ.get('LEASE_SWEEP_ENABLED')!='true':
         return {'enabled':False,'recovered':0}
     if event!={'schemaVersion':1}:return {'enabled':True,'rejected':True}
+    try:
+        return _sweep(context)
+    except Exception:
+        print(json.dumps({'event':'url_lease_recovery','failed':1,'reason':'RECOVERY_UNAVAILABLE'}))
+        raise RuntimeError('RECOVERY_UNAVAILABLE') from None
+
+
+def _sweep(context):
     from shared_check_authority.recovery import Recovery
     import boto3
     from botocore.config import Config

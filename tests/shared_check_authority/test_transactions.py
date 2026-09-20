@@ -352,3 +352,19 @@ def test_sweeper_advances_past_failed_first_page(world):
     assert first['examined']+second['examined']==3
     assert first['recovered']+second['recovered']==2
     assert first['failed']+second['failed']==1
+
+
+def test_pending_inflight_survives_counter_retention_and_old_cleanup_cannot_decrement_new_work(world):
+    a,e,_,row,_,clock=world
+    cid,op=admit(world)
+    assert 'expiresAt' not in row('INFLIGHT')
+    clock[0]+=a.s.counter_retention_seconds+1
+    e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
+    from shared_check_authority.recovery import Recovery
+    recovery=Recovery(a.ddb,'authority',now=a.now)
+    assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is True
+    assert row('PERIOD#p1')['reservedChecks']==0 and row('INFLIGHT')['activeCount']==0
+    new_id,new_op=admit(world,'after-expired-cleanup')
+    assert row('INFLIGHT')['activeCount']==1 and 'expiresAt' not in row('INFLIGHT')
+    assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is False
+    assert row('PERIOD#p1')['reservedChecks']==1 and row('INFLIGHT')['activeCount']==1

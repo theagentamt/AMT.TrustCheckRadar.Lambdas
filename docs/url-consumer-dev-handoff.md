@@ -67,6 +67,12 @@ proof and lease deadline. A normalized allowlisted assessment summary may be
 stored atomically with SETTLED state for response-loss recovery; no raw URL,
 message, Google body, JWT, key, or request payload is stored.
 
+INFLIGHT is a non-expiring account-control row; admission removes any stale
+expiresAt attribute. It must outlive every pending receipt/reservation, including
+a cleanup outage past configured counter retention. Its deletion/retention
+approval follows the account deletion bridge; ATTEMPT counters alone use the
+configured counter TTL. Duplicate old cleanup cannot decrement a new hold.
+
 Pending receipts have GSI1PK=V1_PENDING and a padded deadline GSI1SK. Existing GSI1
 is sufficient; no new index is needed. They have retentionDeadlineEpoch but no
 DynamoDB expiresAt until settlement, so asynchronous TTL cannot erase the receipt
