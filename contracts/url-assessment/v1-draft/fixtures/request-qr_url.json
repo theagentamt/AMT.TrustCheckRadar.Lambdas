@@ -1,0 +1,11 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "entryPoint": "qr_url",
+  "language": "en",
+  "target": {
+    "url": "https://example.com/help",
+    "scope": "full_url",
+    "withheldComponents": []
+  }
+}

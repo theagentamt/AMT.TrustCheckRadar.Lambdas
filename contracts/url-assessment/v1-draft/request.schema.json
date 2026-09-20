@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "checkId",
+    "entryPoint",
+    "language",
+    "target"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "0.1.0-draft.1"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "entryPoint": {
+      "enum": [
+        "standalone_url",
+        "message_url",
+        "qr_url"
+      ]
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "scope",
+        "withheldComponents"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri",
+          "pattern": "^https?://[^#]*$"
+        },
+        "scope": {
+          "enum": [
+            "full_url",
+            "origin_only"
+          ]
+        },
+        "withheldComponents": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "path",
+              "query",
+              "fragment"
+            ]
+          },
+          "uniqueItems": true,
+          "maxItems": 3
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "origin_only"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "withheldComponents": {
+                "minItems": 1
+              },
+              "url": {
+                "pattern": "^https?://[^/?#]+/?$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scope": {
+                "const": "full_url"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "withheldComponents": {
+                "maxItems": 1,
+                "items": {
+                  "const": "fragment"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

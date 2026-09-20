@@ -1,0 +1,26 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "unknown",
+  "processingOutcome": "blocked",
+  "uncertainty": {
+    "coverage": "not_assessed",
+    "limitations": [
+      "DESTINATION_NOT_VISITED"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "local_validation",
+      "outcome": "blocked",
+      "targetScope": "none"
+    }
+  ],
+  "reasonCodes": [
+    "NON_PUBLIC_DESTINATION"
+  ],
+  "transportWarnings": [],
+  "nextAction": "review_input",
+  "messageKey": "url.blocked"
+}

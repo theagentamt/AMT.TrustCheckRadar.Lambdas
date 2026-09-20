@@ -1,0 +1,31 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "high_risk",
+  "processingOutcome": "complete",
+  "uncertainty": {
+    "coverage": "supported_checks_complete",
+    "limitations": [
+      "CONFLICTING_EVIDENCE"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "match",
+      "targetScope": "redirect_hop"
+    },
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "no_match",
+      "targetScope": "full_submitted_url"
+    }
+  ],
+  "reasonCodes": [
+    "GOOGLE_THREAT_MATCH"
+  ],
+  "transportWarnings": [],
+  "nextAction": "avoid_link",
+  "messageKey": "url.known_threat_conflict"
+}

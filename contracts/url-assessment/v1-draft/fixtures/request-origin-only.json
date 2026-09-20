@@ -1,0 +1,14 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-origin-check",
+  "entryPoint": "qr_url",
+  "language": "es",
+  "target": {
+    "url": "https://example.com/",
+    "scope": "origin_only",
+    "withheldComponents": [
+      "path",
+      "query"
+    ]
+  }
+}

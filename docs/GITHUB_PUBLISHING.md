@@ -68,3 +68,6 @@ The publishing workflow requires a successful main-push CI run and an exact matc
 Broader releases retain the existing all-functions uploader. CI runs created before this scope manifest existed cannot be promoted with this workflow; run fresh main CI after merging the reviewed source. The OIDC role and permissions are unchanged. Resolver-only publication uses the same already-authorized versioned artifact bucket and S3 release prefix.
 
 The publisher uses existing `s3:GetObject` and `s3:PutObject` permissions. It does not request `GetObjectVersion`; a concurrent latest-version replacement fails verification. Infrastructure independently verifies pinned-version bytes with its existing deploy permissions before rollout.
+
+
+Contract-only changes under `contracts/url-assessment/v1-draft/` and their tests, with narrowly listed release-scope support files, receive `scope=contracts`. The publishing workflow validates the main CI evidence but skips AWS credential assumption and every upload step. These draft handoffs are versioned in Git only; they do not publish or activate runtime artifacts. Any runtime-code change prevents contract-only scope.

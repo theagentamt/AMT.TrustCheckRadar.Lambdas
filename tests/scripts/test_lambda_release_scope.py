@@ -19,3 +19,25 @@ def test_no_resolver_change_does_not_claim_resolver_only_scope():
     assert module.classify([]) == 'all'
     assert module.classify(['README.md']) == 'all'
     assert module.classify(['src/url_redirect_resolver_evil/app.py']) == 'all'
+
+
+def test_contract_only_handoff_never_publishes_runtime_artifacts():
+    assert module.classify([
+        'contracts/url-assessment/v1-draft/contract-set.json',
+        'tests/url_assessment_contracts/test_contract.py',
+        'scripts/lambda_release_scope.py',
+        'tests/scripts/test_lambda_release_scope.py',
+        '.github/workflows/publish.yml',
+        'docs/GITHUB_PUBLISHING.md',
+    ]) == 'contracts'
+
+
+def test_runtime_change_cannot_hide_behind_contract_only_scope():
+    assert module.classify([
+        'contracts/url-assessment/v1-draft/contract-set.json',
+        'src/shared_entitlements/service.py',
+    ]) == 'all'
+    assert module.classify([
+        'contracts/url-assessment/v1-draft/contract-set.json',
+        'src/url_redirect_resolver/resolver.py',
+    ]) != 'contracts'

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "checkId",
+    "error"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "0.1.0-draft.1"
+    },
+    "checkId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "retryDisposition",
+        "messageKey"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "AUTHENTICATION_REQUIRED",
+            "EXTERNAL_ACCESS_UNAVAILABLE",
+            "CONTRACT_UNSUPPORTED",
+            "INPUT_REJECTED",
+            "CHECK_ID_CONFLICT",
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "retryDisposition": {
+          "enum": [
+            "after_sign_in",
+            "after_access_change",
+            "after_client_update",
+            "after_input_review",
+            "reconcile_same_check",
+            "do_not_retry_automatically"
+          ]
+        },
+        "messageKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    }
+  }
+}
