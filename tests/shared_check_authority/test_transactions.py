@@ -23,7 +23,7 @@ def world():
     with mock_aws():
         ddb = boto3.resource('dynamodb', region_name='us-east-1', aws_access_key_id='synthetic', aws_secret_access_key='synthetic', config=Config(retries={'total_max_attempts':1}))
         for name in ('users', 'devices', 'deletion', 'authority'):
-            ddb.create_table(TableName=name, BillingMode='PAY_PER_REQUEST', KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}], AttributeDefinitions=[{'AttributeName': k, 'AttributeType': 'S'} for k in ('PK', 'SK')])
+            ddb.create_table(TableName=name, BillingMode='PAY_PER_REQUEST', KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}], AttributeDefinitions=[{'AttributeName': k, 'AttributeType': 'S'} for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK')], GlobalSecondaryIndexes=[{'IndexName':'GSI1','KeySchema':[{'AttributeName':'GSI1PK','KeyType':'HASH'},{'AttributeName':'GSI1SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}}])
         clock = [1800000000]
         settings = Settings('users','devices','deletion','authority','https://issuer.example','client','checks',OWNER_POLICY,'k1',{'k1': b'synthetic-not-secret-test-key-0000'},60,120,300,480,600,60,100,3,True)
         a = Authority(settings, ddb, now=lambda: clock[0])
@@ -34,7 +34,7 @@ def world():
         put('users','PROFILE',sub=ACCOUNT,status='ACTIVE',ageVerified=True)
         put('devices','ACTIVE_BINDING',recordType='ACTIVE_BINDING_POINTER',stateVersion=1,bindingFingerprint='device-one')
         put('devices','DEVICE#device-one',accountId=ACCOUNT,status='ACTIVE',bindingFingerprint='device-one')
-        put('authority','ACCESS',recordType='V1_ACCESS_AUTHORITY',schemaVersion=1,state='ACTIVE',policyVersion=OWNER_POLICY,basis='paid',revision=1,validFromEpoch=clock[0]-100,validUntilEpoch=clock[0]+1000,periodId='p1')
+        put('authority','ACCESS',recordType='V1_ACCESS_AUTHORITY',schemaVersion=1,state='ACTIVE',policyVersion=OWNER_POLICY,basis='paid',revision=1,periodRevision=1,validFromEpoch=clock[0]-100,validUntilEpoch=clock[0]+1000,periodId='p1')
         put('authority','PERIOD#p1',recordType='V1_ALLOWANCE_PERIOD',policyVersion=OWNER_POLICY,grantRevision=1,limit=200,usedChecks=0,reservedChecks=0,startEpoch=clock[0]-100,endEpoch=clock[0]+1000)
         event={'headers':{'x-device-binding-fingerprint':'device-one'},'requestContext':{'authorizer':{'jwt':{'claims':{'sub':ACCOUNT,'iss':settings.cognito_issuer,'client_id':'client','token_use':'access','scope':'checks','exp':str(clock[0]+90)}}}}}
         def row(sk): return a._get('authority',{'PK':pk,'SK':sk})
@@ -104,7 +104,7 @@ def test_worker_must_own_execution_and_account(world):
 def test_settlement_targets_original_period_after_renewal(world):
     a,_,put,row,change,clock=world
     cid,op=admit(world)
-    change('authority','ACCESS',revision=2,periodId='p2')
+    change('authority','ACCESS',revision=2,periodId='p2',periodRevision=2)
     put('authority','PERIOD#p2',recordType='V1_ALLOWANCE_PERIOD',policyVersion=OWNER_POLICY,grantRevision=2,limit=200,usedChecks=0,reservedChecks=0,startEpoch=clock[0],endEpoch=clock[0]+1000)
     assert a.settle(WORKER,cid,op['executionToken'],'complete')['chargedChecks']==1
     assert row('PERIOD#p1')['usedChecks']==1 and row('PERIOD#p2')['usedChecks']==0
@@ -175,7 +175,7 @@ def test_attempt_cap_counts_malformed_without_customer_deduction(world):
     a,e,_,row,_,_=world
     a.s=replace(a.s,attempts_per_window=2)
     for _ in range(2): failure('INPUT_REJECTED',lambda:a.prepare(e,{},'bad'))
-    failure('TRANSACTION_UNCERTAIN',lambda:a.prepare(e,PAYLOAD,'exhausted'))
+    failure('RATE_LIMITED',lambda:a.prepare(e,PAYLOAD,'exhausted'))
     assert row('PERIOD#p1')['usedChecks']==0
 
 def test_inflight_cap_atomic_rollback(world):
@@ -183,7 +183,7 @@ def test_inflight_cap_atomic_rollback(world):
     a.s=replace(a.s,max_inflight=1)
     admit(world)
     cid=a.prepare(e,PAYLOAD,'second')
-    failure('TRANSACTION_UNCERTAIN',lambda:a.admit(e,PAYLOAD,cid))
+    failure('RATE_LIMITED',lambda:a.admit(e,PAYLOAD,cid))
     assert row('CHECK#'+cid) is None and row('PERIOD#p1')['reservedChecks']==1
 
 def test_receipt_contains_no_raw_payload_or_account(world):
@@ -263,3 +263,92 @@ def test_seventh_day_trial_expired(world):
     a,e,_,_,change,clock=world
     change('authority','ACCESS',basis='trial',validFromEpoch=clock[0]-TRIAL_SECONDS,validUntilEpoch=clock[0],activationKind='explicit',activatedAtEpoch=clock[0]-TRIAL_SECONDS)
     failure('EXTERNAL_ACCESS_UNAVAILABLE',lambda:a.prepare(e,PAYLOAD,'expired-trial'))
+
+
+def test_expired_lease_recovers_zero_once_without_current_entitlement(world):
+    a,e,_,row,change,clock=world
+    cid,op=admit(world)
+    failure('OPERATION_PENDING',lambda:a.recover_expired(e,cid))
+    clock[0]+=a.s.worker_settlement_seconds
+    e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
+    change('authority','ACCESS',state='REVOKED')
+    recovered=a.recover_expired(e,cid)
+    assert recovered['processingOutcome']=='failed' and recovered['chargedChecks']==0
+    assert row('PERIOD#p1')['reservedChecks']==0 and row('INFLIGHT')['activeCount']==0
+    assert a.settle(WORKER,cid,op['executionToken'],'complete')==recovered
+    assert a.recover_expired(e,cid)==recovered
+
+
+def test_already_settled_charge_never_refunded_by_recovery(world):
+    a,e,_,row,_,clock=world
+    cid,op=admit(world)
+    result=a.settle(WORKER,cid,op['executionToken'],'complete')
+    clock[0]+=a.s.worker_settlement_seconds
+    e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
+    assert a.recover_expired(e,cid)==result
+    assert row('PERIOD#p1')['usedChecks']==1
+
+
+def test_paid_complimentary_paid_preserves_original_period(world):
+    a,e,_,row,change,clock=world
+    cid,op=admit(world)
+    change('authority','ACCESS',basis='complimentary',revision=2,validUntilEpoch=None)
+    comp_id=a.prepare(e,PAYLOAD,'complimentary')
+    comp=a.admit(e,PAYLOAD,comp_id)
+    assert a.settle(WORKER,comp_id,comp['executionToken'],'complete')['chargedChecks']==0
+    change('authority','ACCESS',basis='paid',revision=3,periodRevision=1,validUntilEpoch=clock[0]+1000)
+    assert a.settle(WORKER,cid,op['executionToken'],'complete')['chargedChecks']==1
+    assert row('PERIOD#p1')['usedChecks']==1
+    next_id=a.prepare(e,PAYLOAD,'restored-paid')
+    a.admit(e,PAYLOAD,next_id)
+    assert row('PERIOD#p1')['reservedChecks']==1
+
+
+def test_operation_proof_binds_separate_client_identity(world):
+    a,e,*_=world
+    proof=a.prepare(e,PAYLOAD,'prepare-client',client_check_id='client-1')
+    failure('CHECK_ID_CONFLICT',lambda:a.admit(e,PAYLOAD,proof,client_check_id='client-2'))
+    op=a.admit(e,PAYLOAD,proof,client_check_id='client-1')
+    assert op['receipt']['clientCheckId']=='client-1'
+
+
+def test_pending_receipt_cannot_ttl_purge_before_counter_recovery(world):
+    a,_,_,row,_,clock=world
+    cid,op=admit(world)
+    assert 'expiresAt' not in row('CHECK#'+cid)
+    assert row('CHECK#'+cid)['GSI1PK']=='V1_PENDING'
+    from shared_check_authority.recovery import Recovery
+    clock[0]+=a.s.worker_settlement_seconds
+    recovery=Recovery(a.ddb,'authority',now=a.now)
+    assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is True
+    assert row('CHECK#'+cid)['chargedChecks']==0
+    assert 'GSI1PK' not in row('CHECK#'+cid)
+    assert row('CHECK#'+cid)['expiresAt']==row('CHECK#'+cid)['retentionDeadlineEpoch']
+    assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is False
+
+
+def test_partition_deletion_fence_prevents_cleanup_writes(world):
+    a,_,_,row,change,clock=world
+    cid,op=admit(world)
+    change('authority','ACCESS',state='DELETING')
+    clock[0]+=a.s.worker_settlement_seconds
+    from shared_check_authority.recovery import Recovery
+    recovery=Recovery(a.ddb,'authority',now=a.now)
+    failure('RECOVERY_TRANSACTION_UNCERTAIN',lambda:recovery.expire(a._partition(ACCOUNT,'k1'),cid))
+    assert row('CHECK#'+cid)['state']=='ADMITTED'
+
+
+def test_sweeper_advances_past_failed_first_page(world):
+    a,_,_,row,change,clock=world
+    ids=[admit(world,'sweep-'+str(i))[0] for i in range(3)]
+    clock[0]+=a.s.worker_settlement_seconds
+    # A corrupted lease is retained for operators; later valid leases still finish.
+    change('authority','CHECK#'+ids[0],periodSK='PERIOD#missing')
+    from shared_check_authority.recovery import Recovery
+    recovery=Recovery(a.ddb,'authority',now=a.now)
+    first=recovery.sweep(page_size=1,max_pages=1)
+    assert first['cursor'] is not None
+    second=recovery.sweep(cursor=first['cursor'],page_size=1,max_pages=4)
+    assert first['examined']+second['examined']==3
+    assert first['recovered']+second['recovered']==2
+    assert first['failed']+second['failed']==1
