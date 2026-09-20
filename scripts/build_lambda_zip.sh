@@ -30,6 +30,7 @@ FUNCTIONS=(
   history_read_api
   purchase_handoff
   url_redirect_resolver
+  url_assessment
   web_risk_communication
   post_confirmation
 )
@@ -44,7 +45,7 @@ Options:
   --all                    Build every Lambda artifact.
   --function <name>        Build one function from src/<name>.
   --output-dir <dir>       Artifact directory (default: dist).
-  --python-version <ver>   Override target Python (resolver: 3.14; others: 3.13).
+  --python-version <ver>   Override target Python (resolver/assessment: 3.14; others: 3.13).
   --arch <arch>            arm64 or x86_64 (default: arm64).
   --skip-dependencies      Package source only; intended for local validation.
   -h, --help               Show this help.
@@ -160,7 +161,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && "$function_name" == "url_redirect_resolver" ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" ) ]]; then
     python_version="3.14"
   fi
 
@@ -171,6 +172,11 @@ build_function() {
   rm -rf "$build_dir"
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
+
+  if [[ "$function_name" == "url_assessment" ]]; then
+    mkdir -p "$build_dir/url_redirect_resolver"
+    cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
+  fi
 
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
