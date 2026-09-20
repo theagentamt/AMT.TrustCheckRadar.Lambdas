@@ -5,11 +5,16 @@
   "required": [
     "contractVersion",
     "checkId",
-    "error"
+    "error",
+    "kind",
+    "access",
+    "accounting",
+    "retry",
+    "nextAction"
   ],
   "properties": {
     "contractVersion": {
-      "const": "0.1.0-draft.1"
+      "const": "0.2.0-candidate.1"
     },
     "checkId": {
       "anyOf": [
@@ -27,13 +32,15 @@
       "additionalProperties": false,
       "required": [
         "code",
-        "retryDisposition",
         "messageKey"
       ],
       "properties": {
         "code": {
           "enum": [
             "AUTHENTICATION_REQUIRED",
+            "ACTIVE_DEVICE_REQUIRED",
+            "SUBSCRIPTION_REQUIRED",
+            "ALLOWANCE_EXHAUSTED",
             "EXTERNAL_ACCESS_UNAVAILABLE",
             "CONTRACT_UNSUPPORTED",
             "INPUT_REJECTED",
@@ -41,22 +48,729 @@
             "SERVICE_UNAVAILABLE"
           ]
         },
-        "retryDisposition": {
+        "messageKey": {
           "enum": [
-            "after_sign_in",
-            "after_access_change",
-            "after_client_update",
-            "after_input_review",
-            "reconcile_same_check",
-            "do_not_retry_automatically"
+            "error.sign_in",
+            "error.active_device",
+            "error.subscription",
+            "error.allowance",
+            "access.external_unavailable",
+            "contract.unsupported",
+            "url.invalid",
+            "error.conflict",
+            "error.service",
+            "check.reconcile"
+          ]
+        }
+      }
+    },
+    "kind": {
+      "const": "request_error"
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "basis",
+        "externalChecksAllowed",
+        "builtInChecksAllowed",
+        "reconciliationAllowed",
+        "remainingChecks",
+        "resetsAt",
+        "unlimited",
+        "observedAt"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "allowed",
+            "sign_in_required",
+            "device_action_required",
+            "subscription_required",
+            "allowance_exhausted",
+            "temporarily_unavailable"
           ]
         },
-        "messageKey": {
+        "basis": {
+          "enum": [
+            "paid",
+            "trial",
+            "complimentary",
+            "none",
+            "unknown"
+          ]
+        },
+        "externalChecksAllowed": {
+          "type": "boolean"
+        },
+        "builtInChecksAllowed": {
+          "type": "boolean"
+        },
+        "reconciliationAllowed": {
+          "type": "boolean"
+        },
+        "remainingChecks": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resetsAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unlimited": {
+          "type": "boolean"
+        },
+        "observedAt": {
           "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "externalChecksAllowed": {
+                "const": true
+              },
+              "basis": {
+                "enum": [
+                  "paid",
+                  "trial",
+                  "complimentary"
+                ]
+              },
+              "builtInChecksAllowed": {
+                "const": true
+              },
+              "reconciliationAllowed": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "not": {
+                  "const": "allowed"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "externalChecksAllowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "sign_in_required"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "builtInChecksAllowed": {
+                "const": false
+              },
+              "reconciliationAllowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowance_exhausted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remainingChecks": {
+                "const": 0
+              },
+              "unlimited": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "unlimited": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "basis": {
+                "const": "complimentary"
+              },
+              "remainingChecks": {
+                "type": "null"
+              },
+              "resetsAt": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              },
+              "basis": {
+                "enum": [
+                  "paid",
+                  "trial"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remainingChecks": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unlimited": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              },
+              "basis": {
+                "const": "complimentary"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "unlimited": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "chargedChecks",
+        "receiptId",
+        "requiresReconciliation"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "not_started",
+            "pending",
+            "charged",
+            "not_charged",
+            "unknown"
+          ]
+        },
+        "chargedChecks": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "receiptId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requiresReconciliation": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "not_started"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 0
+              },
+              "receiptId": {
+                "type": "null"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "charged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 1
+              },
+              "receiptId": {
+                "type": "string"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "not_charged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 0
+              },
+              "receiptId": {
+                "type": "string"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "pending",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "type": "null"
+              },
+              "requiresReconciliation": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "afterSeconds",
+        "automaticRetryAllowed"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "do_not_retry",
+            "reconcile_same_check",
+            "retry_same_check",
+            "after_sign_in",
+            "after_device_action",
+            "after_access_change",
+            "after_client_update",
+            "after_input_review"
+          ]
+        },
+        "afterSeconds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "automaticRetryAllowed": {
+          "const": false
+        }
+      }
+    },
+    "nextAction": {
+      "enum": [
+        "sign_in",
+        "manage_active_device",
+        "review_subscription",
+        "use_built_in_help",
+        "update_app",
+        "review_input",
+        "reconcile_check"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "accounting": {
+            "properties": {
+              "requiresReconciliation": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "retry": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "reconcile_same_check",
+                  "after_sign_in",
+                  "after_client_update"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "retry": {
+            "properties": {
+              "disposition": {
+                "const": "retry_same_check"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "access": {
+            "properties": {
+              "externalChecksAllowed": {
+                "const": true
+              }
+            }
+          },
+          "accounting": {
+            "properties": {
+              "state": {
+                "const": "not_charged"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "AUTHENTICATION_REQUIRED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.sign_in"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "ACTIVE_DEVICE_REQUIRED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.active_device"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "SUBSCRIPTION_REQUIRED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.subscription"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "ALLOWANCE_EXHAUSTED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.allowance"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "EXTERNAL_ACCESS_UNAVAILABLE"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "access.external_unavailable"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "CONTRACT_UNSUPPORTED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "contract.unsupported"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "INPUT_REJECTED"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.invalid"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "CHECK_ID_CONFLICT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.conflict"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "const": "SERVICE_UNAVAILABLE"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "error.service",
+                  "check.reconcile"
+                ]
+              }
+            }
+          }
         }
       }
     }
-  }
+  ]
 }
