@@ -41,3 +41,8 @@ def test_runtime_change_cannot_hide_behind_contract_only_scope():
         'contracts/url-assessment/v1-draft/contract-set.json',
         'src/url_redirect_resolver/resolver.py',
     ]) != 'contracts'
+
+
+def test_private_assessment_requires_manual_publication_without_aws_automation():
+    assert module.classify(['src/url_assessment/app.py', '.github/workflows/ci.yml', '.github/workflows/publish.yml', 'scripts/build_lambda_zip.sh', 'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py', 'docs/url-assessment-private-dev.md']) == 'assessment_manual'
+    assert module.classify(['src/url_assessment/app.py', 'src/web_risk_communication/app.py']) == 'all'

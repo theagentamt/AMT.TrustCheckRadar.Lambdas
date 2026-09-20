@@ -14,6 +14,12 @@ SHARED_REVIEWED_PATHS = {
     'tests/scripts/test_lambda_release_scope.py', 'tests/scripts/test_publish_url_resolver.py',
     'docs/GITHUB_PUBLISHING.md',
 }
+ASSESSMENT_PREFIXES = ('src/url_assessment/', 'tests/url_assessment/', 'docs/url-assessment-', 'scripts/url_assessment_')
+ASSESSMENT_SUPPORT_PATHS = {
+    '.github/workflows/ci.yml', '.github/workflows/publish.yml',
+    'scripts/build_lambda_zip.sh', 'scripts/lambda_release_scope.py',
+    'tests/scripts/test_lambda_release_scope.py', 'docs/GITHUB_PUBLISHING.md',
+}
 CONTRACT_PREFIXES = ('contracts/url-assessment/v1-draft/', 'tests/url_assessment_contracts/')
 CONTRACT_SUPPORT_PATHS = {
     '.github/workflows/publish.yml', 'scripts/lambda_release_scope.py',
@@ -25,6 +31,11 @@ RESOLVER_PREFIXES = ('src/url_redirect_resolver/', 'tests/url_redirect_resolver/
 
 def classify(paths):
     paths = list(paths)
+    assessment = lambda path: path.startswith(ASSESSMENT_PREFIXES)
+    if paths and any(assessment(path) for path in paths) and all(
+        assessment(path) or path in ASSESSMENT_SUPPORT_PATHS for path in paths
+    ):
+        return 'assessment_manual'
     contract = lambda path: path.startswith(CONTRACT_PREFIXES)
     if paths and any(contract(path) for path in paths) and all(
         contract(path) or path in CONTRACT_SUPPORT_PATHS for path in paths

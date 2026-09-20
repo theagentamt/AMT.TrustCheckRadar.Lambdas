@@ -79,10 +79,13 @@ jobs:
         run: python -m pip install --requirement requirements-dev.txt
 
       - name: Test resolver
-        run: python -m pytest -q tests/url_redirect_resolver
+        run: python -m pytest -q tests/url_redirect_resolver tests/url_assessment
 
       - name: Build resolver for Python 3.14 ARM64
         run: ./scripts/build_lambda_zip.sh --function url_redirect_resolver --arch arm64
+
+      - name: Build private assessment for Python 3.14 ARM64
+        run: ./scripts/build_lambda_zip.sh --function url_assessment --arch arm64
 
       - name: Verify packaged resolver handler
         env:
@@ -104,3 +107,25 @@ jobs:
           assert result["reasonCodes"] == ["NON_PUBLIC_DESTINATION"]
           assert result["requestCount"] == 0
           PY
+
+      - name: Verify packaged private assessment handler
+        env:
+          PYTHONPATH: dist/url_assessment.zip
+          STAGE: dev
+        run: |
+          python - <<'PYTHON'
+          from app import lambda_handler
+
+          class Context:
+              def get_remaining_time_in_millis(self):
+                  return 35000
+
+          result = lambda_handler({
+              "schemaVersion": 1, "checkId": "ci-private-assessment",
+              "url": "http://169.254.169.254/latest/meta-data/", "scope": "full_url",
+          }, Context())
+          assert result["processingOutcome"] == "blocked"
+          assert result["verdict"] == "unknown"
+          assert result["providerCallCount"] == 0
+          assert result["consumerAccessEnabled"] is False
+          PYTHON

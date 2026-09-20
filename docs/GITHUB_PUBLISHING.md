@@ -71,3 +71,5 @@ The publisher uses existing `s3:GetObject` and `s3:PutObject` permissions. It do
 
 
 Contract-only changes under `contracts/url-assessment/v1-draft/` and their tests, with narrowly listed release-scope support files, receive `scope=contracts`. The publishing workflow validates the main CI evidence but skips AWS credential assumption and every upload step. These draft handoffs are versioned in Git only; they do not publish or activate runtime artifacts. Any runtime-code change prevents contract-only scope.
+
+Private Dev URL assessment changes have `assessment_manual` scope when the diff is limited to its source/tests/docs and reviewed workflow/build support. Automated publication skips AWS credentials and every upload for this scope. The independently reviewed manual release uploads only `url_assessment.zip`; no legacy analyzer or other Lambda artifact is published or deployed by that step.
