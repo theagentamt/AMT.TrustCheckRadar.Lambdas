@@ -338,8 +338,8 @@
       "requestRoute": "POST /v1/url-checks/reconcile",
       "response": {
         "transportVersion": "1.0.0-candidate.1",
-        "checkId": "client-1",
-        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "checkId": null,
+        "operationProof": null,
         "state": "unknown",
         "access": {
           "state": "sign_in_required",
@@ -585,7 +585,7 @@
       "requestRoute": "POST /v1/url-checks/prepare",
       "response": {
         "transportVersion": "1.0.0-candidate.1",
-        "checkId": "client-1",
+        "checkId": null,
         "operationProof": null,
         "state": "unknown",
         "access": {
@@ -713,7 +713,7 @@
       "requestRoute": "POST /v1/url-checks/prepare",
       "response": {
         "transportVersion": "1.0.0-candidate.1",
-        "checkId": "client-1",
+        "checkId": null,
         "operationProof": null,
         "state": "unknown",
         "access": {

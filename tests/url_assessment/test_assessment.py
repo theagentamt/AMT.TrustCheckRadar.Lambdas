@@ -184,3 +184,27 @@ def test_private_handler_logs_allowlist_only(monkeypatch, capsys):
     assert 'synthetic-check' not in json.dumps(log)
     monkeypatch.setenv('STAGE', 'prod')
     assert app.lambda_handler(event(), context)['reasonCodes'] == ['DEV_ONLY_DISABLED']
+
+
+@pytest.mark.parametrize('budget',[None,True,0,999,18001,'18000'])
+def test_invalid_trusted_budget_never_starts_provider(budget):
+    deps=Dependencies()
+    assert assess(event(executionBudgetMs=budget),deps,Budget(32))['processingOutcome']=='invalid_input'
+    assert deps.resolve_count==0 and deps.provider_call_count==0
+
+
+def test_trusted_budget_caps_private_handler_without_changing_old_protocol(monkeypatch):
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('assessment_budget_app',ROOT/'src/url_assessment/app.py')
+    app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
+    monkeypatch.setenv('STAGE','dev')
+    captured=[]
+    def inspect(event,deps,budget):
+        captured.append(budget.remaining())
+        return app.base_result()
+    monkeypatch.setattr(app,'assess',inspect)
+    context=Mock();context.get_remaining_time_in_millis.return_value=35000
+    app.lambda_handler(event(executionBudgetMs=18000),context)
+    app.lambda_handler(event(executionBudgetMs=14500),context)
+    app.lambda_handler(event(),context)
+    assert 17<=captured[0]<=18 and 14<=captured[1]<=14.5 and 31<=captured[2]<=32

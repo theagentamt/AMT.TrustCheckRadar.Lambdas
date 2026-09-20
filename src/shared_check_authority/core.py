@@ -268,12 +268,12 @@ class Authority:
         if not allow_expired and expiry <= self.now(): raise AuthorityError('OPERATION_EXPIRED')
         return key_id
 
-    def prepare(self, event, payload, preparation_id, *, client_check_id=None):
+    def prepare(self, event, payload, preparation_id, *, client_check_id=None, count_attempt=True):
         """Candidate lifecycle only: no provider, reservation, or customer charge."""
         account = self._account(event)
         key_id = self.s.active_key_id
         partition = self._partition(account, key_id)
-        self._attempt(account, partition)  # includes malformed and rejected intents
+        if count_attempt: self._attempt(account, partition)  # adapter may already count malformed intents
         device = self._device(event, account)
         grant, _ = self._grant(partition)
         digest = self._payload(account, payload, key_id, client_check_id)
@@ -304,11 +304,11 @@ class Authority:
     def _receipt_public(self, row):
         return {k: row.get(k) for k in ('checkId', 'clientCheckId', 'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome', 'resultSummary', 'assessmentEpoch')} | {'expiresAt': row.get('retentionDeadlineEpoch', row.get('expiresAt'))}
 
-    def admit(self, event, payload, check_id, *, client_check_id=None):
+    def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True):
         account = self._account(event)
         key_id, _, _, _ = self._token_parts(check_id)
         partition = self._partition(account, key_id)
-        self._attempt(account, partition)
+        if count_attempt: self._attempt(account, partition)
         digest = self._payload(account, payload, key_id, client_check_id)
         self._verify_token(account, check_id, digest)
         key = {'PK': partition, 'SK': 'CHECK#' + check_id}

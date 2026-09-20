@@ -92,6 +92,8 @@ class Consumer:
         try:
             if not isinstance(event,dict) or event.get('version')!='2.0' or event.get('routeKey') not in ROUTES or event.get('requestContext',{}).get('http',{}).get('method')!='POST' or event.get('isBase64Encoded') is True or event.get('rawQueryString') or event.get('queryStringParameters'):
                 raise AuthorityError('INPUT_REJECTED')
+            route=event['routeKey'];account=self.a._account(event)
+            self.a._attempt(account,self.a._partition(account,self.a.s.active_key_id))
             raw=event.get('body')
             if not isinstance(raw,str) or len(raw.encode('utf-8'))>8192:raise AuthorityError('INPUT_REJECTED')
             try:body=json.loads(raw,object_pairs_hook=unique_pairs)
@@ -99,7 +101,6 @@ class Consumer:
             if not isinstance(body,dict) or body.get('transportVersion')!=VERSION:raise AuthorityError('CONTRACT_UNSUPPORTED')
             client=body.get('checkId');proof=body.get('operationProof')
             if not isinstance(client,str) or not re.fullmatch('[A-Za-z0-9_-]{1,64}',client):raise AuthorityError('INPUT_REJECTED')
-            route=event['routeKey'];account=self.a._account(event)
             if route.endswith('/reconcile'):
                 if set(body)!={'transportVersion','checkId','operationProof'}:raise AuthorityError('INPUT_REJECTED')
                 row=self.a.reconcile(event,proof)
@@ -117,7 +118,7 @@ class Consumer:
             self.refresh(event)
             if route.endswith('/prepare'):
                 if proof is not None or 'operationProof' in body:raise AuthorityError('INPUT_REJECTED')
-                proof=self.a.prepare(event,intent,client,client_check_id=client)
+                proof=self.a.prepare(event,intent,client,client_check_id=client,count_attempt=False)
                 prior=self.a.reconcile(event,proof)
                 if prior['state'] in ('ADMITTED','SETTLED'):
                     state='pending' if prior['state']=='ADMITTED' else 'settled'
@@ -125,7 +126,7 @@ class Consumer:
                 result=self.envelope(event,client,proof,'prepared',row={'expiresAt':self.a._token_parts(proof)[1]})
                 return 200,result
             admission_uncertain=True
-            admitted=self.a.admit(event,intent,proof,client_check_id=client)
+            admitted=self.a.admit(event,intent,proof,client_check_id=client,count_attempt=False)
             if not admitted['admitted']:
                 row=admitted['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)

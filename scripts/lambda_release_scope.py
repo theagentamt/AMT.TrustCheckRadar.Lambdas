@@ -14,11 +14,15 @@ SHARED_REVIEWED_PATHS = {
     'tests/scripts/test_lambda_release_scope.py', 'tests/scripts/test_publish_url_resolver.py',
     'docs/GITHUB_PUBLISHING.md',
 }
-AUTHORITY_PREFIXES = ('src/shared_check_authority/', 'tests/shared_check_authority/', 'docs/v1-check-authority')
+AUTHORITY_PREFIXES = ('src/shared_check_authority/', 'tests/shared_check_authority/', 'docs/v1-check-authority',
+    'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/',
+    'contracts/url-consumer/', 'contracts/v1-access/', 'docs/v1-entitlement-', 'docs/url-consumer-',
+    'src/url_assessment/', 'tests/url_assessment/')
 AUTHORITY_SUPPORT_PATHS = {
     '.github/workflows/ci.yml', '.github/workflows/publish.yml',
     'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py',
-    'docs/GITHUB_PUBLISHING.md',
+    'docs/GITHUB_PUBLISHING.md', 'scripts/build_lambda_zip.sh',
+    'tests/scripts/authority_release_paths.json', 'scripts/verify_v1_packages.py', 'tests/contracts/test_v1_access_contract.py', 'tests/contracts/test_url_consumer_transport.py',
 }
 ASSESSMENT_PREFIXES = ('src/url_assessment/', 'tests/url_assessment/', 'docs/url-assessment-', 'scripts/url_assessment_')
 ASSESSMENT_SUPPORT_PATHS = {
@@ -38,7 +42,7 @@ RESOLVER_PREFIXES = ('src/url_redirect_resolver/', 'tests/url_redirect_resolver/
 def classify(paths):
     paths = list(paths)
     authority = lambda path: path.startswith(AUTHORITY_PREFIXES)
-    if paths and any(authority(path) for path in paths) and all(
+    if paths and any(path.startswith(('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'contracts/url-consumer/', 'contracts/v1-access/')) for path in paths) and all(
         authority(path) or path in AUTHORITY_SUPPORT_PATHS for path in paths
     ):
         return 'authority_manual'

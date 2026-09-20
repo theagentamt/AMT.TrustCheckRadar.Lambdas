@@ -81,3 +81,8 @@ handoff and enumerated CI/release support paths classify as `authority_manual`.
 CI tests the core against a local DynamoDB emulator, but the publisher skips AWS
 credentials and all uploads. Existing ZIPs do not include the library. Any
 unrelated handler or packaging change prevents this restricted classification.
+
+The coordinated URL consumer/lease recovery/V1 entitlements increment, its public
+transport/access schemas, and the reviewed private execution-budget extension also
+use `authority_manual`. The publisher skips AWS access and S3 uploads for this
+combined change; all27 package outputs remain CI inspection artifacts only.

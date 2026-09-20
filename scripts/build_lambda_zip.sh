@@ -31,6 +31,9 @@ FUNCTIONS=(
   purchase_handoff
   url_redirect_resolver
   url_assessment
+  url_consumer
+  url_lease_recovery
+  v1_entitlements
   web_risk_communication
   post_confirmation
 )
@@ -161,7 +164,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" ) ]]; then
     python_version="3.14"
   fi
 
@@ -172,6 +175,19 @@ build_function() {
   rm -rf "$build_dir"
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
+
+  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" ]]; then
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+  fi
+  if [[ "$function_name" == "v1_entitlements" ]]; then
+    mkdir -p "$build_dir/v1_entitlements"
+    cp -R "$source_dir"/. "$build_dir/v1_entitlements/"
+  fi
+  if [[ "$function_name" == "url_consumer" ]]; then
+    cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/public_contract"
+    cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.1" "$build_dir/transport_contract"
+  fi
 
   if [[ "$function_name" == "url_assessment" ]]; then
     mkdir -p "$build_dir/url_redirect_resolver"
