@@ -149,3 +149,28 @@ def test_disabled_handler_returns_complete_unknown_envelope(monkeypatch):
     from url_consumer.service import unavailable_envelope,validate_envelope
     body=unavailable_envelope()
     assert validate_envelope(body)==body and body['accounting']['chargedChecks'] is None
+
+
+def test_expired_unadmitted_preparation_closes_authoritatively(world):
+    service,e,calls=system(world);proof=prepared(service,e)
+    a,_,_,row,_,clock=world
+    req={'transportVersion':VERSION,'checkId':'client-1','operationProof':proof}
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']['chargedChecks'] is None
+    clock[0]+=a.s.operation_validity_seconds
+    status,body=service.handle(event(e,'POST /v1/url-checks/reconcile',req))
+    assert status==200 and body['state']=='rejected' and body['errorCode']=='OPERATION_EXPIRED'
+    assert body['accounting']=={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
+    assert row('PREPARE#client-1')['admissionState']=='CLOSED' and not calls
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']==body['accounting']
+
+
+def test_missing_or_retention_expired_preparation_remains_unknown(world):
+    service,e,calls=system(world);proof=prepared(service,e)
+    a,_,_,row,_,clock=world
+    clock[0]+=a.s.receipt_retention_seconds+1
+    e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
+    req={'transportVersion':VERSION,'checkId':'client-1','operationProof':proof}
+    body=service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]
+    assert body['state']=='unknown' and body['accounting']['chargedChecks'] is None
+    a.ddb.Table('authority').delete_item(Key={'PK':a._partition(ACCOUNT,'k1'),'SK':'PREPARE#client-1'})
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']['chargedChecks'] is None

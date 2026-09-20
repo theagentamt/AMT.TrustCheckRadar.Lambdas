@@ -1,6 +1,8 @@
 # V1 authority deletion component — unwired candidate
 
-This increment adds `shared_check_authority.deletion.AuthorityDeletion` and isolated DynamoDB transaction tests. It does not add a handler, change account-deletion completion requirements, create inventory metadata, rotate keys, publish a package, or activate a service. The three manually deployed inactive ZIPs remain pinned to source `44bdf31bdeb150b13c2cc3732421acbdc5b7bf1d`; this helper is separate follow-up source.
+Historical helper-only baseline (`2e6b314`): this increment added `shared_check_authority.deletion.AuthorityDeletion` and isolated DynamoDB transaction tests. It does not add a handler, change account-deletion completion requirements, create inventory metadata, rotate keys, publish a package, or activate a service. The three manually deployed inactive ZIPs remain pinned to source `44bdf31bdeb150b13c2cc3732421acbdc5b7bf1d`; this helper is separate follow-up source.
+
+The follow-up engineering worker, independent loader and inventory enforcement are now described in [the integration handoff](url-consumer-engineering-integration.md). The baseline below describes the original helper review, not current runtime activation.
 
 ## Boundary and existing deletion contract
 

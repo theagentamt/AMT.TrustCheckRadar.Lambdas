@@ -77,9 +77,10 @@ class AuthorityDeletion:
         else:data['ConditionExpression']='attribute_not_exists(PK)'
         return {'ConditionCheck':data}
 
-    def delete_batch(self,command,*,page_size=20,max_pages=2):
+    def delete_batch(self,command,*,page_size=20,max_pages=2,can_continue=lambda:True):
         if type(page_size) is not int or not 1<=page_size<=20 or type(max_pages) is not int or not 1<=max_pages<=4:
             raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
+        if not can_continue():return {'deleted':0,'complete':False,'alreadyComplete':False}
         account=self._command(command);inventory=self._inventory()
         partitions=[self._partition(account,k) for k in sorted(self.keys)]
         receipt_key={'PK':command['PK'],'SK':'ACCOUNT_DELETION#'+COMPONENT}
@@ -104,10 +105,12 @@ class AuthorityDeletion:
                 'UpdateExpression':'SET #state = :deleting, deletionOperationId = :operation REMOVE expiresAt',
                 'ConditionExpression':'recordType = :type AND (attribute_not_exists(deletionOperationId) OR deletionOperationId = :operation)',
                 'ExpressionAttributeNames':{'#state':'state'},'ExpressionAttributeValues':{':deleting':'DELETING',':operation':command['operationId'],':type':'V1_ACCESS_AUTHORITY'}}})
+        if not can_continue():return {'deleted':0,'complete':False,'alreadyComplete':False}
         self._transact(fence)
         deleted=pages=0
         for partition in partitions:
             while True:
+                if not can_continue():return {'deleted':deleted,'complete':False,'alreadyComplete':False}
                 page=self.ddb.Table(self.table).query(KeyConditionExpression='PK = :pk',ExpressionAttributeValues={':pk':partition},ConsistentRead=True,Limit=page_size+1)
                 rows=page.get('Items',[])
                 # ACCESS may sort after an unknown/future row family. A page is
@@ -127,12 +130,14 @@ class AuthorityDeletion:
         # Once fenced, all known writers require global deletion absence or this
         # ACCESS fence. They cannot create a row between empty read and receipt.
         for partition in partitions:
+            if not can_continue():return {'deleted':deleted,'complete':False,'alreadyComplete':False}
             empty=self.ddb.Table(self.table).query(KeyConditionExpression='PK = :pk',ExpressionAttributeValues={':pk':partition},ConsistentRead=True,Limit=1)
             if empty.get('Items'):raise AuthorityError('DELETION_NOT_EMPTY')
         epoch=self.now()
         if type(epoch) is not int or epoch<command['occurredAtEpoch']:
             raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
         completed=receipt_key|{'schemaVersion':1,'recordVersion':1,'environment':self.environment,'eventType':'account.deletion.component.completed','component':COMPONENT,'status':'COMPLETE','operationId':command['operationId'],'occurredAtEpoch':epoch,'requestOccurredAtEpoch':command['occurredAtEpoch'],'retainUntilEpoch':epoch+self.retention}
+        if not can_continue():return {'deleted':deleted,'complete':False,'alreadyComplete':False}
         self._transact(self._guards(command,inventory)+[self._access_guard(p,command['operationId'],False) for p in partitions]+[
             {'Put':{'TableName':self.ledger,'Item':completed,'ConditionExpression':'attribute_not_exists(PK)'}},
             {'Delete':{'TableName':self.ledger,'Key':progress_key,'ConditionExpression':'operationId = :operation','ExpressionAttributeValues':{':operation':command['operationId']}}}])
