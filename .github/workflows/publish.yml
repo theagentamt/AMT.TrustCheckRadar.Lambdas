@@ -133,7 +133,7 @@ jobs:
           assert manifest.get("schemaVersion") == 1
           assert manifest.get("headSha") == os.environ["SOURCE_SHA"]
           assert re.fullmatch("[0-9a-f]{40}", manifest.get("baseSha", ""))
-          assert manifest.get("scope") in {"resolver", "all", "contracts", "assessment_manual"}
+          assert manifest.get("scope") in {"resolver", "all", "contracts", "assessment_manual", "authority_manual"}
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("value=" + manifest["scope"] + "\n")
           PYTHON
@@ -162,7 +162,7 @@ jobs:
           done
 
       - name: Configure short-lived AWS credentials
-        if: steps.scope.outputs.value != 'contracts' && steps.scope.outputs.value != 'assessment_manual'
+        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'all'
         id: aws
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
@@ -171,7 +171,7 @@ jobs:
           role-session-name: trustcheckradar-lambdas-${{ github.run_id }}
 
       - name: Verify AWS account and target bucket
-        if: steps.scope.outputs.value != 'contracts' && steps.scope.outputs.value != 'assessment_manual'
+        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'all'
         run: |
           set -euo pipefail
           expected_account_id="${AWS_ROLE_ARN#*::}"
@@ -224,9 +224,9 @@ jobs:
             echo "- Environment: \`${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}\`"
             echo "- Source CI run: \`${SOURCE_RUN_ID}\`"
             echo "- Source commit/release: \`${RELEASE_ID}\`"
-            if [[ "$RELEASE_SCOPE" != "contracts" && "$RELEASE_SCOPE" != "assessment_manual" ]]; then
+            if [[ "$RELEASE_SCOPE" == "resolver" || "$RELEASE_SCOPE" == "all" ]]; then
               echo "- ZIP location: \`s3://${ARTIFACT_BUCKET}/releases/${RELEASE_ID}/\`"
             fi
             echo
-            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip. Contracts and assessment_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
+            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip. Contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
           } >> "${GITHUB_STEP_SUMMARY}"
