@@ -1140,7 +1140,7 @@ features may be activated merely because the ZIP artifacts exist.
 
 ## URL redirect resolver
 
-- Artifact: `url_redirect_resolver.zip`; handler: `app.lambda_handler`; Python 3.13 ARM64.
+- Artifact: `url_redirect_resolver.zip`; handler: `app.lambda_handler`; target runtime Python 3.14 ARM64.
 - Private synchronous IAM invocation through the `live` alias; no public route.
 - Standalone infrastructure stack: `terraform/url-resolver` in the Infrastructure repository.
 - No Google credential, user database or environment variables required.
