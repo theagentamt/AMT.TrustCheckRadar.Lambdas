@@ -1,0 +1,63 @@
+{
+  "runtime": "python3.14",
+  "aliasVersion": "1",
+  "date": "2026-09-20",
+  "cases": [
+    {
+      "case": "metadata",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "blocked",
+      "providerCallCount": 0
+    },
+    {
+      "case": "private",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "blocked",
+      "providerCallCount": 0
+    },
+    {
+      "case": "userinfo",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "invalid_input",
+      "providerCallCount": 0
+    },
+    {
+      "case": "header-injection",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "invalid_input",
+      "providerCallCount": 0
+    },
+    {
+      "case": "sensitive",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "blocked",
+      "providerCallCount": 0
+    },
+    {
+      "case": "non-http",
+      "passed": true,
+      "verdict": "unknown",
+      "status": "blocked",
+      "providerCallCount": 0
+    },
+    {
+      "case": "public-https",
+      "passed": true,
+      "verdict": "no_known_threat_detected",
+      "status": "complete",
+      "providerCallCount": 1
+    },
+    {
+      "case": "google-documented-malware-test",
+      "passed": true,
+      "verdict": "high_risk",
+      "status": "partial",
+      "providerCallCount": 1
+    }
+  ]
+}
