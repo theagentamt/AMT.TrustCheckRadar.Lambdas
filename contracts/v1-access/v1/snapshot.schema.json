@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amt:v1-access:snapshot:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policyVersion",
+    "activeDevice",
+    "access",
+    "allowance",
+    "trial"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "policyVersion": {
+      "const": "owner-2026-09-20-v1"
+    },
+    "activeDevice": {
+      "type": "boolean"
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "externalChecksAllowed",
+        "reason"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "paid",
+            "trial",
+            "complimentary",
+            "none"
+          ]
+        },
+        "externalChecksAllowed": {
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            "AVAILABLE",
+            "ACTIVE_DEVICE_REQUIRED",
+            "EXTERNAL_ACCESS_UNAVAILABLE",
+            "ALLOWANCE_EXHAUSTED"
+          ]
+        }
+      }
+    },
+    "allowance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "limit",
+        "completedUsed",
+        "reserved",
+        "remaining",
+        "periodEndsAtEpoch"
+      ],
+      "properties": {
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "completedUsed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "reserved": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "remaining": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "periodEndsAtEpoch": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activationAvailable",
+        "activatedAtEpoch",
+        "expiresAtEpoch"
+      ],
+      "properties": {
+        "activationAvailable": {
+          "type": "boolean"
+        },
+        "activatedAtEpoch": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expiresAtEpoch": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

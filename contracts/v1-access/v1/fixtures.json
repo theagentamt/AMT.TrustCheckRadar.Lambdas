@@ -1,0 +1,246 @@
+[
+  {
+    "name": "no-access",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": true,
+      "access": {
+        "basis": "none",
+        "externalChecksAllowed": false,
+        "reason": "EXTERNAL_ACCESS_UNAVAILABLE"
+      },
+      "allowance": {
+        "limit": null,
+        "completedUsed": null,
+        "reserved": null,
+        "remaining": null,
+        "periodEndsAtEpoch": null
+      },
+      "trial": {
+        "activationAvailable": true,
+        "activatedAtEpoch": null,
+        "expiresAtEpoch": null
+      }
+    }
+  },
+  {
+    "name": "trial-available",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": true,
+      "access": {
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "reason": "AVAILABLE"
+      },
+      "allowance": {
+        "limit": 10,
+        "completedUsed": 0,
+        "reserved": 0,
+        "remaining": 10,
+        "periodEndsAtEpoch": 1800604800
+      },
+      "trial": {
+        "activationAvailable": false,
+        "activatedAtEpoch": 1800000000,
+        "expiresAtEpoch": 1800604800
+      }
+    }
+  },
+  {
+    "name": "trial-exhausted",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": true,
+      "access": {
+        "basis": "trial",
+        "externalChecksAllowed": false,
+        "reason": "ALLOWANCE_EXHAUSTED"
+      },
+      "allowance": {
+        "limit": 10,
+        "completedUsed": 9,
+        "reserved": 1,
+        "remaining": 0,
+        "periodEndsAtEpoch": 1800604800
+      },
+      "trial": {
+        "activationAvailable": false,
+        "activatedAtEpoch": 1800000000,
+        "expiresAtEpoch": 1800604800
+      }
+    }
+  },
+  {
+    "name": "paid-available",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": true,
+      "access": {
+        "basis": "paid",
+        "externalChecksAllowed": true,
+        "reason": "AVAILABLE"
+      },
+      "allowance": {
+        "limit": 200,
+        "completedUsed": 17,
+        "reserved": 2,
+        "remaining": 181,
+        "periodEndsAtEpoch": 1800604800
+      },
+      "trial": {
+        "activationAvailable": false,
+        "activatedAtEpoch": null,
+        "expiresAtEpoch": null
+      }
+    }
+  },
+  {
+    "name": "complimentary",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": true,
+      "access": {
+        "basis": "complimentary",
+        "externalChecksAllowed": true,
+        "reason": "AVAILABLE"
+      },
+      "allowance": {
+        "limit": null,
+        "completedUsed": null,
+        "reserved": null,
+        "remaining": null,
+        "periodEndsAtEpoch": null
+      },
+      "trial": {
+        "activationAvailable": false,
+        "activatedAtEpoch": null,
+        "expiresAtEpoch": null
+      }
+    }
+  },
+  {
+    "name": "wrong-device",
+    "statusCode": 200,
+    "body": {
+      "schemaVersion": 1,
+      "policyVersion": "owner-2026-09-20-v1",
+      "activeDevice": false,
+      "access": {
+        "basis": "paid",
+        "externalChecksAllowed": false,
+        "reason": "ACTIVE_DEVICE_REQUIRED"
+      },
+      "allowance": {
+        "limit": 200,
+        "completedUsed": 17,
+        "reserved": 2,
+        "remaining": 181,
+        "periodEndsAtEpoch": 1800604800
+      },
+      "trial": {
+        "activationAvailable": false,
+        "activatedAtEpoch": null,
+        "expiresAtEpoch": null
+      }
+    }
+  },
+  {
+    "name": "input_rejected",
+    "statusCode": 400,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "INPUT_REJECTED",
+        "retryable": false
+      }
+    }
+  },
+  {
+    "name": "authentication_required",
+    "statusCode": 401,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "AUTHENTICATION_REQUIRED",
+        "retryable": false
+      }
+    }
+  },
+  {
+    "name": "account_unavailable",
+    "statusCode": 403,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "ACCOUNT_UNAVAILABLE",
+        "retryable": false
+      }
+    }
+  },
+  {
+    "name": "active_device_required",
+    "statusCode": 409,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "ACTIVE_DEVICE_REQUIRED",
+        "retryable": false
+      }
+    }
+  },
+  {
+    "name": "trial_not_eligible",
+    "statusCode": 409,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "TRIAL_NOT_ELIGIBLE",
+        "retryable": false
+      }
+    }
+  },
+  {
+    "name": "authority_snapshot_changed",
+    "statusCode": 409,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "AUTHORITY_SNAPSHOT_CHANGED",
+        "retryable": true
+      }
+    }
+  },
+  {
+    "name": "transaction_uncertain",
+    "statusCode": 503,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "TRANSACTION_UNCERTAIN",
+        "retryable": true
+      }
+    }
+  },
+  {
+    "name": "access_service_unavailable",
+    "statusCode": 503,
+    "body": {
+      "schemaVersion": 1,
+      "error": {
+        "code": "ACCESS_SERVICE_UNAVAILABLE",
+        "retryable": false
+      }
+    }
+  }
+]
