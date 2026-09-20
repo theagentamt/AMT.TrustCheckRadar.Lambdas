@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v7.0.0
@@ -39,6 +41,13 @@ jobs:
       - name: Build Lambda packages
         run: ./scripts/build_lambda_zip.sh --all
 
+      - name: Record main push release scope
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: python scripts/lambda_release_scope.py --base "$BEFORE_SHA" --head "$SOURCE_SHA" --output dist/release-scope.json
+
       - name: Upload packages for inspection
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -46,6 +55,7 @@ jobs:
           path: |
             dist/*.zip
             dist/SHA256SUMS
+            dist/release-scope.json
           if-no-files-found: error
           retention-days: 90
 

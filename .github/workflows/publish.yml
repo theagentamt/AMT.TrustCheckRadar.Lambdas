@@ -121,13 +121,30 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.source.outputs.run_id }}
 
+      - name: Validate release scope
+        id: scope
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, re
+          from pathlib import Path
+          manifest = json.loads(Path("dist/release-scope.json").read_text())
+          assert manifest.get("schemaVersion") == 1
+          assert manifest.get("headSha") == os.environ["SOURCE_SHA"]
+          assert re.fullmatch("[0-9a-f]{40}", manifest.get("baseSha", ""))
+          assert manifest.get("scope") in {"resolver", "all"}
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("value=" + manifest["scope"] + "\n")
+          PYTHON
+
       - name: Verify package checksums and contents
         run: |
           set -euo pipefail
           cd dist
           sha256sum --check SHA256SUMS
-          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 22 ]] || {
-            echo "Expected all 20 Lambda ZIP packages and two canonical contract packages" >&2
+          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 23 ]] || {
+            echo "Expected all 21 Lambda ZIP packages and two canonical contract packages" >&2
             exit 2
           }
           for artifact in *.zip; do
@@ -164,7 +181,26 @@ jobs:
           }
           aws s3api head-bucket --bucket "${ARTIFACT_BUCKET}"
 
+      - name: Publish only the resolver artifact
+        if: steps.scope.outputs.value == 'resolver'
+        env:
+          RELEASE_ID: ${{ steps.source.outputs.release_id }}
+        run: |
+          python3 scripts/publish_url_resolver.py --dist-dir dist \
+            --bucket "$ARTIFACT_BUCKET" --release "$RELEASE_ID" \
+            --region "$AWS_REGION" --output dist/url-resolver-publication.json
+
+      - name: Preserve resolver publication evidence
+        if: steps.scope.outputs.value == 'resolver'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: url-resolver-publication
+          path: dist/url-resolver-publication.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Publish immutable Lambda ZIP release
+        if: steps.scope.outputs.value == 'all'
         run: |
           bash scripts/upload_lambda_zips.sh \
             --dist-dir dist \
@@ -177,14 +213,16 @@ jobs:
         env:
           RELEASE_ID: ${{ steps.source.outputs.release_id }}
           SOURCE_RUN_ID: ${{ steps.source.outputs.run_id }}
+          RELEASE_SCOPE: ${{ steps.scope.outputs.value }}
         run: |
           {
             echo "## Lambda release published"
+            echo "- Scope: \`$RELEASE_SCOPE\`"
             echo
             echo "- Environment: \`${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}\`"
             echo "- Source CI run: \`${SOURCE_RUN_ID}\`"
             echo "- Source commit/release: \`${RELEASE_ID}\`"
             echo "- ZIP location: \`s3://${ARTIFACT_BUCKET}/releases/${RELEASE_ID}/\`"
             echo
-            echo "This publishes immutable artifacts only. The infrastructure workflow must deploy release \`${RELEASE_ID}\`."
+            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip; it does not deploy or update any Lambda runtime or alias."
           } >> "${GITHUB_STEP_SUMMARY}"
