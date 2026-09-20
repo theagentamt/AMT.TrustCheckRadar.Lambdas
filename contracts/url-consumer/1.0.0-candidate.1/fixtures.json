@@ -1,0 +1,775 @@
+{
+  "transportVersion": "1.0.0-candidate.1",
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "prepared",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "prepared",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000060
+      }
+    },
+    {
+      "name": "complete",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "contractVersion": "0.2.0-candidate.1",
+          "checkId": "client-1",
+          "access": {
+            "state": "allowed",
+            "basis": "paid",
+            "externalChecksAllowed": true,
+            "builtInChecksAllowed": true,
+            "reconciliationAllowed": true,
+            "remainingChecks": 199,
+            "resetsAt": "2027-01-15T08:16:40Z",
+            "unlimited": false,
+            "observedAt": "2027-01-15T08:00:00Z"
+          },
+          "accounting": {
+            "state": "charged",
+            "chargedChecks": 1,
+            "receiptId": "9d24fa30d29e7517af26120a421bee02",
+            "requiresReconciliation": false
+          },
+          "kind": "assessment_result",
+          "assessedAt": "2027-01-15T08:00:00Z",
+          "verdict": "no_known_threat_detected",
+          "processingOutcome": "complete",
+          "uncertainty": {
+            "coverage": "supported_checks_complete",
+            "limitations": [
+              "NO_LIST_MATCH",
+              "BROWSER_NAVIGATION_NOT_EVALUATED"
+            ]
+          },
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "no_match",
+              "targetScope": "full_submitted_url"
+            },
+            {
+              "source": "http_redirect_resolver",
+              "outcome": "completed",
+              "targetScope": "observed_http_chain"
+            }
+          ],
+          "reasonCodes": [
+            "NO_LIST_MATCH",
+            "BROWSER_NAVIGATION_NOT_EVALUATED"
+          ],
+          "transportWarnings": [],
+          "nextAction": "verify_independently",
+          "messageKey": "url.no_known_threat",
+          "retry": {
+            "disposition": "do_not_retry",
+            "afterSeconds": null,
+            "automaticRetryAllowed": false
+          }
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "known-threat-partial",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "contractVersion": "0.2.0-candidate.1",
+          "checkId": "client-1",
+          "access": {
+            "state": "allowed",
+            "basis": "paid",
+            "externalChecksAllowed": true,
+            "builtInChecksAllowed": true,
+            "reconciliationAllowed": true,
+            "remainingChecks": 200,
+            "resetsAt": "2027-01-15T08:16:40Z",
+            "unlimited": false,
+            "observedAt": "2027-01-15T08:00:00Z"
+          },
+          "accounting": {
+            "state": "not_charged",
+            "chargedChecks": 0,
+            "receiptId": "9d24fa30d29e7517af26120a421bee02",
+            "requiresReconciliation": false
+          },
+          "kind": "assessment_result",
+          "assessedAt": "2027-01-15T08:00:00Z",
+          "verdict": "high_risk",
+          "processingOutcome": "partial",
+          "uncertainty": {
+            "coverage": "limited",
+            "limitations": [
+              "KNOWN_THREAT_MATCH"
+            ]
+          },
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "match",
+              "targetScope": "observed_http_chain",
+              "threatTypes": [
+                "MALWARE"
+              ]
+            }
+          ],
+          "reasonCodes": [
+            "KNOWN_THREAT_MATCH"
+          ],
+          "transportWarnings": [],
+          "nextAction": "avoid_link",
+          "messageKey": "url.known_threat_partial",
+          "retry": {
+            "disposition": "do_not_retry",
+            "afterSeconds": null,
+            "automaticRetryAllowed": false
+          }
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "provider-timeout-zero",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "errorCode": "SERVICE_UNAVAILABLE",
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "pending",
+      "httpStatus": 202,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "pending",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "pending",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": null,
+        "retryAfterSeconds": 2,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "expired-zero",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:02:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "errorCode": "SERVICE_UNAVAILABLE",
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "unknown-receipt",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "reconcile-auth-failure",
+      "httpStatus": 401,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "sign_in_required",
+          "basis": "none",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "AUTHENTICATION_REQUIRED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "submit-refresh-failure",
+      "httpStatus": 503,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "SERVICE_UNAVAILABLE",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "repeat-prepare-charged",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "contractVersion": "0.2.0-candidate.1",
+          "checkId": "client-1",
+          "access": {
+            "state": "allowed",
+            "basis": "paid",
+            "externalChecksAllowed": true,
+            "builtInChecksAllowed": true,
+            "reconciliationAllowed": true,
+            "remainingChecks": 199,
+            "resetsAt": "2027-01-15T08:16:40Z",
+            "unlimited": false,
+            "observedAt": "2027-01-15T08:00:00Z"
+          },
+          "accounting": {
+            "state": "charged",
+            "chargedChecks": 1,
+            "receiptId": "9d24fa30d29e7517af26120a421bee02",
+            "requiresReconciliation": false
+          },
+          "kind": "assessment_result",
+          "assessedAt": "2027-01-15T08:00:00Z",
+          "verdict": "no_known_threat_detected",
+          "processingOutcome": "complete",
+          "uncertainty": {
+            "coverage": "supported_checks_complete",
+            "limitations": [
+              "NO_LIST_MATCH",
+              "BROWSER_NAVIGATION_NOT_EVALUATED"
+            ]
+          },
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "no_match",
+              "targetScope": "full_submitted_url"
+            },
+            {
+              "source": "http_redirect_resolver",
+              "outcome": "completed",
+              "targetScope": "observed_http_chain"
+            }
+          ],
+          "reasonCodes": [
+            "NO_LIST_MATCH",
+            "BROWSER_NAVIGATION_NOT_EVALUATED"
+          ],
+          "transportWarnings": [],
+          "nextAction": "verify_independently",
+          "messageKey": "url.no_known_threat",
+          "retry": {
+            "disposition": "do_not_retry",
+            "afterSeconds": null,
+            "automaticRetryAllowed": false
+          }
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "invalid-reconcile",
+      "httpStatus": 422,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "INPUT_REJECTED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "conflict",
+      "httpStatus": 409,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "another-client",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "CHECK_ID_CONFLICT",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "expired-submit",
+      "httpStatus": 409,
+      "requestRoute": "POST /v1/url-checks",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:01:01Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "OPERATION_EXPIRED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "rate-limited",
+      "httpStatus": 429,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "RATE_LIMITED",
+        "retryAfterSeconds": 60,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "subscription-required",
+      "httpStatus": 403,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "subscription_required",
+          "basis": "none",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "EXTERNAL_ACCESS_UNAVAILABLE",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "device-required",
+      "httpStatus": 403,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "device_action_required",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "ACTIVE_DEVICE_REQUIRED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "allowance-exhausted",
+      "httpStatus": 403,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "allowance_exhausted",
+          "basis": "paid",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 0,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "ALLOWANCE_EXHAUSTED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "account-unavailable",
+      "httpStatus": 403,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "ACCOUNT_UNAVAILABLE",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "name": "unsupported-version",
+      "httpStatus": 422,
+      "requestRoute": "POST /v1/url-checks/prepare",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": null,
+        "operationProof": null,
+        "state": "unknown",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "errorCode": "CONTRACT_UNSUPPORTED",
+        "retryAfterSeconds": null,
+        "expiresAt": null
+      }
+    }
+  ]
+}

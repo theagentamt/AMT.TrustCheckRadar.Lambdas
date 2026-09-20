@@ -14,6 +14,9 @@ def lambda_handler(event, context):
         result.update(processingOutcome='unavailable', reasonCodes=['DEV_ONLY_DISABLED'])
     else:
         remaining = max(0, context.get_remaining_time_in_millis() / 1000 - 1.0)
+        requested = event.get('executionBudgetMs') if isinstance(event, dict) else None
+        if type(requested) is int and 1000 <= requested <= 18000:
+            remaining = min(remaining, requested / 1000)
         result = assess(event, Dependencies(), Budget(remaining))
     # Allowlisted operational counts only. Never raw URL/key/checkId/exception.
     print(json.dumps({'event': 'private_url_assessment', 'status': result['processingOutcome'],

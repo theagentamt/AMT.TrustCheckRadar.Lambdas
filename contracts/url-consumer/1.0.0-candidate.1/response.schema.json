@@ -1,0 +1,2330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transportVersion",
+    "checkId",
+    "operationProof",
+    "state",
+    "access",
+    "accounting",
+    "outcome",
+    "errorCode",
+    "retryAfterSeconds",
+    "expiresAt"
+  ],
+  "properties": {
+    "transportVersion": {
+      "const": "1.0.0-candidate.1"
+    },
+    "checkId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "operationProof": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$"
+    },
+    "state": {
+      "enum": [
+        "prepared",
+        "pending",
+        "settled",
+        "unknown",
+        "rejected"
+      ]
+    },
+    "access": {
+      "$ref": "#/$defs/Access"
+    },
+    "accounting": {
+      "$ref": "#/$defs/Accounting"
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/Result"
+        },
+        {
+          "$ref": "#/$defs/Error"
+        }
+      ]
+    },
+    "errorCode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        null,
+        "AUTHENTICATION_REQUIRED",
+        "ACCOUNT_UNAVAILABLE",
+        "ACTIVE_DEVICE_REQUIRED",
+        "EXTERNAL_ACCESS_UNAVAILABLE",
+        "ALLOWANCE_EXHAUSTED",
+        "INPUT_REJECTED",
+        "CHECK_ID_CONFLICT",
+        "OPERATION_EXPIRED",
+        "RATE_LIMITED",
+        "OPERATION_PENDING",
+        "SERVICE_UNAVAILABLE",
+        "CONTRACT_UNSUPPORTED"
+      ]
+    },
+    "retryAfterSeconds": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "expiresAt": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "Access": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "basis",
+        "externalChecksAllowed",
+        "builtInChecksAllowed",
+        "reconciliationAllowed",
+        "remainingChecks",
+        "resetsAt",
+        "unlimited",
+        "observedAt"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "allowed",
+            "sign_in_required",
+            "device_action_required",
+            "subscription_required",
+            "allowance_exhausted",
+            "temporarily_unavailable"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "paid",
+            "trial",
+            "complimentary",
+            "none",
+            "unknown"
+          ]
+        },
+        "externalChecksAllowed": {
+          "type": "boolean"
+        },
+        "builtInChecksAllowed": {
+          "type": "boolean"
+        },
+        "reconciliationAllowed": {
+          "type": "boolean"
+        },
+        "remainingChecks": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resetsAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unlimited": {
+          "type": "boolean"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "externalChecksAllowed": {
+                "const": true
+              },
+              "basis": {
+                "enum": [
+                  "paid",
+                  "trial",
+                  "complimentary"
+                ]
+              },
+              "builtInChecksAllowed": {
+                "const": true
+              },
+              "reconciliationAllowed": {
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "not": {
+                  "const": "allowed"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "externalChecksAllowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "sign_in_required"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "builtInChecksAllowed": {
+                "const": false
+              },
+              "reconciliationAllowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowance_exhausted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remainingChecks": {
+                "const": 0
+              },
+              "unlimited": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "unlimited": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "basis": {
+                "const": "complimentary"
+              },
+              "remainingChecks": {
+                "type": "null"
+              },
+              "resetsAt": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              },
+              "basis": {
+                "enum": [
+                  "paid",
+                  "trial"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "remainingChecks": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unlimited": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "allowed"
+              },
+              "basis": {
+                "const": "complimentary"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "unlimited": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Accounting": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "chargedChecks",
+        "receiptId",
+        "requiresReconciliation"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "not_started",
+            "pending",
+            "charged",
+            "not_charged",
+            "unknown"
+          ]
+        },
+        "chargedChecks": {
+          "enum": [
+            null,
+            0,
+            1
+          ]
+        },
+        "receiptId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requiresReconciliation": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "not_started"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 0
+              },
+              "receiptId": {
+                "type": "null"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "charged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 1
+              },
+              "receiptId": {
+                "type": "string"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "not_charged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "const": 0
+              },
+              "receiptId": {
+                "type": "string"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "pending",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chargedChecks": {
+                "type": "null"
+              },
+              "requiresReconciliation": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Result": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "checkId",
+        "assessedAt",
+        "verdict",
+        "processingOutcome",
+        "uncertainty",
+        "evidence",
+        "reasonCodes",
+        "transportWarnings",
+        "nextAction",
+        "messageKey",
+        "kind",
+        "access",
+        "accounting",
+        "retry"
+      ],
+      "properties": {
+        "contractVersion": {
+          "const": "0.2.0-candidate.1"
+        },
+        "checkId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "assessedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "verdict": {
+          "enum": [
+            "no_known_threat_detected",
+            "suspicious",
+            "high_risk",
+            "unknown"
+          ]
+        },
+        "processingOutcome": {
+          "enum": [
+            "complete",
+            "partial",
+            "unavailable",
+            "blocked",
+            "invalid_input",
+            "unsupported"
+          ]
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coverage",
+            "limitations"
+          ],
+          "properties": {
+            "coverage": {
+              "enum": [
+                "supported_checks_complete",
+                "limited",
+                "not_assessed"
+              ]
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "maxItems": 16
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "source",
+              "outcome",
+              "targetScope"
+            ],
+            "properties": {
+              "source": {
+                "enum": [
+                  "google_web_risk_lookup",
+                  "http_redirect_resolver",
+                  "local_validation",
+                  "amt_rule"
+                ]
+              },
+              "outcome": {
+                "enum": [
+                  "match",
+                  "no_match",
+                  "completed",
+                  "incomplete",
+                  "blocked",
+                  "unavailable",
+                  "suspicious_pattern"
+                ]
+              },
+              "targetScope": {
+                "enum": [
+                  "full_submitted_url",
+                  "origin_only",
+                  "redirect_hop",
+                  "none",
+                  "observed_http_chain"
+                ]
+              },
+              "threatTypes": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "MALWARE",
+                    "SOCIAL_ENGINEERING",
+                    "UNWANTED_SOFTWARE"
+                  ]
+                },
+                "minItems": 1,
+                "maxItems": 3,
+                "uniqueItems": true
+              }
+            }
+          },
+          "maxItems": 12
+        },
+        "reasonCodes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "NO_LIST_MATCH",
+              "KNOWN_THREAT_MATCH",
+              "BROWSER_NAVIGATION_NOT_EVALUATED",
+              "INVALID_URL",
+              "UNSUPPORTED_URL",
+              "SENSITIVE_URL_BLOCKED",
+              "DESTINATION_BLOCKED",
+              "URL_NOT_FULLY_CHECKED",
+              "ORIGIN_ONLY_CHECKED",
+              "PROVIDER_TEMPORARILY_UNAVAILABLE",
+              "PROVIDER_RATE_LIMITED",
+              "SERVICE_UNAVAILABLE",
+              "PROCESSING_TIMEOUT",
+              "CONTRACT_UNSUPPORTED",
+              "SUSPICIOUS_RULE_MATCH",
+              "CONFLICTING_EVIDENCE"
+            ]
+          },
+          "maxItems": 16
+        },
+        "transportWarnings": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "UNENCRYPTED_CONNECTION",
+              "HTTPS_TO_HTTP_REDIRECT"
+            ]
+          },
+          "maxItems": 2
+        },
+        "nextAction": {
+          "enum": [
+            "avoid_link",
+            "verify_independently",
+            "review_input",
+            "use_built_in_help"
+          ]
+        },
+        "messageKey": {
+          "enum": [
+            "url.no_known_threat",
+            "url.known_threat",
+            "url.known_threat_partial",
+            "url.known_threat_conflict",
+            "url.unavailable",
+            "url.origin_only",
+            "url.suspicious_rule_draft",
+            "url.blocked",
+            "url.unsupported",
+            "url.invalid",
+            "url.sensitive",
+            "url.destination_blocked",
+            "url.rate_limited",
+            "url.timeout"
+          ]
+        },
+        "kind": {
+          "const": "assessment_result"
+        },
+        "access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "basis",
+            "externalChecksAllowed",
+            "builtInChecksAllowed",
+            "reconciliationAllowed",
+            "remainingChecks",
+            "resetsAt",
+            "unlimited",
+            "observedAt"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "allowed",
+                "sign_in_required",
+                "device_action_required",
+                "subscription_required",
+                "allowance_exhausted",
+                "temporarily_unavailable"
+              ]
+            },
+            "basis": {
+              "enum": [
+                "paid",
+                "trial",
+                "complimentary",
+                "none",
+                "unknown"
+              ]
+            },
+            "externalChecksAllowed": {
+              "type": "boolean"
+            },
+            "builtInChecksAllowed": {
+              "type": "boolean"
+            },
+            "reconciliationAllowed": {
+              "type": "boolean"
+            },
+            "remainingChecks": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resetsAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "unlimited": {
+              "type": "boolean"
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "paid",
+                      "trial",
+                      "complimentary"
+                    ]
+                  },
+                  "builtInChecksAllowed": {
+                    "const": true
+                  },
+                  "reconciliationAllowed": {
+                    "const": true
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "not": {
+                      "const": "allowed"
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "sign_in_required"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "builtInChecksAllowed": {
+                    "const": false
+                  },
+                  "reconciliationAllowed": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowance_exhausted"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "remainingChecks": {
+                    "const": 0
+                  },
+                  "unlimited": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "unlimited": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "basis": {
+                    "const": "complimentary"
+                  },
+                  "remainingChecks": {
+                    "type": "null"
+                  },
+                  "resetsAt": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  },
+                  "basis": {
+                    "enum": [
+                      "paid",
+                      "trial"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "remainingChecks": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "unlimited": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  },
+                  "basis": {
+                    "const": "complimentary"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "unlimited": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "accounting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "chargedChecks",
+            "receiptId",
+            "requiresReconciliation"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "not_started",
+                "pending",
+                "charged",
+                "not_charged",
+                "unknown"
+              ]
+            },
+            "chargedChecks": {
+              "enum": [
+                null,
+                0,
+                1
+              ]
+            },
+            "receiptId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "requiresReconciliation": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "not_started"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 0
+                  },
+                  "receiptId": {
+                    "type": "null"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "charged"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 1
+                  },
+                  "receiptId": {
+                    "type": "string"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "not_charged"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 0
+                  },
+                  "receiptId": {
+                    "type": "string"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "pending",
+                      "unknown"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "type": "null"
+                  },
+                  "requiresReconciliation": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "disposition",
+            "afterSeconds",
+            "automaticRetryAllowed"
+          ],
+          "properties": {
+            "disposition": {
+              "enum": [
+                "do_not_retry",
+                "reconcile_same_check",
+                "retry_same_check",
+                "after_sign_in",
+                "after_device_action",
+                "after_access_change",
+                "after_client_update",
+                "after_input_review"
+              ]
+            },
+            "afterSeconds": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3600
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "automaticRetryAllowed": {
+              "const": false
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "no_known_threat_detected"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "processingOutcome": {
+                "const": "complete"
+              },
+              "uncertainty": {
+                "properties": {
+                  "coverage": {
+                    "const": "supported_checks_complete"
+                  }
+                }
+              },
+              "evidence": {
+                "contains": {
+                  "properties": {
+                    "source": {
+                      "const": "google_web_risk_lookup"
+                    },
+                    "outcome": {
+                      "const": "no_match"
+                    },
+                    "targetScope": {
+                      "const": "full_submitted_url"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "outcome",
+                    "targetScope"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "processingOutcome": {
+                "enum": [
+                  "unavailable",
+                  "blocked",
+                  "invalid_input",
+                  "unsupported"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "const": "unknown"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "suspicious"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "contains": {
+                  "properties": {
+                    "source": {
+                      "const": "amt_rule"
+                    },
+                    "outcome": {
+                      "const": "suspicious_pattern"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "outcome"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "high_risk"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "contains": {
+                  "properties": {
+                    "source": {
+                      "const": "google_web_risk_lookup"
+                    },
+                    "outcome": {
+                      "const": "match"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "outcome"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence": {
+                "contains": {
+                  "properties": {
+                    "source": {
+                      "const": "google_web_risk_lookup"
+                    },
+                    "outcome": {
+                      "const": "match"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "outcome"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "verdict": {
+                "const": "high_risk"
+              },
+              "processingOutcome": {
+                "enum": [
+                  "complete",
+                  "partial"
+                ]
+              },
+              "nextAction": {
+                "const": "avoid_link"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "accounting": {
+                "properties": {
+                  "requiresReconciliation": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "retry": {
+                "properties": {
+                  "disposition": {
+                    "enum": [
+                      "reconcile_same_check",
+                      "after_sign_in",
+                      "after_client_update"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "retry": {
+                "properties": {
+                  "disposition": {
+                    "const": "retry_same_check"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "access": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": true
+                  }
+                }
+              },
+              "accounting": {
+                "properties": {
+                  "state": {
+                    "const": "not_charged"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "high_risk"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.known_threat",
+                  "url.known_threat_partial",
+                  "url.known_threat_conflict"
+                ]
+              },
+              "nextAction": {
+                "const": "avoid_link"
+              },
+              "reasonCodes": {
+                "contains": {
+                  "const": "KNOWN_THREAT_MATCH"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "no_known_threat_detected"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.no_known_threat"
+                ]
+              },
+              "nextAction": {
+                "const": "verify_independently"
+              },
+              "reasonCodes": {
+                "contains": {
+                  "const": "NO_LIST_MATCH"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "suspicious"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.suspicious_rule_draft"
+                ]
+              },
+              "nextAction": {
+                "const": "verify_independently"
+              },
+              "reasonCodes": {
+                "contains": {
+                  "const": "SUSPICIOUS_RULE_MATCH"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.unavailable",
+                  "url.origin_only",
+                  "url.blocked",
+                  "url.unsupported",
+                  "url.invalid",
+                  "url.sensitive",
+                  "url.destination_blocked",
+                  "url.rate_limited",
+                  "url.timeout"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "high_risk"
+              },
+              "processingOutcome": {
+                "const": "partial"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.known_threat_partial",
+                  "url.known_threat_conflict"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "high_risk"
+              },
+              "processingOutcome": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "messageKey": {
+                "enum": [
+                  "url.known_threat",
+                  "url.known_threat_conflict"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Error": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "checkId",
+        "error",
+        "kind",
+        "access",
+        "accounting",
+        "retry",
+        "nextAction"
+      ],
+      "properties": {
+        "contractVersion": {
+          "const": "0.2.0-candidate.1"
+        },
+        "checkId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "messageKey"
+          ],
+          "properties": {
+            "code": {
+              "enum": [
+                "AUTHENTICATION_REQUIRED",
+                "ACTIVE_DEVICE_REQUIRED",
+                "SUBSCRIPTION_REQUIRED",
+                "ALLOWANCE_EXHAUSTED",
+                "EXTERNAL_ACCESS_UNAVAILABLE",
+                "CONTRACT_UNSUPPORTED",
+                "INPUT_REJECTED",
+                "CHECK_ID_CONFLICT",
+                "SERVICE_UNAVAILABLE"
+              ]
+            },
+            "messageKey": {
+              "enum": [
+                "error.sign_in",
+                "error.active_device",
+                "error.subscription",
+                "error.allowance",
+                "access.external_unavailable",
+                "contract.unsupported",
+                "url.invalid",
+                "error.conflict",
+                "error.service",
+                "check.reconcile"
+              ]
+            }
+          }
+        },
+        "kind": {
+          "const": "request_error"
+        },
+        "access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "basis",
+            "externalChecksAllowed",
+            "builtInChecksAllowed",
+            "reconciliationAllowed",
+            "remainingChecks",
+            "resetsAt",
+            "unlimited",
+            "observedAt"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "allowed",
+                "sign_in_required",
+                "device_action_required",
+                "subscription_required",
+                "allowance_exhausted",
+                "temporarily_unavailable"
+              ]
+            },
+            "basis": {
+              "enum": [
+                "paid",
+                "trial",
+                "complimentary",
+                "none",
+                "unknown"
+              ]
+            },
+            "externalChecksAllowed": {
+              "type": "boolean"
+            },
+            "builtInChecksAllowed": {
+              "type": "boolean"
+            },
+            "reconciliationAllowed": {
+              "type": "boolean"
+            },
+            "remainingChecks": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "resetsAt": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "unlimited": {
+              "type": "boolean"
+            },
+            "observedAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": true
+                  },
+                  "basis": {
+                    "enum": [
+                      "paid",
+                      "trial",
+                      "complimentary"
+                    ]
+                  },
+                  "builtInChecksAllowed": {
+                    "const": true
+                  },
+                  "reconciliationAllowed": {
+                    "const": true
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "not": {
+                      "const": "allowed"
+                    }
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "sign_in_required"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "builtInChecksAllowed": {
+                    "const": false
+                  },
+                  "reconciliationAllowed": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowance_exhausted"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "remainingChecks": {
+                    "const": 0
+                  },
+                  "unlimited": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "unlimited": {
+                    "const": true
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "basis": {
+                    "const": "complimentary"
+                  },
+                  "remainingChecks": {
+                    "type": "null"
+                  },
+                  "resetsAt": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  },
+                  "basis": {
+                    "enum": [
+                      "paid",
+                      "trial"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "remainingChecks": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "unlimited": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "allowed"
+                  },
+                  "basis": {
+                    "const": "complimentary"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "unlimited": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "accounting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "chargedChecks",
+            "receiptId",
+            "requiresReconciliation"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "not_started",
+                "pending",
+                "charged",
+                "not_charged",
+                "unknown"
+              ]
+            },
+            "chargedChecks": {
+              "enum": [
+                null,
+                0,
+                1
+              ]
+            },
+            "receiptId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "requiresReconciliation": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "not_started"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 0
+                  },
+                  "receiptId": {
+                    "type": "null"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "charged"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 1
+                  },
+                  "receiptId": {
+                    "type": "string"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "not_charged"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "const": 0
+                  },
+                  "receiptId": {
+                    "type": "string"
+                  },
+                  "requiresReconciliation": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "pending",
+                      "unknown"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "chargedChecks": {
+                    "type": "null"
+                  },
+                  "requiresReconciliation": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "disposition",
+            "afterSeconds",
+            "automaticRetryAllowed"
+          ],
+          "properties": {
+            "disposition": {
+              "enum": [
+                "do_not_retry",
+                "reconcile_same_check",
+                "retry_same_check",
+                "after_sign_in",
+                "after_device_action",
+                "after_access_change",
+                "after_client_update",
+                "after_input_review"
+              ]
+            },
+            "afterSeconds": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3600
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "automaticRetryAllowed": {
+              "const": false
+            }
+          }
+        },
+        "nextAction": {
+          "enum": [
+            "sign_in",
+            "manage_active_device",
+            "review_subscription",
+            "use_built_in_help",
+            "update_app",
+            "review_input",
+            "reconcile_check"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "accounting": {
+                "properties": {
+                  "requiresReconciliation": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "retry": {
+                "properties": {
+                  "disposition": {
+                    "enum": [
+                      "reconcile_same_check",
+                      "after_sign_in",
+                      "after_client_update"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "retry": {
+                "properties": {
+                  "disposition": {
+                    "const": "retry_same_check"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "access": {
+                "properties": {
+                  "externalChecksAllowed": {
+                    "const": true
+                  }
+                }
+              },
+              "accounting": {
+                "properties": {
+                  "state": {
+                    "const": "not_charged"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "AUTHENTICATION_REQUIRED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.sign_in"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "ACTIVE_DEVICE_REQUIRED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.active_device"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "SUBSCRIPTION_REQUIRED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.subscription"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "ALLOWANCE_EXHAUSTED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.allowance"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "EXTERNAL_ACCESS_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "access.external_unavailable"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "CONTRACT_UNSUPPORTED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "contract.unsupported"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "INPUT_REJECTED"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "url.invalid"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "CHECK_ID_CONFLICT"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.conflict"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "const": "SERVICE_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "error": {
+                "properties": {
+                  "messageKey": {
+                    "enum": [
+                      "error.service",
+                      "check.reconcile"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "prepared"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accounting": {
+            "properties": {
+              "state": {
+                "const": "not_started"
+              }
+            }
+          },
+          "outcome": {
+            "type": "null"
+          },
+          "checkId": {
+            "type": "string"
+          },
+          "operationProof": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "pending"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accounting": {
+            "properties": {
+              "state": {
+                "const": "pending"
+              }
+            }
+          },
+          "outcome": {
+            "type": "null"
+          },
+          "checkId": {
+            "type": "string"
+          },
+          "operationProof": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "accounting": {
+            "properties": {
+              "state": {
+                "const": "unknown"
+              }
+            }
+          },
+          "outcome": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "settled"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "checkId": {
+            "type": "string"
+          },
+          "operationProof": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "accounting": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "charged",
+                  "not_charged"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

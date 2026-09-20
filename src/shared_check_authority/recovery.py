@@ -1,5 +1,6 @@
 """Bounded HMAC-only expired-lease cleanup; no identity/provider access."""
 import re
+import hashlib
 from .core import AuthorityError, OWNER_POLICY
 
 
@@ -37,7 +38,7 @@ class Recovery:
             'UpdateExpression': 'SET #state = :settled, chargedChecks = :zero, processingOutcome = :failed, receiptId = :receipt, expiresAt = :expiry REMOVE GSI1PK, GSI1SK',
             'ConditionExpression': '#state = :admitted AND settleByEpoch <= :now AND executionToken = :token AND policyVersion = :policy',
             'ExpressionAttributeNames': {'#state': 'state'},
-            'ExpressionAttributeValues': {':settled': 'SETTLED', ':zero': 0, ':failed': 'failed', ':receipt': 'expired_' + row['executionToken'], ':expiry': row['retentionDeadlineEpoch'], ':admitted': 'ADMITTED', ':now': now, ':token': row['executionToken'], ':policy': OWNER_POLICY}}})
+            'ExpressionAttributeValues': {':settled': 'SETTLED', ':zero': 0, ':failed': 'failed', ':receipt': 'expired_' + hashlib.sha256((partition + '\0' + proof).encode()).hexdigest()[:32], ':expiry': row['retentionDeadlineEpoch'], ':admitted': 'ADMITTED', ':now': now, ':token': row['executionToken'], ':policy': OWNER_POLICY}}})
         try: self.client.transact_write_items(TransactItems=items)
         except Exception: raise AuthorityError('RECOVERY_TRANSACTION_UNCERTAIN') from None
         return True
