@@ -58,3 +58,13 @@ S3 uploads use `If-None-Match: *`; a release cannot overwrite an existing object
 A retry accepts an existing object only when its stored SHA-256 metadata matches
 the CI artifact. `SHA256SUMS` is verified before upload and published beside the
 ZIP files.
+
+## Independent resolver publication
+
+CI on a main-branch push records `dist/release-scope.json` from the entire push's before/head commit range. Resolver-only changes, including reviewed packaging/docs/workflow support files, receive `scope=resolver`; a change to any other Lambda or shared runtime code retains the existing all-functions scope. Pull-request CI does not produce a promotable main-push manifest.
+
+The publishing workflow requires a successful main-push CI run and an exact matching scope manifest. A resolver-only release invokes `scripts/publish_url_resolver.py`, which verifies the resolver checksum, conditionally uploads only `url_redirect_resolver.zip`, checks the current object and requires its version/checksum/size to match the published artifact, and saves `url-resolver-publication.json` as a GitHub artifact. No unrelated Lambda ZIP or contract package is published in this path. The result contains the bucket/key/version/base64 hash for the separately authorized infrastructure promotion. It never calls Lambda or changes a runtime/alias.
+
+Broader releases retain the existing all-functions uploader. CI runs created before this scope manifest existed cannot be promoted with this workflow; run fresh main CI after merging the reviewed source. The OIDC role and permissions are unchanged. Resolver-only publication uses the same already-authorized versioned artifact bucket and S3 release prefix.
+
+The publisher uses existing `s3:GetObject` and `s3:PutObject` permissions. It does not request `GetObjectVersion`; a concurrent latest-version replacement fails verification. Infrastructure independently verifies pinned-version bytes with its existing deploy permissions before rollout.

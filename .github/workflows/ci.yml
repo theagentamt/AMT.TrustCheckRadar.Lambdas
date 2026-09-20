@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.13
         uses: actions/setup-python@v7.0.0
@@ -39,6 +41,13 @@ jobs:
       - name: Build Lambda packages
         run: ./scripts/build_lambda_zip.sh --all
 
+      - name: Record main push release scope
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: python scripts/lambda_release_scope.py --base "$BEFORE_SHA" --head "$SOURCE_SHA" --output dist/release-scope.json
+
       - name: Upload packages for inspection
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -46,5 +55,52 @@ jobs:
           path: |
             dist/*.zip
             dist/SHA256SUMS
+            dist/release-scope.json
           if-no-files-found: error
           retention-days: 90
+
+
+  resolver-python-314:
+    name: Resolver Python 3.14 compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install test dependencies
+        run: python -m pip install --requirement requirements-dev.txt
+
+      - name: Test resolver
+        run: python -m pytest -q tests/url_redirect_resolver
+
+      - name: Build resolver for Python 3.14 ARM64
+        run: ./scripts/build_lambda_zip.sh --function url_redirect_resolver --arch arm64
+
+      - name: Verify packaged resolver handler
+        env:
+          PYTHONPATH: dist/url_redirect_resolver.zip
+        run: |
+          python - <<'PY'
+          from app import lambda_handler
+          import dns.resolver
+
+          class Context:
+              def get_remaining_time_in_millis(self):
+                  return 12000
+
+          result = lambda_handler({
+              "schemaVersion": 1, "checkId": "ci-py314",
+              "url": "http://169.254.169.254/latest/meta-data/",
+          }, Context())
+          assert result["resolutionStatus"] == "blocked"
+          assert result["reasonCodes"] == ["NON_PUBLIC_DESTINATION"]
+          assert result["requestCount"] == 0
+          PY

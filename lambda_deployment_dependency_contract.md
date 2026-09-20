@@ -1136,3 +1136,14 @@ That addendum is authoritative for the two-table key/index contract, activation
 gates, exact environment names, IAM actions and leading-key restrictions,
 scheduled event shape, metrics, and remaining decision blockers. None of those
 features may be activated merely because the ZIP artifacts exist.
+
+
+## URL redirect resolver
+
+- Artifact: `url_redirect_resolver.zip`; handler: `app.lambda_handler`; target runtime Python 3.14 ARM64.
+- Private synchronous IAM invocation through the `live` alias; no public route.
+- Standalone infrastructure stack: `terraform/url-resolver` in the Infrastructure repository.
+- No Google credential, user database or environment variables required.
+- Dedicated filtered IPv4 VPC egress, minimal execution role, 12-second timeout, 256 MiB, reserved concurrency five by default.
+- Input/output, privacy limitations and release checks: [resolver contract](docs/url-redirect-resolver.md).
+- Existing URL analyzer integration remains separate and unchanged.
