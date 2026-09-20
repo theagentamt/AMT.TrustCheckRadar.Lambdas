@@ -1,0 +1,46 @@
+{
+  "url.no_known_threat": {
+    "en": "No known threat was found in the completed checks. This does not guarantee the link is safe.",
+    "es": "No se encontró ninguna amenaza conocida en las comprobaciones completadas. Esto no garantiza que el enlace sea seguro."
+  },
+  "url.known_threat_partial": {
+    "en": "A known threat was found. We could not inspect the entire redirect chain. Avoid opening the link.",
+    "es": "Se encontró una amenaza conocida. No pudimos revisar toda la cadena de redirecciones. Evita abrir el enlace."
+  },
+  "url.unavailable": {
+    "en": "We could not complete this check. Verify the link independently before opening it.",
+    "es": "No pudimos completar esta comprobación. Verifica el enlace por otro medio antes de abrirlo."
+  },
+  "url.origin_only": {
+    "en": "Only the site address was checked. Private parts of the link were withheld, so the full link remains unassessed.",
+    "es": "Solo se comprobó la dirección del sitio. Se omitieron las partes privadas del enlace, por lo que el enlace completo sigue sin evaluar."
+  },
+  "url.suspicious_rule_draft": {
+    "en": "A warning pattern was found. Verify the link independently before opening it.",
+    "es": "Se encontró un patrón de advertencia. Verifica el enlace por otro medio antes de abrirlo."
+  },
+  "url.blocked": {
+    "en": "This link could not be safely processed. We did not open the blocked destination.",
+    "es": "No se pudo procesar este enlace de forma segura. No abrimos el destino bloqueado."
+  },
+  "url.unsupported": {
+    "en": "This type of link is not supported. No safety assessment is available.",
+    "es": "Este tipo de enlace no es compatible. No hay una evaluación de seguridad disponible."
+  },
+  "access.external_unavailable": {
+    "en": "External checks are unavailable for this account. Built-in checks and recovery guidance remain available after sign-in.",
+    "es": "Las comprobaciones externas no están disponibles para esta cuenta. Las comprobaciones integradas y la guía de recuperación siguen disponibles después de iniciar sesión."
+  },
+  "contract.unsupported": {
+    "en": "Update the app before requesting this check.",
+    "es": "Actualiza la aplicación antes de solicitar esta comprobación."
+  },
+  "check.reconcile": {
+    "en": "The result is not yet available. Do not start another check automatically.",
+    "es": "El resultado aún no está disponible. No inicies otra comprobación automáticamente."
+  },
+  "url.known_threat_conflict": {
+    "en": "Some checks did not report a threat, but a known threat was found. Avoid opening the link.",
+    "es": "Algunas comprobaciones no detectaron amenazas, pero se encontró una amenaza conocida. Evita abrir el enlace."
+  }
+}

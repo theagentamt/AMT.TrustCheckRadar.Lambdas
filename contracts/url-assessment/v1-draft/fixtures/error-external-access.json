@@ -1,0 +1,9 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "error": {
+    "code": "EXTERNAL_ACCESS_UNAVAILABLE",
+    "retryDisposition": "after_access_change",
+    "messageKey": "access.external_unavailable"
+  }
+}

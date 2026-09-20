@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "checkId",
+    "resolutionStatus",
+    "hops",
+    "lastObservedUrl",
+    "httpChainComplete",
+    "warnings",
+    "reasonCodes",
+    "requestCount",
+    "scope"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "checkId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolutionStatus": {
+      "enum": [
+        "http_chain_complete",
+        "partial",
+        "blocked",
+        "invalid_input"
+      ]
+    },
+    "hops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "httpStatus"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          }
+        }
+      },
+      "maxItems": 6
+    },
+    "lastObservedUrl": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "httpChainComplete": {
+      "type": "boolean"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "UNENCRYPTED_CONNECTION",
+          "HTTPS_TO_HTTP_REDIRECT"
+        ]
+      },
+      "maxItems": 2
+    },
+    "reasonCodes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "maxItems": 16
+    },
+    "requestCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "scope": {
+      "const": "HTTP_REDIRECTS_ONLY"
+    }
+  }
+}

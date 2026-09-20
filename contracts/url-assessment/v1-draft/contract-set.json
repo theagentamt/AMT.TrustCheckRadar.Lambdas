@@ -1,0 +1,38 @@
+{
+  "contractId": "amt.url-assessment",
+  "contractVersion": "0.1.0-draft.1",
+  "status": "draft_for_v1_0_refinement",
+  "consumerEndpoint": null,
+  "consumerTransportBinding": "unimplemented",
+  "consumerActivationAllowed": false,
+  "privateResolver": {
+    "schemaVersion": 1,
+    "transport": "AWS_LAMBDA_IAM_REQUEST_RESPONSE",
+    "mobileCallable": false,
+    "runtime": "python3.14",
+    "sourcePath": "src/url_redirect_resolver",
+    "assessmentVerdictProvided": false
+  },
+  "stories": [
+    "SECUR4ALL-76",
+    "SECUR4ALL-103",
+    "SECUR4ALL-110",
+    "SECUR4ALL-190",
+    "ATCR-97",
+    "ATCR-98"
+  ],
+  "legacyRoutesAreNotThisContract": [
+    "POST /web-risk-communication"
+  ],
+  "runtimeImplementationStories": [
+    "SECUR4ALL-230",
+    "SECUR4ALL-231",
+    "SECUR4ALL-232",
+    "SECUR4ALL-233",
+    "SECUR4ALL-241",
+    "ATCR-124",
+    "ATCR-125"
+  ],
+  "localizations": "messages.json",
+  "fixtureManifest": "fixtures/manifest.json"
+}

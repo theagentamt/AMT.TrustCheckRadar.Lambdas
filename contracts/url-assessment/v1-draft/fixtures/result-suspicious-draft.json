@@ -1,0 +1,24 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "suspicious",
+  "processingOutcome": "complete",
+  "uncertainty": {
+    "coverage": "supported_checks_complete",
+    "limitations": []
+  },
+  "evidence": [
+    {
+      "source": "amt_rule",
+      "outcome": "suspicious_pattern",
+      "targetScope": "full_submitted_url"
+    }
+  ],
+  "reasonCodes": [
+    "DRAFT_RULE_REQUIRES_VALIDATION"
+  ],
+  "transportWarnings": [],
+  "nextAction": "verify_independently",
+  "messageKey": "url.suspicious_rule_draft"
+}

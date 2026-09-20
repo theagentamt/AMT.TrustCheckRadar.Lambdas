@@ -1,0 +1,26 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "unknown",
+  "processingOutcome": "partial",
+  "uncertainty": {
+    "coverage": "limited",
+    "limitations": [
+      "URL_COMPONENTS_WITHHELD"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "no_match",
+      "targetScope": "origin_only"
+    }
+  ],
+  "reasonCodes": [
+    "FULL_URL_NOT_ASSESSED"
+  ],
+  "transportWarnings": [],
+  "nextAction": "verify_independently",
+  "messageKey": "url.origin_only"
+}

@@ -1,0 +1,107 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "fixtures": [
+    {
+      "file": "request-standalone_url.json",
+      "schema": "../request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "The same logical check retains one identity across approved internal services; this is not a deployed request."
+    },
+    {
+      "file": "request-message_url.json",
+      "schema": "../request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "The same logical check retains one identity across approved internal services; this is not a deployed request."
+    },
+    {
+      "file": "request-qr_url.json",
+      "schema": "../request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "The same logical check retains one identity across approved internal services; this is not a deployed request."
+    },
+    {
+      "file": "request-origin-only.json",
+      "schema": "../request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Example of withheld components; originals and a local replacement map are never transmitted. The projection policy still needs acceptance."
+    },
+    {
+      "file": "result-no-match.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "No match is not proof of safety; coverage is only the supported checks."
+    },
+    {
+      "file": "result-high-partial.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Known threat evidence remains high risk when later inspection is incomplete."
+    },
+    {
+      "file": "result-provider-unavailable.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Timeouts, provider failures and quotas never become a no-match result; charging is unresolved."
+    },
+    {
+      "file": "result-origin-only.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "An origin-only no-match cannot clear the original full URL."
+    },
+    {
+      "file": "result-browser-redirect.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Private resolver Refresh/unsupported navigation stops without simulating a browser."
+    },
+    {
+      "file": "result-suspicious-draft.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Structural fixture only. No suspicious heuristic is approved or implemented by this handoff; Google Lookup supplies no moderate confidence grade."
+    },
+    {
+      "file": "result-blocked.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "A blocked destination does not establish that the submitting customer is malicious."
+    },
+    {
+      "file": "result-unsupported.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Non-HTTP QR schemes remain local unsupported/unassessed; this response is defensive behavior for direct malformed client requests."
+    },
+    {
+      "file": "error-external-access.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Proposed semantic error; HTTP status, route, actual response codes and reconciliation transport remain unimplemented."
+    },
+    {
+      "file": "error-contract.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Proposed semantic error; HTTP status, route, actual response codes and reconciliation transport remain unimplemented."
+    },
+    {
+      "file": "error-response-lost.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Proposed semantic error; HTTP status, route, actual response codes and reconciliation transport remain unimplemented."
+    },
+    {
+      "file": "result-conflicting-evidence.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "A later no-match does not erase a known threat observed at another hop."
+    },
+    {
+      "file": "result-http-warning.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "HTTP is an unencrypted-connection warning, not by itself a high-risk scam verdict."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record whether a main push changes only the independently released resolver."""
+"""Classify a main push for resolver, contract-only, or broad artifact publication."""
 import argparse
 import json
 import re
@@ -14,12 +14,22 @@ SHARED_REVIEWED_PATHS = {
     'tests/scripts/test_lambda_release_scope.py', 'tests/scripts/test_publish_url_resolver.py',
     'docs/GITHUB_PUBLISHING.md',
 }
+CONTRACT_PREFIXES = ('contracts/url-assessment/v1-draft/', 'tests/url_assessment_contracts/')
+CONTRACT_SUPPORT_PATHS = {
+    '.github/workflows/publish.yml', 'scripts/lambda_release_scope.py',
+    'tests/scripts/test_lambda_release_scope.py', 'docs/GITHUB_PUBLISHING.md',
+}
 RESOLVER_PREFIXES = ('src/url_redirect_resolver/', 'tests/url_redirect_resolver/',
                      'docs/url-resolver-', 'docs/url-redirect-resolver', 'scripts/url_resolver_')
 
 
 def classify(paths):
     paths = list(paths)
+    contract = lambda path: path.startswith(CONTRACT_PREFIXES)
+    if paths and any(contract(path) for path in paths) and all(
+        contract(path) or path in CONTRACT_SUPPORT_PATHS for path in paths
+    ):
+        return 'contracts'
     resolver = lambda path: path.startswith(RESOLVER_PREFIXES)
     if paths and any(resolver(path) for path in paths) and all(
         resolver(path) or path in SHARED_REVIEWED_PATHS for path in paths

@@ -1,0 +1,26 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "example-shared-check",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "unknown",
+  "processingOutcome": "unavailable",
+  "uncertainty": {
+    "coverage": "not_assessed",
+    "limitations": [
+      "PROVIDER_UNAVAILABLE"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "unavailable",
+      "targetScope": "full_submitted_url"
+    }
+  ],
+  "reasonCodes": [
+    "PROVIDER_UNAVAILABLE"
+  ],
+  "transportWarnings": [],
+  "nextAction": "verify_independently",
+  "messageKey": "url.unavailable"
+}
