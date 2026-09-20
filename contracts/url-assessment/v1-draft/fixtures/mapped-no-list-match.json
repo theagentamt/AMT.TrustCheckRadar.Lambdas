@@ -1,0 +1,56 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "checkId": "mapping-check",
+  "access": {
+    "state": "temporarily_unavailable",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": true,
+    "reconciliationAllowed": true,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "unknown",
+    "chargedChecks": null,
+    "receiptId": null,
+    "requiresReconciliation": true
+  },
+  "kind": "assessment_result",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "no_known_threat_detected",
+  "processingOutcome": "complete",
+  "uncertainty": {
+    "coverage": "supported_checks_complete",
+    "limitations": [
+      "NO_LIST_MATCH",
+      "BROWSER_NAVIGATION_NOT_EVALUATED"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "no_match",
+      "targetScope": "full_submitted_url"
+    },
+    {
+      "source": "http_redirect_resolver",
+      "outcome": "completed",
+      "targetScope": "observed_http_chain"
+    }
+  ],
+  "reasonCodes": [
+    "NO_LIST_MATCH",
+    "BROWSER_NAVIGATION_NOT_EVALUATED"
+  ],
+  "transportWarnings": [],
+  "nextAction": "verify_independently",
+  "messageKey": "url.no_known_threat",
+  "retry": {
+    "disposition": "reconcile_same_check",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
+}

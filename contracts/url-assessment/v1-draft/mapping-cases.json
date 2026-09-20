@@ -1,0 +1,3719 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "implementation": "engineering_reference_only_not_deployed",
+  "cases": [
+    {
+      "name": "invalid-request",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_REQUEST"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "invalid-url",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "ambiguous-url",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "AMBIGUOUS_URL"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "invalid-url-encoding",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_URL_ENCODING"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "invalid-authority",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_AUTHORITY"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "ambiguous-authority",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "AMBIGUOUS_AUTHORITY"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "invalid-host",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_HOST"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "ambiguous-address",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "AMBIGUOUS_ADDRESS"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "excessive-url-encoding",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "EXCESSIVE_URL_ENCODING"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-scheme",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "UNSUPPORTED_SCHEME"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unsupported",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "UNSUPPORTED_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "UNSUPPORTED_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.unsupported",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-port",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "UNSUPPORTED_PORT"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unsupported",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "UNSUPPORTED_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "UNSUPPORTED_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.unsupported",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-address-encoding",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "UNSUPPORTED_ADDRESS_ENCODING"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unsupported",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "UNSUPPORTED_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "UNSUPPORTED_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.unsupported",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "non-public-destination",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "NON_PUBLIC_DESTINATION"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "DESTINATION_BLOCKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "DESTINATION_BLOCKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.destination_blocked",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "sensitive-link-not-fetched",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "SENSITIVE_LINK_NOT_FETCHED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "SENSITIVE_URL_BLOCKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SENSITIVE_URL_BLOCKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.sensitive",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "no-eligible-observation",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "NO_ELIGIBLE_OBSERVATION"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "http-chain-incomplete",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "origin-only-not-full-link",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "ORIGIN_ONLY_NOT_FULL_LINK"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "origin_only",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "ORIGIN_ONLY_CHECKED"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "no_match",
+            "targetScope": "origin_only"
+          }
+        ],
+        "reasonCodes": [
+          "ORIGIN_ONLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "verify_independently",
+        "messageKey": "url.origin_only",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "known-threat-match",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "high_risk",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [
+          "MALWARE"
+        ],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "high_risk",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "KNOWN_THREAT_MATCH"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain",
+            "threatTypes": [
+              "MALWARE"
+            ]
+          }
+        ],
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "nextAction": "avoid_link",
+        "messageKey": "url.known_threat_partial",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "no-list-match",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "reasonCodes": [
+          "NO_LIST_MATCH",
+          "BROWSER_NAVIGATION_NOT_EVALUATED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "NO_LIST_MATCH",
+            "BROWSER_NAVIGATION_NOT_EVALUATED"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "no_match",
+            "targetScope": "full_submitted_url"
+          },
+          {
+            "source": "http_redirect_resolver",
+            "outcome": "completed",
+            "targetScope": "observed_http_chain"
+          }
+        ],
+        "reasonCodes": [
+          "NO_LIST_MATCH",
+          "BROWSER_NAVIGATION_NOT_EVALUATED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "verify_independently",
+        "messageKey": "url.no_known_threat",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "provider-unavailable",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "PROVIDER_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "PROVIDER_TEMPORARILY_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "PROVIDER_TEMPORARILY_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "provider-rate-limited",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "PROVIDER_RATE_LIMITED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "PROVIDER_RATE_LIMITED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "PROVIDER_RATE_LIMITED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.rate_limited",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "provider-authorization-failed",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "PROVIDER_AUTHORIZATION_FAILED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "provider-response-invalid",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "PROVIDER_RESPONSE_INVALID"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "secret-unavailable",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "SECRET_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "configuration-unavailable",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "CONFIGURATION_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "resolver-unavailable",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "RESOLVER_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "resolver-response-invalid",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "RESOLVER_RESPONSE_INVALID"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "time-budget-exceeded",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "TIME_BUDGET_EXCEEDED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "PROCESSING_TIMEOUT"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "PROCESSING_TIMEOUT"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.timeout",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "internal-error",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "INTERNAL_ERROR"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "dev-only-disabled",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "DEV_ONLY_DISABLED"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "SERVICE_UNAVAILABLE"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "accounting-pending",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "pending",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "pending",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "accounting-charged",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "accounting-not_charged",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "accounting-not_started",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": null,
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "coverage": "not_assessed",
+        "reasonCodes": [
+          "INVALID_REQUEST"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 0,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "invalid_input",
+        "uncertainty": {
+          "coverage": "not_assessed",
+          "limitations": [
+            "INVALID_URL"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "INVALID_URL"
+        ],
+        "transportWarnings": [],
+        "nextAction": "review_input",
+        "messageKey": "url.invalid",
+        "retry": {
+          "disposition": "after_input_review",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "expired-reconcile",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "subscription_required",
+          "basis": "none",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "subscription_required",
+          "basis": "none",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "authoritative-retry",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": true,
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "retry_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "same-failure-charged",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": true,
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "same-failure-unknown",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": true,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "known-threat-complete",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [
+          "MALWARE"
+        ],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "KNOWN_THREAT_MATCH"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain",
+            "threatTypes": [
+              "MALWARE"
+            ]
+          }
+        ],
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "nextAction": "avoid_link",
+        "messageKey": "url.known_threat",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-private-schemaversion",
+      "private": {
+        "schemaVersion": 2,
+        "checkId": "mapping-check",
+        "verdict": "high_risk",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [
+          "MALWARE"
+        ],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "request_error",
+        "error": {
+          "code": "SERVICE_UNAVAILABLE",
+          "messageKey": "error.service"
+        },
+        "nextAction": "use_built_in_help",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-private-verdict",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "new_unknown_value",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [
+          "MALWARE"
+        ],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "request_error",
+        "error": {
+          "code": "SERVICE_UNAVAILABLE",
+          "messageKey": "error.service"
+        },
+        "nextAction": "use_built_in_help",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unsupported-private-reasoncodes",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "high_risk",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "UNRECOGNIZED_PRIVATE_REASON"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [
+          "MALWARE"
+        ],
+        "lookupCount": 1,
+        "providerCallCount": 1,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "kind": "request_error",
+        "error": {
+          "code": "SERVICE_UNAVAILABLE",
+          "messageKey": "error.service"
+        },
+        "nextAction": "use_built_in_help",
+        "retry": {
+          "disposition": "reconcile_same_check",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "replay-not-authorized",
+      "private": {
+        "schemaVersion": 1,
+        "checkId": "mapping-check",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "reasonCodes": [
+          "HTTP_CHAIN_INCOMPLETE"
+        ],
+        "transportWarnings": [],
+        "threatTypes": [],
+        "lookupCount": 0,
+        "providerCallCount": 0,
+        "observedHopCount": 1,
+        "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+        "consumerAccessEnabled": false
+      },
+      "authority": {
+        "expected_check_id": "mapping-check",
+        "request_scope": "full_url",
+        "assessed_at": "2026-09-20T00:00:00Z",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "same_check_replay_authorized": false,
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        }
+      },
+      "expected": {
+        "contractVersion": "0.2.0-candidate.1",
+        "checkId": "mapping-check",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 1,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-20T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "synthetic-receipt",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2026-09-20T00:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "limited",
+          "limitations": [
+            "URL_NOT_FULLY_CHECKED"
+          ]
+        },
+        "evidence": [],
+        "reasonCodes": [
+          "URL_NOT_FULLY_CHECKED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.unavailable",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    }
+  ]
+}

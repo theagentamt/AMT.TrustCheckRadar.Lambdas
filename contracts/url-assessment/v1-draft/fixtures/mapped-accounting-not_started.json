@@ -1,0 +1,43 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "checkId": "mapping-check",
+  "access": {
+    "state": "temporarily_unavailable",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": true,
+    "reconciliationAllowed": true,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "not_started",
+    "chargedChecks": 0,
+    "receiptId": null,
+    "requiresReconciliation": false
+  },
+  "kind": "assessment_result",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "unknown",
+  "processingOutcome": "invalid_input",
+  "uncertainty": {
+    "coverage": "not_assessed",
+    "limitations": [
+      "INVALID_URL"
+    ]
+  },
+  "evidence": [],
+  "reasonCodes": [
+    "INVALID_URL"
+  ],
+  "transportWarnings": [],
+  "nextAction": "review_input",
+  "messageKey": "url.invalid",
+  "retry": {
+    "disposition": "after_input_review",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
+}

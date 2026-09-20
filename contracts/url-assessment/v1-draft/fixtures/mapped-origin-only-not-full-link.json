@@ -1,0 +1,49 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "checkId": "mapping-check",
+  "access": {
+    "state": "temporarily_unavailable",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": true,
+    "reconciliationAllowed": true,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "unknown",
+    "chargedChecks": null,
+    "receiptId": null,
+    "requiresReconciliation": true
+  },
+  "kind": "assessment_result",
+  "assessedAt": "2026-09-20T00:00:00Z",
+  "verdict": "unknown",
+  "processingOutcome": "partial",
+  "uncertainty": {
+    "coverage": "limited",
+    "limitations": [
+      "ORIGIN_ONLY_CHECKED"
+    ]
+  },
+  "evidence": [
+    {
+      "source": "google_web_risk_lookup",
+      "outcome": "no_match",
+      "targetScope": "origin_only"
+    }
+  ],
+  "reasonCodes": [
+    "ORIGIN_ONLY_CHECKED"
+  ],
+  "transportWarnings": [],
+  "nextAction": "verify_independently",
+  "messageKey": "url.origin_only",
+  "retry": {
+    "disposition": "reconcile_same_check",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
+}

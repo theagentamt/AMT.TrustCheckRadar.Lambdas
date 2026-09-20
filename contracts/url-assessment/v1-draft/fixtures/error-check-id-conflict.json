@@ -1,0 +1,32 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "kind": "request_error",
+  "checkId": "mapping-check",
+  "error": {
+    "code": "CHECK_ID_CONFLICT",
+    "messageKey": "error.conflict"
+  },
+  "nextAction": "reconcile_check",
+  "access": {
+    "state": "temporarily_unavailable",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": true,
+    "reconciliationAllowed": true,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "unknown",
+    "chargedChecks": null,
+    "receiptId": null,
+    "requiresReconciliation": true
+  },
+  "retry": {
+    "disposition": "reconcile_same_check",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
+}

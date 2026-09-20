@@ -1,5 +1,5 @@
 {
-  "contractVersion": "0.1.0-draft.1",
+  "contractVersion": "0.2.0-candidate.1",
   "fixtures": [
     {
       "file": "request-standalone_url.json",
@@ -107,6 +107,300 @@
       "file": "request-fragment-omitted.json",
       "schema": "../request.schema.json",
       "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-invalid-request.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-invalid-url.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-ambiguous-url.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-invalid-url-encoding.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-invalid-authority.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-ambiguous-authority.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-invalid-host.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-ambiguous-address.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-excessive-url-encoding.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-unsupported-scheme.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-unsupported-port.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-unsupported-address-encoding.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-non-public-destination.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-sensitive-link-not-fetched.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-no-eligible-observation.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-http-chain-incomplete.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-origin-only-not-full-link.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-known-threat-match.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-no-list-match.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-provider-unavailable.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-provider-rate-limited.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-provider-authorization-failed.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-provider-response-invalid.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-secret-unavailable.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-configuration-unavailable.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-resolver-unavailable.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-resolver-response-invalid.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-time-budget-exceeded.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-internal-error.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-dev-only-disabled.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-accounting-pending.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-accounting-charged.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-accounting-not_charged.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-accounting-not_started.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-expired-reconcile.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-authoritative-retry.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-same-failure-charged.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "mapped-same-failure-unknown.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Reference mapping only; authority snapshots are synthetic runtime facts, never plan/trial defaults or approved charge-on-partial policy."
+    },
+    {
+      "file": "error-authentication-required.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-active-device-required.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-subscription-required.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-allowance-exhausted.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-input-rejected.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-check-id-conflict.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "error-service-unavailable.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-known-threat-complete.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-unsupported-private-schemaversion.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-unsupported-private-verdict.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-unsupported-private-reasoncodes.json",
+      "schema": "../error.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "mapped-replay-not-authorized.json",
+      "schema": "../result.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
+    },
+    {
+      "file": "request-reconciliation.json",
+      "schema": "../reconciliation-request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture",
+      "note": "Status/receipt reconciliation only; contains no URL and must never start provider work."
     }
   ]
 }

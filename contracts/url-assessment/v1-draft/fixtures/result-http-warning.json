@@ -1,5 +1,5 @@
 {
-  "contractVersion": "0.1.0-draft.1",
+  "contractVersion": "0.2.0-candidate.1",
   "checkId": "example-shared-check",
   "assessedAt": "2026-09-20T00:00:00Z",
   "verdict": "no_known_threat_detected",
@@ -23,11 +23,35 @@
     }
   ],
   "reasonCodes": [
-    "NO_KNOWN_THREAT_MATCH"
+    "NO_LIST_MATCH",
+    "BROWSER_NAVIGATION_NOT_EVALUATED"
   ],
   "transportWarnings": [
     "UNENCRYPTED_CONNECTION"
   ],
   "nextAction": "verify_independently",
-  "messageKey": "url.no_known_threat"
+  "messageKey": "url.no_known_threat",
+  "kind": "assessment_result",
+  "access": {
+    "state": "temporarily_unavailable",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": true,
+    "reconciliationAllowed": true,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "unknown",
+    "chargedChecks": null,
+    "receiptId": null,
+    "requiresReconciliation": true
+  },
+  "retry": {
+    "disposition": "reconcile_same_check",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
 }

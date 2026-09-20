@@ -1,7 +1,7 @@
 {
   "contractId": "amt.url-assessment",
-  "contractVersion": "0.1.0-draft.1",
-  "status": "draft_for_v1_0_refinement",
+  "contractVersion": "0.2.0-candidate.1",
+  "status": "engineering_candidate_activation_blocked",
   "consumerEndpoint": null,
   "consumerTransportBinding": "unimplemented",
   "consumerActivationAllowed": false,
@@ -34,5 +34,24 @@
     "ATCR-125"
   ],
   "localizations": "messages.json",
-  "fixtureManifest": "fixtures/manifest.json"
+  "fixtureManifest": "fixtures/manifest.json",
+  "privateAssessment": {
+    "schemaVersion": 1,
+    "sourcePath": "src/url_assessment",
+    "mobileCallable": false,
+    "deployedDev": true,
+    "consumerContractProvided": false
+  },
+  "referenceMapping": "reference_mapping.py",
+  "mappingFixtures": "mapping-cases.json",
+  "consumerHandling": "MOBILE-HANDLING.md",
+  "reconciliationEndpoint": null,
+  "reconciliationRequestSchema": "reconciliation-request.schema.json",
+  "activationBlockers": [
+    "PUBLIC_ROUTE_AUTH_AND_DEVICE_BINDING",
+    "AUTHORITATIVE_ACCESS_AND_LEDGER",
+    "EXPLICIT_SAME_CHECK_REPLAY_POLICY",
+    "PRIVACY_RETENTION_AND_RESULT_ACCESS",
+    "APPROVED_PLAN_AND_TRIAL_CONFIGURATION"
+  ]
 }

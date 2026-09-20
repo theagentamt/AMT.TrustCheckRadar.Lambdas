@@ -11,7 +11,7 @@
   ],
   "properties": {
     "contractVersion": {
-      "const": "0.1.0-draft.1"
+      "const": "0.2.0-candidate.1"
     },
     "checkId": {
       "type": "string",

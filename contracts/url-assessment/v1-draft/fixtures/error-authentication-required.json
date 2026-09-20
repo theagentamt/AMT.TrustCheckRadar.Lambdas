@@ -1,0 +1,32 @@
+{
+  "contractVersion": "0.2.0-candidate.1",
+  "kind": "request_error",
+  "checkId": "mapping-check",
+  "error": {
+    "code": "AUTHENTICATION_REQUIRED",
+    "messageKey": "error.sign_in"
+  },
+  "nextAction": "sign_in",
+  "access": {
+    "state": "sign_in_required",
+    "basis": "unknown",
+    "externalChecksAllowed": false,
+    "builtInChecksAllowed": false,
+    "reconciliationAllowed": false,
+    "remainingChecks": null,
+    "resetsAt": null,
+    "unlimited": false,
+    "observedAt": "2026-09-20T00:00:00Z"
+  },
+  "accounting": {
+    "state": "not_started",
+    "chargedChecks": 0,
+    "receiptId": null,
+    "requiresReconciliation": false
+  },
+  "retry": {
+    "disposition": "after_sign_in",
+    "afterSeconds": null,
+    "automaticRetryAllowed": false
+  }
+}
