@@ -1,0 +1,9 @@
+{"case": "metadata", "passed": true, "status": "blocked", "reason": "NON_PUBLIC_DESTINATION", "requestCount": 0}
+{"case": "private", "passed": true, "status": "blocked", "reason": "NON_PUBLIC_DESTINATION", "requestCount": 0}
+{"case": "loopback", "passed": true, "status": "blocked", "reason": "NON_PUBLIC_DESTINATION", "requestCount": 0}
+{"case": "userinfo", "passed": true, "status": "invalid_input", "reason": "INVALID_AUTHORITY", "requestCount": 0}
+{"case": "headers", "passed": true, "status": "invalid_input", "reason": "INVALID_URL_ENCODING", "requestCount": 0}
+{"case": "sensitive", "passed": true, "status": "blocked", "reason": "SENSITIVE_LINK_NOT_FETCHED", "requestCount": 0}
+{"case": "nested-sensitive", "passed": true, "status": "blocked", "reason": "SENSITIVE_LINK_NOT_FETCHED", "requestCount": 0}
+{"case": "non-http", "passed": true, "status": "blocked", "reason": "UNSUPPORTED_SCHEME", "requestCount": 0}
+{"case": "public-https", "passed": true, "status": "http_chain_complete", "reason": "HTTP_TERMINAL_OBSERVED", "requestCount": 1}
