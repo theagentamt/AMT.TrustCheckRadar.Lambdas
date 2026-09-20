@@ -46,3 +46,10 @@ def test_runtime_change_cannot_hide_behind_contract_only_scope():
 def test_private_assessment_requires_manual_publication_without_aws_automation():
     assert module.classify(['src/url_assessment/app.py', '.github/workflows/ci.yml', '.github/workflows/publish.yml', 'scripts/build_lambda_zip.sh', 'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py', 'docs/url-assessment-private-dev.md']) == 'assessment_manual'
     assert module.classify(['src/url_assessment/app.py', 'src/web_risk_communication/app.py']) == 'all'
+
+
+def test_unwired_authority_core_never_publishes_runtime_artifacts():
+    assert module.classify(['src/shared_check_authority/core.py', 'tests/shared_check_authority/test_transactions.py', '.github/workflows/ci.yml', '.github/workflows/publish.yml', 'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py', 'docs/v1-check-authority.md', 'docs/GITHUB_PUBLISHING.md']) == 'authority_manual'
+    assert module.classify(['src/shared_check_authority/core.py', 'src/conversation_analysis/app.py']) == 'all'
+    assert module.classify(['src/shared_check_authority/core.py', 'scripts/build_lambda_zip.sh']) == 'all'
+    assert module.classify(['src/shared_check_authority_evil/core.py']) == 'all'
