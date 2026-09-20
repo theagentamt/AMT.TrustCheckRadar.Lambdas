@@ -99,3 +99,31 @@ def test_deployed_resolver_completion_is_not_a_public_risk_verdict():
         validator('private-resolver-response.schema.json').validate(response)
         assert 'verdict' not in response
         assert not validator('result.schema.json').is_valid(response)
+
+
+@pytest.mark.parametrize('verdict', ['no_known_threat_detected', 'unknown', 'suspicious'])
+@pytest.mark.parametrize('processing', ['complete', 'partial'])
+def test_known_match_cannot_be_downgraded_by_no_match_or_incomplete_checks(verdict, processing):
+    result = read('fixtures/result-conflicting-evidence.json')
+    result['verdict'] = verdict
+    result['processingOutcome'] = processing
+    result['evidence'].append({'source': 'amt_rule', 'outcome': 'suspicious_pattern', 'targetScope': 'full_submitted_url'})
+    assert not validator('result.schema.json').is_valid(result)
+
+
+def test_fragment_omission_is_distinct_from_redacted_http_target():
+    request = read('fixtures/request-fragment-omitted.json')
+    validator('request.schema.json').validate(request)
+    for component in ('path', 'query'):
+        request['target']['withheldComponents'] = [component]
+        assert not validator('request.schema.json').is_valid(request)
+
+
+def test_known_match_cannot_be_hidden_by_global_failure_status_or_weak_action():
+    result = read('fixtures/result-high-partial.json')
+    for outcome in ('unavailable', 'blocked', 'invalid_input', 'unsupported'):
+        result['processingOutcome'] = outcome
+        assert not validator('result.schema.json').is_valid(result)
+    result['processingOutcome'] = 'partial'
+    result['nextAction'] = 'verify_independently'
+    assert not validator('result.schema.json').is_valid(result)

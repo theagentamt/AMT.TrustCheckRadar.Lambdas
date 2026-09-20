@@ -102,6 +102,11 @@
       "schema": "../result.schema.json",
       "evidenceType": "synthetic_refinement_fixture",
       "note": "HTTP is an unencrypted-connection warning, not by itself a high-risk scam verdict."
+    },
+    {
+      "file": "request-fragment-omitted.json",
+      "schema": "../request.schema.json",
+      "evidenceType": "synthetic_refinement_fixture"
     }
   ]
 }

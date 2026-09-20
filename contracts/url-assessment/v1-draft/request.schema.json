@@ -96,7 +96,10 @@
           "then": {
             "properties": {
               "withheldComponents": {
-                "maxItems": 0
+                "maxItems": 1,
+                "items": {
+                  "const": "fragment"
+                }
               }
             }
           }

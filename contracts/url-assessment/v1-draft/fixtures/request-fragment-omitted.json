@@ -1,0 +1,13 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "checkId": "draft-fragment-omitted",
+  "entryPoint": "standalone_url",
+  "language": "en",
+  "target": {
+    "url": "https://example.com/help",
+    "scope": "full_url",
+    "withheldComponents": [
+      "fragment"
+    ]
+  }
+}
