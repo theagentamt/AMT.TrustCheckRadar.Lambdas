@@ -29,6 +29,7 @@ FUNCTIONS=(
   history_mutation_api
   history_read_api
   purchase_handoff
+  url_redirect_resolver
   web_risk_communication
   post_confirmation
 )

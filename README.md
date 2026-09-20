@@ -27,6 +27,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `history_account_deletion_bridge.zip` | Account-deletion ledger stream + reconciliation schedule | Fences History and durably recovers missed account-deletion events. |
 | `history-contracts-1.0.0.zip` | Versioned contract artifact | Publishes exact History routes, limits, errors, badges, and EN/ES localization keys. |
 | `purchase_handoff.zip` | `POST /purchase-handoff` | Verifies Google Play purchases and updates entitlement state. |
+| `url_redirect_resolver.zip` | Private IAM invocation | Observes bounded public HTTP redirects; no reputation verdict. See [contract](docs/url-redirect-resolver.md). |
 | `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
