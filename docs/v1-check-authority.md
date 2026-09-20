@@ -1,6 +1,6 @@
 # V1 check authority — undeployed runtime core
 
-Status: library implementation for SECUR4ALL-230/233, not a protected mobile endpoint. No live function imports it, no ZIP contains it, no table rows are seeded, no IAM permissions change, and no provider is invoked. Existing legacy Web Risk remains unchanged. Canonical mobile contract `0.2.0-candidate.1` remains inactive and its client check ID ownership is unchanged.
+Status: backend authority for SECUR4ALL-230/233, now included in disabled consumer/entitlement/recovery candidate packages. No protected mobile endpoint is activated and no live table rows are seeded by this increment. See url-consumer-dev-handoff.md for the implemented synchronous lifecycle and remaining activation gates. Existing legacy Web Risk remains unchanged. Canonical mobile contract `0.2.0-candidate.1` remains inactive and its client check ID ownership is unchanged.
 
 ## Approved policy
 
@@ -18,7 +18,7 @@ Attempt limits, inflight caps, operation validity, worker settlement deadline, r
 
 `shared_history.security.jwt_subject` consumes verified API Gateway Cognito JWT context, checking issuer, client, access-token use, scope and expiration. This is not independent signature verification: an authenticated gateway adapter must supply the context. `users` profile and deletion-ledger tombstone fences are reused. Admission requires the actual `device_registration` `ACTIVE_BINDING` pointer/stateVersion and the matching active device row; no eventually consistent GSI or legacy pointer fallback grants access.
 
-`shared_entitlements` and `conversation_analysis/scan_access` use legacy FREE/PRO/credit/research balances. They are deliberately not V1 authority. Existing `purchase_handoff` does not create this new V1 authority. Verified store-period writers, explicit trial activation/eligibility history, complimentary operator administration, revocation and migration remain missing. No client request, research flag, positive legacy balance, or mobile-supplied receipt creates authority here.
+`shared_entitlements` and `conversation_analysis/scan_access` use legacy FREE/PRO/credit/research balances. They are deliberately not V1 authority. Existing `purchase_handoff` does not create this new V1 authority. Transactional writer interfaces, explicit trial activation/eligibility history, server-only complimentary administration and revocation are implemented in shared_check_authority/entitlements.py and disabled v1_entitlements handlers. Trusted store verification adapters, operator IAM administration integration, migration and activation remain incomplete; see v1-entitlement-writers.md. No client request, research flag, positive legacy balance, or mobile-supplied receipt creates authority here.
 
 Future authority writers must update ACCESS atomically, monotonically increasing `revision` for **every** state, basis, period, policy, activation or validity change. Period rows are immutable identities with mutable counters only. Renewal creates a new period; never repurpose an old reserved period. The admission transaction rechecks current account/deletion/device state, grant revision/basis/policy/validity, the original period counter snapshot, and inflight capacity. Concurrent revocation or quota consumption fails the transaction without creating a partial reservation.
 
@@ -78,7 +78,7 @@ AMT_AUTHORITY_INTEGRATION=1 /tmp/amt-authority-tests/bin/python -m pytest -q tes
 
 The normal suite explicitly skips this module to avoid interference from existing application `sys.modules` mocks. CI runs it in a separate Python 3.14 job using Moto and explicit synthetic AWS credentials. Emulator transaction/race coverage is useful runtime evidence, not live AWS concurrency qualification. Deployment must test real IAM, transactional fencing, TTL policy and dispatch recovery after the remaining gates are resolved.
 
-`authority_manual` publication scope validates CI artifacts but skips AWS credentials and every upload. This library is excluded from all existing ZIP assembly rules. No runtime or alias changes, broad artifact upload, or deploy follows this merge.
+`authority_manual` publication scope validates CI artifacts but skips AWS credentials and every upload. Only the new disabled V1 packages include the core. No runtime or alias changes, broad artifact upload, or deploy follows this merge. Historical library-only validation below describes the prior increment; current handoff supersedes the prior outbox recommendation with bounded synchronous work and zero-charge expired-lease recovery.
 
 Local Python 3.14 validation on 2026-09-20: 44 isolated transaction regressions
 passed; normal suite 650 tests and 162 subtests passed (one intentional isolated

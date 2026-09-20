@@ -148,3 +148,10 @@ jobs:
           AMT_AUTHORITY_INTEGRATION: "1"
           AWS_EC2_METADATA_DISABLED: "true"
         run: python -m pytest -q tests/shared_check_authority
+
+      - name: Build and import disabled V1 handlers in isolated Python 3.14 layouts
+        run: |
+          ./scripts/build_lambda_zip.sh --function url_consumer --arch arm64
+          ./scripts/build_lambda_zip.sh --function url_lease_recovery --arch arm64
+          ./scripts/build_lambda_zip.sh --function v1_entitlements --arch arm64
+          python scripts/verify_v1_packages.py

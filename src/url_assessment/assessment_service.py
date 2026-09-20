@@ -36,7 +36,8 @@ def base_result(check_id=None):
 
 
 def validate_request(event):
-    if (not isinstance(event, dict) or set(event) != {'schemaVersion', 'checkId', 'url', 'scope'}
+    if (not isinstance(event, dict) or set(event) not in ({'schemaVersion', 'checkId', 'url', 'scope'}, {'schemaVersion', 'checkId', 'url', 'scope', 'executionBudgetMs'})
+            or ('executionBudgetMs' in event and (type(event['executionBudgetMs']) is not int or not 1000 <= event['executionBudgetMs'] <= 18000))
             or type(event.get('schemaVersion')) is not int or event['schemaVersion'] != 1
             or not isinstance(event.get('checkId'), str)
             or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', event['checkId'])
