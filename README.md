@@ -30,7 +30,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
-All deployed handlers are `app.lambda_handler` on Python 3.13. Optional functions
+Handlers use `app.lambda_handler`. The URL redirect resolver targets Python 3.14; other functions retain Python 3.13. Runtime rollout is owned by infrastructure. Optional functions
 and campaign workers are packaged with the required release set, but Terraform
 decides whether to deploy them.
 

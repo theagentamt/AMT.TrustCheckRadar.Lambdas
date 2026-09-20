@@ -4,7 +4,7 @@ Private backend component, delivered independently of `web_risk_communication`. 
 
 ## Invocation
 
-Deploy `url_redirect_resolver.zip` with `app.lambda_handler`, Python 3.13, ARM64, 256 MiB and a 12-second Lambda timeout. The implementation caps work at 10 seconds (or remaining invocation time minus 500 ms). No environment configuration or provider secrets are required. Terraform's `url-resolver` stack supplies a dedicated role, private subnet, NAT and filtering; it grants selected backend roles access to the published `live` alias. Invoke synchronously with AWS SDK `InvocationType=RequestResponse`, automatic SDK retries disabled, and a read timeout exceeding the Lambda timeout. The caller must check both Invoke transport errors/FunctionError and the returned resolution status. An SDK timeout does not prove the function did not run; do not automatically visit the link again.
+Deploy `url_redirect_resolver.zip` with `app.lambda_handler`, Python 3.14, ARM64, 256 MiB and a 12-second Lambda timeout. The implementation caps work at 10 seconds (or remaining invocation time minus 500 ms). No environment configuration or provider secrets are required. Terraform's `url-resolver` stack supplies a dedicated role, private subnet, NAT and filtering; it grants selected backend roles access to the published `live` alias. Invoke synchronously with AWS SDK `InvocationType=RequestResponse`, automatic SDK retries disabled, and a read timeout exceeding the Lambda timeout. The caller must check both Invoke transport errors/FunctionError and the returned resolution status. An SDK timeout does not prove the function did not run; do not automatically visit the link again.
 
 ```json
 {"schemaVersion":1,"checkId":"opaque-check-id","url":"https://example.com/short"}
@@ -42,8 +42,10 @@ The application emits only bounded outcome/reason/count/timing fields. It never 
 ```sh
 python3 -m pip install -r requirements-dev.txt
 python3 -m pytest -q tests/url_redirect_resolver
-bash scripts/build_lambda_zip.sh --function url_redirect_resolver --python-version 3.13 --arch arm64
+bash scripts/build_lambda_zip.sh --function url_redirect_resolver --python-version 3.14 --arch arm64
 ```
+
+The resolver defaults to a Python 3.14 target for both single-function and all-functions builds; other functions keep their existing Python 3.13 target unless explicitly overridden. The resolver has dedicated Python 3.14 CI tests and a packaged-handler import check. Runtime configuration is managed by infrastructure; rebuilding a ZIP does not change the deployed runtime.
 
 dnspython is pinned in the function's requirements and packaged into the ZIP. Development requirements include the same version to run DNS tests. The all-functions packaging/upload registries also include this optional artifact. Building a ZIP does not publish or deploy it.
 

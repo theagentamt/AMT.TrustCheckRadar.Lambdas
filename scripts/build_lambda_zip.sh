@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="$ROOT_DIR/dist"
-PYTHON_VERSION="3.13"
+PYTHON_VERSION=""
 LAMBDA_ARCH="arm64"
 SELECTED_FUNCTION=""
 BUILD_ALL=false
@@ -44,7 +44,7 @@ Options:
   --all                    Build every Lambda artifact.
   --function <name>        Build one function from src/<name>.
   --output-dir <dir>       Artifact directory (default: dist).
-  --python-version <ver>   Lambda Python version (default: 3.13).
+  --python-version <ver>   Override target Python (resolver: 3.14; others: 3.13).
   --arch <arch>            arm64 or x86_64 (default: arm64).
   --skip-dependencies      Package source only; intended for local validation.
   -h, --help               Show this help.
@@ -159,11 +159,15 @@ build_function() {
   local build_dir="$ROOT_DIR/.build/$function_name"
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
+  local python_version="${PYTHON_VERSION:-3.13}"
+  if [[ -z "$PYTHON_VERSION" && "$function_name" == "url_redirect_resolver" ]]; then
+    python_version="3.14"
+  fi
 
   [[ -d "$source_dir" ]] || fail "source directory not found: $source_dir"
   [[ -f "$source_dir/app.py" ]] || fail "handler not found: $source_dir/app.py"
 
-  echo "Packaging $function_name"
+  echo "Packaging $function_name (Python $python_version, $LAMBDA_ARCH)"
   rm -rf "$build_dir"
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
@@ -188,7 +192,7 @@ build_function() {
       --requirement "$requirements_file" \
       --platform "$TARGET_PLATFORM" \
       --implementation cp \
-      --python-version "$PYTHON_VERSION" \
+      --python-version "$python_version" \
       --only-binary=:all:
   fi
 
