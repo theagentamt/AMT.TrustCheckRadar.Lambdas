@@ -1,5 +1,10 @@
 # Campaign deletion pagination candidate
 
+Historical first increment: contributor traversal and repair-fence retention are
+now superseded by [the strong locator candidate](campaign-contributor-locators-candidate.md).
+The current candidate has no eventual-index cleanup fallback. The incomplete
+coverage/activation warnings below remain relevant.
+
 This source increment improves bounded contributor cleanup and queued-writer
 fencing. It does **not** prove complete campaign erasure, activate campaign
 processing, or complete the account/privacy stories. Both campaign completion

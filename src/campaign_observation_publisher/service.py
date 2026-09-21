@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 
 from contracts import build_cluster_envelope
 from shared_campaign_contracts import validate_app_features
+from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
+    locator_put, locator_condition, get_owned_locator, locator_pointer, deserialize as locator_deserialize)
 
 
 TOKEN_DOMAIN = b"campaign-contributor:v1\0"
@@ -28,6 +30,7 @@ def publish_observation(
     kms_client,
     sqs_client,
     now_epoch: int | None = None,
+    locator_manifest_sha256=None, locator_inventory_revision=0,
 ) -> str:
     if not item["campaignConsentGranted"]:
         return "consent-suppressed"
@@ -59,6 +62,10 @@ def publish_observation(
     if existing and existing.get("status") == {"S": "PUBLISHED"}:
         return "duplicate"
 
+    inventory = load_inventory(dynamodb_client,pipeline_table_name,item['environment'],
+                               locator_manifest_sha256,locator_inventory_revision,now_epoch)
+    if period_id < inventory['minimumPeriodId']:
+        raise RuntimeError('Campaign locator period is not covered')
     contributor_token = derive_contributor_token(item["accountId"], key_id=hmac_key_id, kms_client=kms_client)
     if not existing:
         transient_expiry = min(
@@ -69,6 +76,9 @@ def publish_observation(
             "GSI3PK": f"EXPIRY#{item['environment']}",
             "GSI3SK": transient_expiry,
         }
+        feature = {"PK":f"EVENT#{event_id}","SK":"FEATURE","GSI1PK":f"CONTRIB#{period_id}#{contributor_token}",
+                   "periodId":period_id,"expiresAt":transient_expiry}
+        feature_locator = locator_for_target(feature,item['environment'])
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
@@ -107,6 +117,7 @@ def publish_observation(
                                     "PK": f"EVENT#{event_id}",
                                     "SK": "DEDUPE",
                                     "status": "PENDING",
+                                    **locator_pointer(feature_locator),
                                     "periodId": period_id,
                                     **expiration_index,
                                     "expiresAt": transient_expiry,
@@ -115,6 +126,8 @@ def publish_observation(
                             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
                         }
                     },
+                    locator_put(pipeline_table_name,feature_locator),
+                    inventory_condition(pipeline_table_name,inventory),
                 ]
             )
         except ClientError as err:
@@ -137,6 +150,15 @@ def publish_observation(
             if not concurrent:
                 raise
 
+    feature_raw = dynamodb_client.get_item(TableName=pipeline_table_name,
+        Key={"PK":{"S":f"EVENT#{event_id}"},"SK":{"S":"FEATURE"}},ConsistentRead=True).get("Item")
+    if not feature_raw:
+        raise RuntimeError('Campaign feature locator is unavailable')
+    feature = locator_deserialize(feature_raw)
+    feature_locator = get_owned_locator(dynamodb_client,pipeline_table_name,
+                                       locator_for_target(feature,item['environment']))
+    if feature_locator['targetExpiresAtEpoch'] <= now_epoch:
+        return "expired"
     if not _account_authorizes(
         item, users_table_name, deletion_ledger_table_name, dynamodb_client
     ):
@@ -172,6 +194,8 @@ def publish_observation(
                     },
                 }
             },
+            locator_condition(pipeline_table_name,feature_locator),
+            inventory_condition(pipeline_table_name,inventory),
         ])
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
