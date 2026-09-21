@@ -83,12 +83,12 @@ class AccountDeletionService:
                     "deletionRequestedAtEpoch = :now, updatedAtEpoch = :now"
                 ),
                 "ConditionExpression": (
-                    "#status = :active AND ageVerified = :true AND #sub = :account"
+                    "(#status = :active OR #status = :pending) AND #sub = :account"
                 ),
                 "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
                 "ExpressionAttributeValues": _serialize({
                     ":requested": "DELETION_REQUESTED", ":active": "ACTIVE",
-                    ":true": True, ":account": account_id,
+                    ":pending": "PENDING_AGE_GATE", ":account": account_id,
                     ":operation_id": operation_id, ":now": now,
                 }),
             }},

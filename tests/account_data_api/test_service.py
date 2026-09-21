@@ -164,7 +164,8 @@ class AccountDeletionServiceTests(unittest.TestCase):
         profile = transaction[0]["Update"]
         self.assertEqual(profile["TableName"], "users")
         self.assertIn("#status = :active", profile["ConditionExpression"])
-        self.assertIn("ageVerified = :true", profile["ConditionExpression"])
+        self.assertIn("#status = :pending", profile["ConditionExpression"])
+        self.assertNotIn("ageVerified", profile["ConditionExpression"])
         stored = self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")]
         self.assertEqual(set(stored), service.COMMAND_FIELDS)
         self.assertEqual(stored["deleteByEpoch"], 86_500)
