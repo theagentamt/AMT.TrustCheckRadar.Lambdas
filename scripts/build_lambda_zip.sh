@@ -203,7 +203,7 @@ build_function() {
       cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
       cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
       mkdir -p "$build_dir/message_evaluator" "$build_dir/url_consumer"
-      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$build_dir/message_evaluator/"
+      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
       cp "$ROOT_DIR/src/url_consumer/service.py" "$build_dir/url_consumer/"
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.1" "$build_dir/message_consumer/contract"
     fi

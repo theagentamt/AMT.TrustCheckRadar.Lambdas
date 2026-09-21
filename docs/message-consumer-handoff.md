@@ -25,8 +25,9 @@ message_evaluator.app.lambda_handler. Consumer timeout 29 seconds, evaluator 23;
 consumer passes at most 18000ms, preserving settlement headroom and checking actual
 context time. Private evaluation accepts at most one explicitly reviewed link.
 SDK retries are disabled. Private response bodies are bounded to 16384 bytes and
-reject duplicate JSON keys. There is no model client, prompt execution, provider
-free-text rendering or AI secret in this bounded increment.
+reject duplicate JSON keys. The optional model-proposal transport is separately disabled by default; it cannot
+promote verdicts under the current policy and introduces no model free-text
+rendering. See sec229-message-proposer-preparation.md for its bounded interface.
 
 Consumer requires existing shared authority configuration, AUTHORITY_ENABLED=true,
 STAGE=dev, an explicit engineering subject allowlist and MESSAGE_CONSUMER_ENABLED=true.
@@ -38,8 +39,9 @@ MESSAGE_EVALUATOR_FUNCTION_ARN is the exact Dev message-evaluator:live alias.
 Evaluator URL_ASSESSMENT_FUNCTION_ARN is the exact Dev url-assessment:live alias.
 Consumer reads exact AWSCURRENT HMAC and identity/authority rows; writes use existing
 transaction guards. No Query, DeleteItem, history storage or provider secret access
-is needed by consumer. Evaluator requires only private URL Lambda invocation and
-has no storage/secret permissions. Packages keep evaluator independent of consumer
+is needed by consumer. The disabled evaluator requires only private URL Lambda invocation and has no
+storage/secret permissions. A future proposer enablement would require separately
+qualified access to one exact provider secret; no such access is enabled here. Packages keep evaluator independent of consumer
 and authority imports. Existing lifecycle workers own expiry/account deletion.
 
 Mandatory positive engineering settings MESSAGE_PROVIDER_WINDOW_SECONDS,
@@ -56,8 +58,8 @@ provider window cap. Exact operating values require scoped release qualification
 
 ## Honest scope and release acceptance
 
-The approved bounded verifier currently qualifies ten normalized whole-message
-EN/ES cases. It is not general NLP: arbitrary paraphrases, quotation, uncertain
+The approved bounded verifier now qualifies 140 normalized whole-message EN/ES
+cases (136 explicit risky variants and four existing benign fixed phrases). It is not general NLP: arbitrary paraphrases, quotation, uncertain
 speaker roles, and unsupported context yield actual inconclusive results. Only
 complete qualified results charge one. Blocked/inconclusive/partial/unavailable
 settle zero; uncertain transport retains unknown accounting until reconciliation.
