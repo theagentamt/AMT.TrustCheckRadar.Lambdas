@@ -7,6 +7,8 @@ import uuid
 
 from scoring import similarity, updated_centroid
 from shared_campaign_contracts import APP_FEATURE_FIELDS, AppFeaturesContractError, validate_app_features
+from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
+    locator_put, locator_condition, get_owned_locator, locator_pointer)
 
 
 ENVELOPE_FIELDS = {"schemaVersion", "eventType", "environment", "statisticsEventId", "recordVersion"}
@@ -27,7 +29,8 @@ PERSISTED_FEATURE_FIELDS = APP_FEATURE_FIELDS | {
 
 
 def process_message(body: str, *, environment: str, schema_version: int, table_name: str,
-                    retention_days: int, max_submissions: int, dynamodb, now_epoch=None) -> str:
+                    retention_days: int, max_submissions: int, dynamodb, now_epoch=None,
+                    locator_manifest_sha256=None, locator_inventory_revision=0) -> str:
     envelope = _envelope(body, environment, schema_version)
     event_id = envelope["statisticsEventId"]
     feature_raw = dynamodb.get_item(TableName=table_name,
@@ -38,6 +41,11 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if feature.get("expiresAt", 0) <= now_epoch or feature.get("suppressed") is True:
         return "suppressed"
+    inventory = load_inventory(dynamodb,table_name,environment,locator_manifest_sha256,locator_inventory_revision,now_epoch)
+    if feature['periodId'] < inventory['minimumPeriodId']:
+        raise RuntimeError('Campaign locator period is not covered')
+    event_locator = get_owned_locator(dynamodb,table_name,locator_for_target(feature,environment))
+    write_guards = [inventory_condition(table_name,inventory),locator_condition(table_name,event_locator)]
     tombstone = dynamodb.get_item(
         TableName=table_name,
         Key={"PK": {"S": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}"},
@@ -64,11 +72,16 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         expires_at = min(expires_at, _required_number(existing, "expiresAt"))
     expiration_index = _expiration_index(environment, expires_at)
     if existing:
+        contribution_locator = get_owned_locator(dynamodb,table_name,locator_for_target(deserialize(existing),environment))
+        write_guards.append(locator_condition(table_name,contribution_locator))
         count = int(existing.get("submissionCount", {"N": "0"})["N"])
         if count >= max_submissions:
             dynamodb.transact_write_items(TransactItems=[
                 _tombstone_condition(table_name, feature),
-                _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "CONTRIBUTOR_CAPPED"),
+                _dedupe_action(table_name,event_id,candidate_id,environment,min(expires_at,feature['expiresAt']),"CONTRIBUTOR_CAPPED",event_locator),
+                {"ConditionCheck":{"TableName":table_name,"Key":{"PK":{"S":f"CANDIDATE#{candidate_id}"},"SK":{"S":"SUMMARY"}},
+                    "ConditionExpression":"attribute_exists(PK) AND attribute_not_exists(lifecycleState)"}},
+                *write_guards,
             ])
             return "contributor-capped"
         dynamodb.transact_write_items(TransactItems=[
@@ -85,8 +98,10 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             {"Update": {"TableName": table_name,
                         "Key": {"PK": {"S": f"CANDIDATE#{candidate_id}"}, "SK": {"S": "SUMMARY"}},
                         "UpdateExpression": "ADD submissionCount :one SET version = version + :one",
+                        "ConditionExpression":"attribute_exists(PK) AND attribute_not_exists(lifecycleState)",
                         "ExpressionAttributeValues": {":one": {"N": "1"}}}},
-            _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "COUNTED"),
+            _dedupe_action(table_name,event_id,candidate_id,environment,min(expires_at,feature['expiresAt']),"COUNTED",event_locator),
+            *write_guards,
         ])
         return "counted-repeat"
 
@@ -103,7 +118,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
 
     put_candidate = {"Put": {"TableName": table_name, "Item": serialize(candidate)}}
     if selected:
-        put_candidate["Put"].update({"ConditionExpression": "version = :version",
+        put_candidate["Put"].update({"ConditionExpression": "version = :version AND attribute_not_exists(lifecycleState)",
                                      "ExpressionAttributeValues": {":version": {"N": str(previous_version)}}})
     else:
         put_candidate["Put"]["ConditionExpression"] = "attribute_not_exists(PK) AND attribute_not_exists(SK)"
@@ -116,6 +131,8 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             environment,
             expires_at,
         ))
+    contribution_locator = locator_for_target({"PK":f"CANDIDATE#{candidate_id}","SK":f"CONTRIB#{feature['contributorToken']}",
+        "GSI1PK":f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}","periodId":feature['periodId'],"expiresAt":expires_at},environment)
     transaction.extend([
         {"Put": {"TableName": table_name, "Item": serialize({
             "PK": f"CANDIDATE#{candidate_id}", "SK": f"CONTRIB#{feature['contributorToken']}",
@@ -127,7 +144,9 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             **expiration_index,
             "expiresAt": expires_at,
         }), "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}},
-        _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "COUNTED"),
+        _dedupe_action(table_name,event_id,candidate_id,environment,min(expires_at,feature['expiresAt']),"COUNTED",event_locator),
+        locator_put(table_name,contribution_locator),
+        *write_guards,
     ])
     dynamodb.transact_write_items(TransactItems=transaction)
     return "matched" if selected else "candidate-created"
@@ -213,13 +232,9 @@ def _new_candidate(candidate_id, feature, environment, expires_at):
             "expiresAt": expires_at}
 
 
-def _dedupe(dynamodb, table_name, event_id, candidate_id, environment, expiry, outcome):
-    dynamodb.put_item(**_dedupe_action(table_name, event_id, candidate_id, environment, expiry, outcome)["Put"])
-
-
-def _dedupe_action(table_name, event_id, candidate_id, environment, expiry, outcome):
+def _dedupe_action(table_name, event_id, candidate_id, environment, expiry, outcome, event_locator):
     return {"Put": {"TableName": table_name, "Item": serialize({"PK": f"EVENT#{event_id}", "SK": "CLUSTERED",
-        "candidateId": candidate_id, "outcome": outcome, **_expiration_index(environment, expiry),
+        "candidateId": candidate_id, "outcome": outcome, **locator_pointer(event_locator), **_expiration_index(environment, expiry),
         "expiresAt": expiry}),
         "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
 

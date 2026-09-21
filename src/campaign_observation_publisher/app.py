@@ -47,6 +47,8 @@ def lambda_handler(event, _context):
             dynamodb_client=dynamodb_client,
             kms_client=kms_client,
             sqs_client=sqs_client,
+            locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+            locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION,
         )
         results[result] = results.get(result, 0) + 1
         _metric(result)

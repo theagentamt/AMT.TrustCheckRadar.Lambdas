@@ -17,7 +17,9 @@ def lambda_handler(event, _context):
             process_message(record.get("body"), environment=config.APP_ENVIRONMENT,
                 schema_version=config.CAMPAIGN_SCHEMA_VERSION, table_name=config.PIPELINE_TABLE_NAME,
                 retention_days=config.TRANSIENT_RETENTION_DAYS,
-                max_submissions=config.MAX_CONTRIBUTOR_SUBMISSIONS, dynamodb=dynamodb)
+                max_submissions=config.MAX_CONTRIBUTOR_SUBMISSIONS, dynamodb=dynamodb,
+                locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+                locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION)
             successes += 1
         except Exception:
             failures.append({"itemIdentifier": record.get("messageId", "unknown")})
