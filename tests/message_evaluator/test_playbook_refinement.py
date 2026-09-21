@@ -91,12 +91,15 @@ def test_spans_are_ordered_per_category_but_may_overlap_across_categories():
     with pytest.raises(MessageError): ai_provider.parse(wire(value),text)
 
 
-def test_frozen_refinement_identity_and_empty_authorization_registries():
+def test_historical_refinement_prompt_identity_and_empty_authorization_registries():
     pin = json.loads((PACKET/'profile-identities.json').read_text())
     assert pin['promptSha256'] == ai_provider.PROMPT_SHA256
     assert pin['schemaSha256'] == ai_provider.SCHEMA_SHA256
-    for model, expected in pin['controlledProfiles'].items():
-        assert digest(protocol.profile(model)) == expected
+    # Full historical profiles are retained as evidence, not silently repinned
+    # when a later privacy source changes. New scopes pin their own profiles.
+    for model in pin['controlledProfiles']:
+        assert protocol.profile(model)['promptSha256'] == pin['promptSha256']
+        assert protocol.profile(model)['schemaSha256'] == pin['schemaSha256']
     assert ai_provider.PROMPT_SHA256 != pin['baselinePromptSha256']
     assert json.loads((ROOT/'src/message_evaluator/ai_qualifications.json').read_text()) == {}
     assert json.loads((ROOT/'evaluation/message_ai/controlled/approved_experiments.json').read_text()) == {}

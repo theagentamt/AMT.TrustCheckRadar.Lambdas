@@ -13,7 +13,8 @@ import json
 import os
 import re
 import time
-from shared_message_contract.validation import MessageError, RULES, require, validate_intent
+from shared_message_contract.validation import MessageError, RULES, require
+from shared_message_contract.privacy import validate_runtime_intent as validate_intent
 from shared_message_contract.runtime import unique_pairs
 
 HOST = 'api.openai.com'

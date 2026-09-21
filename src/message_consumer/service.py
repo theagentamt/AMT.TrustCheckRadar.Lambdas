@@ -6,7 +6,8 @@ from pathlib import Path
 from decimal import Decimal
 from jsonschema import Draft202012Validator, FormatChecker
 from shared_check_authority.core import AuthorityError, TrustedWorkerContext
-from shared_message_contract import VERSION, POLICY, validate_intent, validate_summary
+from shared_message_contract import VERSION, POLICY, validate_summary
+from shared_message_contract.privacy import validate_runtime_intent as validate_intent
 from shared_message_contract import validation_v2 as v2
 from message_evaluator.policy_v2 import result as limited_result_v2
 from shared_message_contract.validation import MessageError

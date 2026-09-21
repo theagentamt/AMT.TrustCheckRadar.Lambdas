@@ -1,0 +1,715 @@
+{
+  "profileVersion": "sanitizer-v1-2026-09-21",
+  "provenance": "repo_authored_synthetic_format_examples_not_personal_records",
+  "cases": [
+    {
+      "id": "phone-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Call +1 (202) 555-0123 or 202.555.0123.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Call [PHONE_1] or [PHONE_1].",
+        "entities": [
+          {
+            "type": "phone",
+            "token": "[PHONE_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "phone-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Llame al +1 202-555-0123 o al 2025550123.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Llame al [PHONE_1] o al [PHONE_1].",
+        "entities": [
+          {
+            "type": "phone",
+            "token": "[PHONE_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "email-normalization-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Correo Ana@EXAMPLE.invalid y Ana@example.invalid; ana@example.invalid.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Correo [EMAIL_1] y [EMAIL_1]; [EMAIL_2].",
+        "entities": [
+          {
+            "type": "email",
+            "token": "[EMAIL_1]"
+          },
+          {
+            "type": "email",
+            "token": "[EMAIL_2]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "email-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Send to Alice@example.invalid; copy Alice@EXAMPLE.invalid.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Send to [EMAIL_1]; copy [EMAIL_1].",
+        "entities": [
+          {
+            "type": "email",
+            "token": "[EMAIL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "url-normalization-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Open https://EXAMPLE.invalid/a?x=1 and HTTPS://example.invalid/a?x=1",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Open [URL_1] and [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "url-path-case-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Abra https://example.invalid/A y https://example.invalid/a.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Abra [URL_1] y [URL_2].",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          },
+          {
+            "type": "url",
+            "token": "[URL_2]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "url-malformed-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Open https://?token",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Open [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "url-punctuation-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Abra (https://example.invalid/a).",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Abra ([URL_1]).",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "url-overlap-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Use https://example.invalid/Ana@example.invalid?pay=$Cash",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Use [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ssn-card-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "SSN 123-45-6789; card 4111 1111 1111 1111",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "SSN [SSN_1]; card [CREDIT_CARD_1]",
+        "entities": [
+          {
+            "type": "ssn",
+            "token": "[SSN_1]"
+          },
+          {
+            "type": "credit_card",
+            "token": "[CREDIT_CARD_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ssn-repeat-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Datos 123-45-6789 y 123-45-6789.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Datos [SSN_1] y [SSN_1].",
+        "entities": [
+          {
+            "type": "ssn",
+            "token": "[SSN_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "card-repeat-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Tarjeta 4111-1111-1111-1111 o 4111111111111111.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Tarjeta [CREDIT_CARD_1] o [CREDIT_CARD_1].",
+        "entities": [
+          {
+            "type": "credit_card",
+            "token": "[CREDIT_CARD_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "card-format-not-checksum-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Card 4111111111111112",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Card [CREDIT_CARD_1]",
+        "entities": [
+          {
+            "type": "credit_card",
+            "token": "[CREDIT_CARD_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ip-normalization-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "IP 192.000.002.001 y 192.0.2.1; 2001:db8::1 y 2001:0db8:0:0:0:0:0:1",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "IP [IP_ADDRESS_1] y [IP_ADDRESS_1]; [IP_ADDRESS_2] y [IP_ADDRESS_2]",
+        "entities": [
+          {
+            "type": "ip_address",
+            "token": "[IP_ADDRESS_1]"
+          },
+          {
+            "type": "ip_address",
+            "token": "[IP_ADDRESS_2]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ip-v6-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Use 2001:DB8::ABCD and 2001:db8:0:0:0:0:0:abcd.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Use [IP_ADDRESS_1] and [IP_ADDRESS_1].",
+        "entities": [
+          {
+            "type": "ip_address",
+            "token": "[IP_ADDRESS_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "handles-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "@helper $PayUser @helper",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "[MESSENGER_HANDLE_1] [PAYMENT_HANDLE_1] [MESSENGER_HANDLE_1]",
+        "entities": [
+          {
+            "type": "messenger_handle",
+            "token": "[MESSENGER_HANDLE_1]"
+          },
+          {
+            "type": "payment_handle",
+            "token": "[PAYMENT_HANDLE_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "handles-case-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Contacto @Ana y @ana; pago $Ana y $ana.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Contacto [MESSENGER_HANDLE_1] y [MESSENGER_HANDLE_2]; pago [PAYMENT_HANDLE_1] y [PAYMENT_HANDLE_2].",
+        "entities": [
+          {
+            "type": "messenger_handle",
+            "token": "[MESSENGER_HANDLE_1]"
+          },
+          {
+            "type": "messenger_handle",
+            "token": "[MESSENGER_HANDLE_2]"
+          },
+          {
+            "type": "payment_handle",
+            "token": "[PAYMENT_HANDLE_1]"
+          },
+          {
+            "type": "payment_handle",
+            "token": "[PAYMENT_HANDLE_2]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "evm-normalization-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Wallet 0xaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaBaB or 0xabababababababababababababababababababab",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Wallet [CRYPTO_WALLET_1] or [CRYPTO_WALLET_1]",
+        "entities": [
+          {
+            "type": "crypto_wallet",
+            "token": "[CRYPTO_WALLET_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "bitcoin-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Cartera 1AAAAAAAAAAAAAAAAAAAAAAAAA y 1AAAAAAAAAAAAAAAAAAAAAAAAA.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Cartera [CRYPTO_WALLET_1] y [CRYPTO_WALLET_1].",
+        "entities": [
+          {
+            "type": "crypto_wallet",
+            "token": "[CRYPTO_WALLET_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "bech32-case-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Wallet bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq or BC1QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Wallet [CRYPTO_WALLET_1] or [CRYPTO_WALLET_1]",
+        "entities": [
+          {
+            "type": "crypto_wallet",
+            "token": "[CRYPTO_WALLET_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "bech32-mixed-case-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Cartera bc1Qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq y bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Cartera [CRYPTO_WALLET_1] y [CRYPTO_WALLET_2]",
+        "entities": [
+          {
+            "type": "crypto_wallet",
+            "token": "[CRYPTO_WALLET_1]"
+          },
+          {
+            "type": "crypto_wallet",
+            "token": "[CRYPTO_WALLET_2]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "nfc-lines-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "  Café\t seguro\r\n\r\n\r\n contacto Ana@EXAMPLE.invalid  ",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Café seguro\n\ncontacto [EMAIL_1]",
+        "entities": [
+          {
+            "type": "email",
+            "token": "[EMAIL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "emoji-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "🔒 Email A@example.invalid",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "🔒 Email [EMAIL_1]",
+        "entities": [
+          {
+            "type": "email",
+            "token": "[EMAIL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "no-entity-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Nos vemos mañana.",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Nos vemos mañana.",
+        "entities": [],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "bare-domain-review-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Visit www.example.invalid",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Visit www.example.invalid",
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "invalid-ip-review-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "IP 999.999.999.999",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "IP 999.999.999.999",
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "unsupported-phone-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Call +44 20 7946 0958",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Call +44 20 7946 0958",
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "token-collision-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Existing [EMAIL_1]",
+      "expected": {
+        "status": "review_required",
+        "reason": "reserved_token_collision",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "unknown-token-collision-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Existente [CUSTOM_77]",
+      "expected": {
+        "status": "review_required",
+        "reason": "reserved_token_collision",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "bidi-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Hello‮hidden",
+      "expected": {
+        "status": "review_required",
+        "reason": "unsupported_unicode",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "zwj-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Emoji 👩‍💻",
+      "expected": {
+        "status": "review_required",
+        "reason": "unsupported_unicode",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "control-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Hello\u0000world",
+      "expected": {
+        "status": "review_required",
+        "reason": "unsupported_unicode",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "empty-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": " \r\n\t ",
+      "expected": {
+        "status": "review_required",
+        "reason": "empty",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "ipv6-whole-url-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Open https://[2001:db8::1]/path?secret=abc",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Open [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ipv6-whole-origin-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Abra https://[2001:db8::1]",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Abra [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "balanced-url-path-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Read https://example.invalid/a(b)",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Read [URL_1]",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "ocr-normalization-es",
+      "language": "es",
+      "sourceType": "ocr",
+      "input": "  Llame al 202-555-0123\r\n o al +1 202 555 0123  ",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Llame al [PHONE_1]\no al [PHONE_1]",
+        "entities": [
+          {
+            "type": "phone",
+            "token": "[PHONE_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "mixed-source-en",
+      "language": "en",
+      "sourceType": "mixed",
+      "input": "Email A@example.invalid\nCopied: A@EXAMPLE.invalid",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Email [EMAIL_1]\nCopied: [EMAIL_1]",
+        "entities": [
+          {
+            "type": "email",
+            "token": "[EMAIL_1]"
+          }
+        ],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "unicode-space-trim-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "  Hola\t  mundo　",
+      "expected": {
+        "status": "ready",
+        "reason": null,
+        "sanitizedText": "Hola mundo",
+        "entities": [],
+        "governedAccepts": true
+      }
+    },
+    {
+      "id": "mapped-ipv6-en",
+      "language": "en",
+      "sourceType": "pasted_text",
+      "input": "Address ::ffff:192.0.2.1",
+      "expected": {
+        "status": "review_required",
+        "reason": "unsupported_extended_ipv6",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    },
+    {
+      "id": "zone-ipv6-es",
+      "language": "es",
+      "sourceType": "pasted_text",
+      "input": "Dirección fe80::1%eth0",
+      "expected": {
+        "status": "review_required",
+        "reason": "unsupported_extended_ipv6",
+        "sanitizedText": null,
+        "entities": [],
+        "governedAccepts": false
+      }
+    }
+  ]
+}

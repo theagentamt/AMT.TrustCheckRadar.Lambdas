@@ -1,7 +1,8 @@
 """Explicit tested whole-message coverage, not general semantic inference."""
 import re
 import time
-from shared_message_contract.validation import POLICY, validate_intent, validate_summary
+from shared_message_contract.validation import POLICY, validate_summary
+from shared_message_contract.privacy import validate_runtime_intent as validate_intent
 from .coverage import match
 
 # These exact normalized whole-message cases are the initial qualified coverage.

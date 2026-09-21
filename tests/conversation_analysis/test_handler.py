@@ -148,6 +148,26 @@ class ConversationAnalysisHandlerTests(unittest.TestCase):
         self.assertNotIn("private-marker", " ".join(captured.output))
         self.assertNotIn("hostile-request", " ".join(captured.output))
 
+    def test_invalid_wire_rejected_before_identity_device_or_service_and_redacted(self):
+        events = [
+            {"body": "private-marker!", "isBase64Encoded": True},
+            {"body": "private-marker" + " " * 65536},
+            {"body": '{"private-marker":"\\ud800"}'},
+        ]
+        for event in events:
+            with (
+                self.subTest(event_type=len(event["body"])),
+                mock.patch.object(app, "extract_identity") as identity,
+                mock.patch.object(app, "assert_active_device_binding") as device,
+                mock.patch.object(app, "handle_analysis_request") as service,
+                self.assertLogs(level="INFO") as captured,
+            ):
+                response=app.lambda_handler(event,None)
+            self.assertEqual(response["statusCode"],400)
+            self.assertEqual(json.loads(response["body"])["error"]["code"],"INVALID_REQUEST")
+            identity.assert_not_called(); device.assert_not_called(); service.assert_not_called()
+            self.assertNotIn("private-marker"," ".join(captured.output)+response["body"])
+
     def test_returns_structured_validation_error(self):
         event = {
             "requestContext": {"authorizer": {"jwt": {"claims": _claims("user-123")}}},
