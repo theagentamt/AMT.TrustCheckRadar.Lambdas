@@ -1,0 +1,37 @@
+{
+  "version": "v1-user-visible-2026-09-21",
+  "included": [
+    "profile",
+    "identity",
+    "devices",
+    "recovery",
+    "subscriptions",
+    "usage",
+    "purchases",
+    "access",
+    "allowance",
+    "trial",
+    "receipts",
+    "history",
+    "recognition",
+    "participation",
+    "consent",
+    "analysis_requests",
+    "scan_consumption",
+    "research_observations",
+    "research_contributions"
+  ],
+  "excluded": [
+    "original_submissions",
+    "security_and_internal_controls",
+    "research_pipeline_internals",
+    "other_peoples_data",
+    "non_user_linkable_aggregates",
+    "historical_backups",
+    "transient_streams_and_queues",
+    "operational_logs",
+    "external_provider_and_store_records"
+  ],
+  "consistency": "OBSERVED_VALUES",
+  "cancellation": "LOCAL_DOWNLOAD_ONLY"
+}

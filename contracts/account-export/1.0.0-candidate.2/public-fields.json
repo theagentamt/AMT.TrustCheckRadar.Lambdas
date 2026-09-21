@@ -1,0 +1,201 @@
+{
+  "families": {
+    "analysis_requests": [
+      "status",
+      "createdAt",
+      "updatedAt",
+      "expiresAt"
+    ],
+    "scan_consumption": [
+      "consumptionType",
+      "createdAt",
+      "expiresAt"
+    ],
+    "research_observations": [
+      "observedAtEpoch",
+      "sourceType",
+      "riskLevel",
+      "noticeVersion",
+      "signalIds",
+      "expiresAt"
+    ],
+    "research_contributions": [
+      "languageId",
+      "taxonomyBucket",
+      "signalIds",
+      "indicatorIds",
+      "confidence",
+      "submissionCount",
+      "expiresAt"
+    ],
+    "profile": [
+      "email",
+      "given_name",
+      "family_name",
+      "phone_number",
+      "over_18",
+      "status",
+      "ageVerified",
+      "ageVerifiedAt",
+      "agePolicyVersion",
+      "createdAt",
+      "updatedAt"
+    ],
+    "devices": [
+      "platform",
+      "osVersion",
+      "status",
+      "firstSeenAt",
+      "lastSeenAt",
+      "deactivatedAt"
+    ],
+    "recovery": [
+      "operation",
+      "result",
+      "status",
+      "completedAtEpoch"
+    ],
+    "subscriptions": [
+      "entitlementTier",
+      "subscriptionStatus",
+      "platform",
+      "productId",
+      "billingPeriodStartUtc",
+      "billingPeriodEndUtc",
+      "lastVerifiedAtUtc",
+      "isAccessGranted",
+      "monthlyScanLimit",
+      "remainingMonthlyScans",
+      "remainingCredits"
+    ],
+    "usage": [
+      "periodKey",
+      "usedCount"
+    ],
+    "access": [
+      "state",
+      "basis",
+      "validFromEpoch",
+      "validUntilEpoch",
+      "activationKind",
+      "activatedAtEpoch",
+      "policyVersion",
+      "sources"
+    ],
+    "allowance": [
+      "startEpoch",
+      "endEpoch",
+      "limit",
+      "usedChecks",
+      "reservedChecks",
+      "policyVersion"
+    ],
+    "trial": [
+      "activatedAtEpoch",
+      "policyVersion"
+    ],
+    "recognition": [
+      "qualifyingChecks",
+      "awardedBadgeIds"
+    ],
+    "participation": [
+      "state",
+      "noticeVersion",
+      "policyVersion",
+      "effectiveFrom",
+      "effectiveUntil",
+      "withdrawalRequestedAt",
+      "deletionDeadlineAt"
+    ],
+    "consent": [
+      "eventType",
+      "occurredAt",
+      "noticeVersion",
+      "policyVersion",
+      "resultingState",
+      "effectiveMonthlyScanLimit"
+    ],
+    "identity": [
+      "email",
+      "email_verified",
+      "given_name",
+      "family_name",
+      "phone_number",
+      "phone_number_verified",
+      "custom:over_18"
+    ],
+    "purchases": [
+      "platform",
+      "productId",
+      "verifiedAtEpoch"
+    ],
+    "receipts": [
+      "state",
+      "processingOutcome",
+      "chargedChecks",
+      "assessmentEpoch",
+      "expiresAt",
+      "resultSummary",
+      "feedback"
+    ],
+    "history": [
+      "requestId",
+      "sourceType",
+      "acceptedAtEpochMs",
+      "completedAtEpochMs",
+      "assessment"
+    ]
+  },
+  "integerFields": [
+    "acceptedAtEpochMs",
+    "activatedAtEpoch",
+    "assessmentEpoch",
+    "chargedChecks",
+    "completedAtEpoch",
+    "completedAtEpochMs",
+    "effectiveMonthlyScanLimit",
+    "endEpoch",
+    "expiresAt",
+    "limit",
+    "lookupCount",
+    "monthlyScanLimit",
+    "observedAtEpoch",
+    "observedHopCount",
+    "providerCallCount",
+    "qualifyingChecks",
+    "receivedAt",
+    "remainingCredits",
+    "remainingMonthlyScans",
+    "reservedChecks",
+    "schemaVersion",
+    "startEpoch",
+    "submissionCount",
+    "usedChecks",
+    "usedCount",
+    "validFromEpoch",
+    "validUntilEpoch",
+    "verifiedAtEpoch"
+  ],
+  "booleanFields": [
+    "ageVerified",
+    "isAccessGranted"
+  ],
+  "nestedShapes": {
+    "access.sources": "keys trial/paid/complimentary; fields from access except sources; no wholesale source rows",
+    "receipts.resultSummary": "validated current URL/message/recovery usage contract with checkId removed",
+    "receipts.feedback": [
+      "category",
+      "receivedAt"
+    ],
+    "history.assessment": [
+      "schemaVersion",
+      "requestId",
+      "scamScore",
+      "riskLevel",
+      "confidence",
+      "summary",
+      "signals",
+      "recommendedActions"
+    ]
+  }
+}

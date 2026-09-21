@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exportTransportVersion",
+    "operation",
+    "operationId",
+    "status",
+    "startedAtEpoch",
+    "expiresAtEpoch",
+    "observedAtEpoch",
+    "pageNumber",
+    "family",
+    "items",
+    "nextCursor",
+    "scope"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "exportTransportVersion": {
+      "const": "1.0.0-account-export-candidate.1"
+    },
+    "operation": {
+      "const": "ACCOUNT_EXPORT"
+    },
+    "operationId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "status": {
+      "enum": [
+        "IN_PROGRESS",
+        "COMPLETE"
+      ]
+    },
+    "startedAtEpoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expiresAtEpoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "observedAtEpoch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pageNumber": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "family": {
+      "enum": [
+        "profile",
+        "identity",
+        "devices",
+        "recovery",
+        "subscriptions",
+        "usage",
+        "purchases",
+        "access",
+        "allowance",
+        "trial",
+        "receipts",
+        "history",
+        "recognition",
+        "participation",
+        "consent",
+        "analysis_requests",
+        "scan_consumption",
+        "research_observations",
+        "research_contributions"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 25,
+      "items": {
+        "type": "object"
+      }
+    },
+    "nextCursor": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 40,
+          "maxLength": 8192
+        }
+      ]
+    },
+    "scope": {
+      "const": {
+        "version": "v1-user-visible-2026-09-21",
+        "included": [
+          "profile",
+          "identity",
+          "devices",
+          "recovery",
+          "subscriptions",
+          "usage",
+          "purchases",
+          "access",
+          "allowance",
+          "trial",
+          "receipts",
+          "history",
+          "recognition",
+          "participation",
+          "consent",
+          "analysis_requests",
+          "scan_consumption",
+          "research_observations",
+          "research_contributions"
+        ],
+        "excluded": [
+          "original_submissions",
+          "security_and_internal_controls",
+          "research_pipeline_internals",
+          "other_peoples_data",
+          "non_user_linkable_aggregates",
+          "historical_backups",
+          "transient_streams_and_queues",
+          "operational_logs",
+          "external_provider_and_store_records"
+        ],
+        "consistency": "OBSERVED_VALUES",
+        "cancellation": "LOCAL_DOWNLOAD_ONLY"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "COMPLETE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "nextCursor": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "nextCursor": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

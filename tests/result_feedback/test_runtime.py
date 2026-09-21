@@ -29,10 +29,18 @@ def test_runtime_loads_only_minimal_feedback_config(monkeypatch):
     for k,v in env.items():monkeypatch.setenv(k,v)
     for k in ('AUTHORITY_ENABLED','AUTHORITY_POLICY_VERSION','RECEIPT_RETENTION_SECONDS','ALLOWANCE_LIMIT','PROVIDER_SECRET_ARN'):monkeypatch.delenv(k,raising=False)
     resource=SimpleNamespace(meta=SimpleNamespace(client=SimpleNamespace(meta=SimpleNamespace(config=SimpleNamespace(retries={'total_max_attempts':1})))))
+    # Other legacy suites replace botocore.exceptions at import time. Keep this
+    # bootstrap unit test isolated; real SDK behavior has separate Moto coverage.
+    config_calls=[]
+    def sdk_config(**kwargs):
+        config_calls.append(kwargs)
+        return SimpleNamespace(**kwargs)
+    monkeypatch.setitem(sys.modules,'botocore.config',SimpleNamespace(Config=sdk_config))
     monkeypatch.setattr(boto3,'resource',lambda *a,**k:resource)
     monkeypatch.setattr(inventory,'load_keyring',lambda:('k1',{'k1':b'x'*32}))
     monkeypatch.setattr(inventory,'verified_inventory',lambda *a:None)
     authority=runtime.load_authority();assert authority.s.counter_retention_seconds==604800
+    assert config_calls == [{'connect_timeout':.2,'read_timeout':.3,'retries':{'total_max_attempts':1}}]
     assert not hasattr(authority.s,'policy_version') and not hasattr(authority.s,'receipt_retention_seconds')
 
 

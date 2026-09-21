@@ -12,6 +12,7 @@ CONTRACT_VERSION="1.0.0"
 
 FUNCTIONS=(
   account_data_api
+  account_export_api
   age_attestation
   campaign_cluster_aggregator
   campaign_deletion_bridge
@@ -170,7 +171,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -246,6 +247,14 @@ build_function() {
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
     cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
   fi
+  if [[ "$function_name" == "account_export_api" ]]; then
+    mkdir -p "$build_dir/account_export_api"
+    cp -R "$source_dir"/. "$build_dir/account_export_api/"
+    printf 'from account_export_api.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+  fi
   # Every shared-authority consumer can recover a recovery lease without the
   # model/parser/bundle modules. Keep this lightweight dependency in old workers.
   if [[ -d "$build_dir/shared_check_authority" && ! -d "$build_dir/shared_recovery_contract" ]]; then
@@ -260,6 +269,9 @@ build_function() {
 
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
+  fi
+  if [[ "$function_name" == "purchase_handoff" || "$function_name" == "account_data_api" || "$function_name" == "account_export_api" ]]; then
+    cp -R "$ROOT_DIR/src/shared_purchase_ownership" "$build_dir/shared_purchase_ownership"
   fi
 
   if needs_shared_campaign_contracts "$function_name"; then
