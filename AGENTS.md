@@ -12,7 +12,10 @@
 - A development story is complete only when its agreed acceptance criteria are
   satisfied, appropriate validation passes, implementation and required handoff
   records are committed, and those commits are pushed to GitHub and verified on
-  the intended remote branch. A local commit or local deployment alone is not Done.
+  the intended remote branch and integrated into `release-V01` (or already covered
+  in `main`). A pushed feature branch alone, local commit or local deployment is
+  not Done. Verify exact merge SHA or documented patch/squash equivalence; do not
+  mistake an unmerged branch with completed tests for integrated work.
 - Update the YouTrack story with validation evidence, commit/branch links and any
   remaining limitations before marking it Done. If pushing is blocked, report the
   blocker and keep the story open until publication is verified.
