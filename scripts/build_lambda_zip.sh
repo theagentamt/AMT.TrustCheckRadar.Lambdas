@@ -24,6 +24,7 @@ FUNCTIONS=(
   message_consumer
   message_evaluator
   recovery_consumer
+  result_feedback
   recovery_evaluator
   device_registration
   device_recovery
@@ -169,7 +170,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -233,6 +234,17 @@ build_function() {
     else
       cp "$ROOT_DIR/src/message_evaluator/proposer.py" "$build_dir/message_evaluator/"
     fi
+  fi
+  if [[ "$function_name" == "result_feedback" ]]; then
+    mkdir -p "$build_dir/result_feedback" "$build_dir/url_redirect_resolver"
+    cp -R "$source_dir"/. "$build_dir/result_feedback/"
+    printf 'from result_feedback.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
+    cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
   fi
   # Every shared-authority consumer can recover a recovery lease without the
   # model/parser/bundle modules. Keep this lightweight dependency in old workers.
