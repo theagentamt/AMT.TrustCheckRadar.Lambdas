@@ -261,6 +261,9 @@ build_function() {
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
   fi
+  if [[ "$function_name" == "purchase_handoff" || "$function_name" == "account_data_api" || "$function_name" == "account_export_api" ]]; then
+    cp -R "$ROOT_DIR/src/shared_purchase_ownership" "$build_dir/shared_purchase_ownership"
+  fi
 
   if needs_shared_campaign_contracts "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"

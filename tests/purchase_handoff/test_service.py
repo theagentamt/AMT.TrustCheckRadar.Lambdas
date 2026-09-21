@@ -134,6 +134,58 @@ class PurchaseHandoffServiceTests(unittest.TestCase):
             "status": "ACTIVE", "ageVerified": True,
         })
 
+    def _candidate_payload(self):
+        return {"productId": "trustcheck_radar_pro_monthly", "platform": "google_play",
+                "purchaseToken": "purchase-token-12345", "purchaseState": "RESTORED",
+                "packageName": "com.example.app", "orderId": "must-not-persist",
+                "purchaseTime": None, "subscriptionMetadata": {}}
+
+    def test_candidate_fresh_verifies_even_cached_same_account_token(self):
+        import shared_purchase_ownership
+        payload = self._candidate_payload()
+        token_hash = idempotency_module.hash_purchase_token(payload["purchaseToken"])
+        fake_table.put_item({"PK": "TOKEN#" + token_hash, "SK": "IDEMPOTENCY", "accountId": "user-123", "verificationStatus": "accepted"})
+        verification = {"status": "accepted", "normalizedStatus": "active", "isAccessGranted": True,
+                        "billingPeriodStartUtc": "2026-06-27T19:15:00Z", "billingPeriodEndUtc": "2026-07-27T19:15:00Z"}
+        with mock.patch.object(service.config, "PURCHASE_OWNERSHIP_CANDIDATE_ENABLED", True), \
+                mock.patch.object(service.config, "GOOGLE_PLAY_PACKAGE_NAME", "com.example.app"), \
+                mock.patch.object(shared_purchase_ownership, "OwnershipStore") as store_type, \
+                mock.patch.object(shared_purchase_ownership, "verified_lineage", return_value=((token_hash,), verification)) as verify:
+            store = store_type.return_value
+            store._get.return_value = None
+            result = service.process_purchase_handoff(account_id="user-123", payload=payload)
+            verify.assert_called_once()
+            store.inventory.assert_called_once()
+            store.claim.assert_called_once()
+            self.assertNotIn("orderId", store.claim.call_args.kwargs["entitlement"])
+            self.assertEqual(store.claim.call_args.kwargs["entitlement"]["purchaseTokenHash"], token_hash)
+            self.assertFalse(result["idempotencyReplay"])
+            self.assertEqual(result["verificationStatus"], "accepted")
+
+    def test_candidate_unverified_purchase_never_creates_ownership(self):
+        import shared_purchase_ownership
+        with mock.patch.object(service.config, "PURCHASE_OWNERSHIP_CANDIDATE_ENABLED", True), \
+                mock.patch.object(service.config, "GOOGLE_PLAY_PACKAGE_NAME", "com.example.app"), \
+                mock.patch.object(shared_purchase_ownership, "OwnershipStore") as store_type, \
+                mock.patch.object(shared_purchase_ownership, "verified_lineage", side_effect=shared_purchase_ownership.OwnershipError("PURCHASE_NOT_ACTIVE")):
+            store_type.return_value._get.return_value = None
+            result = service.process_purchase_handoff(account_id="user-123", payload=self._candidate_payload())
+            store_type.return_value.claim.assert_not_called()
+            self.assertEqual(result["verificationStatus"], "rejected")
+
+    def test_candidate_inventory_missing_never_calls_provider_or_claims(self):
+        import shared_purchase_ownership
+        with mock.patch.object(service.config, "PURCHASE_OWNERSHIP_CANDIDATE_ENABLED", True), \
+                mock.patch.object(service.config, "GOOGLE_PLAY_PACKAGE_NAME", "com.example.app"), \
+                mock.patch.object(shared_purchase_ownership, "OwnershipStore") as store_type, \
+                mock.patch.object(shared_purchase_ownership, "verified_lineage") as verify:
+            store_type.return_value._get.return_value = None
+            store_type.return_value.inventory.side_effect = shared_purchase_ownership.OwnershipError("PURCHASE_LEGACY_COVERAGE_UNVERIFIED")
+            result = service.process_purchase_handoff(account_id="user-123", payload=self._candidate_payload())
+            verify.assert_not_called()
+            store_type.return_value.claim.assert_not_called()
+            self.assertEqual(result["verificationStatus"], "failed_retryable")
+
     def test_accepts_verified_google_play_purchase(self):
         payload = {
             "productId": "trustcheck_radar_pro_monthly",
