@@ -1,5 +1,7 @@
 import re
 
+from errors import AppError
+
 
 INSTRUCTION_STYLE_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
@@ -15,6 +17,11 @@ INSTRUCTION_STYLE_PATTERNS = [
         r"return\s+exactly\s+",
         r"follow\s+these\s+instructions",
         r"jailbreak",
+        r"ignora\s+(todas\s+)?(las\s+)?instrucciones\s+(anteriores|previas)",
+        r"eres\s+chatgpt",
+        r"act[uú]a\s+como",
+        r"mensaje\s+del\s+(sistema|desarrollador)",
+        r"devuelve\s+exactamente",
     ]
 ]
 
@@ -24,15 +31,16 @@ def is_instruction_style_abuse(sanitized_text: str) -> bool:
     return matches >= 2
 
 
-def build_safe_low_confidence_response() -> dict:
-    return {
-        "scamScore": 5,
-        "riskLevel": "low",
-        "confidence": 0.2,
-        "summary": "The submitted content appears instruction-like or non-analyzable, so the backend returned a safe low-confidence result instead of trusting it as analysis input.",
-        "signals": ["instruction_style_abuse_detected"],
-        "recommendedActions": [
-            "Review the original content carefully before taking action.",
-            "Retry only with sanitized conversation content intended for scam analysis.",
-        ],
-    }
+def reject_instruction_style_input(sanitized_text: str) -> None:
+    """A stop is an error, never a low-risk result or a fresh charge.
+
+    Historical requests may already have been charged. The legacy error envelope
+    deliberately makes no accounting/refund claim. This heuristic is not a full
+    injection detector and is not evidence that the submitting person is abusive.
+    """
+    if is_instruction_style_abuse(sanitized_text):
+        raise AppError(
+            "HOSTILE_INPUT_STOP",
+            "Analysis stopped because instructions in the content could interfere with the check.",
+            retryable=False,
+        )
