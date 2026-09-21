@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "SERVER_UNAVAILABLE",
+    "message": "The recovery receipt is no longer available for replay.",
+    "retryable": false
+  }
+}

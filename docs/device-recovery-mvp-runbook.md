@@ -159,6 +159,21 @@ python3 scripts/device_binding_recovery.py \
   `DEVICE_SELF_RECOVERY_ENABLED=false`, policy status is `pending`, or audit
   retention is not exactly the approved Dev value of 90 days. Retry receipts stay
   seven days and rate state stays 24 hours; these durations are distinct.
+- Normal `POST /device-registration` continues to switch the active binding
+  automatically. The recovery route's 300-second reauthentication and three-per-
+  hour limit do not apply to normal registration and must not be described as a
+  global device-switch guarantee.
+- The source-candidate machine contract and fixtures are
+  `contracts/device-recovery/v1`. A recovery success or replay describes only
+  the original completed operation; it is not current binding status.
+- An expired receipt that is still physically present fails closed. Reuse after
+  physical receipt deletion remains an owner decision because UUIDv4 alone
+  cannot prove prior use. No longer-lived tombstone is authorized yet.
+- `contracts/device-recovery/v1/status-route.proposed.json` is an unsupported
+  no-write/non-disclosure proposal. No consumer status route exists until its
+  wire contract and activation are explicitly approved.
 - Activation requires one immutable release of `device_recovery`,
   `device_registration`, `history_read_api`, `history_mutation_api`, and
   `conversation_analysis`, because all readers must enforce the pointer.
+- Stateful local transaction simulation is not deployed DynamoDB acceptance;
+  actual DynamoDB/API Gateway integration evidence remains required.

@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "REAUTHENTICATION_REQUIRED",
+    "message": "A recent server-verified sign-in is required for device recovery.",
+    "retryable": false
+  }
+}

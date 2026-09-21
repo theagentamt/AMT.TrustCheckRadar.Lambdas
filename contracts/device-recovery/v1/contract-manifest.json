@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "algorithm": "SHA-256",
+  "scope": "Every source contract file except contract-set.json and this non-self-referential manifest.",
+  "files": [
+    {"path": "README.md", "sha256": "d924136a077f452e42772888e2cec62428435e8cbb9ce81c4cadc37601232750"},
+    {"path": "error-response.schema.json", "sha256": "dce2e733d575c9e28ae0aee7f37be82b1139de509b79e1bef81a77ae516f3c7c"},
+    {"path": "fixtures/expired-receipt.error.json", "sha256": "6abf873af0a552723115a4f7e4ed64328f6e313666e7cf9f5605592baeba3638"},
+    {"path": "fixtures/feature-disabled.error.json", "sha256": "7189923c532ea9ac946ff483bf6550f72cc49939abb51cafd6bc95a19cc0346a"},
+    {"path": "fixtures/invalid.error.json", "sha256": "ee910874778be7be48bb8ad14d26896ebcf269b875be6a73f3442646bc8f0120"},
+    {"path": "fixtures/invalid.request.boolean-schema-version.json", "sha256": "5eee58a939a15bab3382cfb9437f9fe65eb2443edc066e6cf2b0857be6f75f47"},
+    {"path": "fixtures/invalid.request.extra-field.json", "sha256": "298b9e6ca2b23d9a60caecd3f007912abe5d64b757d58f3ed5f2a25edcff4ea9"},
+    {"path": "fixtures/invalid.request.operation-id.json", "sha256": "1c7aa74cc97dc871f08fba2a801dfe2680fe42062b283e8d9f334779e5ca5272"},
+    {"path": "fixtures/manifest.json", "sha256": "63398f7a0400d1b5970310b8e4c301884451e416882be7753766cbfce94e33d9"},
+    {"path": "fixtures/rate-limited.error.json", "sha256": "6424b1b8a1ca99b0bc1f38b477a753c342a2d0f156b90012bf378fb96b7a606c"},
+    {"path": "fixtures/reauthentication-required.error.json", "sha256": "827c50958c30f624ac3cb8982a1ad18b9a421c45078112ab15eed0800ac6d692"},
+    {"path": "fixtures/replay.success.json", "sha256": "a427d0e9314dbc2c271b8ee19dae6f44bd87d3aa7ad2d3872b1f95cc6a58bc77"},
+    {"path": "fixtures/stale-replay.success.json", "sha256": "a427d0e9314dbc2c271b8ee19dae6f44bd87d3aa7ad2d3872b1f95cc6a58bc77"},
+    {"path": "fixtures/valid.request.json", "sha256": "f91df0970d040390522d40c5ac6d25e274b1c2b0363a0ed2253f795da339e92f"},
+    {"path": "fixtures/valid.success.json", "sha256": "a427d0e9314dbc2c271b8ee19dae6f44bd87d3aa7ad2d3872b1f95cc6a58bc77"},
+    {"path": "receipt-record.schema.json", "sha256": "89f829d920d4dcef396d6ecf67b556897a866a1fb493d2eae75e2df3e4892ac7"},
+    {"path": "self-recovery-request.schema.json", "sha256": "abba19b6a39b9a00ebde369a89583bb9943082b2da91bb8c84647d9b96e0bb45"},
+    {"path": "self-recovery-success.schema.json", "sha256": "d525d90cb34a120e7a4baa276541b94b33a25a53ca27dca13c8baf4060ee812d"},
+    {"path": "status-route.proposed.json", "sha256": "e7f2dd8dfff2158ffe60810121aa5a9879e77e0d8987430d315c43fca1ddeea5"}
+  ]
+}

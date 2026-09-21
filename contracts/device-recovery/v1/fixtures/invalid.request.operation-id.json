@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "operationId": "not-a-uuid",
+  "action": "REPLACE_ACTIVE_BINDING",
+  "bindingFingerprint": "installation-key-1",
+  "platform": "ios",
+  "osVersion": "18.5"
+}
