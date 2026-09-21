@@ -95,3 +95,13 @@ Independent review added reverse limitation-precedence constraints and regressio
 hostile stop cannot be hidden by inconclusive/provider copy, clarification and
 unsupported content outrank lower-priority failures, verified threats stay partial
 high risk, and recovery-content limitations cannot leak into another journey.
+
+## Subsequent owner approval: native recovery basics
+
+On 2026-09-20 (CDT), the owner approved the exact limited native
+`recovery-basics-1.0` draft. See
+[the approval source and model boundary](atcr120-approved-recovery-boundary.md).
+This supersedes the earlier pending-approval note only for that exact basic
+bundle. Detailed playbooks and backend readiness remain open. No pinned contract
+bytes or runtime behavior change; native bundle availability is separate from
+the assessment contract's recovery-unavailable presentation.
