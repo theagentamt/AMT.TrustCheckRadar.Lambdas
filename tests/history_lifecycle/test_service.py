@@ -24,6 +24,8 @@ class ConditionalFailure(Exception):
 class Settings:
     environment = "dev"
     schema_version = 1
+    control_table_name = "control"
+    deletion_ledger_table_name = "ledger"
     expiration_index_name = "ExpirationIndex"
     lifecycle_index_name = "PendingLifecycleIndex"
     lifecycle_start_epoch_hour = 0
@@ -175,8 +177,18 @@ class AbuseTable:
 
 class LedgerTable:
     def __init__(self):
-        self.items = {}
+        self.items = {("ACCOUNT#a", "ACCOUNT_DELETION"): {
+            "PK":"ACCOUNT#a","SK":"ACCOUNT_DELETION","schemaVersion":1,"recordVersion":1,
+            "environment":"dev","eventType":"account.deletion.requested","accountId":"a",
+            "operationId":"3fefbf1a-caf4-4e72-ab61-4fb36bf925b4","status":"REQUESTED",
+            "occurredAtEpoch":90,"deleteByEpoch":86490}}
+
         self.puts = []
+
+    def transact_write_items(self, TransactItems):
+        raw = TransactItems[-1]["Put"]["Item"]
+        item = {key: value.get("S", int(value["N"]) if "N" in value else None) for key, value in raw.items()}
+        self.put_item(Item=item)
 
     def put_item(self, Item, **_kwargs):
         self.puts.append(Item)
@@ -228,7 +240,7 @@ class HistoryLifecycleTests(unittest.TestCase):
         ledger = LedgerTable()
         service = HistoryLifecycleService(
             settings=Settings(), content_table=EmptyContentTable(), control_table=control,
-            abuse_table=AbuseTable(), deletion_ledger_table=ledger, now=lambda: 100,
+            abuse_table=AbuseTable(), deletion_ledger_table=ledger, dynamodb_client=ledger, now=lambda: 100,
         )
         complete, redacted = service._process_erasure_job(job, 100)
         self.assertTrue(complete)
@@ -277,7 +289,7 @@ class HistoryLifecycleTests(unittest.TestCase):
         service = HistoryLifecycleService(
             settings=Settings120(), content_table=EmptyContentTable(),
             control_table=control, abuse_table=abuse,
-            deletion_ledger_table=LedgerTable(), now=lambda: 100,
+            deletion_ledger_table=LedgerTable(), dynamodb_client=LedgerTable(), now=lambda: 100,
         )
 
         complete, redacted = service._process_erasure_job(job, 100)

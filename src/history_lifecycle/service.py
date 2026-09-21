@@ -4,6 +4,7 @@ import hashlib
 import time
 
 from shared_history.errors import HistoryError
+from shared_account_finalization.history_receipts import current_command, write_receipt
 
 
 ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
@@ -12,13 +13,14 @@ ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS = 120
 class HistoryLifecycleService:
     def __init__(
         self, *, settings, content_table, control_table, abuse_table,
-        deletion_ledger_table=None, now=lambda: int(time.time()),
+        deletion_ledger_table=None, dynamodb_client=None, now=lambda: int(time.time()),
     ):
         self.settings = settings
         self.content_table = content_table
         self.control_table = control_table
         self.abuse_table = abuse_table
         self.deletion_ledger_table = deletion_ledger_table
+        self.dynamodb_client = dynamodb_client
         self.now = now
 
     def sweep(self):
@@ -423,6 +425,11 @@ class HistoryLifecycleService:
         return 0
 
     def _process_erasure_job(self, job, now):
+        if job.get("reason") == "ACCOUNT_DELETION":
+            if current_command(self.deletion_ledger_table, self._account_command(job), now) == "TERMINAL":
+                # Restored/stale jobs must not recreate receipt or replay state.
+                # Retirement of this stale job is a separate restore-control task.
+                return False, 0
         account_id = _account_id_from_user_pk(job.get("PK"))
         generation = _exact_nonnegative_int(job.get("historyGeneration"))
         max_generation = _exact_nonnegative_int(job.get("maxHistoryGeneration", generation))
@@ -523,8 +530,8 @@ class HistoryLifecycleService:
         if start_key:
             self._reschedule_erasure(job, now, continuation=start_key["SK"])
             return False, redacted
-        self._complete_erasure(job, generation, now)
-        return True, redacted
+        complete = self._complete_erasure(job, generation, now)
+        return complete, redacted
 
     def _reschedule_erasure(self, job, now, *, continuation):
         self.control_table.update_item(
@@ -548,8 +555,12 @@ class HistoryLifecycleService:
             )
             self._complete_pending_mutation(job, now)
         elif reason == "ACCOUNT_DELETION":
+            if current_command(self.deletion_ledger_table, self._account_command(job), now) == "TERMINAL":
+                return False
             self._finalize_account_state(account_id, "DELETING", "DELETED", now)
-            self._write_account_deletion_receipt(job, now)
+            result = self._write_account_deletion_receipt(job, now)
+            if result["terminal"]:
+                return False
         expires_at = now + self.settings.mutation_retention_days * 86400
         self.control_table.update_item(
             Key={"PK": job["PK"], "SK": job["SK"]},
@@ -564,6 +575,8 @@ class HistoryLifecycleService:
                 ),
             },
         )
+
+        return True
 
     def _finalize_account_state(self, account_id, previous, final, now, *, also_accept=frozenset()):
         try:
@@ -608,47 +621,34 @@ class HistoryLifecycleService:
             if not receipt or receipt.get("status") != "COMPLETE":
                 raise
 
-    def _write_account_deletion_receipt(self, job, now):
-        if self.deletion_ledger_table is None:
-            raise HistoryError("SERVER_UNAVAILABLE", "The deletion ledger is unavailable.")
-        ledger_pk = job.get("deletionLedgerPK")
-        ledger_sk = job.get("deletionLedgerSK")
-        requested_at = _exact_nonnegative_int(job.get("deletionRequestedAtEpoch"))
-        operation_id = job.get("deletionOperationId")
-        if (
-            not isinstance(ledger_pk, str) or not ledger_pk.startswith("ACCOUNT#")
-            or ledger_sk != "ACCOUNT_DELETION" or requested_at is None
-            or not isinstance(operation_id, str) or not operation_id
-        ):
+    def _account_command(self, job):
+        account = _account_id_from_user_pk(job.get("PK"))
+        requested = _exact_nonnegative_int(job.get("deletionRequestedAtEpoch"))
+        if (account is None or job.get("deletionLedgerPK") != "ACCOUNT#" + account
+                or job.get("deletionLedgerSK") != "ACCOUNT_DELETION" or requested is None
+                or self.deletion_ledger_table is None):
             raise HistoryError("SERVER_UNAVAILABLE", "The account-deletion job binding is invalid.")
-        receipt = {
-            "PK": ledger_pk, "SK": "ACCOUNT_DELETION#HISTORY",
-            "schemaVersion": self.settings.schema_version, "recordVersion": 1,
-            "environment": self.settings.environment,
-            "eventType": "account.deletion.component.completed",
-            "component": "HISTORY", "status": "COMPLETE",
-            "occurredAtEpoch": now, "requestOccurredAtEpoch": requested_at,
-            "operationId": operation_id,
-            "retainUntilEpoch": (
-                now + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
-            ),
-        }
-        try:
-            self.deletion_ledger_table.put_item(
-                Item=receipt,
-                ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
-            )
-        except Exception as err:
-            if _error_code(err) != "ConditionalCheckFailedException":
-                raise
-            existing = self.deletion_ledger_table.get_item(
-                Key={"PK": ledger_pk, "SK": receipt["SK"]}, ConsistentRead=True
-            ).get("Item")
-            if (
-                not existing or set(existing) != set(receipt)
-                or any(existing.get(field) != value for field, value in receipt.items())
-            ):
-                raise
+        return {"PK": "ACCOUNT#" + account, "SK": "ACCOUNT_DELETION", "schemaVersion": 1,
+            "recordVersion": 1, "environment": self.settings.environment,
+            "eventType": "account.deletion.requested", "accountId": account,
+            "operationId": job.get("deletionOperationId"), "status": "REQUESTED",
+            "occurredAtEpoch": requested, "deleteByEpoch": requested + 86400}
+
+    def _write_account_deletion_receipt(self, job, now):
+        if self.dynamodb_client is None:
+            raise HistoryError("SERVER_UNAVAILABLE", "The deletion transaction client is unavailable.")
+        command = self._account_command(job)
+        # Lifecycle already establishes the DELETED state before this receipt;
+        # bind that evidence and the exact requested fence atomically.
+        guard = {"ConditionCheck": {
+            "TableName": self.settings.control_table_name,
+            "Key": {"PK": {"S": job["PK"]}, "SK": {"S": "STATE"}},
+            "ConditionExpression": "accountStatus = :deleted",
+            "ExpressionAttributeValues": {":deleted": {"S": "DELETED"}},
+        }}
+        return write_receipt(ledger=self.deletion_ledger_table, client=self.dynamodb_client,
+            table_name=self.settings.deletion_ledger_table_name, command=command,
+            now=now, guards=[guard])
 
     def _mark_locator_erased(self, account_id, generation, content, now):
         request_id = content.get("requestId") or _request_id_from_sort_key(content.get("SK"))
