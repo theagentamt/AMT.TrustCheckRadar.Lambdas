@@ -1,0 +1,16 @@
+{
+  "playbookRevision": "message-playbook-2026-09-21-r1",
+  "approvedReviewSourceCommit": "410439804ecd41ef829afced9a6f95ac6623e2b0",
+  "approvedReviewSha256": "e6c2b052cdb3143c0ed80515605c1a6b60b612e563e13ffb43a5a39d78ee2af0",
+  "baselineSourceCommit": "74316e9faa2f5d0e5dbb114cdfcbcbdb7adb33aa",
+  "baselinePromptSha256": "e3f35d062d558b5ef43e474709bce66ebefd54e074d9a55028f964d7db0cdb20",
+  "promptSha256": "a2593d45e096b7bc257662ceda066e69abce1bbebf51f8ad2012ea4cfeb6d63f",
+  "schemaSha256": "fbe75bac1c21b9b9bffe6159587f59ec55a2bbc19932763ff02c56bc23dedd45",
+  "controlledProfiles": {
+    "gpt-4.1-mini-2025-04-14": "101d79ff26c57c65f53db97c7c6794a51dea56ed862612f98ec57616401eb3f7",
+    "gpt-5.4-nano-2026-03-17": "6f3e69d9cd6afbf802a25495eae15f4c24d6c85cca63bd2e44101039d79253d6",
+    "gpt-5.4-mini-2026-03-17": "30f74ddec7a6f79d4117ec3ab7d5504955f2b084938d317c6ef835f91e8cb67d"
+  },
+  "qualification": "none",
+  "paidExecutionAuthorized": false
+}
