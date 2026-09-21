@@ -210,6 +210,14 @@ def _load_current(account_id: str) -> dict:
         or not all(_timestamp(item.get(name)) for name in {"effectiveFrom", "updatedAt"} | (optional & set(item)))
         or (item.get("state") == "withdrawal_pending" and not {"effectiveUntil", "withdrawalRequestedAt", "deletionDeadlineAt"}.issubset(item))):
         raise AppError("SERVER_UNAVAILABLE", "Stored campaign participation state is invalid.")
+    if item["state"] == "enrolled" and optional & set(item):
+        raise AppError("SERVER_UNAVAILABLE", "Stored campaign participation state is invalid.")
+    if item["state"] == "withdrawal_pending":
+        requested = datetime.fromisoformat(item["withdrawalRequestedAt"].replace("Z", "+00:00"))
+        deadline = datetime.fromisoformat(item["deletionDeadlineAt"].replace("Z", "+00:00"))
+        if (item["effectiveUntil"] != item["withdrawalRequestedAt"]
+                or "deletionCompletedAt" in item or (deadline - requested).total_seconds() != 86400):
+            raise AppError("SERVER_UNAVAILABLE", "Stored campaign participation state is invalid.")
     return dict(item)
 
 

@@ -199,7 +199,7 @@ class ParticipationServiceTests(unittest.TestCase):
         self.assertIsNone(result["operation"]["action"])
 
     def test_unknown_state_fields_and_malformed_numbers_fail_closed(self):
-        for change in ({"unexpected":"preserve"},{"stateVersion":True},{"stateVersion":1.5},{"lastOperationId":"bad"}):
+        for change in ({"unexpected":"preserve"},{"stateVersion":True},{"stateVersion":1.5},{"lastOperationId":"bad"},{"deletionCompletedAt":"2026-09-21T00:00:00Z"}):
             users.items[("USER#user-123","CAMPAIGN_PARTICIPATION")] = enrolled_state(**change)
             with self.assertRaises(service.AppError):
                 service.update_participation("user-123", payload("withdraw"))
