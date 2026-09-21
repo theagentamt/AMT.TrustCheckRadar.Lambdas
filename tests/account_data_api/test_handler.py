@@ -133,6 +133,37 @@ class AccountDataHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 200)
         self.assertEqual(json.loads(response["body"])["status"], "REQUESTED")
 
+    def test_malformed_wire_requests_never_begin_deletion(self):
+        valid = json.dumps({"schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "DELETE_ACCOUNT"})
+        bad_bodies = [
+            json.loads(valid), valid.replace('"schemaVersion": 1', '"schemaVersion": true'),
+            valid.replace('"schemaVersion": 1', '"schemaVersion": 1.0'),
+            valid.replace('"schemaVersion": 1', '"schemaVersion": 1, "schemaVersion": 1'),
+            valid + " " * 1024, "[" * 1024, "NaN", "\\ud800",
+        ]
+        for body in bad_bodies:
+            with self.subTest(body_type=type(body).__name__):
+                response = app.lambda_handler(event(body=body), None)
+                self.assertEqual(response["statusCode"], 400)
+        for addition in [{"isBase64Encoded": True},
+                         {"queryStringParameters": []},
+                         {"rawQueryString": "accountId=another-account"}]:
+            with self.subTest(addition=addition):
+                response = app.lambda_handler({**event(body=valid), **addition}, None)
+                self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(self.subject.requests, [])
+
+    def test_service_exception_is_not_copied_into_logs_or_response(self):
+        private = "private-account-and-provider-content"
+        with mock.patch.object(self.subject, "status", side_effect=RuntimeError(private)), \
+                self.assertLogs(app.LOGGER, level="ERROR") as captured:
+            response = app.lambda_handler(event(method="GET"), None)
+        self.assertEqual(response["statusCode"], 500)
+        self.assertNotIn(private, response["body"])
+        self.assertNotIn(private, " ".join(captured.output))
+
     def test_stream_failure_uses_dynamodb_sequence_number(self):
         record = {
             "eventID": "not-the-batch-identifier",

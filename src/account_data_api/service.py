@@ -1034,8 +1034,8 @@ def _valid_component_receipt(item, command, component):
         and set(item) == RECEIPT_FIELDS
         and item.get("PK") == command["PK"]
         and item.get("SK") == f"ACCOUNT_DELETION#{component}"
-        and item.get("schemaVersion") == 1
-        and item.get("recordVersion") == 1
+        and _exact_int(item.get("schemaVersion")) == 1
+        and _exact_int(item.get("recordVersion")) == 1
         and item.get("environment") == command["environment"]
         and item.get("eventType") == "account.deletion.component.completed"
         and item.get("component") == component
@@ -1043,6 +1043,7 @@ def _valid_component_receipt(item, command, component):
         and item.get("operationId") == command["operationId"]
         and _exact_int(item.get("requestOccurredAtEpoch")) == command["occurredAtEpoch"]
         and _exact_int(item.get("occurredAtEpoch")) is not None
+        and _exact_int(item.get("occurredAtEpoch")) >= command["occurredAtEpoch"]
         and _exact_int(item.get("retainUntilEpoch"))
         == _exact_int(item.get("occurredAtEpoch"))
         + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400

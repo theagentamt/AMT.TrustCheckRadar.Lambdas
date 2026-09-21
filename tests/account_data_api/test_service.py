@@ -183,6 +183,15 @@ class AccountDeletionServiceTests(unittest.TestCase):
             )
         self.assertEqual(raised.exception.code, "IDEMPOTENCY_CONFLICT")
 
+    def test_component_receipts_reject_boolean_versions_and_predating_completion(self):
+        original = service._component_receipt(command(), "HISTORY", 110)
+        self.assertTrue(service._valid_component_receipt(original, command(), "HISTORY"))
+        for changes in ({"schemaVersion": True}, {"recordVersion": True},
+                        {"occurredAtEpoch": 99, "retainUntilEpoch": 99 + 120 * 86400}):
+            with self.subTest(changes=changes):
+                self.assertFalse(service._valid_component_receipt(
+                    {**original, **changes}, command(), "HISTORY"))
+
     def test_status_accepts_only_receipts_bound_to_same_request(self):
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")] = command()
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION#HISTORY")] = {

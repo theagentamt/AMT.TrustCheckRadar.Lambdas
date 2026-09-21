@@ -59,7 +59,7 @@ def lambda_handler(event, _context):
         app_error = AppError(err.code, err.message, retryable=err.retryable, details=err.details)
         return _response(app_error.status_code, _error(app_error))
     except Exception:
-        LOGGER.exception("Account-data Lambda failed")
+        LOGGER.error("Account-data Lambda failed")
         _metric(_operation(event), False)
         return _response(500, _error(AppError("INTERNAL_ERROR", "An internal error occurred.")))
 
@@ -157,7 +157,7 @@ def _attempt_post_fence_cleanup(account_id):
     except Exception:
         # The durable stream consumer retries revocation. The deletion fence is
         # never rolled back because an external identity call failed.
-        LOGGER.exception("Account deletion accepted; post-fence cleanup remains pending")
+        LOGGER.error("Account deletion accepted; post-fence cleanup remains pending")
 
 
 def _stream_handler(event):
@@ -241,7 +241,7 @@ def _stream_handler(event):
                     ),
                 )
         except Exception:
-            LOGGER.exception("Account-deletion post-fence stream record failed")
+            LOGGER.error("Account-deletion post-fence stream record failed")
             identifier = (record.get("dynamodb") or {}).get("SequenceNumber")
             if isinstance(identifier, str) and identifier:
                 failures.append({"itemIdentifier": identifier})

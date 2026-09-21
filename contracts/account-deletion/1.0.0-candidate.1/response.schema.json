@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operation",
+        "status",
+        "completionEligible",
+        "components"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "operation": {
+          "const": "ACCOUNT_DELETION"
+        },
+        "status": {
+          "const": "NOT_REQUESTED"
+        },
+        "completionEligible": {
+          "const": false
+        },
+        "components": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "operation",
+        "status",
+        "completionEligible",
+        "components",
+        "operationId",
+        "requestedAtEpoch",
+        "deleteByEpoch"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "operation": {
+          "const": "ACCOUNT_DELETION"
+        },
+        "status": {
+          "const": "REQUESTED"
+        },
+        "completionEligible": {
+          "type": "boolean"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "component",
+              "status"
+            ],
+            "properties": {
+              "component": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "status": {
+                "enum": [
+                  "COMPLETE",
+                  "PENDING"
+                ]
+              }
+            }
+          }
+        },
+        "operationId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "requestedAtEpoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deleteByEpoch": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  ]
+}
