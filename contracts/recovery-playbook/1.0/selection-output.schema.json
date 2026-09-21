@@ -578,6 +578,118 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "available"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "review_due"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "sign_in_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "sign_in_required"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "limited_help"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "content_unavailable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "fallback_basics"
+          },
+          "fallbackPlan": {
+            "type": "object",
+            "properties": {
+              "reviewDue": {
+                "const": false
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "fallback_basics"
+          },
+          "fallbackPlan": {
+            "type": "object",
+            "properties": {
+              "reviewDue": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": true
+          }
+        }
+      }
     }
   ]
 }

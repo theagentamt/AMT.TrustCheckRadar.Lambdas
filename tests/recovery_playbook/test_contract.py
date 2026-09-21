@@ -94,3 +94,19 @@ def test_shared_native_availability_cases(case):
     observed['fallbackState']=result['fallbackPlan']['state'] if result['fallbackPlan'] else None
     assert observed==case['expected']
     Draft202012Validator(m.read('selection-output.schema.json')).validate(result)
+
+
+def test_machine_schema_rejects_contradictory_states_and_fallback_dates():
+    from jsonschema import ValidationError
+    schema=Draft202012Validator(m.read('selection-output.schema.json'))
+    args={'signed_in':True,'today':date(2026,9,21)};answers=CASES[0]['input']
+    available=m.select(answers,**args)
+    due=m.select(answers,signed_in=True,today=date(2027,3,21))
+    signed_out=m.select(answers,signed_in=False,today=args['today'])
+    unavailable=m.select(answers,**args,bundle={},fallback_content={})
+    fallback=m.select(answers,**args,bundle={})
+    old_due=m.select(answers,signed_in=True,today=date(2027,3,20),bundle={})
+    for invalid in (available|{'reviewDue':True},due|{'reviewDue':False},
+                    signed_out|{'reason':None},unavailable|{'reason':'detailed_unavailable'},
+                    fallback|{'reviewDue':True},old_due|{'reviewDue':False}):
+        with pytest.raises(ValidationError):schema.validate(invalid)
