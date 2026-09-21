@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "contentBundleVersion",
+    "state",
+    "reason",
+    "actionIds",
+    "officialLinkIds",
+    "reviewDue",
+    "clarification",
+    "accounting"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "recovery-selection-1.0.0"
+    },
+    "contentBundleVersion": {
+      "const": "recovery-basics-1.0"
+    },
+    "state": {
+      "enum": [
+        "available",
+        "review_due",
+        "sign_in_required",
+        "limited_help"
+      ]
+    },
+    "reason": {
+      "enum": [
+        null,
+        "sign_in_required",
+        "selection_unapproved",
+        "content_missing",
+        "content_withdrawn",
+        "content_incompatible",
+        "content_unapproved"
+      ]
+    },
+    "actionIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": {
+        "enum": [
+          "basics_link",
+          "basics_password",
+          "basics_identity",
+          "basics_payment",
+          "basics_device"
+        ]
+      }
+    },
+    "officialLinkIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "recovery_guidance",
+          "identity_help",
+          "fraud_report"
+        ]
+      }
+    },
+    "reviewDue": {
+      "type": "boolean"
+    },
+    "clarification": {
+      "const": "unavailable"
+    },
+    "accounting": {
+      "const": "not_an_analysis_check"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "available",
+              "review_due"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": null
+          },
+          "actionIds": {
+            "minItems": 1
+          },
+          "officialLinkIds": {
+            "const": [
+              "recovery_guidance",
+              "identity_help",
+              "fraud_report"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "actionIds": {
+            "maxItems": 0
+          },
+          "officialLinkIds": {
+            "maxItems": 0
+          },
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "review_due"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": true
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "sign_in_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "sign_in_required"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "limited_help"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "enum": [
+              "selection_unapproved",
+              "content_missing",
+              "content_withdrawn",
+              "content_incompatible",
+              "content_unapproved"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

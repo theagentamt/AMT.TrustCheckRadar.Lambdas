@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "language",
+    "exposures",
+    "unsure"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "recovery-selection-1.0.0"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "exposures": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ]
+      }
+    },
+    "unsure": {
+      "type": "boolean"
+    }
+  }
+}

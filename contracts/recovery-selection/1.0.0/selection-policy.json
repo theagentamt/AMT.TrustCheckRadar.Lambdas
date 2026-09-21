@@ -1,0 +1,119 @@
+{
+  "contractVersion": "recovery-selection-1.0.0",
+  "selectionVersion": "recovery-selection-policy-1.0",
+  "approval": "Approved",
+  "approvalRecord": "SECUR4ALL-163 comment 7-1315; SECUR4ALL-234 comment 7-1316; ATCR-121 comment 7-1317",
+  "contentBundleVersion": "recovery-basics-1.0",
+  "contentSha256": "c27e15bf60134526e698952ad105a37865d029362a0420cd4673dfc9d55689f2",
+  "exposureOrder": [
+    "clicked_link",
+    "credentials_or_mfa",
+    "financial_or_identity",
+    "sent_payment",
+    "software_or_remote_access"
+  ],
+  "actions": [
+    {
+      "exposureId": "clicked_link",
+      "actionId": "basics_link",
+      "titleKey": "recovery_link_title",
+      "bodyKey": "recovery_link_body",
+      "priority": 4,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "credentials_or_mfa",
+      "actionId": "basics_password",
+      "titleKey": "recovery_password_title",
+      "bodyKey": "recovery_password_body",
+      "priority": 2,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "financial_or_identity",
+      "actionId": "basics_identity",
+      "titleKey": "recovery_identity_title",
+      "bodyKey": "recovery_identity_body",
+      "priority": 3,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "sent_payment",
+      "actionId": "basics_payment",
+      "titleKey": "recovery_payment_title",
+      "bodyKey": "recovery_payment_body",
+      "priority": 1,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "software_or_remote_access",
+      "actionId": "basics_device",
+      "titleKey": "recovery_device_title",
+      "bodyKey": "recovery_device_body",
+      "priority": 5,
+      "phase": "immediate_basics"
+    }
+  ],
+  "dependencies": {
+    "clicked_link": [
+      "software_or_remote_access"
+    ]
+  },
+  "emptyOrUnsure": "all_basics",
+  "alwaysKeys": [
+    "recovery_intro_title",
+    "recovery_intro_body",
+    "recovery_official_title",
+    "recovery_official_body"
+  ],
+  "reviewDueAfterDays": 180,
+  "updateChannel": "app_release_only",
+  "instantOfflineRevocation": false,
+  "optionalClarification": "unavailable",
+  "uiDraft": {
+    "question": {
+      "en": "What happened? Select all that apply.",
+      "es": "¿Qué ocurrió? Seleccione todas las opciones que correspondan."
+    },
+    "unsure": {
+      "en": "I am not sure",
+      "es": "No estoy seguro de lo ocurrido"
+    },
+    "showAll": {
+      "en": "Show all basic steps",
+      "es": "Mostrar todos los pasos básicos"
+    },
+    "privacyHint": {
+      "en": "Choose categories only. These choices stay on this screen and are cleared when you leave or put the app in the background.",
+      "es": "Elija solo categorías. Estas opciones permanecen en esta pantalla y se borran al salir o al poner la aplicación en segundo plano."
+    },
+    "stepsTitle": {
+      "en": "Built-in steps",
+      "es": "Pasos incluidos en la aplicación"
+    },
+    "offlineNotice": {
+      "en": "These bundled steps work offline while your account session permits access. Official websites require a connection. Guidance updates arrive with app updates; this screen does not check for updates.",
+      "es": "Estos pasos incluidos funcionan sin conexión mientras su sesión de cuenta permita el acceso. Los sitios oficiales requieren conexión. La guía se actualiza con las actualizaciones de la aplicación; esta pantalla no busca actualizaciones."
+    },
+    "aiUnavailable": {
+      "en": "AI explanations are not available in this version. Reading or choosing these built-in steps does not use an analysis check.",
+      "es": "Las explicaciones con IA no están disponibles en esta versión. Leer o elegir estos pasos incluidos no consume un análisis."
+    }
+  },
+  "actionPresentationOrder": [
+    "basics_payment",
+    "basics_password",
+    "basics_identity",
+    "basics_link",
+    "basics_device"
+  ],
+  "selectionRetention": "screen_memory_only_clear_on_exit_background_or_account_change",
+  "selectionApprovedOn": "2026-09-21",
+  "selectionApprovalTimezone": "America/Chicago",
+  "approvalEvidence": {
+    "ownerInstruction": "go ahead and continue on. what we need to complete",
+    "reviewSourceCommit": "b95d1cf1bb6b2133727250fa69d7962fbd1a2838",
+    "reviewPath": "docs/RECOVERY-SELECTION-REVIEW.md",
+    "reviewSha256": "158b44a11d6f96637993fc5765618a10a7703f7c2da83c74fc603969d9dc45f4"
+  }
+}
