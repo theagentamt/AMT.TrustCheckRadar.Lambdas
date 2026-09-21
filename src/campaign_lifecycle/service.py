@@ -104,6 +104,8 @@ def finalize_periods(*, environment, schema_version, pipeline_table, intelligenc
             response = dynamodb.query(TableName=pipeline_table, IndexName="CandidateBucketIndex",
                 KeyConditionExpression="GSI2PK = :bucket",
                 ExpressionAttributeValues={":bucket": {"S": f"PERIOD#{period_id}#BUCKET#{bucket}"}}, Limit=500)
+            if response.get("LastEvaluatedKey"):
+                raise RuntimeError("Campaign finalization requires complete bucket coverage")
             for projected in response.get("Items", []):
                 raw = dynamodb.get_item(TableName=pipeline_table,
                     Key={"PK": projected["PK"], "SK": projected["SK"]}, ConsistentRead=True).get("Item")
@@ -179,11 +181,22 @@ def count_band(value):
 
 
 def _contributions(dynamodb, table, candidate_id):
-    response = dynamodb.query(TableName=table,
-        KeyConditionExpression="PK = :candidate AND begins_with(SK, :contribution)",
-        ExpressionAttributeValues={":candidate": {"S": f"CANDIDATE#{candidate_id}"},
-                                   ":contribution": {"S": "CONTRIB#"}}, ConsistentRead=True)
-    return [deserialize(item) for item in response.get("Items", [])]
+    result, cursor = [], None
+    # A partial traversal must never publish a thresholded aggregate. Larger
+    # candidates remain pending for a separately qualified resumable finalizer.
+    for _ in range(5):
+        args = dict(TableName=table,
+            KeyConditionExpression="PK = :candidate AND begins_with(SK, :contribution)",
+            ExpressionAttributeValues={":candidate":{"S":f"CANDIDATE#{candidate_id}"},":contribution":{"S":"CONTRIB#"}},
+            ConsistentRead=True,Limit=100)
+        if cursor:
+            args["ExclusiveStartKey"] = cursor
+        page = dynamodb.query(**args)
+        result.extend(deserialize(item) for item in page.get("Items",[]))
+        cursor = page.get("LastEvaluatedKey")
+        if not cursor:
+            return result
+    raise RuntimeError("Campaign finalization requires complete contribution coverage")
 
 
 def _delete_candidate(dynamodb, table, candidate_id, contributions):
@@ -191,7 +204,9 @@ def _delete_candidate(dynamodb, table, candidate_id, contributions):
     requests += [{"DeleteRequest": {"Key": {"PK": {"S": item["PK"]}, "SK": {"S": item["SK"]}}}}
                  for item in contributions]
     for offset in range(0, len(requests), 25):
-        dynamodb.batch_write_item(RequestItems={table: requests[offset:offset + 25]})
+        response = dynamodb.batch_write_item(RequestItems={table: requests[offset:offset + 25]})
+        if response.get("UnprocessedItems", {}).get(table):
+            raise RuntimeError("Campaign finalization cleanup was not fully processed")
 
 
 def serialize(item):
