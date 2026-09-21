@@ -122,9 +122,12 @@ class OwnershipStore:
         except Exception:
             raise OwnershipError("PURCHASE_TRANSACTION_UNCONFIRMED") from None
 
-    def claim(self, account_id, hashes, *, product_id, entitlement, expected_entitlement):
+    def claim(self, account_id, hashes, *, product_id, entitlement, expected_entitlement, expected_inventory=None):
         """Called only after fresh successful `verified_lineage`, never cache replay."""
         subject(account_id)
+        inventory = self.inventory()
+        if expected_inventory is not None and expected_inventory != inventory:
+            raise OwnershipError("PURCHASE_LEGACY_COVERAGE_CHANGED")
         if not isinstance(hashes, tuple) or not 1 <= len(hashes) <= MAX_LINEAGE or len(set(hashes)) != len(hashes) or any(not isinstance(h, str) or not HASH.fullmatch(h) for h in hashes):
             raise OwnershipError("PURCHASE_LINEAGE_INVALID")
         if not isinstance(product_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", product_id):
@@ -135,6 +138,7 @@ class OwnershipStore:
         if type(now) is not int or now <= 0:
             raise OwnershipError("PURCHASE_CONFIGURATION_UNAVAILABLE")
         operations = self._active_guards(account_id)
+        operations.append(self._inventory_guard(inventory))
         put_entitlement = {"TableName": self.table_name, "Item": entitlement,
                            "ConditionExpression": "attribute_not_exists(PK)"}
         if expected_entitlement is not None:
@@ -285,10 +289,13 @@ class OwnershipStore:
                 "ConditionExpression": "operationId = :operation AND occurredAtEpoch = :epoch AND #state = :requested AND accountId = :account AND environment = :environment",
                 "ExpressionAttributeNames": {"#state": "status"},
                 "ExpressionAttributeValues": {":operation": command["operationId"], ":epoch": command["occurredAtEpoch"], ":requested": "REQUESTED", ":account": command["accountId"], ":environment": self.environment}}},
-            {"ConditionCheck": {"TableName": self.table_name, "Key": INVENTORY_KEY,
-                "ConditionExpression": "revision = :revision AND coverage = :coverage AND environment = :environment AND recordType = :type AND schemaVersion = :schema",
-                "ExpressionAttributeValues": {":revision": inventory["revision"], ":coverage": "VERIFIED_COMPLETE", ":environment": self.environment, ":type": "PURCHASE_OWNERSHIP_INVENTORY", ":schema": 1}}},
+            self._inventory_guard(inventory),
         ]
+
+    def _inventory_guard(self, inventory):
+        return {"ConditionCheck": {"TableName": self.table_name, "Key": INVENTORY_KEY,
+                "ConditionExpression": "revision = :revision AND coverage = :coverage AND environment = :environment AND recordType = :type AND schemaVersion = :schema",
+                "ExpressionAttributeValues": {":revision": inventory["revision"], ":coverage": "VERIFIED_COMPLETE", ":environment": self.environment, ":type": "PURCHASE_OWNERSHIP_INVENTORY", ":schema": 1}}}
 
 
 def subject(value):
