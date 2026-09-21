@@ -1,4 +1,5 @@
 """Default-disabled, bounded aggregate publication and paired cleanup recovery."""
+from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY
 import hashlib
 import json
 from decimal import Decimal
@@ -64,7 +65,7 @@ class Publication:
         return {'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(candidate['PK'],'SUMMARY'),**self._match(candidate)}}
 
     def _match(self,candidate):
-        fields=('version','lifecycleState','lifecycleOperationId','lifecycleStartedAtEpoch','lifecycleInventoryRevision','lifecycleAggregateDigest')
+        fields=('version','researchNoticeVersion','researchPolicyVersion','lifecycleState','lifecycleOperationId','lifecycleStartedAtEpoch','lifecycleInventoryRevision','lifecycleAggregateDigest')
         values={name:candidate[name] for name in fields if name in candidate}
         expression=' AND '.join(f'#f{i} = :f{i}' for i in range(len(values)))
         if 'lifecycleState' not in candidate:
@@ -112,6 +113,7 @@ class Publication:
 
     def _validate(self,candidate,identifier,now,inventory):
         from service import TAXONOMY_BUCKETS
+        require(candidate.get('researchNoticeVersion') == CURRENT_NOTICE and candidate.get('researchPolicyVersion') == CURRENT_POLICY)
         require(candidate.get('PK')=='CANDIDATE#'+identifier and candidate.get('SK')=='SUMMARY'
                 and candidate.get('candidateId')==identifier and candidate.get('taxonomyBucket') in TAXONOMY_BUCKETS
                 and candidate.get('GSI2PK')==f"PERIOD#{integer(candidate.get('periodId'))}#BUCKET#{candidate['taxonomyBucket']}"
@@ -139,6 +141,7 @@ class Publication:
             values=[self.locators.deserialize(row) for row in page.get('Items',[])]
             require(len(values)<=limit)
             for value in values:
+                require(value.get('researchNoticeVersion') == CURRENT_NOTICE and value.get('researchPolicyVersion') == CURRENT_POLICY)
                 require(value.get('PK')==candidate['PK'] and value.get('periodId')==candidate['periodId'])
                 locator=self.locators.locator_for_target(value,self.env)
                 self.locators.get_owned_locator(self.d,self.pipeline,locator)

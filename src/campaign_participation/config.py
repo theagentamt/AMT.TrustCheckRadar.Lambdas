@@ -13,34 +13,23 @@ def _table_name(name_key: str, arn_key: str) -> str:
 
 
 USERS_TABLE_NAME = _table_name("USERS_TABLE_NAME", "USERS_TABLE_ARN")
-ENTITLEMENTS_TABLE_NAME = _table_name("ENTITLEMENTS_TABLE_NAME", "ENTITLEMENTS_TABLE_ARN")
 DELETION_LEDGER_TABLE_NAME = _table_name("DELETION_LEDGER_TABLE_NAME", "DELETION_LEDGER_TABLE_ARN")
 ENVIRONMENT = (os.environ.get("ENVIRONMENT") or os.environ.get("APP_ENVIRONMENT") or "").strip()
 NOTICE_VERSION = os.environ.get("CAMPAIGN_PARTICIPATION_NOTICE_VERSION", "").strip()
 POLICY_VERSION = os.environ.get("CAMPAIGN_PARTICIPATION_POLICY_VERSION", "").strip()
 AUDIT_RETENTION_DAYS = int(os.environ.get("CAMPAIGN_PARTICIPATION_AUDIT_RETENTION_DAYS", "400"))
 DELETION_SLA_HOURS = int(os.environ.get("CAMPAIGN_PARTICIPATION_DELETION_SLA_HOURS", "24"))
-FREE_MONTHLY_SCAN_LIMIT = int(os.environ.get("FREE_MONTHLY_SCAN_LIMIT", "10"))
-PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT = int(os.environ.get("PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT", "15"))
-PRO_MONTHLY_SCAN_LIMIT = int(os.environ.get("PRO_MONTHLY_SCAN_LIMIT", "100"))
+CONSENT_INDEPENDENCE_ENABLED = os.environ.get("CONSENT_INDEPENDENCE_ENABLED", "false") == "true"
+CURRENT_NOTICE = "research-consent-2026-09-21-v2"
+CURRENT_POLICY = "independent-research-v1"
 
 
 def validate_config() -> None:
-    if not USERS_TABLE_NAME or not ENTITLEMENTS_TABLE_NAME or not DELETION_LEDGER_TABLE_NAME:
+    if not USERS_TABLE_NAME or not DELETION_LEDGER_TABLE_NAME:
         raise RuntimeError("Campaign participation tables are not configured")
     if ENVIRONMENT not in {"dev", "uat", "prod"}:
         raise RuntimeError("Campaign participation environment is invalid")
-    if (
-        not NOTICE_VERSION
-        or len(NOTICE_VERSION.encode("utf-8")) > 64
-        or POLICY_VERSION != "policy-1"
-    ):
+    if NOTICE_VERSION != CURRENT_NOTICE or POLICY_VERSION != CURRENT_POLICY:
         raise RuntimeError("Campaign participation policy versions are not configured")
     if AUDIT_RETENTION_DAYS != 400 or DELETION_SLA_HOURS != 24:
         raise RuntimeError("Campaign participation retention policy is invalid")
-    if FREE_MONTHLY_SCAN_LIMIT < 1:
-        raise RuntimeError("Base free quota must be positive")
-    if PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT <= FREE_MONTHLY_SCAN_LIMIT:
-        raise RuntimeError("Participating free quota must exceed the base free quota")
-    if PRO_MONTHLY_SCAN_LIMIT <= PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT:
-        raise RuntimeError("Pro quota must exceed the participating free quota")

@@ -39,7 +39,7 @@ COMMAND={'PK':'ACCOUNT#a','SK':'ACCOUNT_DELETION','schemaVersion':1,'recordVersi
 
 def observation(event=EVENT):
     return {'schemaVersion':1,'recordVersion':1,'environment':'dev','statisticsEventId':event,'accountId':'a',
-        'campaignConsentGranted':True,'consentEpochId':EPOCH,'noticeVersion':'notice-v1','observedAtEpoch':NOW-1,'expiresAt':NOW+1000,
+        'campaignConsentGranted':True,'consentEpochId':EPOCH,'noticeVersion':'research-consent-2026-09-21-v2','observedAtEpoch':NOW-1,'expiresAt':NOW+1000,
         'appFeatures':{'schemaVersion':1,'extractorVersion':'android-1.0.0','languageId':'en','taxonomyBucket':'advance_fee',
         'vector':[1.0,0.0],'lexicalFingerprint':['0123456789abcdef'],'signalIds':['payment_request'],
         'indicatorIds':['payment.crypto'],'confidence':0.9}}
@@ -48,7 +48,7 @@ def observation(event=EVENT):
 def world():
     with mock_aws():
         d=boto3.client('dynamodb',region_name='us-east-1')
-        for name in ('pipeline','ledger','users'):
+        for name in ('pipeline','ledger','users','outbox'):
             args={'TableName':name,'KeySchema':[{'AttributeName':'PK','KeyType':'HASH'},{'AttributeName':'SK','KeyType':'RANGE'}],
                   'AttributeDefinitions':[{'AttributeName':'PK','AttributeType':'S'},{'AttributeName':'SK','AttributeType':'S'}], 'BillingMode':'PAY_PER_REQUEST'}
             if name=='pipeline':
@@ -58,12 +58,13 @@ def world():
                     args['GlobalSecondaryIndexes'].append({'IndexName':index,'KeySchema':[{'AttributeName':f'GSI{n}PK','KeyType':'HASH'},{'AttributeName':f'GSI{n}SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}})
             d.create_table(**args)
         put=lambda row,table='pipeline':d.put_item(TableName=table,Item=wire(row))
-        put(INV);put({'PK':'USER#a','SK':'CAMPAIGN_PARTICIPATION','state':'enrolled','consentEpochId':EPOCH,'environment':'dev','noticeVersion':'notice-v1'},'users')
+        put(INV);put({'PK':'USER#a','SK':'CAMPAIGN_PARTICIPATION','state':'enrolled','consentEpochId':EPOCH,'environment':'dev','noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'},'users')
         for period in (PERIOD,PERIOD-1):put({'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':'synthetic','status':'ENABLED'})
         yield d,put
 
 
 def publish(d,event=EVENT,**override):
+    d.put_item(TableName='outbox',Item=wire(json.loads(json.dumps(observation(event) | {'PK':f'EVENT#{event}','SK':'OBSERVATION_READY','eventType':'campaign.observation.ready'}),parse_float=Decimal)))
     return publisher.publish_observation(observation(event),pipeline_table_name='pipeline',users_table_name='users',deletion_ledger_table_name='ledger',
         cluster_queue_url='synthetic',hmac_key_id='synthetic',transient_retention_days=21,dynamodb_client=d,
         kms_client=SimpleNamespace(generate_mac=lambda **_:{'Mac':b'x'*32}),sqs_client=SimpleNamespace(send_message=lambda **_:{}),now_epoch=NOW,**(PINS|override))
@@ -71,7 +72,7 @@ def publish(d,event=EVENT,**override):
 
 def aggregate(d,event=EVENT):
     body=json.dumps({'schemaVersion':1,'recordVersion':1,'environment':'dev','statisticsEventId':event,'eventType':'campaign.cluster.requested'})
-    return cluster.process_message(body,environment='dev',schema_version=1,table_name='pipeline',retention_days=21,max_submissions=3,dynamodb=d,now_epoch=NOW,**PINS)
+    return cluster.process_message(body,environment='dev',schema_version=1,table_name='pipeline',retention_days=21,max_submissions=3,dynamodb=d,now_epoch=NOW,users_table_name='users',deletion_ledger_table_name='ledger',outbox_table_name='outbox',**PINS)
 
 
 def erase(d,**extra):
@@ -183,6 +184,7 @@ def test_uncovered_old_request_and_missing_legacy_locator_are_blocked(world):
     put(INV)
     loc=owned_page(d,'pipeline','dev',PART)[0][0]
     d.delete_item(TableName='pipeline',Key=key(loc['PK'],loc['SK']))
+    d.delete_item(TableName='ledger',Key=key('ACCOUNT#a','ACCOUNT_DELETION'))
     with pytest.raises(LocatorUnavailable):aggregate(d)
 
 
@@ -228,3 +230,52 @@ def test_inventory_changes_or_unqualified_coverage_block_producers(world,change)
     d,put=world;put(INV|change)
     with pytest.raises(LocatorUnavailable):publish(d)
     assert get(d,'pipeline','EVENT#'+EVENT,'FEATURE') is None
+
+@pytest.mark.parametrize('path',['new','repeat','capped'])
+@pytest.mark.parametrize('race',['withdrawal','epoch','deletion','outbox_removed','outbox_expiry'])
+def test_research_authority_races_atomically_block_every_cluster_write(world,path,race):
+    d,put=world
+    for _ in range({'new':0,'repeat':1,'capped':3}[path]):
+        event=str(uuid.uuid4());publish(d,event);aggregate(d,event)
+    event=str(uuid.uuid4());publish(d,event)
+    before=d.scan(TableName='pipeline')['Items']
+    class Race:
+        def __getattr__(self,name):return getattr(d,name)
+        def transact_write_items(self,**kwargs):
+            if race=='deletion':put(COMMAND,'ledger')
+            elif race=='outbox_removed':d.delete_item(TableName='outbox',Key=key('EVENT#'+event,'OBSERVATION_READY'))
+            elif race=='outbox_expiry':d.update_item(TableName='outbox',Key=key('EVENT#'+event,'OBSERVATION_READY'),UpdateExpression='SET expiresAt=:expiry',ExpressionAttributeValues={':expiry':{'N':str(NOW)}})
+            else:
+                row=get(d,'users','USER#a','CAMPAIGN_PARTICIPATION')
+                put(row | ({'state':'withdrawal_pending'} if race=='withdrawal' else {'consentEpochId':str(uuid.uuid4())}),'users')
+            return d.transact_write_items(**kwargs)
+    with pytest.raises(d.exceptions.TransactionCanceledException):aggregate(Race(),event)
+    assert d.scan(TableName='pipeline')['Items']==before
+
+
+def test_legacy_notice_never_publishes_and_old_feature_never_clusters(world):
+    d,put=world
+    old=observation() | {'noticeVersion':'2026-09-07'}
+    assert publisher.publish_observation(old,pipeline_table_name='pipeline',users_table_name='users',deletion_ledger_table_name='ledger',
+        cluster_queue_url='synthetic',transient_retention_days=21,dynamodb_client=d,kms_client=None,sqs_client=None,now_epoch=NOW,**PINS)=='participation-suppressed'
+    publish(d)
+    row=get(d,'pipeline','EVENT#'+EVENT,'FEATURE');row.pop('researchPolicyVersion');row.pop('researchNoticeVersion');put(row)
+    before=d.scan(TableName='pipeline')['Items']
+    assert aggregate(d)=='legacy-feature-suppressed'
+    assert d.scan(TableName='pipeline')['Items']==before
+
+
+def test_missing_outbox_never_clusters_despite_retained_feature(world):
+    d,put=world;publish(d)
+    d.delete_item(TableName='outbox',Key=key('EVENT#'+EVENT,'OBSERVATION_READY'))
+    assert aggregate(d)=='participation-suppressed'
+    assert get(d,'pipeline','EVENT#'+EVENT,'CLUSTERED') is None
+
+
+def test_current_feature_does_not_merge_into_legacy_candidate(world):
+    d,put=world;publish(d);aggregate(d)
+    summaries=[row for row in d.scan(TableName='pipeline')['Items'] if row['SK']=={'S':'SUMMARY'}]
+    old=deserialize(summaries[0]);old.pop('researchPolicyVersion');old.pop('researchNoticeVersion');put(old)
+    event=str(uuid.uuid4());publish(d,event)
+    assert aggregate(d,event)=='candidate-created'
+    assert get(d,'pipeline',old['PK'],'SUMMARY')==old

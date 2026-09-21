@@ -6,6 +6,7 @@ import time
 
 from botocore.exceptions import ClientError
 
+from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, authorized, condition_checks
 from contracts import build_cluster_envelope
 from shared_campaign_contracts import validate_app_features
 from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
@@ -97,6 +98,8 @@ def publish_observation(
                                     "recordVersion": item["recordVersion"],
                                     "environment": item["environment"],
                                     "statisticsEventId": event_id,
+                                    "researchNoticeVersion": CURRENT_NOTICE,
+                                    "researchPolicyVersion": CURRENT_POLICY,
                                     "periodId": period_id,
                                     "contributorToken": contributor_token,
                                     "GSI1PK": f"CONTRIB#{period_id}#{contributor_token}",
@@ -155,6 +158,8 @@ def publish_observation(
     if not feature_raw:
         raise RuntimeError('Campaign feature locator is unavailable')
     feature = locator_deserialize(feature_raw)
+    if feature.get('researchNoticeVersion') != CURRENT_NOTICE or feature.get('researchPolicyVersion') != CURRENT_POLICY:
+        return 'legacy-feature-suppressed'
     feature_locator = get_owned_locator(dynamodb_client,pipeline_table_name,
                                        locator_for_target(feature,item['environment']))
     if feature_locator['targetExpiresAtEpoch'] <= now_epoch:
@@ -224,74 +229,12 @@ def _tombstone_condition(table, period, token):
         "Key":{"PK":{"S":f"CONTRIB#{period}#{token}"},"SK":{"S":"TOMBSTONE"}},
         "ConditionExpression":"attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
 
-def _authority_condition_checks(
-    item, users_table_name, deletion_ledger_table_name,
-):
-    return [
-        {
-            "ConditionCheck": {
-                "TableName": users_table_name,
-                "Key": {
-                    "PK": {"S": f"USER#{item['accountId']}"},
-                    "SK": {"S": "CAMPAIGN_PARTICIPATION"},
-                },
-                "ConditionExpression": (
-                    "#state = :enrolled AND consentEpochId = :epoch "
-                    "AND #environment = :environment AND noticeVersion = :notice"
-                ),
-                "ExpressionAttributeNames": {
-                    "#state": "state",
-                    "#environment": "environment",
-                },
-                "ExpressionAttributeValues": {
-                    ":enrolled": {"S": "enrolled"},
-                    ":epoch": {"S": item["consentEpochId"]},
-                    ":environment": {"S": item["environment"]},
-                    ":notice": {"S": item["noticeVersion"]},
-                },
-            }
-        },
-        {
-            "ConditionCheck": {
-                "TableName": deletion_ledger_table_name,
-                "Key": {
-                    "PK": {"S": f"ACCOUNT#{item['accountId']}"},
-                    "SK": {"S": "ACCOUNT_DELETION"},
-                },
-                "ConditionExpression": "attribute_not_exists(PK)",
-            }
-        },
-    ]
+def _authority_condition_checks(item, users_table_name, deletion_ledger_table_name):
+    return condition_checks(item, users_table_name, deletion_ledger_table_name)
 
 
-def _account_authorizes(
-    item, users_table_name, deletion_ledger_table_name, dynamodb_client,
-):
-    participation = dynamodb_client.get_item(
-        TableName=users_table_name,
-        Key={
-            "PK": {"S": f"USER#{item['accountId']}"},
-            "SK": {"S": "CAMPAIGN_PARTICIPATION"},
-        },
-        ConsistentRead=True,
-        ProjectionExpression="#state,consentEpochId,#environment,noticeVersion",
-        ExpressionAttributeNames={"#state": "state", "#environment": "environment"},
-    ).get("Item") or {}
-    deletion = dynamodb_client.get_item(
-        TableName=deletion_ledger_table_name,
-        Key={
-            "PK": {"S": f"ACCOUNT#{item['accountId']}"},
-            "SK": {"S": "ACCOUNT_DELETION"},
-        },
-        ConsistentRead=True,
-        ProjectionExpression="PK",
-    ).get("Item")
-    return not deletion and (
-        participation.get("state") == {"S": "enrolled"}
-        and participation.get("consentEpochId") == {"S": item["consentEpochId"]}
-        and participation.get("environment") == {"S": item["environment"]}
-        and participation.get("noticeVersion") == {"S": item["noticeVersion"]}
-    )
+def _account_authorizes(item, users_table_name, deletion_ledger_table_name, dynamodb_client):
+    return authorized(item, users_table_name, deletion_ledger_table_name, dynamodb_client)
 
 
 def contributor_period_id(epoch_seconds: int) -> int:

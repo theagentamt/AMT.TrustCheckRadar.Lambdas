@@ -43,7 +43,8 @@ class FakeDynamo:
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": "15c81ba4-2fa6-43c3-8895-889f08c931bf"},
             "environment": {"S": "dev"},
-            "noticeVersion": {"S": "2026-09-07"},
+            "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
         self.transactions = []
         self.updates = []
@@ -190,7 +191,7 @@ def valid_item(**overrides):
         "accountId": "account-123",
         "campaignConsentGranted": True,
         "consentEpochId": CONSENT_EPOCH_ID,
-        "noticeVersion": "2026-09-07",
+        "noticeVersion": "research-consent-2026-09-21-v2",
         "observedAtEpoch": 1_780_000_000,
         "sourceType": "pasted_text",
         "sanitizedText": "A caller requested payment using [PAYMENT_HANDLE_1].",
@@ -350,7 +351,8 @@ class ServiceTests(unittest.TestCase):
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": CONSENT_EPOCH_ID},
             "environment": {"S": "dev"},
-            "noticeVersion": {"S": "2026-09-07"},
+            "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
         fake_dynamo.transactions.clear()
         fake_dynamo.updates.clear()
@@ -388,8 +390,8 @@ class ServiceTests(unittest.TestCase):
         condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
         self.assertEqual(condition["TableName"], "users")
         self.assertEqual(condition["ExpressionAttributeValues"][":epoch"], {"S": CONSENT_EPOCH_ID})
-        self.assertEqual(condition["ExpressionAttributeValues"][":environment"], {"S": "dev"})
-        self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "2026-09-07"})
+        self.assertEqual(condition["ExpressionAttributeValues"][":env"], {"S": "dev"})
+        self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "research-consent-2026-09-21-v2"})
         deletion_condition = fake_dynamo.transactions[0][2]["ConditionCheck"]
         self.assertEqual(deletion_condition["TableName"], "deletion-ledger")
         self.assertEqual(
@@ -473,11 +475,11 @@ class ServiceTests(unittest.TestCase):
     def test_withdrawal_or_new_epoch_blocks_publication_before_side_effects(self):
         for participation in (
             {"state": {"S": "withdrawal_pending"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-             "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             {"state": {"S": "enrolled"}, "consentEpochId": {"S": "new-epoch"},
-             "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             {"state": {"S": "enrolled"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-             "environment": {"S": "prod"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "prod"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             None,
         ):
             with self.subTest(participation=participation):
@@ -490,7 +492,8 @@ class ServiceTests(unittest.TestCase):
                     "state": {"S": "enrolled"},
                     "consentEpochId": {"S": CONSENT_EPOCH_ID},
                     "environment": {"S": "dev"},
-                    "noticeVersion": {"S": "2026-09-07"},
+                    "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
                 }
 
     def test_withdrawal_is_checked_before_period_key_resolution(self):
@@ -546,7 +549,7 @@ class ServiceTests(unittest.TestCase):
         raw=valid_item()
         f={'PK':f'EVENT#{EVENT_ID}','SK':'FEATURE','periodId':service.contributor_period_id(raw['observedAtEpoch']),
            'GSI1PK':f"CONTRIB#{service.contributor_period_id(raw['observedAtEpoch'])}#{base64.urlsafe_b64encode(b'x'*32).decode().rstrip('=')}",
-           'expiresAt':1_780_000_100+21*86400}
+           'expiresAt':1_780_000_100+21*86400,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1'}
         loc=locator_for_target(f,'dev')
         fake_dynamo.persisted[(f['PK'],f['SK'])]=locator_wire(f)
         fake_dynamo.persisted[(loc['PK'],loc['SK'])]=locator_wire(loc)
@@ -587,7 +590,8 @@ class HandlerTests(unittest.TestCase):
         fake_dynamo.item = {"status": {"S": "ENABLED"}, "keyArn": {"S": "arn:period-key"}}
         fake_dynamo.participation_item = {
             "state": {"S": "enrolled"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-            "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"},
+            "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
 
     def test_handler_uses_content_free_completion_log(self):

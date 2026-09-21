@@ -1,0 +1,37 @@
+# Independent research consent and legacy access retirement candidate
+
+SECUR4ALL-217 / SECUR4ALL-241. Source and dry-run stage only; no deployment, item rewrite or erasure has been performed. The candidate changes consent separately from protected check access. Current paid, explicitly activated trial and complimentary authority records, periods, usage and receipt identities are not rewritten or synthesized from legacy counters.
+
+## Consent and mobile behavior
+
+The pinned contract is `contracts/campaign/research-consent-v2`, schema2 / `2.0.0-candidate.2`, notice `research-consent-2026-09-21-v2`, policy `independent-research-v1`. Reads project older enrollment as `review_required`; an explicit new Join creates a new epoch. Old notice and operation evidence remain truthful. Reconciliation uses exact owned operation identity and immutable schema/notice/action, independently of current participation state. No access/quota fields, entitlement reads or entitlement writes remain in participation. Consent and operation audit receipts retain400days from their original acceptance, with logical expiry honored before asynchronous TTL deletion. State remains account-lifetime.
+
+`CONSENT_INDEPENDENCE_ENABLED=false` blocks new Join only. Authenticated GET, operation lookup, old schema1 replay and withdrawal continue. A new schema1 Join never mutates consent. Withdrawal preserves the accepted old notice/policy/epoch and atomically moves state to `withdrawal_pending`, writes the audit/operation and original24-hour requested ledger deadline under the current profile and absence-of-account-deletion guards. It does not claim that physical erasure completed. Legacy withdrawn state is `completion_unverified`. Rejoining does not cancel old cleanup, certify locator coverage or extend old record retention.
+
+Unknown record fields, versions or malformed evidence fail closed and are left untouched. The migration does not relabel old records as current consent, remove results, reset usage, consume a trial or grant credits. Missing/expired operation evidence is uncertain; clients must not equate it to a request never sent. Old mobile pending operations without owner binding cannot be replayed under a new account.
+
+## Campaign writer and queue boundary
+
+Changing the GET projection alone would leave old producers active. This candidate therefore requires current notice and policy in publisher strong reads and transaction conditions, and current source epoch plus absent fixed account-deletion fence. New FEATURE records carry only research notice/policy markers, with no newly persisted account identifier. Existing old features are retained but cannot become new contributions.
+
+Cluster reads the original `EVENT#id / OBSERVATION_READY` outbox record while its existing72-hour logical lifetime remains valid. It verifies current participation epoch/notice/policy and absent account-deletion fence. Every new, repeat and capped contribution transaction repeats those guards plus an exact original-outbox ownership/purpose/expiry condition. If withdrawal, account deletion, new epoch, outbox removal or expiry races the write, the transaction fails. Missing/expired source evidence suppresses new contribution rather than inventing authorization. These reads do not extend outbox or feature retention and do not copy account identifiers into pipeline records.
+
+New SUMMARY and CONTRIB rows carry the same purpose markers. New features cannot merge into old unmarked candidates. The lifecycle publication primitive refuses unmarked summaries or contributions and guards marker values when changing phases. Existing historical aggregates are not retroactively blessed or deleted. Review/trends and campaign consumers stay disabled until their complete publication/withdrawal/retirement inventory is qualified. A fresh consent epoch does not discharge historical cleanup obligations.
+
+## Deployment composition and exact permissions
+
+The coordinated candidate consists of participation, conversation analysis retirement/replay, entitlement snapshot retirement, direct WebRisk retirement and purchase handoff, together with the existing four-worker campaign artifact group (publisher, cluster, deletion bridge, lifecycle). All artifact object versions/hashes must reference one reviewed release commit and target Python3.14. No old environment variable can switch the retired analysis/snapshot/WebRisk entrypoints back to legacy new dispatch. Participation retains its separate defaultfalse new-Join gate. Campaign sources retain their existing inventory and disabled-consumer gates; no runtime can approve its own inventory marker.
+
+Participation: users GetItem; transaction-only PutItem for USER#/CAMPAIGN_PARTICIPATION, CAMPAIGN_CONSENT# and CAMPAIGN_OPERATION#; transaction-only PROFILE condition; ledger GetItem/transaction ConditionCheck for ACCOUNT#/ACCOUNT_DELETION and transaction PutItem for ACCOUNT#/CAMPAIGN_WITHDRAWAL#. No entitlement access.
+
+Publisher: existing users/ledger reads and transaction conditions gain exact mandatory notice/policy checks. Cluster adds GetItem and transaction-only ConditionCheck on users USER#/CAMPAIGN_PARTICIPATION, ledger ACCOUNT#/ACCOUNT_DELETION, outbox EVENT#/OBSERVATION_READY. No writes to these three authority stores. Internal purpose fields are omitted by the existing account-export public projection, so no export contract change is required. Existing four-worker locator and lifecycle permissions are otherwise unchanged.
+
+## Rollout acceptance, still open
+
+Source success is not a completed live migration. Require the separate aggregate-only inventory/dry-run classification, reviewed immutable artifacts, exact route/alias writer coverage, explicit old artifact rollback prevention and restore controls before applying anything. All legacy dispatch/purchase/callback writers must be covered; zeroing rows alone does not close synthetic FREE defaults or rollover regrants. Unknown legacy shapes and ambiguous PROCESSING/RESULT_READY accounting remain recoverable reconciliation-required records, not new allowances or safe-to-redispatch requests.
+
+Retiring legacy routes while modern V1 routes remain disabled can interrupt paid service even when records are preserved. Live rollout must first qualify current paid/trial/complimentary check routes or obtain an explicit review of temporary unavailability. Do not claim uninterrupted paid service from read-only replay. No paid provider requests are needed for source/dry-run validation.
+
+Historical linked research cleanup, pending withdrawals, tombstones/locators, retirement of HMAC periods, queue/stream replay and restore erasure remain the existing acceptance gates. No automatic consent migration marker, quota rewrite, source deletion or cleanup-complete marker is created by this candidate. Backup/PITR retention and physical TTL timing are unchanged.
+
+Schema2 mutations require expectedStateVersion (the exact state revision reviewed by the user). The server checks this before changing consent and stores it with operation identity; reusing an operation UUID with a different expected revision conflicts. Existing exact applied-operation replay is resolved before comparing current state. Schema1 omits this field, stays Join-replay-only, and may still withdraw; operation expectedStateVersion is null for schema1 and missing lookup. A delayed first Join from before another-device withdrawal therefore cannot silently enroll again.

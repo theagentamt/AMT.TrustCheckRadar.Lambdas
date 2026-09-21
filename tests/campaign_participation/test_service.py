@@ -20,9 +20,9 @@ ENVIRONMENT = {
     "ENTITLEMENTS_TABLE_NAME": "test-entitlements",
     "DELETION_LEDGER_TABLE_NAME": "test-deletion-ledger",
     "ENVIRONMENT": "dev",
-    "CAMPAIGN_PARTICIPATION_NOTICE_VERSION": "notice-2026-09",
-    "CAMPAIGN_PARTICIPATION_POLICY_VERSION": "policy-1",
-    "FREE_MONTHLY_SCAN_LIMIT": "10",
+    "CAMPAIGN_PARTICIPATION_NOTICE_VERSION": "research-consent-2026-09-21-v2",
+    "CAMPAIGN_PARTICIPATION_POLICY_VERSION": "independent-research-v1",
+    "CONSENT_INDEPENDENCE_ENABLED": "true",
     "PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT": "15",
 }
 
@@ -99,7 +99,7 @@ EPOCH_ID = "15c81ba4-2fa6-43c3-8895-889f08c931bf"
 
 
 def payload(action="join", operation_id=OPERATION_ID):
-    return {"schemaVersion": 1, "action": action, "noticeVersion": config.NOTICE_VERSION, "operationId": operation_id}
+    return {"schemaVersion": 2, "expectedStateVersion": 0, "action": action, "noticeVersion": config.NOTICE_VERSION, "operationId": operation_id}
 
 
 def enrolled_state(**updates):
@@ -132,135 +132,92 @@ class ParticipationServiceTests(unittest.TestCase):
             "status": "ACTIVE", "ageVerified": True,
         }
 
-    def test_default_is_off_and_response_has_no_internal_identity(self):
+    def test_default_off_has_no_access_or_internal_identity(self):
         result = service.get_participation("user-123")
-
         self.assertEqual(result["state"], "not_enrolled")
-        self.assertEqual(result["policyVersion"], "policy-1")
-        self.assertEqual(result["baseFreeMonthlyScanLimit"], 10)
-        self.assertEqual(result["participatingFreeMonthlyScanLimit"], 15)
-        self.assertEqual(result["bonusMonthlyScans"], 5)
-        self.assertEqual(result["effectiveMonthlyScanLimit"], 10)
-        self.assertNotIn("PK", result)
-        self.assertNotIn("accountId", result)
+        self.assertEqual(result["policyVersion"], "independent-research-v1")
+        self.assertFalse(result["contributionEligible"])
+        for forbidden in ("PK", "accountId", "monthlyScanLimit", "effectiveMonthlyScanLimit", "bonusMonthlyScans"):
+            self.assertNotIn(forbidden, result)
 
-    def test_join_atomically_writes_state_receipt_and_adjusted_entitlement(self):
+    def test_join_writes_only_consent_never_entitlements(self):
         with mock.patch.object(service.uuid, "uuid4", return_value=service.uuid.UUID(EPOCH_ID)):
-            result = service.update_participation(
-                "user-123", payload(), now_epoch=1_788_739_200, now_iso="2026-09-07T00:00:00Z"
-            )
-
+            result = service.update_participation("user-123", payload(), now_epoch=1788739200, now_iso="2026-09-07T00:00:00Z")
         self.assertEqual(result["state"], "enrolled")
-        self.assertEqual(result["effectiveMonthlyScanLimit"], 15)
         transaction = client.transactions[0]
-        self.assertEqual(len(transaction), 6)
-        state = transaction[0]["Put"]["Item"]
-        self.assertEqual(state["state"], {"S": "enrolled"})
-        self.assertEqual(state["consentEpochId"], {"S": EPOCH_ID})
-        receipt = transaction[1]["Put"]["Item"]
-        self.assertTrue(receipt["SK"]["S"].startswith(f"CAMPAIGN_CONSENT#{EPOCH_ID}#"))
-        self.assertEqual(receipt["expiresAt"], {"N": str(1_788_739_200 + 400 * 86400)})
-        operation = transaction[2]["Put"]["Item"]
-        self.assertEqual(operation["SK"], {"S": f"CAMPAIGN_OPERATION#{OPERATION_ID}"})
-        entitlement = transaction[3]["Put"]["Item"]
-        self.assertEqual(entitlement["monthlyScanLimit"], {"N": "15"})
-        self.assertEqual(entitlement["remainingMonthlyScans"], {"N": "15"})
-        self.assertEqual(transaction[4]["ConditionCheck"]["TableName"], "test-users")
-        self.assertEqual(
-            transaction[5]["ConditionCheck"]["TableName"],
-            "test-deletion-ledger",
-        )
+        self.assertEqual(len(transaction), 5)
+        self.assertTrue(all(next(iter(x.values()))["TableName"] != "test-entitlements" for x in transaction))
+        self.assertEqual(transaction[1]["Put"]["Item"]["expiresAt"], {"N": str(1788739200 + 400*86400)})
+        self.assertEqual(result["operation"]["requestSchemaVersion"], 2)
+        self.assertEqual(result["operation"]["requestNoticeVersion"], config.CURRENT_NOTICE)
 
-    def test_withdraw_is_one_transaction_with_exact_deletion_command(self):
-        users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state()
-        entitlements.items[("USER#user-123", "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly")] = {
-            "PK": "USER#user-123", "SK": "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
-            "accountId": "user-123", "entitlementTier": "FREE", "subscriptionStatus": "expired",
-            "monthlyScanLimit": 15, "remainingMonthlyScans": 8, "remainingCredits": 0,
-            "updatedAt": "2026-09-07T00:00:00Z", "createdAt": "2026-09-01T00:00:00Z",
-        }
-
-        result = service.update_participation(
-            "user-123", payload("withdraw"), now_epoch=1_788_739_200, now_iso="2026-09-07T00:00:00Z"
-        )
-
-        self.assertEqual(result["state"], "withdrawal_pending")
-        self.assertEqual(result["effectiveMonthlyScanLimit"], 10)
-        transaction = client.transactions[0]
-        self.assertEqual(len(transaction), 7)
-        self.assertEqual(transaction[3]["Put"]["Item"]["remainingMonthlyScans"], {"N": "3"})
-        command = transaction[4]["Put"]
-        self.assertEqual(command["TableName"], "test-deletion-ledger")
-        self.assertEqual(
-            set(command["Item"]),
-            {"PK", "SK", "schemaVersion", "recordVersion", "environment", "eventType", "accountId", "status", "occurredAtEpoch", "consentEpochId", "deleteByEpoch", "operationId"},
-        )
-        self.assertEqual(command["Item"]["status"], {"S": "PENDING"})
-        self.assertEqual(command["Item"]["deleteByEpoch"], {"N": str(1_788_739_200 + 86400)})
-
-    def test_fixed_deletion_fence_blocks_reads_writes_and_replays(self):
-        ledger.items[("ACCOUNT#user-123", "ACCOUNT_DELETION")] = {
-            "PK": "ACCOUNT#user-123", "SK": "ACCOUNT_DELETION",
-            "status": "REQUESTED",
-        }
-        users.items[("USER#user-123", f"CAMPAIGN_OPERATION#{OPERATION_ID}")] = {
-            "PK": "USER#user-123", "SK": f"CAMPAIGN_OPERATION#{OPERATION_ID}",
-            "schemaVersion": 1, "recordVersion": 1, "operationId": OPERATION_ID,
-            "consentEpochId": EPOCH_ID, "action": "join",
-        }
-
-        for operation in (
-            lambda: service.get_participation("user-123"),
-            lambda: service.update_participation("user-123", payload()),
-        ):
-            with self.assertRaises(service.AppError) as raised:
-                operation()
-            self.assertEqual(raised.exception.code, "FORBIDDEN")
-
-    def test_quota_adjustment_preserves_used_count_and_pro_is_unchanged(self):
-        free = {"entitlementTier": "FREE", "monthlyScanLimit": 10, "remainingMonthlyScans": 3}
-        joined = service._adjust_entitlement(free, 15, "now")
-        withdrawn = service._adjust_entitlement(joined, 10, "later")
-        rejoined = service._adjust_entitlement(withdrawn, 15, "again")
-        self.assertEqual((joined["remainingMonthlyScans"], withdrawn["remainingMonthlyScans"], rejoined["remainingMonthlyScans"]), (8, 3, 8))
-
-        pro = {"entitlementTier": "PRO", "monthlyScanLimit": 100, "remainingMonthlyScans": 77}
-        self.assertEqual(service._adjust_entitlement(pro, 15, "now"), pro)
-
-    def test_operation_replay_does_not_write_again(self):
-        users.items[("USER#user-123", f"CAMPAIGN_OPERATION#{OPERATION_ID}")] = {
-            "PK": "USER#user-123", "SK": f"CAMPAIGN_OPERATION#{OPERATION_ID}",
-            "schemaVersion": 1, "recordVersion": 1, "operationId": OPERATION_ID,
-            "consentEpochId": EPOCH_ID, "action": "join",
-        }
-        users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state()
-
-        result = service.update_participation("user-123", payload())
-
-        self.assertEqual(result["state"], "enrolled")
+    def test_legacy_is_review_required_without_mutation(self):
+        users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state(noticeVersion="2026-09-07", policyVersion="policy-1")
+        result = service.get_participation("user-123")
+        self.assertEqual(result["state"], "review_required")
+        self.assertFalse(result["contributionEligible"])
+        self.assertEqual(result["acceptedNoticeVersion"], "2026-09-07")
         self.assertEqual(client.transactions, [])
 
-    def test_reused_operation_id_for_another_action_is_rejected(self):
-        users.items[("USER#user-123", f"CAMPAIGN_OPERATION#{OPERATION_ID}")] = {
-            "PK": "USER#user-123", "SK": f"CAMPAIGN_OPERATION#{OPERATION_ID}",
-            "schemaVersion": 1, "recordVersion": 1, "operationId": OPERATION_ID,
-            "consentEpochId": EPOCH_ID, "action": "join",
-        }
+    def test_withdraw_legacy_while_join_gate_closed_preserves_notice_and_deadline(self):
+        users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state(noticeVersion="2026-09-07", policyVersion="policy-1")
+        with mock.patch.object(config, "CONSENT_INDEPENDENCE_ENABLED", False):
+            result = service.update_participation("user-123", payload("withdraw") | {"schemaVersion":1,"noticeVersion":"2026-09-07"}, now_epoch=1788739200, now_iso="2026-09-07T00:00:00Z")
+        self.assertEqual(result["state"], "withdrawal_pending")
+        self.assertEqual(result["acceptedNoticeVersion"], "2026-09-07")
+        self.assertEqual(result["withdrawalStatus"], "pending")
+        transaction = client.transactions[0]
+        self.assertEqual(len(transaction), 6)
+        command = transaction[3]["Put"]["Item"]
+        self.assertEqual(command["deleteByEpoch"], {"N": str(1788739200+86400)})
+        self.assertEqual(command["status"], {"S":"PENDING"})
+        self.assertTrue(all(next(iter(x.values()))["TableName"] != "test-entitlements" for x in transaction))
+
+    def test_join_gate_and_old_join_never_mutate(self):
+        for request, code in ((payload() | {"schemaVersion":1}, "POLICY_REVIEW_REQUIRED"), (payload(), "JOIN_UNAVAILABLE")):
+            with mock.patch.object(config, "CONSENT_INDEPENDENCE_ENABLED", False):
+                with self.assertRaises(service.AppError) as error:
+                    service.update_participation("user-123", request)
+                self.assertEqual(error.exception.code, code)
+        self.assertEqual(client.transactions, [])
+
+    def test_operation_evidence_independent_of_current_state_and_legacy_replay(self):
+        old = {"PK":"USER#user-123","SK":f"CAMPAIGN_OPERATION#{OPERATION_ID}","schemaVersion":1,"recordVersion":1,"operationId":OPERATION_ID,"action":"join","consentEpochId":EPOCH_ID,"resultingState":"enrolled","occurredAt":"2026-09-07T00:00:00Z","expiresAt":1823299200}
+        users.items[(old["PK"],old["SK"])] = old
+        result = service.update_participation("user-123", payload() | {"schemaVersion":1})
+        self.assertEqual(result["state"], "not_enrolled")
+        self.assertEqual(result["operation"]["status"], "applied_legacy")
+        self.assertIsNone(result["operation"]["requestNoticeVersion"])
         with self.assertRaises(service.AppError) as error:
-            service.update_participation("user-123", payload("withdraw"))
+            service.update_participation("user-123", payload())
         self.assertEqual(error.exception.code, "CONFLICT")
+        self.assertEqual(client.transactions, [])
 
-    def test_reenrollment_never_reuses_withdrawn_epoch(self):
-        users.items[("USER#user-123", "CAMPAIGN_PARTICIPATION")] = enrolled_state(
-            state="withdrawn", stateVersion=3, effectiveUntil="2026-09-06T00:00:00Z"
-        )
-        new_epoch = "5187698a-d91e-429a-bb6a-9f7f5b97509f"
-        with mock.patch.object(service.uuid, "uuid4", return_value=service.uuid.UUID(new_epoch)):
-            service.update_participation("user-123", payload(operation_id="a57a0bee-c135-4ace-b61f-88b66d394f5d"))
-        state = client.transactions[0][0]["Put"]["Item"]
-        self.assertEqual(state["consentEpochId"], {"S": new_epoch})
-        self.assertNotEqual(new_epoch, EPOCH_ID)
+    def test_missing_operation_is_unresolved_not_synthesized(self):
+        result = service.get_participation("user-123", OPERATION_ID)
+        self.assertEqual(result["operation"]["status"], "not_found")
+        self.assertIsNone(result["operation"]["action"])
 
+    def test_unknown_state_fields_and_malformed_numbers_fail_closed(self):
+        for change in ({"unexpected":"preserve"},{"stateVersion":True},{"stateVersion":1.5},{"lastOperationId":"bad"}):
+            users.items[("USER#user-123","CAMPAIGN_PARTICIPATION")] = enrolled_state(**change)
+            with self.assertRaises(service.AppError):
+                service.update_participation("user-123", payload("withdraw"))
+        self.assertEqual(client.transactions, [])
+
+    def test_deletion_fence_blocks_replay_and_new_work(self):
+        ledger.items[("ACCOUNT#user-123","ACCOUNT_DELETION")] = {"status":"COMPLETE"}
+        with self.assertRaises(service.AppError) as error:
+            service.get_participation("user-123", OPERATION_ID)
+        self.assertEqual(error.exception.code,"FORBIDDEN")
+
+    def test_explicit_new_notice_creates_new_epoch_preserves_old_audit(self):
+        users.items[("USER#user-123","CAMPAIGN_PARTICIPATION")] = enrolled_state(noticeVersion="2026-09-07",policyVersion="policy-1")
+        result = service.update_participation("user-123",payload() | {"expectedStateVersion":1})
+        self.assertNotEqual(result["consentEpochId"],EPOCH_ID)
+        self.assertEqual(result["stateVersion"],2)
+        self.assertTrue(result["contributionEligible"])
+        self.assertIn("noticeVersion = :notice",client.transactions[0][0]["Put"]["ConditionExpression"])
 
 if __name__ == "__main__":
     unittest.main()
