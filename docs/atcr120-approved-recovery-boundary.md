@@ -87,3 +87,7 @@ Component fixtures alone do not demonstrate actual message-result routing; that
 binding remains a concrete open dependency. This increment neither closes the
 broader backend epics nor claims live billing, provider or detailed-recovery
 acceptance.
+
+The [next bounded message-binding handoff](atcr120-next-message-binding-slice.md)
+identifies the concrete transport, privacy, authority and rubric work needed for
+real message outcome routing without importing the entire billing programme.
