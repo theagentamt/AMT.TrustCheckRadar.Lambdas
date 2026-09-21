@@ -30,9 +30,15 @@ botocore_exceptions.ClientError = FakeClientError
 sys.modules["botocore.exceptions"] = botocore_exceptions
 
 
+from shared_campaign_locators import locator_for_target,serialize as locator_wire
+INVENTORY={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
+'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':1,
+'locatorSchemaVersion':1,'minimumPeriodId':0,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']}
+
 class FakeDynamo:
     def __init__(self):
         self.item = None
+        self.persisted = {}
         self.participation_item = {
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": "15c81ba4-2fa6-43c3-8895-889f08c931bf"},
@@ -49,12 +55,21 @@ class FakeDynamo:
             return {"Item": self.participation_item} if self.participation_item else {}
         if TableName == "deletion-ledger":
             return {"Item": self.deletion_item} if self.deletion_item else {}
+        key = _kwargs.get('Key',{})
+        pk,sk = key.get('PK',{}).get('S'),key.get('SK',{}).get('S')
+        if sk=='CAMPAIGN_LOCATORS':return {'Item':locator_wire(INVENTORY)}
+        if sk!='DEDUPE':
+            value=self.persisted.get((pk,sk))
+            return {'Item':value} if value else {}
         return {"Item": self.item} if self.item else {}
 
     def transact_write_items(self, **kwargs):
         transaction = kwargs["TransactItems"]
         self.transactions.append(transaction)
-        if "Update" in transaction[-1]:
+        for action in transaction:
+            if 'Put' in action:
+                item=action['Put']['Item'];self.persisted[(item['PK']['S'],item['SK']['S'])]=item
+        if any("Update" in action for action in transaction):
             if self.fail_final_transaction_with_deletion:
                 self.deletion_item = {"PK": {"S": "ACCOUNT#account-123"}}
                 raise FakeClientError(
@@ -330,6 +345,7 @@ class ContractTests(unittest.TestCase):
 class ServiceTests(unittest.TestCase):
     def setUp(self):
         fake_dynamo.item = None
+        fake_dynamo.persisted.clear()
         fake_dynamo.participation_item = {
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": CONSENT_EPOCH_ID},
@@ -356,6 +372,7 @@ class ServiceTests(unittest.TestCase):
             kms_client=fake_kms,
             sqs_client=fake_sqs,
             now_epoch=now_epoch,
+            locator_manifest_sha256="a"*64,locator_inventory_revision=1,
         )
 
     def test_publishes_pseudonymous_app_feature_and_cluster_message(self):
@@ -526,6 +543,13 @@ class ServiceTests(unittest.TestCase):
     def test_pending_delivery_rederives_token_to_fence_final_write(self):
         fake_dynamo.item = {"status": {"S": "PENDING"}}
 
+        raw=valid_item()
+        f={'PK':f'EVENT#{EVENT_ID}','SK':'FEATURE','periodId':service.contributor_period_id(raw['observedAtEpoch']),
+           'GSI1PK':f"CONTRIB#{service.contributor_period_id(raw['observedAtEpoch'])}#{base64.urlsafe_b64encode(b'x'*32).decode().rstrip('=')}",
+           'expiresAt':1_780_000_100+21*86400}
+        loc=locator_for_target(f,'dev')
+        fake_dynamo.persisted[(f['PK'],f['SK'])]=locator_wire(f)
+        fake_dynamo.persisted[(loc['PK'],loc['SK'])]=locator_wire(loc)
         result = self.publish()
 
         self.assertEqual(result, "published")

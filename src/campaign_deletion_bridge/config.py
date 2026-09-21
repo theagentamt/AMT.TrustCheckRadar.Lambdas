@@ -20,3 +20,6 @@ def validate_config():
         raise RuntimeError("Invalid campaign participation completion policy")
     if CONTRIBUTOR_RECOVERY_DAYS != 7 or TRANSIENT_RETENTION_DAYS > 21:
         raise RuntimeError("Invalid campaign deletion configuration")
+
+CAMPAIGN_LOCATOR_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_LOCATOR_MANIFEST_SHA256", "")
+CAMPAIGN_LOCATOR_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_LOCATOR_INVENTORY_REVISION", "0") or "0")

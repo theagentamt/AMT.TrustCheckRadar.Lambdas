@@ -27,3 +27,6 @@ def validate_config() -> None:
         raise RuntimeError("TRANSIENT_RETENTION_DAYS must be between 1 and 21")
     if CONTRIBUTOR_PERIOD_DAYS != 14:
         raise RuntimeError("CONTRIBUTOR_PERIOD_DAYS must be 14")
+
+CAMPAIGN_LOCATOR_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_LOCATOR_MANIFEST_SHA256", "")
+CAMPAIGN_LOCATOR_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_LOCATOR_INVENTORY_REVISION", "0") or "0")
