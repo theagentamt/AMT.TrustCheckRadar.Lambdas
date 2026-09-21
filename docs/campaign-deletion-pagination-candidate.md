@@ -119,3 +119,9 @@ Separate ordinary suites: deletion bridge 6 tests, cluster aggregator 15,
 observation publisher 23, lifecycle 9. Compileall and diff whitespace checks.
 These checks do not qualify real AWS IAM, KMS retirement, streams, Cognito,
 legacy inventory, backlog convergence, deletion deadlines or physical backups.
+
+Integrated on release-V01 with Python 3.14: full ordinary suite 1,757 passed,
+233 subtests and 17 intentional isolated integration skips; the 13 SDK/Moto
+progress cases passed independently again. Completion errors live in a pure
+module so the fail-closed helpers do not initialize AWS dependencies. Four
+campaign source ZIPs build; no native runtime/deployment qualification is claimed.

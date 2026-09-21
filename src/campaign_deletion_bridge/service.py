@@ -61,7 +61,8 @@ def _is_uuid4(value):
 
 def delete_account_contributions(command, *, table_name, retention_days, dynamodb, kms,
                                  now_epoch=None, max_steps=10, remaining_ms=None, deletion_ledger_table_name=None):
-    from progress import CoverageUnavailable, sweep, CommandGuardedClient
+    from cleanup_errors import CoverageUnavailable
+    from progress import sweep, CommandGuardedClient
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     # Request-time periods are stable across retries and key rollover. Missing or
     # retired keys cannot be skipped as evidence that old contributions are gone.
@@ -120,12 +121,12 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
 
 def complete_campaign_withdrawal(*args, **kwargs):
     # No approved strong locator/migration proof; no caller can bypass the gate.
-    from progress import CoverageUnavailable
+    from cleanup_errors import CoverageUnavailable
     raise CoverageUnavailable()
 
 
 def complete_account_deletion_component(*args, **kwargs):
-    from progress import CoverageUnavailable
+    from cleanup_errors import CoverageUnavailable
     raise CoverageUnavailable()
 
 

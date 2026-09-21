@@ -8,9 +8,7 @@ PAGE_SIZE = 25
 MAX_STEPS = 10
 
 
-class CoverageUnavailable(RuntimeError):
-    def __init__(self):
-        super().__init__('Campaign deletion coverage is not verified')
+from cleanup_errors import CoverageUnavailable
 
 
 def wire(value):
