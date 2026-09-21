@@ -5,6 +5,7 @@ from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
 sys.path.insert(0, str(MODULE))
+sys.path.insert(0, str(MODULE.parent))
 sys.modules.pop("service", None)
 import service
 
@@ -54,7 +55,7 @@ class Client:
 
 class ScanLedger(Table):
     def __init__(self, pages):
-        super().__init__()
+        super().__init__({("ACCOUNT#a", "ACCOUNT_DELETION"): command()})
         self.pages = list(pages)
         self.scans = []
 
@@ -85,7 +86,7 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         client = Client()
         result = service.start_history_deletion(
             command(), control_table=control, control_table_name="control",
-            deletion_ledger_table=Table(), deletion_ledger_table_name="ledger",
+            deletion_ledger_table=Table({("ACCOUNT#a", "ACCOUNT_DELETION"): command()}), deletion_ledger_table_name="ledger",
             dynamodb_client=client, schema_version=1, erasure_sla_hours=24,
         )
         self.assertTrue(result["started"])
@@ -97,21 +98,24 @@ class HistoryAccountDeletionBridgeTests(unittest.TestCase):
         self.assertIn("ACCOUNT_DELETION", repr(transaction))
 
     def test_missing_history_state_writes_component_completion_receipt(self):
-        ledger = Table()
+        ledger = Table({("ACCOUNT#a", "ACCOUNT_DELETION"): command()})
+        client = Client()
         result = service.start_history_deletion(
             command(), control_table=Table(), control_table_name="control",
             deletion_ledger_table=ledger, deletion_ledger_table_name="ledger",
-            dynamodb_client=Client(), schema_version=1, erasure_sla_hours=24,
+            dynamodb_client=client, schema_version=1, erasure_sla_hours=24, now_epoch=100,
         )
         self.assertTrue(result["completed"])
-        self.assertEqual(ledger.puts[0]["eventType"], "account.deletion.component.completed")
+        receipt = service._deserialize(client.transactions[0][-1]["Put"]["Item"])
+        self.assertFalse(ledger.puts)
+        self.assertEqual(receipt["eventType"], "account.deletion.component.completed")
         self.assertEqual(
-            ledger.puts[0]["retainUntilEpoch"],
+            receipt["retainUntilEpoch"],
             command()["occurredAtEpoch"] + 120 * 86400,
         )
-        self.assertEqual(ledger.puts[0]["component"], "HISTORY")
+        self.assertEqual(receipt["component"], "HISTORY")
         self.assertEqual(
-            ledger.puts[0]["operationId"],
+            receipt["operationId"],
             "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
         )
 

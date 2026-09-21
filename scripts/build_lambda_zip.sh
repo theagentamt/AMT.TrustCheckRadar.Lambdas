@@ -281,7 +281,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"
   fi
 
-  if [[ "$function_name" == "account_data_api" || "$function_name" == "v1_authority_deletion" ]]; then
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "v1_authority_deletion" || "$function_name" == "history_account_deletion_bridge" || "$function_name" == "history_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_account_finalization" "$build_dir/shared_account_finalization"
   fi
 

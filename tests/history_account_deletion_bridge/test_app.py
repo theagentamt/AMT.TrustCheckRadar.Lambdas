@@ -9,6 +9,7 @@ from unittest import mock
 
 MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
 sys.path.insert(0, str(MODULE))
+sys.path.insert(0, str(MODULE.parent))
 
 boto3_stub = types.ModuleType("boto3")
 boto3_stub.resource = lambda *_args, **_kwargs: object()
