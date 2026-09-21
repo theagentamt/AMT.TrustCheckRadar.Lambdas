@@ -1,6 +1,7 @@
 import importlib.util
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -294,6 +295,72 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
         )]
         self.assertEqual(checkpoint["completedPassAtEpoch"], 200)
+
+    def _reconciliation(self, ledger, **overrides):
+        result = {"deleted": 0, "minimized": 0, "complete": True}
+        with mock.patch.object(service, "delete_device_bindings", return_value=result), \
+                mock.patch.object(service, "delete_device_recovery_control", return_value=result), \
+                mock.patch.object(service, "delete_analysis_abuse_control", return_value=result), \
+                mock.patch.object(service, "delete_campaign_outbox", return_value=result), \
+                mock.patch.object(service, "delete_user_profile_state", return_value=result):
+            return service.reconcile_session_revocations(
+                environment="dev", ledger_table=ledger, device_table=Table(),
+                recovery_table=Table(), abuse_table=Table(), outbox_table=Table(),
+                users_table=Table(), user_pool_id="pool", cognito=object(),
+                scan_limit=100, max_pages=1, now=lambda: 200, **overrides)
+
+    def test_poison_command_does_not_starve_later_accounts_or_report_clean_pass(self):
+        ledger = ScanTable([{"Items": [{**command(), "schemaVersion": True}, command()], "ScannedCount": 2}])
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True) as revoke:
+            result = self._reconciliation(ledger)
+        self.assertEqual(revoke.call_count, 1)
+        self.assertEqual(result["commandFailures"], 1)
+        self.assertTrue(result["passHadFailures"])
+        self.assertFalse(result["completedFullPass"])
+        self.assertIsNone(result["completedPassAtEpoch"])
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertNotIn("lastEvaluatedKey", checkpoint)
+        self.assertFalse(checkpoint["passHadFailures"])
+
+    def test_hard_interruption_checkpoint_skips_to_next_account_but_keeps_pass_failure(self):
+        ledger = ScanTable([{"Items": [command()], "ScannedCount": 1}])
+        with mock.patch.object(service, "ensure_session_revoked", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self._reconciliation(ledger)
+        key = {"PK": command()["PK"], "SK": command()["SK"]}
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertEqual(checkpoint["lastEvaluatedKey"], key)
+        self.assertTrue(checkpoint["passHadFailures"])
+        ledger.pages.append({"Items": [], "ScannedCount": 0})
+        result = self._reconciliation(ledger)
+        self.assertEqual(ledger.scans[-1]["ExclusiveStartKey"], key)
+        self.assertFalse(result["completedFullPass"])
+        self.assertIsNone(result["completedPassAtEpoch"])
+        # Wrapping starts another scan pass; interrupted work is revisited.
+        ledger.pages.append({"Items": [command()], "ScannedCount": 1})
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True):
+            result = self._reconciliation(ledger)
+        self.assertNotIn("ExclusiveStartKey", ledger.scans[-1])
+        self.assertTrue(result["completedFullPass"])
+
+    def test_command_budget_resumes_at_last_attempted_item_not_end_of_scan_page(self):
+        second = {**command(), "PK": "ACCOUNT#account-2", "accountId": "account-2"}
+        ledger = ScanTable([{"Items": [command(), second], "ScannedCount": 2}])
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True) as revoke:
+            result = self._reconciliation(ledger, max_commands=1)
+        self.assertEqual(revoke.call_count, 1)
+        self.assertTrue(result["worksetTruncated"])
+        self.assertFalse(result["completedFullPass"])
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertEqual(checkpoint["lastEvaluatedKey"], {"PK": command()["PK"], "SK": command()["SK"]})
+        self.assertFalse(checkpoint["passHadFailures"])
+
+    def test_low_time_budget_never_starts_a_scan(self):
+        ledger = ScanTable([])
+        result = self._reconciliation(ledger, remaining_millis=lambda: 9999)
+        self.assertTrue(result["worksetTruncated"])
+        self.assertFalse(result["completedFullPass"])
+        self.assertEqual(ledger.scans, [])
 
     def test_campaign_outbox_cleanup_is_bounded_target_bound_and_receipted(self):
         account_hash = service.hashlib.sha256(b"account-1").hexdigest()

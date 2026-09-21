@@ -31,7 +31,7 @@ def lambda_handler(event, _context):
     if isinstance(event, dict) and isinstance(event.get("Records"), list):
         return _stream_handler(event)
     if event == {"schemaVersion": 1, "operation": "reconcile-session-revocation"}:
-        return _reconciliation_handler()
+        return _reconciliation_handler(_context)
     try:
         config.validate_config()
         route = _route_key(event)
@@ -246,12 +246,12 @@ def _stream_handler(event):
             if isinstance(identifier, str) and identifier:
                 failures.append({"itemIdentifier": identifier})
             else:
-                raise
+                raise RuntimeError("Account deletion stream record failed") from None
     _metric("session-revocation", not failures)
     return {"batchItemFailures": failures}
 
 
-def _reconciliation_handler():
+def _reconciliation_handler(context=None):
     # Scheduler failures propagate so EventBridge/Lambda retry and alarm.
     try:
         config.validate_config()
@@ -277,6 +277,8 @@ def _reconciliation_handler():
             users_table=users_table,
             user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"),
+            remaining_millis=(context.get_remaining_time_in_millis
+                              if context is not None else lambda: 30000),
             scan_limit=config.ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT,
             max_pages=config.ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES,
             device_page_size=config.ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE,
@@ -311,7 +313,7 @@ def _reconciliation_handler():
         return {"schemaVersion": 1, "operation": "reconcile-session-revocation", **result}
     except Exception:
         _reconciliation_failure_metric()
-        raise
+        raise RuntimeError("Account deletion reconciliation failed") from None
 
 
 def _subject(event):
@@ -379,6 +381,8 @@ def _reconciliation_metric(result):
         "SessionRevocationReconciliationSuccess": 1,
         "SessionRevocationReconciliationScanned": result["scanned"],
         "SessionRevocationReconciliationMatched": result["matched"],
+        "AccountDeletionReconciliationCommandFailures": result["commandFailures"],
+        "AccountDeletionReconciliationPassFailures": int(result["passHadFailures"]),
         "SessionRevocationReconciliationRevoked": result["revoked"],
         "SessionRevocationReconciliationAlreadyComplete": result["sessionAlreadyComplete"],
         "AccountDeletionDeviceRecordsDeleted": result["deviceRecordsDeleted"],

@@ -10,7 +10,7 @@ MAX_REQUEST_BYTES = 1024
 def deletion_request(event):
     _no_query(event)
     raw = event.get("body")
-    if event.get("isBase64Encoded") not in (None, False):
+    if event.get("isBase64Encoded") is not None and event.get("isBase64Encoded") is not False:
         raise _invalid("body", "Request body must be unencoded JSON.")
     if not isinstance(raw, str):
         raise _invalid("body", "Request body must be valid JSON.")
@@ -36,7 +36,7 @@ def deletion_request(event):
 
 def validate_get(event):
     _no_query(event)
-    if event.get("body") not in (None, "") or event.get("isBase64Encoded") not in (None, False):
+    if event.get("body") not in (None, "") or (event.get("isBase64Encoded") is not None and event.get("isBase64Encoded") is not False):
         raise _invalid("body", "The status route does not accept a request body.")
 
 

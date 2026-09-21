@@ -147,7 +147,7 @@ class AccountDataHandlerTests(unittest.TestCase):
             with self.subTest(body_type=type(body).__name__):
                 response = app.lambda_handler(event(body=body), None)
                 self.assertEqual(response["statusCode"], 400)
-        for addition in [{"isBase64Encoded": True},
+        for addition in [{"isBase64Encoded": True}, {"isBase64Encoded": 0},
                          {"queryStringParameters": []},
                          {"rawQueryString": "accountId=another-account"}]:
             with self.subTest(addition=addition):
@@ -178,6 +178,12 @@ class AccountDataHandlerTests(unittest.TestCase):
             result = app.lambda_handler({"Records": [record]}, None)
 
         self.assertEqual(result, {"batchItemFailures": [{"itemIdentifier": "12345"}]})
+
+    def test_reconciliation_failure_retains_retry_without_private_exception_text(self):
+        with mock.patch.object(app, "reconcile_session_revocations", side_effect=RuntimeError("private-account")):
+            with self.assertRaisesRegex(RuntimeError, "^Account deletion reconciliation failed$") as captured:
+                app.lambda_handler({"schemaVersion": 1, "operation": "reconcile-session-revocation"}, None)
+        self.assertTrue(captured.exception.__suppress_context__)
 
     def test_stream_configuration_failure_propagates_for_batch_retry(self):
         with mock.patch.object(app.config, "validate_config", side_effect=RuntimeError("bad config")):

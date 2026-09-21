@@ -825,8 +825,11 @@ def reconcile_session_revocations(
     analysis_consumption_deletion_policy_status="pending",
     campaign_outbox_locator_coverage_status="pending",
     user_profile_deletion_policy_status="pending",
-    now=lambda: int(time.time()),
+    now=lambda: int(time.time()), remaining_millis=lambda: 30000,
+    max_commands=10, minimum_remaining_millis=10000,
 ):
+    if not 1 <= max_commands <= 10 or minimum_remaining_millis != 10000:
+        raise ValueError("Invalid reconciliation work budget")
     checkpoint_key = {
         "PK": f"LIFECYCLE#{environment}",
         "SK": "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
@@ -838,8 +841,11 @@ def reconcile_session_revocations(
     if start_key is not None and not _valid_key(start_key):
         raise ValueError("Invalid session-revocation reconciliation checkpoint")
     completed_pass_at = _exact_int(checkpoint.get("completedPassAtEpoch"))
+    pass_had_failures = checkpoint.get("passHadFailures", False)
+    if not isinstance(pass_had_failures, bool):
+        raise ValueError("Invalid reconciliation pass state")
     totals = {
-        "scanned": 0, "matched": 0, "revoked": 0,
+        "scanned": 0, "matched": 0, "revoked": 0, "commandFailures": 0,
         "sessionAlreadyComplete": 0, "deviceRecordsDeleted": 0,
         "deviceComponentsCompleted": 0,
         "recoveryRecordsDeleted": 0, "recoveryRecordsMinimized": 0,
@@ -856,7 +862,12 @@ def reconcile_session_revocations(
         "userProfilePolicyBlocked": 0,
     }
     truncated = False
+    completed_clean_pass = False
+    attempted = 0
     for page_number in range(max_pages):
+        if attempted >= max_commands or remaining_millis() < minimum_remaining_millis:
+            truncated = True
+            break
         kwargs = {
             "ConsistentRead": True,
             "Limit": scan_limit,
@@ -872,92 +883,119 @@ def reconcile_session_revocations(
         page = ledger_table.scan(**kwargs)
         totals["scanned"] += int(page.get("ScannedCount", 0))
         for raw in page.get("Items") or []:
-            command = validate_command(raw, environment)
-            totals["matched"] += 1
-            receipt = ledger_table.get_item(
-                Key={
-                    "PK": command["PK"],
-                    "SK": "ACCOUNT_DELETION#SESSION_REVOCATION",
-                },
-                ConsistentRead=True,
-            ).get("Item")
-            if _valid_component_receipt(receipt, command, "SESSION_REVOCATION"):
-                totals["sessionAlreadyComplete"] += 1
-            else:
-                ensure_session_revoked(
-                    command, user_pool_id=user_pool_id, cognito=cognito,
-                    ledger_table=ledger_table, now_epoch=now(),
+            if attempted >= max_commands or remaining_millis() < minimum_remaining_millis:
+                truncated = True
+                break
+            key = {"PK": raw.get("PK"), "SK": raw.get("SK")}
+            if not _valid_key(key):
+                raise ValueError("Invalid reconciliation item key")
+            # Advance before work. A timeout must not starve every later account.
+            # The fail-closed marker prevents that pass being reported clean.
+            _save_reconciliation_checkpoint(
+                ledger_table, checkpoint_key, key, now(),
+                completed_pass_at=completed_pass_at, pass_had_failures=True,
+            )
+            start_key = key
+            attempted += 1
+            try:
+                command = validate_command(raw, environment)
+                totals["matched"] += 1
+                receipt = ledger_table.get_item(
+                    Key={
+                        "PK": command["PK"],
+                        "SK": "ACCOUNT_DELETION#SESSION_REVOCATION",
+                    },
+                    ConsistentRead=True,
+                ).get("Item")
+                if _valid_component_receipt(receipt, command, "SESSION_REVOCATION"):
+                    totals["sessionAlreadyComplete"] += 1
+                else:
+                    ensure_session_revoked(
+                        command, user_pool_id=user_pool_id, cognito=cognito,
+                        ledger_table=ledger_table, now_epoch=now(),
+                    )
+                    totals["revoked"] += 1
+                device_result = delete_device_bindings(
+                    command, device_table=device_table, ledger_table=ledger_table,
+                    page_size=device_page_size, now_epoch=now(),
                 )
-                totals["revoked"] += 1
-            device_result = delete_device_bindings(
-                command, device_table=device_table, ledger_table=ledger_table,
-                page_size=device_page_size, now_epoch=now(),
+                totals["deviceRecordsDeleted"] += device_result["deleted"]
+                totals["deviceComponentsCompleted"] += 1 if device_result["complete"] else 0
+                recovery_result = delete_device_recovery_control(
+                    command, recovery_table=recovery_table, ledger_table=ledger_table,
+                    page_size=recovery_page_size, now_epoch=now(),
+                )
+                totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
+                totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
+                totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
+                abuse_result = delete_analysis_abuse_control(
+                    command, abuse_table=abuse_table, ledger_table=ledger_table,
+                    page_size=analysis_abuse_page_size,
+                    request_retention_seconds=analysis_request_retention_seconds,
+                    history_dedup_retention_days=history_dedup_retention_days,
+                    request_dedupe_policy_status=(
+                        analysis_request_dedupe_policy_status
+                    ),
+                    legacy_request_retention_policy_status=(
+                        analysis_legacy_request_retention_policy_status
+                    ),
+                    consumption_deletion_policy_status=(
+                        analysis_consumption_deletion_policy_status
+                    ),
+                    now_epoch=now(),
+                )
+                totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
+                totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
+                totals["analysisAbuseComponentsCompleted"] += (
+                    1 if abuse_result["complete"] else 0
+                )
+                totals["analysisAbusePolicyBlocked"] += (
+                    1 if abuse_result.get("policyBlocked") else 0
+                )
+                outbox_result = delete_campaign_outbox(
+                    command, outbox_table=outbox_table, ledger_table=ledger_table,
+                    page_size=campaign_outbox_page_size,
+                    locator_coverage_status=campaign_outbox_locator_coverage_status,
+                    now_epoch=now(),
+                )
+                totals["campaignOutboxRecordsDeleted"] += outbox_result["deleted"]
+                totals["campaignOutboxComponentsCompleted"] += (
+                    1 if outbox_result["complete"] else 0
+                )
+                totals["campaignOutboxPolicyBlocked"] += (
+                    1 if outbox_result.get("policyBlocked") else 0
+                )
+                profile_result = delete_user_profile_state(
+                    command, users_table=users_table, ledger_table=ledger_table,
+                    page_size=100, policy_status=user_profile_deletion_policy_status,
+                    now_epoch=now(),
+                )
+                totals["userProfileRecordsDeleted"] += profile_result["deleted"]
+                totals["userProfileComponentsCompleted"] += (
+                    1 if profile_result["complete"] else 0
+                )
+                totals["userProfilePolicyBlocked"] += (
+                    1 if profile_result.get("policyBlocked") else 0
+                )
+            except Exception:
+                totals["commandFailures"] += 1
+                pass_had_failures = True
+            _save_reconciliation_checkpoint(
+                ledger_table, checkpoint_key, start_key, now(),
+                completed_pass_at=completed_pass_at,
+                pass_had_failures=pass_had_failures,
             )
-            totals["deviceRecordsDeleted"] += device_result["deleted"]
-            totals["deviceComponentsCompleted"] += 1 if device_result["complete"] else 0
-            recovery_result = delete_device_recovery_control(
-                command, recovery_table=recovery_table, ledger_table=ledger_table,
-                page_size=recovery_page_size, now_epoch=now(),
-            )
-            totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
-            totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
-            totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
-            abuse_result = delete_analysis_abuse_control(
-                command, abuse_table=abuse_table, ledger_table=ledger_table,
-                page_size=analysis_abuse_page_size,
-                request_retention_seconds=analysis_request_retention_seconds,
-                history_dedup_retention_days=history_dedup_retention_days,
-                request_dedupe_policy_status=(
-                    analysis_request_dedupe_policy_status
-                ),
-                legacy_request_retention_policy_status=(
-                    analysis_legacy_request_retention_policy_status
-                ),
-                consumption_deletion_policy_status=(
-                    analysis_consumption_deletion_policy_status
-                ),
-                now_epoch=now(),
-            )
-            totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
-            totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
-            totals["analysisAbuseComponentsCompleted"] += (
-                1 if abuse_result["complete"] else 0
-            )
-            totals["analysisAbusePolicyBlocked"] += (
-                1 if abuse_result.get("policyBlocked") else 0
-            )
-            outbox_result = delete_campaign_outbox(
-                command, outbox_table=outbox_table, ledger_table=ledger_table,
-                page_size=campaign_outbox_page_size,
-                locator_coverage_status=campaign_outbox_locator_coverage_status,
-                now_epoch=now(),
-            )
-            totals["campaignOutboxRecordsDeleted"] += outbox_result["deleted"]
-            totals["campaignOutboxComponentsCompleted"] += (
-                1 if outbox_result["complete"] else 0
-            )
-            totals["campaignOutboxPolicyBlocked"] += (
-                1 if outbox_result.get("policyBlocked") else 0
-            )
-            profile_result = delete_user_profile_state(
-                command, users_table=users_table, ledger_table=ledger_table,
-                page_size=100, policy_status=user_profile_deletion_policy_status,
-                now_epoch=now(),
-            )
-            totals["userProfileRecordsDeleted"] += profile_result["deleted"]
-            totals["userProfileComponentsCompleted"] += (
-                1 if profile_result["complete"] else 0
-            )
-            totals["userProfilePolicyBlocked"] += (
-                1 if profile_result.get("policyBlocked") else 0
-            )
+        if truncated:
+            break
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
-        if not start_key:
+        if not start_key and not pass_had_failures:
             completed_pass_at = checkpoint_time
+            completed_clean_pass = True
         _save_reconciliation_checkpoint(
             ledger_table, checkpoint_key, start_key, checkpoint_time,
             completed_pass_at=completed_pass_at,
+            pass_had_failures=pass_had_failures if start_key else False,
         )
         if not start_key:
             break
@@ -967,7 +1005,8 @@ def reconcile_session_revocations(
     return {
         **totals,
         "worksetTruncated": truncated,
-        "completedFullPass": not truncated and not start_key,
+        "completedFullPass": completed_clean_pass,
+        "passHadFailures": pass_had_failures,
         "completedPassAtEpoch": completed_pass_at,
         "fullPassAgeSeconds": (
             max(0, completed_at - completed_pass_at)
@@ -1269,12 +1308,14 @@ def _validate_rate_state(item, retention_seconds):
 
 def _save_reconciliation_checkpoint(
     table, key, last_evaluated_key, now_epoch, *, completed_pass_at,
+    pass_had_failures=False,
 ):
     item = {
         **key,
         "recordType": "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
         "schemaVersion": 1,
         "updatedAtEpoch": now_epoch,
+        "passHadFailures": pass_had_failures,
     }
     if last_evaluated_key:
         if not _valid_key(last_evaluated_key):
