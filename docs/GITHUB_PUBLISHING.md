@@ -5,6 +5,25 @@ and the campaign/history contract ZIPs produced by a successful `CI` push run
 on `main`. It does not rebuild deployment artifacts during promotion. The
 source commit SHA is the immutable S3 release ID.
 
+## CI execution policy
+
+Automatic GitHub checks run only after a push or merge to `main`. Feature branches,
+`release-V01`, and pull requests use required local validation; they do not start
+GitHub CI. Record appropriate local commands/results in the PR before ordinary
+release integration. For workflow-only changes, workflow syntax and trigger/job
+invariant checks are sufficient; runtime changes require their relevant tests.
+Do not dispatch CI to work around this timing policy or describe absent runs as
+passes. Keep all existing main CI jobs, including isolated Python 3.14 authority
+and compatibility checks. A main promotion still requires explicit owner approval.
+
+Repository protections must agree with this policy: a pre-main PR cannot require a
+check that is intentionally not scheduled. Adjust such live policy only when
+explicitly authorized; do not use admin bypass or forge successful status checks.
+Publish completion events are filtered to `main` and still require a successful
+main push, the existing feature variable and environment controls. Manual promotion
+keeps its existing main/source-run checks. These settings do not deploy or activate
+any Lambda and do not authorize running a publishing workflow.
+
 ## GitHub repository configuration
 
 Create GitHub environments named `dev`, `uat`, and `prod`. Configure these
@@ -61,7 +80,7 @@ ZIP files.
 
 ## Independent resolver publication
 
-CI on a main-branch push records `dist/release-scope.json` from the entire push's before/head commit range. Resolver-only changes, including reviewed packaging/docs/workflow support files, receive `scope=resolver`; a change to any other Lambda or shared runtime code retains the existing all-functions scope. Pull-request CI does not produce a promotable main-push manifest.
+CI on a main-branch push records `dist/release-scope.json` from the entire push's before/head commit range. Resolver-only changes, including reviewed packaging/docs/workflow support files, receive `scope=resolver`; a change to any other Lambda or shared runtime code retains the existing all-functions scope. Pull requests do not run CI or produce a promotable main-push manifest.
 
 The publishing workflow requires a successful main-push CI run and an exact matching scope manifest. A resolver-only release invokes `scripts/publish_url_resolver.py`, which verifies the resolver checksum, conditionally uploads only `url_redirect_resolver.zip`, checks the current object and requires its version/checksum/size to match the published artifact, and saves `url-resolver-publication.json` as a GitHub artifact. No unrelated Lambda ZIP or contract package is published in this path. The result contains the bucket/key/version/base64 hash for the separately authorized infrastructure promotion. It never calls Lambda or changes a runtime/alias.
 

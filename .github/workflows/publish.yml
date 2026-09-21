@@ -2,6 +2,8 @@ name: Publish Lambda release
 
 on:
   workflow_run:
+    branches:
+      - main
     workflows:
       - CI
     types:
