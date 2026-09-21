@@ -1,0 +1,50 @@
+{
+  "message.high_risk_request": {
+    "en": "The reviewed message asks for a risky payment or account secret. Pause and verify through a trusted channel before acting.",
+    "es": "El mensaje revisado solicita un pago riesgoso o un secreto de la cuenta. Deténgase y verifique por un canal de confianza antes de actuar."
+  },
+  "message.suspicious_request": {
+    "en": "The reviewed message combines a payment request with secrecy or pressure to skip verification. Verify independently before acting.",
+    "es": "El mensaje revisado combina una solicitud de pago con secreto o presión para omitir la verificación. Verifique de forma independiente antes de actuar."
+  },
+  "message.no_supported_finding": {
+    "en": "The completed checks found no supported warning pattern in the reviewed content. This does not guarantee safety or verify the sender.",
+    "es": "Las comprobaciones completadas no encontraron un patrón de advertencia respaldado en el contenido revisado. Esto no garantiza la seguridad ni verifica al remitente."
+  },
+  "message.inconclusive": {
+    "en": "There is not enough reliable context to assess this message. Review the selected text and who wrote it.",
+    "es": "No hay suficiente contexto fiable para evaluar este mensaje. Revise el texto seleccionado y quién lo escribió."
+  },
+  "message.provider_unavailable": {
+    "en": "Message analysis could not finish because a required service was unavailable. No conclusion about the unassessed content was reached.",
+    "es": "El análisis del mensaje no pudo completarse porque un servicio necesario no estaba disponible. No se llegó a una conclusión sobre el contenido no evaluado."
+  },
+  "message.hostile_stop": {
+    "en": "Analysis stopped because instructions in the content could interfere with the check. The unassessed content has not been cleared.",
+    "es": "El análisis se detuvo porque las instrucciones del contenido podrían interferir con la comprobación. No se ha confirmado la seguridad del contenido no evaluado."
+  },
+  "message.partial_known_threat": {
+    "en": "A checked link was flagged by a threat source. Avoid the link. Other parts of the message could not be assessed.",
+    "es": "Una fuente de información sobre amenazas marcó un enlace comprobado como riesgoso. Evite el enlace. No se pudieron evaluar otras partes del mensaje."
+  },
+  "pause_and_verify": {
+    "en": "Pause and verify through a channel you already trust.",
+    "es": "Deténgase y verifique por un canal en el que ya confíe."
+  },
+  "verify_independently": {
+    "en": "Verify independently before acting.",
+    "es": "Verifique de forma independiente antes de actuar."
+  },
+  "review_input": {
+    "en": "Review the text and speaker selection.",
+    "es": "Revise el texto y la selección de quién lo escribió."
+  },
+  "avoid_link": {
+    "en": "Avoid the flagged link.",
+    "es": "Evite el enlace señalado."
+  },
+  "use_built_in_help": {
+    "en": "Open built-in help.",
+    "es": "Abra la ayuda incluida."
+  }
+}

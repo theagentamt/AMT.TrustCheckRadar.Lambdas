@@ -1,0 +1,50 @@
+[
+  {
+    "id": "prepare",
+    "route": "POST /v1/message-checks/prepare",
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "entryPoint": "message",
+      "language": "en",
+      "target": {
+        "scope": "sanitized_message",
+        "sourceType": "pasted_text",
+        "sanitizedText": "Send me your account password and the login code.",
+        "speakerRole": "other",
+        "entities": [],
+        "withheldLinks": false,
+        "reviewedLinks": []
+      }
+    }
+  },
+  {
+    "id": "submit",
+    "route": "POST /v1/message-checks",
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "entryPoint": "message",
+      "language": "en",
+      "target": {
+        "scope": "sanitized_message",
+        "sourceType": "pasted_text",
+        "sanitizedText": "Send me your account password and the login code.",
+        "speakerRole": "other",
+        "entities": [],
+        "withheldLinks": false,
+        "reviewedLinks": []
+      },
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222"
+    }
+  },
+  {
+    "id": "reconcile",
+    "route": "POST /v1/message-checks/reconcile",
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222"
+    }
+  }
+]

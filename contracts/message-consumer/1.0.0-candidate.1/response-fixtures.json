@@ -1,0 +1,1272 @@
+[
+  {
+    "id": "service-not-enabled",
+    "httpStatus": 503,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": null,
+      "operationProof": null,
+      "state": "unknown",
+      "access": {
+        "state": "temporarily_unavailable",
+        "basis": "unknown",
+        "externalChecksAllowed": false,
+        "builtInChecksAllowed": false,
+        "reconciliationAllowed": false,
+        "remainingChecks": null,
+        "resetsAt": null,
+        "unlimited": false,
+        "observedAt": "2026-09-21T03:08:23.408972Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "SERVICE_NOT_ENABLED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "prepared",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "prepared",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_started",
+        "chargedChecks": 0,
+        "receiptId": null,
+        "requiresReconciliation": false
+      },
+      "outcome": null,
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "pending",
+    "httpStatus": 202,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "pending",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "pending",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": null,
+      "retryAfterSeconds": 2,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "unknown-lost-submit",
+    "httpStatus": 503,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "SERVICE_UNAVAILABLE",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "unknown-lost-prepare",
+    "httpStatus": 503,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": null,
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "SERVICE_UNAVAILABLE",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "closed-not-admitted",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "rejected",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_started",
+        "chargedChecks": 0,
+        "receiptId": null,
+        "requiresReconciliation": false
+      },
+      "outcome": null,
+      "errorCode": "OPERATION_EXPIRED",
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "authentication_required",
+    "httpStatus": 401,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "sign_in_required",
+        "basis": "none",
+        "externalChecksAllowed": false,
+        "builtInChecksAllowed": false,
+        "reconciliationAllowed": false,
+        "remainingChecks": null,
+        "resetsAt": null,
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "AUTHENTICATION_REQUIRED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "account_unavailable",
+    "httpStatus": 403,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "ACCOUNT_UNAVAILABLE",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "active_device_required",
+    "httpStatus": 403,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "device_action_required",
+        "basis": "trial",
+        "externalChecksAllowed": false,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "ACTIVE_DEVICE_REQUIRED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "external_access_unavailable",
+    "httpStatus": 403,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "subscription_required",
+        "basis": "none",
+        "externalChecksAllowed": false,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": null,
+        "resetsAt": null,
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "EXTERNAL_ACCESS_UNAVAILABLE",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "allowance_exhausted",
+    "httpStatus": 403,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowance_exhausted",
+        "basis": "trial",
+        "externalChecksAllowed": false,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 0,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "ALLOWANCE_EXHAUSTED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "input_rejected",
+    "httpStatus": 422,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "INPUT_REJECTED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "privacy_review_required",
+    "httpStatus": 422,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "PRIVACY_REVIEW_REQUIRED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "check_id_conflict",
+    "httpStatus": 409,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "CHECK_ID_CONFLICT",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "operation_expired",
+    "httpStatus": 409,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "OPERATION_EXPIRED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "rate_limited",
+    "httpStatus": 429,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "RATE_LIMITED",
+      "retryAfterSeconds": 60,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "contract_unsupported",
+    "httpStatus": 422,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "unknown",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "unknown",
+        "chargedChecks": null,
+        "receiptId": null,
+        "requiresReconciliation": true
+      },
+      "outcome": null,
+      "errorCode": "CONTRACT_UNSUPPORTED",
+      "retryAfterSeconds": null,
+      "expiresAt": null
+    }
+  },
+  {
+    "id": "en-demand_gift_card_payment-17",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "DEMAND_GIFT_CARD_PAYMENT"
+        ],
+        "evidence": [],
+        "nextAction": "pause_and_verify",
+        "messageKey": "message.high_risk_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "en-request_secret_disclosure-18",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "REQUEST_SECRET_DISCLOSURE"
+        ],
+        "evidence": [],
+        "nextAction": "pause_and_verify",
+        "messageKey": "message.high_risk_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "en-payment_with_secrecy_pressure-19",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "suspicious",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "PAYMENT_WITH_SECRECY_PRESSURE"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.suspicious_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "en-benign_fixed_text-20",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "BENIGN_FIXED_TEXT"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.no_supported_finding"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "en-benign_fixed_text-21",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "BENIGN_FIXED_TEXT"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.no_supported_finding"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "es-demand_gift_card_payment-22",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "DEMAND_GIFT_CARD_PAYMENT"
+        ],
+        "evidence": [],
+        "nextAction": "pause_and_verify",
+        "messageKey": "message.high_risk_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "es-request_secret_disclosure-23",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "REQUEST_SECRET_DISCLOSURE"
+        ],
+        "evidence": [],
+        "nextAction": "pause_and_verify",
+        "messageKey": "message.high_risk_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "es-payment_with_secrecy_pressure-24",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "suspicious",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "PAYMENT_WITH_SECRECY_PRESSURE"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.suspicious_request"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "es-benign_fixed_text-25",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "BENIGN_FIXED_TEXT"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.no_supported_finding"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "es-benign_fixed_text-26",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "charged",
+        "chargedChecks": 1,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "coverage": "supported_checks_complete",
+        "limitationCodes": [],
+        "ruleIds": [
+          "BENIGN_FIXED_TEXT"
+        ],
+        "evidence": [],
+        "nextAction": "verify_independently",
+        "messageKey": "message.no_supported_finding"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "inconclusive",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "unknown",
+        "processingOutcome": "inconclusive",
+        "coverage": "not_assessed",
+        "limitationCodes": [
+          "INSUFFICIENT_EVIDENCE"
+        ],
+        "ruleIds": [],
+        "evidence": [],
+        "nextAction": "review_input",
+        "messageKey": "message.inconclusive"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "hostile-stop",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "unknown",
+        "processingOutcome": "blocked",
+        "coverage": "not_assessed",
+        "limitationCodes": [
+          "HOSTILE_INPUT_STOP"
+        ],
+        "ruleIds": [],
+        "evidence": [],
+        "nextAction": "review_input",
+        "messageKey": "message.hostile_stop"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "provider-failure",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "coverage": "not_assessed",
+        "limitationCodes": [
+          "PROVIDER_UNAVAILABLE"
+        ],
+        "ruleIds": [],
+        "evidence": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "message.provider_unavailable"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "budget-limit",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "unknown",
+        "processingOutcome": "unavailable",
+        "coverage": "not_assessed",
+        "limitationCodes": [
+          "BUDGET_LIMIT"
+        ],
+        "ruleIds": [],
+        "evidence": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "message.provider_unavailable"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "withheld-link",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "unknown",
+        "processingOutcome": "inconclusive",
+        "coverage": "not_assessed",
+        "limitationCodes": [
+          "WITHHELD_LINKS",
+          "INSUFFICIENT_EVIDENCE"
+        ],
+        "ruleIds": [],
+        "evidence": [],
+        "nextAction": "review_input",
+        "messageKey": "message.inconclusive"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  },
+  {
+    "id": "independent-threat-preserved",
+    "httpStatus": 200,
+    "body": {
+      "transportVersion": "1.0.0-message-candidate.1",
+      "checkId": "message-fixture-1",
+      "operationProof": "v1_k1_ffffffff_1111111111111111_222222222222222222222222",
+      "state": "settled",
+      "access": {
+        "state": "allowed",
+        "basis": "trial",
+        "externalChecksAllowed": true,
+        "builtInChecksAllowed": true,
+        "reconciliationAllowed": true,
+        "remainingChecks": 9,
+        "resetsAt": "2026-09-28T00:00:00Z",
+        "unlimited": false,
+        "observedAt": "2026-09-21T00:00:00Z"
+      },
+      "accounting": {
+        "state": "not_charged",
+        "chargedChecks": 0,
+        "receiptId": "syntheticreceipt",
+        "requiresReconciliation": false
+      },
+      "outcome": {
+        "schemaVersion": 1,
+        "kind": "message_assessment",
+        "checkId": "message-fixture-1",
+        "policyVersion": "message-rules-2026-09-20-v1",
+        "verdict": "high_risk",
+        "processingOutcome": "partial",
+        "coverage": "limited",
+        "limitationCodes": [
+          "HOSTILE_INPUT_STOP"
+        ],
+        "ruleIds": [],
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain"
+          }
+        ],
+        "nextAction": "avoid_link",
+        "messageKey": "message.partial_known_threat"
+      },
+      "errorCode": null,
+      "retryAfterSeconds": null,
+      "expiresAt": 4102444800
+    }
+  }
+]
