@@ -368,29 +368,29 @@ class ServiceTests(unittest.TestCase):
             b"campaign-contributor:v1\0account-123",
         )
         self.assertEqual(fake_kms.calls[0]["MacAlgorithm"], "HMAC_SHA_256")
-        condition = fake_dynamo.transactions[0][0]["ConditionCheck"]
+        condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
         self.assertEqual(condition["TableName"], "users")
         self.assertEqual(condition["ExpressionAttributeValues"][":epoch"], {"S": CONSENT_EPOCH_ID})
         self.assertEqual(condition["ExpressionAttributeValues"][":environment"], {"S": "dev"})
         self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "2026-09-07"})
-        deletion_condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
+        deletion_condition = fake_dynamo.transactions[0][2]["ConditionCheck"]
         self.assertEqual(deletion_condition["TableName"], "deletion-ledger")
         self.assertEqual(
             deletion_condition["ConditionExpression"], "attribute_not_exists(PK)"
         )
         final_transaction = fake_dynamo.transactions[1]
-        self.assertEqual(final_transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(final_transaction[1]["ConditionCheck"]["TableName"], "users")
         self.assertEqual(
-            final_transaction[1]["ConditionCheck"]["TableName"],
+            final_transaction[2]["ConditionCheck"]["TableName"],
             "deletion-ledger",
         )
-        final_update = final_transaction[2]["Update"]
+        final_update = final_transaction[3]["Update"]
         self.assertEqual(final_update["TableName"], "campaign-pipeline")
         self.assertEqual(
             final_update["ConditionExpression"],
             "attribute_exists(PK) AND attribute_exists(SK) AND #status = :pending",
         )
-        feature = fake_dynamo.transactions[0][2]["Put"]["Item"]
+        feature = fake_dynamo.transactions[0][3]["Put"]["Item"]
         self.assertEqual(feature["SK"], {"S": "FEATURE"})
         self.assertNotIn("accountId", feature)
         self.assertNotIn("sanitizedText", feature)
@@ -415,10 +415,20 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(fake_dynamo.transactions, [])
         self.assertEqual(fake_sqs.calls, [])
 
+    def test_every_pipeline_write_atomically_checks_contributor_tombstone(self):
+        self.publish()
+        self.assertTrue(fake_dynamo.transactions)
+        for transaction in fake_dynamo.transactions:
+            condition = transaction[0]["ConditionCheck"]
+            self.assertEqual(condition["TableName"], "campaign-pipeline")
+            self.assertEqual(condition["Key"]["SK"], {"S":"TOMBSTONE"})
+            self.assertTrue(condition["Key"]["PK"]["S"].startswith("CONTRIB#"))
+            self.assertIn("attribute_not_exists", condition["ConditionExpression"])
+
     def test_publisher_feature_record_satisfies_cluster_input_contract(self):
         self.publish()
         persisted = aggregator_service.deserialize(
-            fake_dynamo.transactions[0][2]["Put"]["Item"]
+            fake_dynamo.transactions[0][3]["Put"]["Item"]
         )
 
         validated = aggregator_service._validated_feature(
@@ -513,15 +523,15 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(fake_dynamo.transactions, [])
         self.assertEqual(fake_sqs.calls, [])
 
-    def test_pending_delivery_retries_without_rederiving_identity_token(self):
+    def test_pending_delivery_rederives_token_to_fence_final_write(self):
         fake_dynamo.item = {"status": {"S": "PENDING"}}
 
         result = self.publish()
 
         self.assertEqual(result, "published")
-        self.assertEqual(fake_kms.calls, [])
+        self.assertEqual(len(fake_kms.calls), 1)
         self.assertEqual(len(fake_dynamo.transactions), 1)
-        self.assertIn("Update", fake_dynamo.transactions[0][2])
+        self.assertIn("Update", fake_dynamo.transactions[0][3])
         self.assertEqual(len(fake_sqs.calls), 1)
         self.assertEqual(fake_dynamo.updates, [])
 
@@ -535,10 +545,10 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(len(fake_dynamo.transactions), 2)
         final_transaction = fake_dynamo.transactions[1]
         self.assertEqual(
-            final_transaction[1]["ConditionCheck"]["ConditionExpression"],
+            final_transaction[2]["ConditionCheck"]["ConditionExpression"],
             "attribute_not_exists(PK)",
         )
-        self.assertIn("Update", final_transaction[2])
+        self.assertIn("Update", final_transaction[3])
         self.assertEqual(fake_dynamo.updates, [])
 
     def test_period_is_fixed_fourteen_day_utc_bucket(self):

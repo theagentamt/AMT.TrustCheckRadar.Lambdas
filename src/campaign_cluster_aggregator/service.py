@@ -66,9 +66,13 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     if existing:
         count = int(existing.get("submissionCount", {"N": "0"})["N"])
         if count >= max_submissions:
-            _dedupe(dynamodb, table_name, event_id, candidate_id, environment, expires_at, "CONTRIBUTOR_CAPPED")
+            dynamodb.transact_write_items(TransactItems=[
+                _tombstone_condition(table_name, feature),
+                _dedupe_action(table_name, event_id, candidate_id, environment, expires_at, "CONTRIBUTOR_CAPPED"),
+            ])
             return "contributor-capped"
         dynamodb.transact_write_items(TransactItems=[
+            _tombstone_condition(table_name, feature),
             {"Update": {"TableName": table_name, "Key": contribution_key,
                         "UpdateExpression": (
                             "SET expiresAt = :expiry, GSI3PK = :expiry_partition, GSI3SK = :expiry "
@@ -103,7 +107,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
                                      "ExpressionAttributeValues": {":version": {"N": str(previous_version)}}})
     else:
         put_candidate["Put"]["ConditionExpression"] = "attribute_not_exists(PK) AND attribute_not_exists(SK)"
-    transaction = [put_candidate]
+    transaction = [put_candidate, _tombstone_condition(table_name, feature)]
     if not selected:
         transaction.append(_candidate_creation_serialization_action(
             dynamodb,
@@ -128,6 +132,12 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     dynamodb.transact_write_items(TransactItems=transaction)
     return "matched" if selected else "candidate-created"
 
+
+
+def _tombstone_condition(table_name, feature):
+    return {"ConditionCheck": {"TableName":table_name,
+        "Key":{"PK":{"S":f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}"},"SK":{"S":"TOMBSTONE"}},
+        "ConditionExpression":"attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
 
 def _candidate_creation_serialization_action(dynamodb, table_name, feature, environment, expires_at):
     key = {

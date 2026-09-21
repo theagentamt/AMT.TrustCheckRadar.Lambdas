@@ -127,9 +127,9 @@ class ClusterServiceTests(unittest.TestCase):
         self.assertEqual(updated["contributorCount"], 10)
         self.assertEqual(updated["submissionCount"], 10)
         self.assertEqual(updated["centroid"], [1.0, 0.0])
-        self.assertEqual(len(transaction), 3)
+        self.assertEqual(len(transaction), 4)
 
-        contribution = service.deserialize(transaction[1]["Put"]["Item"])
+        contribution = service.deserialize(transaction[2]["Put"]["Item"])
         self.assertEqual(contribution["languageId"], "en")
         self.assertEqual(contribution["signalIds"], ["payment_request"])
         self.assertEqual(contribution["indicatorIds"], ["payment.crypto"])
@@ -144,8 +144,8 @@ class ClusterServiceTests(unittest.TestCase):
         transaction = dynamo.transactions[0]
         created = service.deserialize(transaction[0]["Put"]["Item"])
         self.assertEqual(created["candidateId"], "new-candidate")
-        self.assertEqual(len(transaction), 4)
-        creation_control = transaction[1]["Put"]
+        self.assertEqual(len(transaction), 5)
+        creation_control = transaction[2]["Put"]
         self.assertEqual(creation_control["Item"]["SK"], {"S": "CREATION_CONTROL"})
         self.assertIn("attribute_not_exists", creation_control["ConditionExpression"])
 
@@ -158,7 +158,7 @@ class ClusterServiceTests(unittest.TestCase):
 
         dynamo = ControlledDynamo(feature())
         self.assertEqual(self.process(dynamo), "candidate-created")
-        control = dynamo.transactions[0][1]["Update"]
+        control = dynamo.transactions[0][2]["Update"]
         self.assertEqual(control["ExpressionAttributeValues"][":version"], {"N": "4"})
         self.assertEqual(control["ExpressionAttributeValues"][":next_version"], {"N": "5"})
         self.assertEqual(control["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
@@ -170,7 +170,7 @@ class ClusterServiceTests(unittest.TestCase):
 
         self.assertEqual(self.process(dynamo), "counted-repeat")
 
-        update = dynamo.transactions[0][0]["Update"]
+        update = dynamo.transactions[0][1]["Update"]
         self.assertEqual(update["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
         self.assertEqual(update["ExpressionAttributeValues"][":expiry_partition"], {"S": "EXPIRY#dev"})
 
@@ -180,8 +180,22 @@ class ClusterServiceTests(unittest.TestCase):
         })
 
         self.assertEqual(self.process(dynamo), "contributor-capped")
-        self.assertEqual(dynamo.transactions, [])
-        self.assertEqual(len(dynamo.puts), 1)
+        self.assertEqual(len(dynamo.transactions), 1)
+        self.assertIn("ConditionCheck", dynamo.transactions[0][0])
+        self.assertEqual(dynamo.puts, [])
+
+    def test_all_write_paths_include_atomic_tombstone_absence(self):
+        for existing in (None, {"submissionCount":{"N":"2"},"expiresAt":{"N":"1900000000"}},
+                         {"submissionCount":{"N":"3"},"expiresAt":{"N":"1900000000"}}):
+            dynamo = Dynamo(feature(), [candidate()], contribution=existing)
+            self.process(dynamo)
+            self.assertTrue(dynamo.transactions)
+            for transaction in dynamo.transactions:
+                conditions = [action["ConditionCheck"] for action in transaction if "ConditionCheck" in action]
+                self.assertEqual(len(conditions),1)
+                self.assertEqual(conditions[0]["Key"]["SK"], {"S":"TOMBSTONE"})
+                self.assertIn("attribute_not_exists",conditions[0]["ConditionExpression"])
+            self.assertFalse(dynamo.puts)
 
     def test_missing_suppressed_and_duplicate_are_noops(self):
         self.assertEqual(self.process(Dynamo()), "missing")

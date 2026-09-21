@@ -59,12 +59,8 @@ def publish_observation(
     if existing and existing.get("status") == {"S": "PUBLISHED"}:
         return "duplicate"
 
+    contributor_token = derive_contributor_token(item["accountId"], key_id=hmac_key_id, kms_client=kms_client)
     if not existing:
-        contributor_token = derive_contributor_token(
-            item["accountId"],
-            key_id=hmac_key_id,
-            kms_client=kms_client,
-        )
         transient_expiry = min(
             item["expiresAt"] + 18 * 24 * 60 * 60,
             now_epoch + transient_retention_days * 24 * 60 * 60,
@@ -76,6 +72,7 @@ def publish_observation(
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
+                    _tombstone_condition(pipeline_table_name, period_id, contributor_token),
                     *_authority_condition_checks(
                         item, users_table_name, deletion_ledger_table_name
                     ),
@@ -151,6 +148,7 @@ def publish_observation(
     )
     try:
         dynamodb_client.transact_write_items(TransactItems=[
+            _tombstone_condition(pipeline_table_name, period_id, contributor_token),
             *_authority_condition_checks(
                 item, users_table_name, deletion_ledger_table_name
             ),
@@ -195,6 +193,12 @@ def publish_observation(
         raise
     return "published"
 
+
+
+def _tombstone_condition(table, period, token):
+    return {"ConditionCheck":{"TableName":table,
+        "Key":{"PK":{"S":f"CONTRIB#{period}#{token}"},"SK":{"S":"TOMBSTONE"}},
+        "ConditionExpression":"attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
 
 def _authority_condition_checks(
     item, users_table_name, deletion_ledger_table_name,
