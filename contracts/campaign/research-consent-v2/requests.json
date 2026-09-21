@@ -3,7 +3,8 @@
     "schemaVersion": 2,
     "action": "join",
     "noticeVersion": "research-consent-2026-09-21-v2",
-    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+    "expectedStateVersion": 0
   },
   "legacyJoinReplayOnly": {
     "schemaVersion": 1,
@@ -21,6 +22,7 @@
     "schemaVersion": 2,
     "action": "withdraw",
     "noticeVersion": "research-consent-2026-09-21-v2",
-    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+    "expectedStateVersion": 1
   }
 }

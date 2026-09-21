@@ -1,7 +1,7 @@
 {
   "notEnrolled": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "not_enrolled",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -17,7 +17,7 @@
   },
   "legacyReviewRequired": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "review_required",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -33,7 +33,7 @@
   },
   "enrolled": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "enrolled",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -53,12 +53,13 @@
       "requestNoticeVersion": "research-consent-2026-09-21-v2",
       "acceptedNoticeVersion": "research-consent-2026-09-21-v2",
       "resultingState": "enrolled",
-      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+      "expectedStateVersion": 1
     }
   },
   "oldJoinAppliedCurrentReviewRequired": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "review_required",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -78,12 +79,13 @@
       "requestNoticeVersion": null,
       "acceptedNoticeVersion": null,
       "resultingState": "enrolled",
-      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+      "expectedStateVersion": null
     }
   },
   "lookupUnresolved": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "not_enrolled",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -103,12 +105,13 @@
       "requestNoticeVersion": null,
       "acceptedNoticeVersion": null,
       "resultingState": null,
-      "consentEpochId": null
+      "consentEpochId": null,
+      "expectedStateVersion": null
     }
   },
   "legacyWithdrawApplied": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "withdrawal_pending",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",
@@ -128,12 +131,13 @@
       "requestNoticeVersion": "2026-09-07",
       "acceptedNoticeVersion": "2026-09-07",
       "resultingState": "withdrawal_pending",
-      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+      "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
+      "expectedStateVersion": null
     }
   },
   "legacyWithdrawnUnverified": {
     "schemaVersion": 2,
-    "contractVersion": "2.0.0-candidate.1",
+    "contractVersion": "2.0.0-candidate.2",
     "state": "withdrawn",
     "noticeVersion": "research-consent-2026-09-21-v2",
     "policyVersion": "independent-research-v1",

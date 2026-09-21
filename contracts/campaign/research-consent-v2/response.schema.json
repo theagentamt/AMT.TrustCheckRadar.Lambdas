@@ -22,7 +22,7 @@
       "const": 2
     },
     "contractVersion": {
-      "const": "2.0.0-candidate.1"
+      "const": "2.0.0-candidate.2"
     },
     "state": {
       "enum": [
@@ -99,7 +99,8 @@
             "requestNoticeVersion",
             "acceptedNoticeVersion",
             "resultingState",
-            "consentEpochId"
+            "consentEpochId",
+            "expectedStateVersion"
           ],
           "properties": {
             "operationId": {
@@ -151,6 +152,14 @@
                 "string",
                 "null"
               ]
+            },
+            "expectedStateVersion": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 9007199254740991
             }
           }
         }
