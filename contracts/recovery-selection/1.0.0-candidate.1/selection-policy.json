@@ -1,0 +1,94 @@
+{
+  "contractVersion": "recovery-selection-1.0.0-candidate.1",
+  "selectionVersion": "recovery-selection-policy-1.0",
+  "approval": "Draft",
+  "approvalRecord": null,
+  "contentBundleVersion": "recovery-basics-1.0",
+  "contentSha256": "c27e15bf60134526e698952ad105a37865d029362a0420cd4673dfc9d55689f2",
+  "exposureOrder": [
+    "clicked_link",
+    "credentials_or_mfa",
+    "financial_or_identity",
+    "sent_payment",
+    "software_or_remote_access"
+  ],
+  "actions": [
+    {
+      "exposureId": "clicked_link",
+      "actionId": "basics_link",
+      "titleKey": "recovery_link_title",
+      "bodyKey": "recovery_link_body",
+      "priority": 4,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "credentials_or_mfa",
+      "actionId": "basics_password",
+      "titleKey": "recovery_password_title",
+      "bodyKey": "recovery_password_body",
+      "priority": 2,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "financial_or_identity",
+      "actionId": "basics_identity",
+      "titleKey": "recovery_identity_title",
+      "bodyKey": "recovery_identity_body",
+      "priority": 3,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "sent_payment",
+      "actionId": "basics_payment",
+      "titleKey": "recovery_payment_title",
+      "bodyKey": "recovery_payment_body",
+      "priority": 1,
+      "phase": "immediate_basics"
+    },
+    {
+      "exposureId": "software_or_remote_access",
+      "actionId": "basics_device",
+      "titleKey": "recovery_device_title",
+      "bodyKey": "recovery_device_body",
+      "priority": 5,
+      "phase": "immediate_basics"
+    }
+  ],
+  "dependencies": {
+    "clicked_link": [
+      "software_or_remote_access"
+    ]
+  },
+  "emptyOrUnsure": "all_basics",
+  "alwaysKeys": [
+    "recovery_intro_title",
+    "recovery_intro_body",
+    "recovery_official_title",
+    "recovery_official_body"
+  ],
+  "reviewDueAfterDays": 180,
+  "updateChannel": "app_release_only",
+  "instantOfflineRevocation": false,
+  "optionalClarification": "unavailable",
+  "uiDraft": {
+    "question": {
+      "en": "What happened? Select all that apply.",
+      "es": "¿Qué ocurrió? Seleccione todas las opciones que correspondan."
+    },
+    "unsure": {
+      "en": "I am not sure",
+      "es": "No estoy seguro de lo ocurrido"
+    },
+    "showAll": {
+      "en": "Show all basic steps",
+      "es": "Mostrar todos los pasos básicos"
+    }
+  },
+  "actionPresentationOrder": [
+    "basics_payment",
+    "basics_password",
+    "basics_identity",
+    "basics_link",
+    "basics_device"
+  ]
+}
