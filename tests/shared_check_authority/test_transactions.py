@@ -26,6 +26,8 @@ def world():
             ddb.create_table(TableName=name, BillingMode='PAY_PER_REQUEST', KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}], AttributeDefinitions=[{'AttributeName': k, 'AttributeType': 'S'} for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK')], GlobalSecondaryIndexes=[{'IndexName':'GSI1','KeySchema':[{'AttributeName':'GSI1PK','KeyType':'HASH'},{'AttributeName':'GSI1SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}}])
         clock = [1800000000]
         settings = Settings('users','devices','deletion','authority','https://issuer.example','client','checks',OWNER_POLICY,'k1',{'k1': b'synthetic-not-secret-test-key-0000'},60,120,300,480,600,60,100,3,True)
+        import hashlib
+        ddb.Table('authority').put_item(Item={'PK':'V1#CONTROL','SK':'HMAC_KEY_INVENTORY','recordType':'V1_HMAC_KEY_INVENTORY','schemaVersion':1,'revision':1,'coverage':'VERIFIED_COMPLETE','issuedKeys':{k:hashlib.sha256(v).hexdigest() for k,v in settings.hmac_keys.items()}})
         a = Authority(settings, ddb, now=lambda: clock[0])
         pk = a._partition(ACCOUNT, 'k1')
         def put(table, sk, **attrs):
@@ -322,7 +324,8 @@ def test_pending_receipt_cannot_ttl_purge_before_counter_recovery(world):
     recovery=Recovery(a.ddb,'authority',now=a.now)
     assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is True
     assert row('CHECK#'+cid)['chargedChecks']==0
-    assert 'GSI1PK' not in row('CHECK#'+cid)
+    assert row('CHECK#'+cid)['GSI1PK']=='V1_EXPIRING'
+    assert row('CHECK#'+cid)['GSI1SK'].startswith(f'{int(row("CHECK#"+cid)["expiresAt"]):012d}#')
     assert row('CHECK#'+cid)['expiresAt']==row('CHECK#'+cid)['retentionDeadlineEpoch']
     assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is False
 
@@ -368,3 +371,88 @@ def test_pending_inflight_survives_counter_retention_and_old_cleanup_cannot_decr
     assert row('INFLIGHT')['activeCount']==1 and 'expiresAt' not in row('INFLIGHT')
     assert recovery.expire(a._partition(ACCOUNT,'k1'),cid) is False
     assert row('PERIOD#p1')['reservedChecks']==1 and row('INFLIGHT')['activeCount']==1
+
+
+def test_recovery_deadline_resumes_at_last_processed_item(world):
+    a,e,put,row,change,clock=world
+    proofs=[admit(world,'bounded-'+str(i))[0] for i in range(3)]
+    from shared_check_authority.recovery import Recovery
+    clock[0]+=a.s.worker_settlement_seconds
+    recovery=Recovery(a.ddb,'authority',now=a.now)
+    calls=[0]
+    def budget():
+        calls[0]+=1
+        return calls[0]<=2  # initial query and first item; stop inside page
+    first=recovery.sweep(page_size=3,max_pages=1,can_continue=budget)
+    assert first['examined']==1 and first['cursor'] is not None
+    second=recovery.sweep(cursor=first['cursor'],page_size=3,max_pages=1)
+    assert first['recovered']+second['recovered']==3
+    assert row('PERIOD#p1')['reservedChecks']==0
+    assert all(row('CHECK#'+p)['GSI1PK']=='V1_EXPIRING' for p in proofs)
+
+
+def test_close_wins_against_admission_verified_before_expiry(world,monkeypatch):
+    a,e,put,row,change,clock=world
+    proof=a.prepare(e,PAYLOAD,'bound-client',client_check_id='bound-client')
+    original=a.client.transact_write_items
+    closed=[]
+    def racing(**kwargs):
+        if any(x.get('Put',{}).get('Item',{}).get('recordType')=='V1_CHECK_RECEIPT' for x in kwargs['TransactItems']) and not closed:
+            clock[0]+=a.s.operation_validity_seconds
+            closed.append(a.reconcile(e,proof,client_check_id='bound-client'))
+        return original(**kwargs)
+    monkeypatch.setattr(a.client,'transact_write_items',racing)
+    failure('TRANSACTION_UNCERTAIN',lambda:a.admit(e,PAYLOAD,proof,client_check_id='bound-client'))
+    assert closed[0]['state']=='NOT_STARTED'
+    assert row('CHECK#'+proof) is None and row('PERIOD#p1')['reservedChecks']==0
+
+
+def test_admission_wins_against_expired_preparation_close(world,monkeypatch):
+    a,e,put,row,change,clock=world
+    proof=a.prepare(e,PAYLOAD,'bound-client',client_check_id='bound-client')
+    original=a.client.transact_write_items
+    captured=[]
+    def capture(**kwargs):
+        if any(x.get('Put',{}).get('Item',{}).get('recordType')=='V1_CHECK_RECEIPT' for x in kwargs['TransactItems']):
+            captured.append(kwargs);raise TimeoutError('deferred synthetic transaction')
+        return original(**kwargs)
+    monkeypatch.setattr(a.client,'transact_write_items',capture)
+    failure('TRANSACTION_UNCERTAIN',lambda:a.admit(e,PAYLOAD,proof,client_check_id='bound-client'))
+    clock[0]+=a.s.operation_validity_seconds
+    def race_close(**kwargs):
+        if any(x.get('Update',{}).get('ExpressionAttributeValues',{}).get(':closed')=='CLOSED' for x in kwargs['TransactItems']):
+            original(**captured.pop())
+        return original(**kwargs)
+    monkeypatch.setattr(a.client,'transact_write_items',race_close)
+    result=a.reconcile(e,proof,client_check_id='bound-client')
+    assert result['state']=='ADMITTED' and result['chargedChecks'] is None
+    assert row('PERIOD#p1')['reservedChecks']==1 and row('PREPARE#bound-client')['admissionState']=='OPEN'
+
+
+@pytest.mark.parametrize('race',['deletion','inventory'])
+def test_close_cannot_assert_zero_after_authority_race(world,monkeypatch,race):
+    a,e,put,row,change,clock=world
+    proof=a.prepare(e,PAYLOAD,'bound-client',client_check_id='bound-client')
+    clock[0]+=a.s.operation_validity_seconds
+    original=a.client.transact_write_items
+    def racing(**kwargs):
+        if any(x.get('Update',{}).get('ExpressionAttributeValues',{}).get(':closed')=='CLOSED' for x in kwargs['TransactItems']):
+            if race=='deletion':put('deletion','ACCOUNT_DELETION',state='DELETING')
+            else:
+                key={'PK':'V1#CONTROL','SK':'HMAC_KEY_INVENTORY'}
+                current=a._get('authority',key)
+                a.ddb.Table('authority').put_item(Item=current|{'revision':2})
+        return original(**kwargs)
+    monkeypatch.setattr(a.client,'transact_write_items',racing)
+    failure('TRANSACTION_UNCERTAIN',lambda:a.reconcile(e,proof,client_check_id='bound-client'))
+    assert row('PREPARE#bound-client')['admissionState']=='OPEN'
+
+
+def test_close_mismatched_client_or_proof_never_asserts_zero(world):
+    a,e,put,row,change,clock=world
+    first=a.prepare(e,PAYLOAD,'first',client_check_id='first')
+    second=a.prepare(e,PAYLOAD,'second',client_check_id='second')
+    clock[0]+=a.s.operation_validity_seconds
+    assert a.reconcile(e,first,client_check_id='second')['chargedChecks'] is None
+    assert a.reconcile(e,second,client_check_id='first')['chargedChecks'] is None
+    assert row('PREPARE#first')['admissionState']=='OPEN'

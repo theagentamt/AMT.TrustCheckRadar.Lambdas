@@ -154,4 +154,5 @@ jobs:
           ./scripts/build_lambda_zip.sh --function url_consumer --arch arm64
           ./scripts/build_lambda_zip.sh --function url_lease_recovery --arch arm64
           ./scripts/build_lambda_zip.sh --function v1_entitlements --arch arm64
+          ./scripts/build_lambda_zip.sh --function v1_authority_deletion --arch arm64
           python scripts/verify_v1_packages.py
