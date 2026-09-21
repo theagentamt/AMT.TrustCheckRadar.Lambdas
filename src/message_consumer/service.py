@@ -7,6 +7,8 @@ from decimal import Decimal
 from jsonschema import Draft202012Validator, FormatChecker
 from shared_check_authority.core import AuthorityError, TrustedWorkerContext
 from shared_message_contract import VERSION, POLICY, validate_intent, validate_summary
+from shared_message_contract import validation_v2 as v2
+from message_evaluator.policy_v2 import result as limited_result_v2
 from shared_message_contract.validation import MessageError
 from shared_message_contract.runtime import unique_pairs, url_mapper
 from message_evaluator.policy import result as limited_result
@@ -17,23 +19,25 @@ CHECK=re.compile(r'[A-Za-z0-9_-]{1,64}')
 PROOF=re.compile(r'v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}')
 
 
-def schema_path(name):
-    path=Path(__file__).parent/'contract'/name
-    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/message-consumer/1.0.0-candidate.1'/name
+def schema_path(name,version=VERSION):
+    if version not in (VERSION,v2.VERSION):raise ValueError('CONTRACT_UNSUPPORTED')
+    suffix='1.0.0-candidate.2' if version==v2.VERSION else '1.0.0-candidate.1'
+    path=Path(__file__).parent/('contract_v2' if version==v2.VERSION else 'contract')/name
+    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/message-consumer'/suffix/name
     return path
 
 
 def validate_envelope(body):
-    Draft202012Validator(json.loads(schema_path('response.schema.json').read_text()),format_checker=FormatChecker()).validate(body)
+    Draft202012Validator(json.loads(schema_path('response.schema.json',body['transportVersion']).read_text()),format_checker=FormatChecker()).validate(body)
     if body['outcome'] is not None:
-        validate_summary(body['outcome'],body['checkId'])
+        (v2.validate_summary if body['transportVersion']==v2.VERSION else validate_summary)(body['outcome'],body['checkId'])
         if body['state']!='settled':raise ValueError()
         if body['accounting']['chargedChecks']==1 and body['outcome']['processingOutcome']!='complete':raise ValueError()
     return body
 
 
-def unavailable_envelope(code='SERVICE_UNAVAILABLE'):
-    return validate_envelope({'transportVersion':VERSION,'checkId':None,'operationProof':None,'state':'unknown',
+def unavailable_envelope(code='SERVICE_UNAVAILABLE',version=VERSION):
+    return validate_envelope({'transportVersion':version,'checkId':None,'operationProof':None,'state':'unknown',
         'access':{'state':'temporarily_unavailable','basis':'unknown','externalChecksAllowed':False,'builtInChecksAllowed':False,
                   'reconciliationAllowed':False,'remainingChecks':None,'resetsAt':None,'unlimited':False,'observedAt':timestamp(time.time())},
         'accounting':{'state':'unknown','chargedChecks':None,'receiptId':None,'requiresReconciliation':True},
@@ -41,9 +45,9 @@ def unavailable_envelope(code='SERVICE_UNAVAILABLE'):
 
 
 class Consumer:
-    def __init__(self,authority,provider,refresh,budget,*,clock=time.monotonic,remaining_ms=lambda:29000):
+    def __init__(self,authority,provider,refresh,budget,*,clock=time.monotonic,remaining_ms=lambda:29000,allow_ai=False):
         self.a=authority;self.provider=provider;self.refresh=refresh;self.budget=budget
-        self.clock=clock;self.remaining=remaining_ms;self.mapper=url_mapper()
+        self.clock=clock;self.remaining=remaining_ms;self.mapper=url_mapper();self.allow_ai=allow_ai;self.version=VERSION
 
     def access(self,event):return UrlConsumer.access(self,event)
 
@@ -57,15 +61,16 @@ class Consumer:
             accounting.update(state='charged' if charge else 'not_charged',chargedChecks=charge,receiptId=row['receiptId'])
         outcome=None
         if row and row.get('resultSummary'):
-            outcome=validate_summary(plain(row['resultSummary']),client)
+            if row.get('messageTransportVersion',VERSION)!=self.version:raise AuthorityError('CHECK_ID_CONFLICT')
+            outcome=(v2.validate_summary if self.version==v2.VERSION else validate_summary)(plain(row['resultSummary']),client)
         if row and row.get('state')=='SETTLED' and outcome is None and error is None:error='SERVICE_UNAVAILABLE'
-        return validate_envelope({'transportVersion':VERSION,'checkId':client,'operationProof':proof,'state':state,
+        return validate_envelope({'transportVersion':self.version,'checkId':client,'operationProof':proof,'state':state,
             'access':access,'accounting':accounting,'outcome':outcome,'errorCode':error,
             'retryAfterSeconds':self.a.s.attempt_window_seconds if error=='RATE_LIMITED' else (2 if state=='pending' else None),
             'expiresAt':int(row['expiresAt']) if row and row.get('expiresAt') is not None else None})
 
     def handle(self,event):
-        client=proof=None;started=self.clock()
+        client=proof=None;started=self.clock();self.version=VERSION
         try:
             if (type(event) is not dict or event.get('version')!='2.0' or event.get('routeKey') not in ROUTES or
                     event.get('requestContext',{}).get('http',{}).get('method')!='POST' or event.get('isBase64Encoded') is True or
@@ -76,13 +81,14 @@ class Consumer:
             if type(raw) is not str or len(raw.encode('utf-8'))>32768:raise AuthorityError('INPUT_REJECTED')
             try:body=json.loads(raw,object_pairs_hook=unique_pairs)
             except Exception:raise AuthorityError('INPUT_REJECTED') from None
-            if type(body) is not dict or body.get('transportVersion')!=VERSION:raise AuthorityError('CONTRACT_UNSUPPORTED')
+            if type(body) is not dict or body.get('transportVersion') not in (VERSION,v2.VERSION):raise AuthorityError('CONTRACT_UNSUPPORTED')
+            self.version=body['transportVersion']
             client=body.get('checkId');proof=body.get('operationProof')
             if type(client) is not str or not CHECK.fullmatch(client):raise AuthorityError('INPUT_REJECTED')
             route=event['routeKey']
             if route.endswith('/reconcile'):
                 if set(body)!={'transportVersion','checkId','operationProof'}:raise AuthorityError('INPUT_REJECTED')
-                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='sanitized_message')
+                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='sanitized_message',expected_message_version=self.version)
                 if row.get('clientCheckId') not in (None,client):raise AuthorityError('CHECK_ID_CONFLICT')
                 if row['state']=='ADMITTED':
                     try:row=self.a.recover_expired(event,proof)
@@ -90,35 +96,39 @@ class Consumer:
                         if e.code!='OPERATION_PENDING':raise
                 state={'ADMITTED':'pending','SETTLED':'settled','UNKNOWN':'unknown','NOT_STARTED':'rejected'}[row['state']]
                 return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row,error='OPERATION_EXPIRED' if state=='rejected' else None)
+            if self.version==v2.VERSION and not self.allow_ai:raise AuthorityError('SERVICE_NOT_ENABLED')
             required={'transportVersion','checkId','entryPoint','language','target'}
             prepare=route.endswith('/prepare')
             if set(body)!=(required if prepare else required|{'operationProof'}):raise AuthorityError('INPUT_REJECTED')
             intent={k:body[k] for k in ('entryPoint','language','target')}
             validate_intent(intent)
+            bound_intent=intent|{'messageTransportVersion':self.version} if self.version==v2.VERSION else intent
             self.refresh(event)
             if prepare:
-                proof=self.a.prepare(event,intent,client,client_check_id=client,count_attempt=False)
-                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='sanitized_message')
+                proof=self.a.prepare(event,bound_intent,client,client_check_id=client,count_attempt=False)
+                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='sanitized_message',expected_message_version=self.version)
                 if row['state']=='NOT_STARTED':
                     return 200,self.envelope(event,client,proof,'rejected',row=row,error='OPERATION_EXPIRED')
                 if row['state'] in ('ADMITTED','SETTLED'):
                     state='pending' if row['state']=='ADMITTED' else 'settled'
                     return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row)
                 return 200,self.envelope(event,client,proof,'prepared',row={'expiresAt':self.a._token_parts(proof)[1]})
-            admission=self.a.admit(event,intent,proof,client_check_id=client,count_attempt=False)
+            admission=self.a.admit(event,bound_intent,proof,client_check_id=client,count_attempt=False)
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
             outcome=None;window=None
+            limited=limited_result_v2 if self.version==v2.VERSION else limited_result
+            validator=v2.validate_summary if self.version==v2.VERSION else validate_summary
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
                 window=self.budget.reserve() if budget_ms>=1000 else None
-                if window is None:outcome=limited_result(client,limits=['BUDGET_LIMIT'])
+                if window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
                 else:
-                    raw_result=self.provider({'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'intent':intent,'executionBudgetMs':budget_ms})
-                    outcome=validate_summary(raw_result,client)
+                    raw_result=self.provider({'schemaVersion':2 if self.version==v2.VERSION else 1,'checkId':client,'policyVersion':v2.POLICY if self.version==v2.VERSION else POLICY,'intent':intent,'executionBudgetMs':budget_ms})
+                    outcome=validator(raw_result,client)
             except Exception:
-                outcome=limited_result(client,limits=['PROVIDER_UNAVAILABLE'])
+                outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])
             if window is not None and set(outcome['limitationCodes'])&{'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
                 except Exception:pass  # Attempt cap remains consumed even if failure accounting is unavailable.
@@ -128,7 +138,7 @@ class Consumer:
             code=error.code
             statuses={'AUTHENTICATION_REQUIRED':401,'ACCOUNT_UNAVAILABLE':403,'ACTIVE_DEVICE_REQUIRED':403,'EXTERNAL_ACCESS_UNAVAILABLE':403,
                       'ALLOWANCE_EXHAUSTED':403,'INPUT_REJECTED':422,'PRIVACY_REVIEW_REQUIRED':422,'CHECK_ID_CONFLICT':409,'OPERATION_EXPIRED':409,
-                      'RATE_LIMITED':429,'OPERATION_PENDING':202,'CONTRACT_UNSUPPORTED':422}
+                      'RATE_LIMITED':429,'OPERATION_PENDING':202,'CONTRACT_UNSUPPORTED':422,'SERVICE_NOT_ENABLED':503}
             status=statuses.get(code,503)
             if code not in statuses:code='SERVICE_UNAVAILABLE'
             return status,self.envelope(event,client if type(client) is str and CHECK.fullmatch(client) else None,

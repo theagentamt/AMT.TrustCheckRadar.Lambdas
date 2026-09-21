@@ -1,0 +1,138 @@
+[
+  {
+    "id": "ai-warning-invalid-hostile_input_stop",
+    "outcome": {
+      "kind": "message_assessment",
+      "checkId": "message-fixture-1",
+      "verdict": "suspicious",
+      "processingOutcome": "partial",
+      "limitationCodes": [
+        "HOSTILE_INPUT_STOP"
+      ],
+      "ruleIds": [],
+      "evidence": [],
+      "nextAction": "verify_independently",
+      "messageKey": "message.ai_warning",
+      "schemaVersion": 2,
+      "policyVersion": "message-ai-2026-09-21-v1",
+      "assessmentBasis": [
+        "ai_assessment"
+      ],
+      "aiAssessmentStatus": "warning",
+      "aiReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "coverage": "limited"
+    }
+  },
+  {
+    "id": "ai-warning-invalid-unknown_speaker",
+    "outcome": {
+      "kind": "message_assessment",
+      "checkId": "message-fixture-1",
+      "verdict": "suspicious",
+      "processingOutcome": "partial",
+      "limitationCodes": [
+        "UNKNOWN_SPEAKER"
+      ],
+      "ruleIds": [],
+      "evidence": [],
+      "nextAction": "verify_independently",
+      "messageKey": "message.ai_warning",
+      "schemaVersion": 2,
+      "policyVersion": "message-ai-2026-09-21-v1",
+      "assessmentBasis": [
+        "ai_assessment"
+      ],
+      "aiAssessmentStatus": "warning",
+      "aiReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "coverage": "limited"
+    }
+  },
+  {
+    "id": "ai-warning-invalid-unsupported_content",
+    "outcome": {
+      "kind": "message_assessment",
+      "checkId": "message-fixture-1",
+      "verdict": "suspicious",
+      "processingOutcome": "partial",
+      "limitationCodes": [
+        "UNSUPPORTED_CONTENT"
+      ],
+      "ruleIds": [],
+      "evidence": [],
+      "nextAction": "verify_independently",
+      "messageKey": "message.ai_warning",
+      "schemaVersion": 2,
+      "policyVersion": "message-ai-2026-09-21-v1",
+      "assessmentBasis": [
+        "ai_assessment"
+      ],
+      "aiAssessmentStatus": "warning",
+      "aiReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "coverage": "limited"
+    }
+  },
+  {
+    "id": "ai-warning-invalid-insufficient_evidence",
+    "outcome": {
+      "kind": "message_assessment",
+      "checkId": "message-fixture-1",
+      "verdict": "suspicious",
+      "processingOutcome": "partial",
+      "limitationCodes": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "ruleIds": [],
+      "evidence": [],
+      "nextAction": "verify_independently",
+      "messageKey": "message.ai_warning",
+      "schemaVersion": 2,
+      "policyVersion": "message-ai-2026-09-21-v1",
+      "assessmentBasis": [
+        "ai_assessment"
+      ],
+      "aiAssessmentStatus": "warning",
+      "aiReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "coverage": "limited"
+    }
+  },
+  {
+    "id": "ai-warning-invalid-benign-contradiction",
+    "outcome": {
+      "kind": "message_assessment",
+      "checkId": "message-fixture-1",
+      "verdict": "suspicious",
+      "processingOutcome": "complete",
+      "limitationCodes": [],
+      "ruleIds": [
+        "BENIGN_FIXED_TEXT"
+      ],
+      "evidence": [],
+      "nextAction": "verify_independently",
+      "messageKey": "message.ai_warning",
+      "schemaVersion": 2,
+      "policyVersion": "message-ai-2026-09-21-v1",
+      "assessmentBasis": [
+        "qualified_rules",
+        "ai_assessment"
+      ],
+      "aiAssessmentStatus": "warning",
+      "aiReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "coverage": "supported_checks_complete"
+    }
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transportVersion",
+    "checkId",
+    "operationProof"
+  ],
+  "properties": {
+    "transportVersion": {
+      "const": "1.0.0-message-candidate.2"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "operationProof": {
+      "type": "string",
+      "pattern": "^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$"
+    }
+  }
+}

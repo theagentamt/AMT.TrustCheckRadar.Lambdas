@@ -113,11 +113,17 @@ class Authority:
         if isinstance(payload,dict) and payload.get('entryPoint')=='message':
             try:
                 from shared_message_contract import validate_intent, VERSION
-                validate_intent(payload)
+                from shared_message_contract.validation_v2 import VERSION as V2, POLICY as P2
+                version=payload.get('messageTransportVersion',VERSION)
+                if version not in (VERSION,V2) or ('messageTransportVersion' in payload and version!=V2):raise ValueError()
+                intent={k:v for k,v in payload.items() if k!='messageTransportVersion'}
+                validate_intent(intent)
                 if client_check_id is None or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
                     raise ValueError()
-                encoded=json.dumps({'version':VERSION,'clientCheckId':client_check_id,'intent':payload},sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
-                return self._mac(key_id,'message-payload-v1',account+'\0'+encoded)
+                bound={'version':version,'clientCheckId':client_check_id,'intent':intent}
+                if version==V2:bound['policyVersion']=P2
+                encoded=json.dumps(bound,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
+                return self._mac(key_id,'message-payload-v2' if version==V2 else 'message-payload-v1',account+'\0'+encoded)
             except Exception:raise AuthorityError('INPUT_REJECTED') from None
         # Hash the complete already-validated request intent, with exact URL/query
         # order/projection preserved. No URL normalization or raw persistence.
@@ -306,6 +312,7 @@ class Authority:
                      'expiresAt': self.now() + self.s.receipt_retention_seconds,
                      'GSI1PK':'V1_EXPIRING','GSI1SK':f'{self.now() + self.s.receipt_retention_seconds:012d}#{partition}#{key["SK"]}'}
         if payload.get('entryPoint')=='message':row['projectionScope']='sanitized_message'
+        if payload.get('messageTransportVersion'):row['messageTransportVersion']=payload['messageTransportVersion']
         try:
             self._transact(self._authority_conditions(account, partition, device, grant) + [{'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}}])
         except AuthorityError:
@@ -317,7 +324,7 @@ class Authority:
         return check_id
 
     def _receipt_public(self, row):
-        return {k: row.get(k) for k in ('checkId', 'clientCheckId', 'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome', 'resultSummary', 'assessmentEpoch')} | {'expiresAt': row.get('retentionDeadlineEpoch', row.get('expiresAt'))}
+        return ({'messageTransportVersion':row['messageTransportVersion']} if 'messageTransportVersion' in row else {}) | {k: row.get(k) for k in ('checkId', 'clientCheckId', 'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome', 'resultSummary', 'assessmentEpoch')} | {'expiresAt': row.get('retentionDeadlineEpoch', row.get('expiresAt'))}
 
     def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True):
         account = self._account(event)
@@ -345,6 +352,7 @@ class Authority:
                      'GSI1PK': 'V1_PENDING',
                      'GSI1SK': f'{self.now() + self.s.worker_settlement_seconds:012d}#{partition}#{check_id}',
                      'retentionDeadlineEpoch': self.now() + self.s.receipt_retention_seconds}
+        if payload.get('messageTransportVersion'):row['messageTransportVersion']=payload['messageTransportVersion']
         items = self._authority_conditions(account, partition, device, grant)
         if client_check_id is not None:
             items.append(self._check(self.s.authority_table, {'PK':partition,'SK':'PREPARE#'+client_check_id},
@@ -371,7 +379,7 @@ class Authority:
             raise
         return {'admitted': True, 'executionToken': token, 'receipt': self._receipt_public(row)}
 
-    def reconcile(self, event, check_id, *, client_check_id=None, expected_scope=None):
+    def reconcile(self, event, check_id, *, client_check_id=None, expected_scope=None, expected_message_version=None):
         account = self._account(event)  # no device/subscription gate or write/provider
         key_id, _, _, _ = self._token_parts(check_id)
         row = self._get(self.s.authority_table, {'PK': self._partition(account, key_id), 'SK': 'CHECK#' + check_id})
@@ -382,6 +390,14 @@ class Authority:
                 candidate=self._get(self.s.authority_table,{'PK':self._partition(account,key_id),'SK':'PREPARE#'+client_check_id})
             if candidate and ((candidate.get('projectionScope')=='sanitized_message') != (expected_scope=='sanitized_message')):
                 raise AuthorityError('CHECK_ID_CONFLICT')
+        if expected_message_version is not None:
+            from shared_message_contract import VERSION as V1
+            from shared_message_contract.validation_v2 import VERSION as V2
+            if expected_message_version not in (V1,V2):raise AuthorityError('INPUT_REJECTED')
+            candidate=row
+            if candidate is None and isinstance(client_check_id,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
+                candidate=self._get(self.s.authority_table,{'PK':self._partition(account,key_id),'SK':'PREPARE#'+client_check_id})
+            if candidate and candidate.get('messageTransportVersion',V1)!=expected_message_version:raise AuthorityError('CHECK_ID_CONFLICT')
         if not row:
             return self._close_unadmitted(account,check_id,client_check_id)
         if row.get('retentionDeadlineEpoch', row.get('expiresAt', 0)) <= self.now(): return {'state': 'UNKNOWN', 'chargedChecks': None}
@@ -453,10 +469,15 @@ class Authority:
         elif row.get('settleByEpoch', 0) <= self.now():
             raise AuthorityError('RECONCILIATION_REQUIRED')
         charge = int(processing_outcome in CHARGEABLE_OUTCOMES and row['basis'] != 'complimentary')
+        MESSAGE_V2='1.0.0-message-candidate.2'  # No message-package dependency for URL/lease workers.
+        if row.get('messageTransportVersion')==MESSAGE_V2 and processing_outcome=='complete' and result_summary is None:
+            raise AuthorityError('RESULT_SUMMARY_INVALID')
         if result_summary is not None:
             if row.get('projectionScope')=='sanitized_message':
                 try:
                     from shared_message_contract import validate_summary
+                    if row.get('messageTransportVersion')==MESSAGE_V2:
+                        from shared_message_contract.validation_v2 import validate_summary
                     result_summary=validate_summary(result_summary,row.get('clientCheckId'),processing_outcome)
                 except Exception:raise AuthorityError('RESULT_SUMMARY_INVALID') from None
             else:
