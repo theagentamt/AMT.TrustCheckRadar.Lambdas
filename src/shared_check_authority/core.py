@@ -20,7 +20,7 @@ TRIAL_COMPLETED_CHECKS = 10
 TRIAL_SECONDS = 7 * 24 * 60 * 60
 VIRUS_TOTAL_ENABLED = False
 CHARGEABLE_OUTCOMES = {'complete'}
-OUTCOMES = {'complete', 'partial', 'failed', 'blocked', 'invalid_input', 'unsupported', 'unavailable'}
+OUTCOMES = {'inconclusive', 'complete', 'partial', 'failed', 'blocked', 'invalid_input', 'unsupported', 'unavailable'}
 
 
 class AuthorityError(Exception):
@@ -110,6 +110,15 @@ class Authority:
         return [self._partition(account, k) for k in sorted(self.s.hmac_keys)]
 
     def _payload(self, account, payload, key_id, client_check_id=None):
+        if isinstance(payload,dict) and payload.get('entryPoint')=='message':
+            try:
+                from shared_message_contract import validate_intent, VERSION
+                validate_intent(payload)
+                if client_check_id is None or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
+                    raise ValueError()
+                encoded=json.dumps({'version':VERSION,'clientCheckId':client_check_id,'intent':payload},sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
+                return self._mac(key_id,'message-payload-v1',account+'\0'+encoded)
+            except Exception:raise AuthorityError('INPUT_REJECTED') from None
         # Hash the complete already-validated request intent, with exact URL/query
         # order/projection preserved. No URL normalization or raw persistence.
         if not isinstance(payload, dict) or set(payload) != {'entryPoint', 'language', 'target'}:
@@ -296,6 +305,7 @@ class Authority:
         row = key | {'recordType': 'V1_PREPARATION', 'payloadHmac': digest, 'checkId': check_id, 'admissionState':'OPEN', 'clientCheckId':client_check_id,
                      'expiresAt': self.now() + self.s.receipt_retention_seconds,
                      'GSI1PK':'V1_EXPIRING','GSI1SK':f'{self.now() + self.s.receipt_retention_seconds:012d}#{partition}#{key["SK"]}'}
+        if payload.get('entryPoint')=='message':row['projectionScope']='sanitized_message'
         try:
             self._transact(self._authority_conditions(account, partition, device, grant) + [{'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}}])
         except AuthorityError:
@@ -361,10 +371,17 @@ class Authority:
             raise
         return {'admitted': True, 'executionToken': token, 'receipt': self._receipt_public(row)}
 
-    def reconcile(self, event, check_id, *, client_check_id=None):
+    def reconcile(self, event, check_id, *, client_check_id=None, expected_scope=None):
         account = self._account(event)  # no device/subscription gate or write/provider
         key_id, _, _, _ = self._token_parts(check_id)
         row = self._get(self.s.authority_table, {'PK': self._partition(account, key_id), 'SK': 'CHECK#' + check_id})
+        if expected_scope is not None:
+            if expected_scope not in ('url','sanitized_message'):raise AuthorityError('INPUT_REJECTED')
+            candidate=row
+            if candidate is None and isinstance(client_check_id,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
+                candidate=self._get(self.s.authority_table,{'PK':self._partition(account,key_id),'SK':'PREPARE#'+client_check_id})
+            if candidate and ((candidate.get('projectionScope')=='sanitized_message') != (expected_scope=='sanitized_message')):
+                raise AuthorityError('CHECK_ID_CONFLICT')
         if not row:
             return self._close_unadmitted(account,check_id,client_check_id)
         if row.get('retentionDeadlineEpoch', row.get('expiresAt', 0)) <= self.now(): return {'state': 'UNKNOWN', 'chargedChecks': None}
@@ -437,8 +454,14 @@ class Authority:
             raise AuthorityError('RECONCILIATION_REQUIRED')
         charge = int(processing_outcome in CHARGEABLE_OUTCOMES and row['basis'] != 'complimentary')
         if result_summary is not None:
-            from .summary import validate_summary
-            result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
+            if row.get('projectionScope')=='sanitized_message':
+                try:
+                    from shared_message_contract import validate_summary
+                    result_summary=validate_summary(result_summary,row.get('clientCheckId'),processing_outcome)
+                except Exception:raise AuthorityError('RESULT_SUMMARY_INVALID') from None
+            else:
+                from .summary import validate_summary
+                result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
         receipt_id = self._mac(key_id, 'receipt', check_id)[:32]
         items = self._account_conditions(account)
         if row['periodSK']:
