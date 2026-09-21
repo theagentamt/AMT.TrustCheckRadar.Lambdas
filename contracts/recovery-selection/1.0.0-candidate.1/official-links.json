@@ -1,0 +1,14 @@
+{
+  "recovery_guidance": {
+    "en": "https://consumer.ftc.gov/articles/what-do-if-you-were-scammed",
+    "es": "https://consumidor.ftc.gov/articulos/que-hacer-si-lo-estafaron"
+  },
+  "identity_help": {
+    "en": "https://www.identitytheft.gov/",
+    "es": "https://www.robodeidentidad.gov/"
+  },
+  "fraud_report": {
+    "en": "https://reportfraud.ftc.gov/",
+    "es": "https://reportefraude.ftc.gov/"
+  }
+}
