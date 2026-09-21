@@ -1,0 +1,198 @@
+{
+  "version": "1.0.0-feedback-candidate.1",
+  "allowedScopes": {
+    "1.0.0-candidate.1": [
+      "full_url",
+      "origin_only"
+    ],
+    "1.0.0-message-candidate.1": [
+      "sanitized_message"
+    ],
+    "1.0.0-message-candidate.2": [
+      "sanitized_message"
+    ]
+  },
+  "excluded": [
+    "local",
+    "legacy",
+    "history",
+    "recovery_clarification",
+    "pending",
+    "unknown",
+    "missing_summary",
+    "invalid_summary",
+    "expired",
+    "displayed_result_not_bound_to_receipt"
+  ],
+  "matrix": [
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "complete",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "partial",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "inconclusive",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "failed",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "invalid_input",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "unsupported",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "blocked",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-candidate.1",
+      "processingOutcome": "unavailable",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "complete",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "partial",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "inconclusive",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "failed",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "invalid_input",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "unsupported",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "blocked",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.1",
+      "processingOutcome": "unavailable",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "complete",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "partial",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "inconclusive",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": true
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "failed",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "invalid_input",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "unsupported",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "blocked",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    },
+    {
+      "assessmentTransportVersion": "1.0.0-message-candidate.2",
+      "processingOutcome": "unavailable",
+      "requiresValidNonNullStoredSummary": true,
+      "requiresRetainedOwnedSettledReceipt": true,
+      "eligibleIfPrerequisitesValid": false
+    }
+  ],
+  "urlMapping": "Validate canonical private-to-public URL mapping; only mapped assessment_result complete/partial qualifies. Technical mapped invalid_input/unsupported/blocked/unavailable and request_error are excluded, even when retained private outcome says partial."
+}

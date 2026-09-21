@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feedbackTransportVersion",
+    "feedbackId",
+    "result",
+    "category"
+  ],
+  "properties": {
+    "feedbackTransportVersion": {
+      "const": "1.0.0-feedback-candidate.1"
+    },
+    "feedbackId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkId",
+        "operationProof",
+        "receiptId",
+        "assessmentTransportVersion"
+      ],
+      "properties": {
+        "checkId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "operationProof": {
+          "type": "string",
+          "pattern": "^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$"
+        },
+        "receiptId": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{32}|expired_[0-9a-f]{32})$"
+        },
+        "assessmentTransportVersion": {
+          "enum": [
+            "1.0.0-candidate.1",
+            "1.0.0-message-candidate.1",
+            "1.0.0-message-candidate.2"
+          ]
+        }
+      }
+    },
+    "category": {
+      "enum": [
+        "looks_legitimate",
+        "looks_like_scam",
+        "unclear",
+        "unhelpful"
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "version": "private-result-feedback-2026-09-21-v1",
+  "status": "Approved",
+  "approvalDate": "2026-09-21",
+  "proposalSource": "807dd0d82aa4c9c3b6937857fe93a40fb24cb557",
+  "proposalSha256": "9e3485588daeae698b139cb070b4de16bb9298348135271e7d9adafd9968bee6",
+  "retentionChoice": "Existing receipt; accept disclosed backup retention",
+  "ownerChoices": [
+    "structured-only four choices",
+    "Existing receipt; accept disclosed backup retention"
+  ],
+  "persistenceFields": [
+    "feedbackId",
+    "category",
+    "receivedAt",
+    "policyVersion"
+  ],
+  "retention": "Original CHECK retentionDeadlineEpoch/expiresAt; no extension",
+  "backup": "Inherits existing shared-table historical backups; last-recorded35dayPITR is not a fresh runtime audit. Restore quarantine and expiry/deletion reconciliation required.",
+  "researchReuse": false,
+  "providerCalls": false,
+  "allowanceCharge": false,
+  "automaticVerdictOverride": false,
+  "freeText": false,
+  "idempotencyScope": "exact owned CHECK result; no account-global ID uniqueness claim"
+}

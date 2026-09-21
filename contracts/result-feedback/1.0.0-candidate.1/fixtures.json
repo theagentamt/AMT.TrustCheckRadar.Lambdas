@@ -1,0 +1,230 @@
+{
+  "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+  "synthetic": true,
+  "requests": [
+    {
+      "id": "1.0.0-candidate.1",
+      "request": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "result": {
+          "checkId": "owned-check",
+          "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "assessmentTransportVersion": "1.0.0-candidate.1"
+        },
+        "category": "unclear"
+      }
+    },
+    {
+      "id": "1.0.0-message-candidate.1",
+      "request": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "result": {
+          "checkId": "owned-check",
+          "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "assessmentTransportVersion": "1.0.0-message-candidate.1"
+        },
+        "category": "unclear"
+      }
+    },
+    {
+      "id": "1.0.0-message-candidate.2",
+      "request": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "result": {
+          "checkId": "owned-check",
+          "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "assessmentTransportVersion": "1.0.0-message-candidate.2"
+        },
+        "category": "unclear"
+      }
+    }
+  ],
+  "responses": [
+    {
+      "id": "accepted",
+      "httpStatus": 200,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "accepted",
+        "reasonCode": null,
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": 1800000000,
+        "expiresAt": 1800600000
+      }
+    },
+    {
+      "id": "already_received",
+      "httpStatus": 200,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "already_received",
+        "reasonCode": "FEEDBACK_ALREADY_RECEIVED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": 1800000000,
+        "expiresAt": 1800600000
+      }
+    },
+    {
+      "id": "AUTHENTICATION_REQUIRED",
+      "httpStatus": 401,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "AUTHENTICATION_REQUIRED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "ACCOUNT_UNAVAILABLE",
+      "httpStatus": 403,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "ACCOUNT_UNAVAILABLE",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "ACTIVE_DEVICE_REQUIRED",
+      "httpStatus": 403,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "ACTIVE_DEVICE_REQUIRED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "INPUT_REJECTED",
+      "httpStatus": 422,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "INPUT_REJECTED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "CONTRACT_UNSUPPORTED",
+      "httpStatus": 422,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "CONTRACT_UNSUPPORTED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "RESULT_UNAVAILABLE",
+      "httpStatus": 404,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "RESULT_UNAVAILABLE",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "FEEDBACK_ID_CONFLICT",
+      "httpStatus": 409,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "FEEDBACK_ID_CONFLICT",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "RATE_LIMITED",
+      "httpStatus": 429,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "rejected",
+        "reasonCode": "RATE_LIMITED",
+        "retryable": true,
+        "retryAfterSeconds": 60,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "SERVICE_NOT_ENABLED",
+      "httpStatus": 503,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "unknown",
+        "reasonCode": "SERVICE_NOT_ENABLED",
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "id": "SERVICE_UNAVAILABLE",
+      "httpStatus": 503,
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.1",
+        "feedbackId": "report-one",
+        "checkId": "owned-check",
+        "status": "unknown",
+        "reasonCode": "SERVICE_UNAVAILABLE",
+        "retryable": true,
+        "retryAfterSeconds": null,
+        "receivedAt": null,
+        "expiresAt": null
+      }
+    }
+  ]
+}
