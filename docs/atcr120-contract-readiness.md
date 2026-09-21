@@ -82,7 +82,7 @@ actions/URLs/versions and contradictory copy or verdicts. A small legacy fix map
 detected instruction-style content to HTTP422 HOSTILE_INPUT_STOP before replay,
 provider, storage or charge effects; legacy historical accounting remains unknown.
 
-Local Python3.14 full repository suite: 706 passed, 4 skipped, 166 subtests
+Local Python3.14 full repository suite: 718 passed, 4 skipped, 166 subtests
 passed. Compile checks, shellcheck, diff whitespace validation and source-only
 conversation_analysis Python3.14 ARM64 packaging passed. The real public handler
 regression verifies the exact 422 envelope, no score/accounting, no downstream
@@ -90,3 +90,8 @@ side effects and no submitted-text/request-ID logging. No live provider/model,
 paid lifecycle, translation approval, production deployment or device test is
 claimed here. GitHub CI remains independently required; account billing failures
 are not passing CI and no workflow/required-check setting is weakened.
+
+Independent review added reverse limitation-precedence constraints and regressions:
+hostile stop cannot be hidden by inconclusive/provider copy, clarification and
+unsupported content outrank lower-priority failures, verified threats stay partial
+high risk, and recovery-content limitations cannot leak into another journey.

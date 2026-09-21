@@ -18,7 +18,10 @@ fields. Additional fields, versions, enums and incoherent combinations are rejec
 
 - Instruction stop alone: blocked/unknown/HOSTILE_INPUT_STOP. A partial result with
   independent Google match retains high_risk, avoid_link, and the stop/failure
-  limitation. The account holder is not labeled abusive or a campaign participant.
+  limitation. Schema and reducer both apply the same precedence: verified threat,
+  then hostile stop, speaker clarification, unsupported content, provider failure,
+  then insufficient evidence. A lower-priority limitation cannot hide a higher
+  one; recovery-content limitations apply only to the recovery journey. The account holder is not labeled abusive or a campaign participant.
 - No-match can establish only the existing bounded full-link statement when the
   URL checks completed; it cannot clear a whole message or prove general safety.
 - Suspicious exists in the URL contract but requires governed independent rules;

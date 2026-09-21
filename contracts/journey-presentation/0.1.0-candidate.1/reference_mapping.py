@@ -27,6 +27,8 @@ def present(*, journey, processing, limitations, verified_evidence=()):
             raise ValueError('UNSUPPORTED_EVIDENCE')
         evidence.append(dict(item))
     limitations = list(limitations)
+    if journey != 'recovery' and 'RECOVERY_CONTENT_UNAVAILABLE' in limitations:
+        raise ValueError('UNSUPPORTED_LIMITATION')
     if journey == 'recovery':
         if evidence or processing != 'unavailable' or limitations != ['RECOVERY_CONTENT_UNAVAILABLE']:
             raise ValueError('RECOVERY_CONTENT_NOT_APPROVED')

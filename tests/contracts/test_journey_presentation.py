@@ -70,3 +70,47 @@ def test_stop_cannot_carry_misleading_copy_or_completed_state(field, value):
     candidate[field] = value
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(candidate, SCHEMA)
+
+
+@pytest.mark.parametrize('higher,lower,wrong_processing,wrong_key,wrong_action', [
+    ('HOSTILE_INPUT_STOP', 'INSUFFICIENT_EVIDENCE', 'inconclusive', 'inconclusive', 'review_input'),
+    ('HOSTILE_INPUT_STOP', 'CLARIFICATION_REQUIRED', 'inconclusive', 'clarification_required', 'review_input'),
+    ('HOSTILE_INPUT_STOP', 'PROVIDER_UNAVAILABLE', 'unavailable', 'provider_unavailable', 'use_built_in_help'),
+    ('CLARIFICATION_REQUIRED', 'UNSUPPORTED_CONTENT', 'unsupported', 'unsupported', 'review_input'),
+    ('CLARIFICATION_REQUIRED', 'PROVIDER_UNAVAILABLE', 'unavailable', 'provider_unavailable', 'use_built_in_help'),
+    ('UNSUPPORTED_CONTENT', 'PROVIDER_UNAVAILABLE', 'unavailable', 'provider_unavailable', 'use_built_in_help'),
+    ('PROVIDER_UNAVAILABLE', 'INSUFFICIENT_EVIDENCE', 'inconclusive', 'inconclusive', 'review_input'),
+])
+def test_lower_priority_copy_cannot_hide_stronger_limitation(higher, lower, wrong_processing, wrong_key, wrong_action):
+    result = MAPPING.present(journey='message', processing='inconclusive', limitations=[higher, lower])
+    validator = jsonschema.Draft202012Validator(SCHEMA)
+    validator.validate(result)
+    tampered = result | {'processingOutcome': wrong_processing, 'messageKey': 'journey.' + wrong_key,
+                         'nextAction': wrong_action}
+    with pytest.raises(jsonschema.ValidationError):
+        validator.validate(tampered)
+
+
+@pytest.mark.parametrize('limitation', ['HOSTILE_INPUT_STOP', 'CLARIFICATION_REQUIRED',
+                                      'UNSUPPORTED_CONTENT', 'PROVIDER_UNAVAILABLE'])
+def test_verified_match_dominates_limitation_but_keeps_partial_processing(limitation):
+    evidence = [{'source': 'google_web_risk_lookup', 'outcome': 'match', 'targetScope': 'redirect_hop'}]
+    result = MAPPING.present(journey='message', processing='complete', limitations=[limitation], verified_evidence=evidence)
+    assert result['evidence'] == evidence
+    assert result['limitationCodes'] == [limitation]
+    assert result['verdict'] == 'high_risk'
+    assert result['processingOutcome'] == 'partial'
+    assert result['messageKey'] == 'journey.known_threat_partial'
+    validator = jsonschema.Draft202012Validator(SCHEMA)
+    validator.validate(result)
+    with pytest.raises(jsonschema.ValidationError):
+        validator.validate(result | {'processingOutcome': 'complete', 'messageKey': 'journey.known_threat'})
+
+
+def test_recovery_limitation_cannot_be_used_as_message_guidance():
+    with pytest.raises(ValueError):
+        MAPPING.present(journey='message', processing='unavailable', limitations=['RECOVERY_CONTENT_UNAVAILABLE'])
+    candidate = copy.deepcopy(next(case['assessment'] for case in FIXTURES if case['id'] == 'recovery-unapproved'))
+    candidate['journey'] = 'message'
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(candidate, SCHEMA)
