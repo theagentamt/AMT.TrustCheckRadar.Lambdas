@@ -199,13 +199,17 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    if [[ "$function_name" == "message_evaluator" ]]; then
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_evaluator/ai_contract"
+    fi
     if [[ "$function_name" == "message_consumer" ]]; then
       cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
       cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
       mkdir -p "$build_dir/message_evaluator" "$build_dir/url_consumer"
-      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
+      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
       cp "$ROOT_DIR/src/url_consumer/service.py" "$build_dir/url_consumer/"
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.1" "$build_dir/message_consumer/contract"
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_consumer/contract_v2"
     fi
   fi
 

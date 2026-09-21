@@ -70,8 +70,8 @@ class Settings:
         require(type(self.max_output_tokens) is int and 128 <= self.max_output_tokens <= 512, 'PROVIDER_UNAVAILABLE')
 
     @classmethod
-    def from_env(cls):
-        require(os.environ.get('STAGE') == 'dev' and os.environ.get('MESSAGE_PROPOSER_ENABLED') == 'true', 'PROVIDER_UNAVAILABLE')
+    def from_env(cls, activation_flag='MESSAGE_PROPOSER_ENABLED'):
+        require(os.environ.get('STAGE') == 'dev' and os.environ.get(activation_flag) == 'true', 'PROVIDER_UNAVAILABLE')
         try:
             return cls(os.environ['MESSAGE_PROPOSER_MODEL'], os.environ['MESSAGE_PROPOSER_SECRET_ARN'],
                        int(os.environ['MESSAGE_PROPOSER_TIMEOUT_MS']), int(os.environ['MESSAGE_PROPOSER_MAX_OUTPUT_TOKENS']))
@@ -218,9 +218,12 @@ class FixedConnection(http.client.HTTPSConnection):
         remaining(self.deadline, self.clock)
 
 
-def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret):
+def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret, body_builder=None, response_parser=None):
+    # Only trusted internal adapters select these functions, never event fields.
+    body_builder = body_builder or request_body
+    response_parser = response_parser or parse
     # Validation/body construction happens before credential access or HTTP work.
-    body = json.dumps(request_body(intent, settings), ensure_ascii=False).encode('utf-8')
+    body = json.dumps(body_builder(intent, settings), ensure_ascii=False).encode('utf-8')
     require(type(budget_ms) is int and budget_ms >= 250, 'BUDGET_LIMIT')
     deadline = clock() + min(budget_ms, settings.timeout_ms) / 1000
     connection = None
@@ -254,7 +257,7 @@ def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_fac
             count += len(chunk)
             chunks.append(chunk)
         require(count <= MAX_RESPONSE_BYTES and (expected is None or count == expected), 'PROVIDER_RESPONSE_INVALID')
-        return parse(b''.join(chunks), intent['target']['sanitizedText'])
+        return response_parser(b''.join(chunks), intent['target']['sanitizedText'])
     except MessageError:
         raise
     except Exception:

@@ -314,3 +314,97 @@ def test_optional_model_claim_or_failure_cannot_create_charge(world, fail):
     assert reconcile(service,base,'message-check',proof)[1]['accounting']==body['accounting']
     assert len(proposal_calls)==len(calls)==budget.attempts==1
     assert world[3]('PERIOD#p1')['usedChecks']==0
+
+
+def ai_system(world,assessment='warning',*,allow_ai=True):
+    from message_evaluator.policy_v2 import evaluate as evaluate_ai
+    authority,base,*_=world;calls=[];budget=Budget()
+    def provider(body):
+        calls.append(body)
+        assert body['schemaVersion']==2
+        def ai(intent,remaining):
+            if assessment=='failure':raise MessageError('PROVIDER_RESPONSE_INVALID')
+            return {'assessment':assessment,'context':'insufficient' if assessment=='abstain' else 'clear',
+                'reasons':[{'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':8}]}] if assessment=='warning' else []}
+        return evaluate_ai(body['checkId'],body['intent'],ai=ai,budget_ms=body['executionBudgetMs'])
+    return Consumer(authority,provider,lambda _:None,budget,allow_ai=allow_ai),base,calls,budget
+
+
+def ai_request(check='ai-check'):
+    from shared_message_contract.validation_v2 import VERSION as V2
+    value=request(check=check,text='Your parcel needs a release payment today.');value['transportVersion']=V2
+    return value
+
+
+@pytest.mark.parametrize('assessment,charge,processing',[('warning',1,'complete'),('no_warning',1,'complete'),('abstain',0,'inconclusive'),('failure',0,'unavailable')])
+def test_candidate2_ai_complete_only_exact_once_and_versioned_minimal_receipt(world,assessment,charge,processing):
+    service,base,calls,budget=ai_system(world,assessment)
+    req=ai_request();proof=prepare(service,base,req);submit=req|{'operationProof':proof}
+    status,body=service.handle(event(base,'POST /v1/message-checks',submit))
+    assert status==200 and body['transportVersion']==req['transportVersion']
+    assert body['outcome']['schemaVersion']==2 and body['outcome']['processingOutcome']==processing
+    assert body['accounting']['chargedChecks']==charge
+    recovery={'transportVersion':req['transportVersion'],'checkId':req['checkId'],'operationProof':proof}
+    for _ in range(2):
+        assert service.handle(event(base,'POST /v1/message-checks',submit))[1]['accounting']==body['accounting']
+        assert service.handle(event(base,'POST /v1/message-checks/reconcile',recovery))[1]['accounting']==body['accounting']
+    assert len(calls)==budget.attempts==1 and world[3]('PERIOD#p1')['usedChecks']==charge
+    row=world[3]('CHECK#'+proof)
+    assert row['messageTransportVersion']==req['transportVersion']
+    stored=json.dumps(row,default=str)
+    assert req['target']['sanitizedText'] not in stored and 'spans' not in stored
+
+
+@pytest.mark.parametrize('assessment',['warning','no_warning'])
+def test_candidate2_withheld_link_never_charges(world,assessment):
+    service,base,calls,_=ai_system(world,assessment)
+    req=ai_request();req['target']['withheldLinks']=True
+    proof=prepare(service,base,req)
+    status,body=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
+    assert status==200 and body['accounting']['chargedChecks']==0
+    assert body['outcome']['processingOutcome'] in ('partial','inconclusive')
+    assert len(calls)==1 and world[3]('PERIOD#p1')['usedChecks']==0
+
+
+def test_candidate1_receipt_reconcile_is_unchanged_after_candidate2_switch(world):
+    old,base,calls,_=system(world)
+    req=request();proof=prepare(old,base,req)
+    prior=old.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))[1]
+    new,_,new_calls,_=ai_system(world)
+    ai=ai_request();new_proof=prepare(new,base,ai)
+    actual=reconcile(new,base,'message-check',proof)[1]
+    assert actual['transportVersion']==VERSION and actual['outcome']==prior['outcome'] and actual['accounting']==prior['accounting']
+    wrong={'transportVersion':ai['transportVersion'],'checkId':'message-check','operationProof':proof}
+    status,body=new.handle(event(base,'POST /v1/message-checks/reconcile',wrong))
+    assert status==409 and body['errorCode']=='CHECK_ID_CONFLICT' and body['outcome'] is None
+    wrong_submit=req|{'operationProof':proof,'transportVersion':ai['transportVersion']}
+    status,body=new.handle(event(base,'POST /v1/message-checks',wrong_submit))
+    assert status==409 and body['errorCode']=='CHECK_ID_CONFLICT'
+    assert not new_calls and len(calls)==1 and world[3]('PERIOD#p1')['usedChecks']==1
+
+
+def test_candidate2_closed_unadmitted_proof_reconciles_when_ai_admission_disabled(world):
+    service,base,calls,_=ai_system(world)
+    req=ai_request();proof=prepare(service,base,req)
+    service.allow_ai=False
+    world[5][0]+=61
+    status,wrong=reconcile(service,base,req['checkId'],proof)
+    assert status==409 and wrong['errorCode']=='CHECK_ID_CONFLICT'
+    recovery={'transportVersion':req['transportVersion'],'checkId':req['checkId'],'operationProof':proof}
+    for _ in range(2):
+        status,body=service.handle(event(base,'POST /v1/message-checks/reconcile',recovery))
+        assert status==200 and body['state']=='rejected' and body['accounting']['chargedChecks']==0
+        assert body['transportVersion']==req['transportVersion'] and body['errorCode']=='OPERATION_EXPIRED'
+    assert world[3]('PREPARE#'+req['checkId'])['admissionState']=='CLOSED' and not calls
+
+
+def test_candidate2_disabled_admission_and_cross_version_provider_fail_closed(world):
+    service,base,calls,budget=ai_system(world,allow_ai=False)
+    status,body=service.handle(event(base,'POST /v1/message-checks/prepare',ai_request()))
+    assert status==503 and body['errorCode']=='SERVICE_NOT_ENABLED' and not calls
+    service.allow_ai=True
+    req=ai_request();proof=prepare(service,base,req)
+    service.provider=lambda body:evaluate(body['checkId'],body['intent'])
+    status,body=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
+    assert status==200 and body['outcome']['schemaVersion']==2
+    assert body['outcome']['processingOutcome']=='unavailable' and body['accounting']['chargedChecks']==0
