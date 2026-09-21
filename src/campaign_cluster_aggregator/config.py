@@ -15,3 +15,6 @@ def validate_config():
         raise RuntimeError("PIPELINE_TABLE_NAME is required")
     if TRANSIENT_RETENTION_DAYS > 21 or MIN_CONTRIBUTOR_COUNT != 10 or MAX_CONTRIBUTOR_SUBMISSIONS != 3:
         raise RuntimeError("Campaign privacy bounds do not match V1")
+
+CAMPAIGN_LOCATOR_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_LOCATOR_MANIFEST_SHA256", "")
+CAMPAIGN_LOCATOR_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_LOCATOR_INVENTORY_REVISION", "0") or "0")

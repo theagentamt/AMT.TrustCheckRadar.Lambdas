@@ -60,9 +60,12 @@ def _is_uuid4(value):
 
 
 def delete_account_contributions(command, *, table_name, retention_days, dynamodb, kms,
-                                 now_epoch=None, max_steps=10, remaining_ms=None, deletion_ledger_table_name=None):
+                                 now_epoch=None, max_steps=10, remaining_ms=None, deletion_ledger_table_name=None,
+                                 locator_manifest_sha256=None, locator_inventory_revision=0):
     from cleanup_errors import CoverageUnavailable
-    from progress import sweep, CommandGuardedClient
+    from progress import CommandGuardedClient
+    from locator_progress import sweep
+    from shared_campaign_locators import load_inventory, InventoryGuardedClient
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     # Request-time periods are stable across retries and key rollover. Missing or
     # retired keys cannot be skipped as evidence that old contributions are gone.
@@ -72,7 +75,7 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
     if not 1 <= retention_days <= 21 or now_epoch < command["occurredAtEpoch"]:
         raise CoverageUnavailable()
     totals = {"deleted":0, "recomputedCandidates":0, "complete":False,
-              "coverage":"UNVERIFIED", "observedPassEnded":False}
+              "coverage":"LOCATOR_TRAVERSAL_ONLY", "locatorPassEnded":True}
     if not deletion_ledger_table_name:
         raise CoverageUnavailable()
     stored = dynamodb.get_item(TableName=deletion_ledger_table_name,
@@ -92,9 +95,13 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
         return totals | {"alreadyCompleted":True}
     if stored != command:
         raise CoverageUnavailable()
-    dynamodb = CommandGuardedClient(dynamodb,deletion_ledger_table_name,command)
+    inventory = load_inventory(dynamodb,table_name,command['environment'],locator_manifest_sha256,locator_inventory_revision,now_epoch)
+    if command['occurredAtEpoch'] <= inventory['approvedAtEpoch'] or min(active_periods(command['occurredAtEpoch'])) < inventory['minimumPeriodId']:
+        raise CoverageUnavailable()
+    dynamodb = InventoryGuardedClient(CommandGuardedClient(dynamodb,deletion_ledger_table_name,command),table_name,inventory)
     for period_id in active_periods(command["occurredAtEpoch"]):
         if remaining_ms is not None and remaining_ms() < 3000:
+            totals["locatorPassEnded"] = False
             break
         key_record = dynamodb.get_item(TableName=table_name,
             Key={"PK":{"S":f"PERIOD#{period_id}"},"SK":{"S":"HMAC_KEY"}}, ConsistentRead=True).get("Item")
@@ -106,16 +113,14 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
             raise CoverageUnavailable()
         token = base64.urlsafe_b64encode(mac).decode().rstrip("=")
         partition = f"CONTRIB#{period_id}#{token}"
-        # Retry does not extend the existing transient deadline or reset progress.
-        dynamodb.update_item(TableName=table_name,Key={"PK":{"S":partition},"SK":{"S":"TOMBSTONE"}},
-            UpdateExpression="SET expiresAt = if_not_exists(expiresAt, :expiry), createdAtEpoch = if_not_exists(createdAtEpoch, :now), GSI3PK = if_not_exists(GSI3PK, :partition), GSI3SK = if_not_exists(GSI3SK, :expiry)",
-            ExpressionAttributeValues={":expiry":{"N":str(now_epoch+retention_days*86400)},
-                ":now":{"N":str(now_epoch)},":partition":{"S":f"EXPIRY#{command['environment']}"}})
-        result = sweep(dynamodb,table_name,partition,command["operationId"],now_epoch,
+        from tombstone import ensure
+        ensure(dynamodb,table_name,command['environment'],partition,period_id,
+               command['occurredAtEpoch'],retention_days)
+        result = sweep(dynamodb,table_name,command["environment"],partition,command["operationId"],now_epoch,
                        max_steps=max_steps,remaining_ms=remaining_ms)
         for name in ("deleted","recomputedCandidates"):
             totals[name] += result[name]
-        totals["observedPassEnded"] = totals["observedPassEnded"] or result["observedPassEnded"]
+        totals["locatorPassEnded"] = totals["locatorPassEnded"] and result["locatorPassEnded"]
     return totals
 
 

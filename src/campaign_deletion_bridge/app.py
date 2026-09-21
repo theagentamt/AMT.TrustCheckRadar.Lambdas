@@ -23,7 +23,9 @@ def lambda_handler(event, context):
                 continue
             result = delete_account_contributions(command,table_name=config.PIPELINE_TABLE_NAME,
                 retention_days=config.TRANSIENT_RETENTION_DAYS,dynamodb=dynamodb,kms=kms,remaining_ms=remaining,
-                deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME)
+                deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+                locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+                locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION)
             if result.get("alreadyCompleted"):
                 continue
             for name in ('deleted','recomputedCandidates'):

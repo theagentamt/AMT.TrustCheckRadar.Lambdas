@@ -101,3 +101,19 @@ def test_handled_system_failure_is_metric_without_private_exception(monkeypatch,
         response=app.lambda_handler({'body':'private-input'},None)
     assert response['statusCode']==503 and 'private' not in response['body']
     assert 'private' not in caplog.text and 'AccountExportUnavailable' in caplog.text
+
+
+def test_research_export_keeps_locator_and_lifecycle_metadata_internal():
+    import base64
+    mac=b'x'*32;token=base64.urlsafe_b64encode(mac).decode().rstrip('=')
+    partition='CONTRIB#8#'+token
+    row={'PK':'CANDIDATE#synthetic','SK':'CONTRIB#'+token,'GSI1PK':partition,
+         'periodId':8,'expiresAt':NOW+60,'submissionCount':1,'languageId':'en',
+         'locatorPK':partition,'locatorSK':'LOCATOR#CANDIDATE#synthetic',
+         'lifecycleOperationId':'internal-operation','vector':[1]}
+    table=Table(rows={(row['PK'],row['SK']):row},page={'Items':[row]})
+    r=reader({'pipeline':table},kms=SimpleNamespace(generate_mac=lambda **kw:{'Mac':mac}))
+    family,records,cursor=r._research(CONTEXT,'8','key',None)
+    assert family=='research_contributions' and cursor is None
+    assert records==[{'expiresAt':NOW+60,'submissionCount':1,'languageId':'en'}]
+    assert table.calls[0][1]['IndexName']=='ContributorPeriodIndex'
