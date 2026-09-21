@@ -43,7 +43,11 @@ Prerequisites:
 - `shellcheck` for shell validation
 - AWS CLI only when publishing artifacts
 
-Run the quality checks:
+GitHub CI runs automatically only after a push or merge to `main`. Feature and
+`release-V01` work require appropriate local validation recorded in the PR; no
+pre-main GitHub run is required. See [CI and publishing policy](docs/GITHUB_PUBLISHING.md).
+
+Run the quality checks locally:
 
 ```bash
 make check

@@ -22,3 +22,19 @@
 - Pushed, merged into `release-V01`, deployed, and released from `main` are distinct
   states. Report them accurately. Preserve existing deployment approvals and
   environment gates; this branch policy does not authorize a deployment.
+
+## CI timing and local validation
+
+- GitHub CI checks run automatically only on pushes or merges to `main`. Do not
+  add pull-request, feature-branch or `release-V01` automatic CI triggers, or
+  dispatch a workflow to substitute for required local validation before main.
+- Run the meaningful checks appropriate to the change locally before publishing
+  or merging feature/release work, and record commands, results and any limits in
+  the PR. Local evidence is sufficient for feature/`release-V01` integration under
+  this policy; absence of pre-main GitHub runs is expected, not a validation pass.
+- Keep all substantive main-branch CI jobs and checks. A main push is the GitHub
+  validation boundary; promotion to main still requires explicit owner instruction.
+- Do not bypass a live protection/ruleset requirement with admin merge or fabricate
+  check results. Report incompatible pre-main check requirements for authorized
+  policy alignment. Preserve branch review protections and publishing/deployment
+  approval gates; this CI policy grants no deployment or workflow-dispatch authority.
