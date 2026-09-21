@@ -1,34 +1,37 @@
 import logging
 import os
+import time
 import boto3
 import config
-from service import expire_transient, finalize_periods, manage_keys
+from publication import Publication
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
 dynamodb = boto3.client("dynamodb")
-kms = boto3.client("kms")
 
 
-def lambda_handler(event, _context):
-    config.validate_config()
-    if event.get("environment") != config.APP_ENVIRONMENT or event.get("schemaVersion") != config.CAMPAIGN_SCHEMA_VERSION:
+def lambda_handler(event, context):
+    config.validate_candidate()
+    if (type(event) is not dict or event.get("environment") != config.APP_ENVIRONMENT
+            or type(event.get("schemaVersion")) is not int or event["schemaVersion"] != 1):
         raise ValueError("Cross-environment or unsupported lifecycle request")
     operation = event.get("operation")
-    if operation == "manage_keys":
-        result = manage_keys(environment=config.APP_ENVIRONMENT, project_name=config.PROJECT_NAME,
-            table_name=config.PIPELINE_TABLE_NAME, dynamodb=dynamodb, kms=kms)
-    elif operation == "finalize_periods":
-        result = finalize_periods(environment=config.APP_ENVIRONMENT, schema_version=config.CAMPAIGN_SCHEMA_VERSION,
-            pipeline_table=config.PIPELINE_TABLE_NAME, intelligence_table=config.INTELLIGENCE_TABLE_NAME,
-            minimum_contributors=config.MIN_CONTRIBUTOR_COUNT,
-            aggregate_retention_days=config.AGGREGATE_RETENTION_DAYS, dynamodb=dynamodb)
-    elif operation == "expire_transient":
-        result = expire_transient(environment=config.APP_ENVIRONMENT,
-            table_name=config.PIPELINE_TABLE_NAME, index_name=config.EXPIRATION_INDEX_NAME,
-            dynamodb=dynamodb)
+    fields = {"environment", "schemaVersion", "operation"}
+    expected = {
+        "recover_candidate": fields | {"candidateId"},
+        "expire_locator": fields | {"locatorPK", "locatorSK"},
+    }
+    if operation not in expected or set(event) != expected[operation]:
+        raise ValueError("Unsupported candidate operation")
+    worker = Publication(client=dynamodb, pipeline=config.PIPELINE_TABLE_NAME,
+        intelligence=config.INTELLIGENCE_TABLE_NAME, environment=config.APP_ENVIRONMENT,
+        manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+        inventory_revision=int(config.CAMPAIGN_LOCATOR_INVENTORY_REVISION),
+        now=lambda: int(time.time()), enabled=True,
+        remaining_ms=context.get_remaining_time_in_millis)
+    if operation == "recover_candidate":
+        result = worker.process(event["candidateId"])
     else:
-        raise ValueError("Unknown lifecycle operation")
-    LOGGER.info("Campaign lifecycle completed | operation=%s schemaVersion=%s result=success", operation,
-                config.CAMPAIGN_SCHEMA_VERSION)
+        result = worker.expire_locator(event["locatorPK"], event["locatorSK"])
+    LOGGER.info("Campaign lifecycle candidate step completed | operation=%s schemaVersion=1", operation)
     return result
