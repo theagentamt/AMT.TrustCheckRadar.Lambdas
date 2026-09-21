@@ -1,0 +1,26 @@
+{
+  "join": {
+    "schemaVersion": 2,
+    "action": "join",
+    "noticeVersion": "research-consent-2026-09-21-v2",
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+  },
+  "legacyJoinReplayOnly": {
+    "schemaVersion": 1,
+    "action": "join",
+    "noticeVersion": "2026-09-07",
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+  },
+  "withdrawLegacy": {
+    "schemaVersion": 1,
+    "action": "withdraw",
+    "noticeVersion": "2026-09-07",
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+  },
+  "withdrawCurrent": {
+    "schemaVersion": 2,
+    "action": "withdraw",
+    "noticeVersion": "research-consent-2026-09-21-v2",
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922"
+  }
+}

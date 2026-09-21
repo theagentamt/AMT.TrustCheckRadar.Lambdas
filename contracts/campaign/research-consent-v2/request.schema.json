@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "action",
+    "noticeVersion",
+    "operationId"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "action": {
+      "enum": [
+        "join",
+        "withdraw"
+      ]
+    },
+    "noticeVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "operationId": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

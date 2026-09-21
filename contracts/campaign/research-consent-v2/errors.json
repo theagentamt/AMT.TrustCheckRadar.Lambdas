@@ -1,0 +1,52 @@
+{
+  "POLICY_REVIEW_REQUIRED": {
+    "statusCode": 409,
+    "body": {
+      "error": {
+        "code": "POLICY_REVIEW_REQUIRED",
+        "message": "Review the current research notice before joining.",
+        "retryable": false
+      }
+    }
+  },
+  "CONFLICT": {
+    "statusCode": 409,
+    "body": {
+      "error": {
+        "code": "CONFLICT",
+        "message": "operationId was already used for another request.",
+        "retryable": false
+      }
+    }
+  },
+  "JOIN_UNAVAILABLE": {
+    "statusCode": 503,
+    "body": {
+      "error": {
+        "code": "JOIN_UNAVAILABLE",
+        "message": "New research participation is temporarily unavailable.",
+        "retryable": false
+      }
+    }
+  },
+  "FORBIDDEN": {
+    "statusCode": 403,
+    "body": {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "The account is not active.",
+        "retryable": false
+      }
+    }
+  },
+  "SERVER_UNAVAILABLE": {
+    "statusCode": 500,
+    "body": {
+      "error": {
+        "code": "SERVER_UNAVAILABLE",
+        "message": "Stored campaign participation state is invalid.",
+        "retryable": false
+      }
+    }
+  }
+}

@@ -1,0 +1,161 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractVersion",
+    "state",
+    "noticeVersion",
+    "policyVersion",
+    "acceptedNoticeVersion",
+    "stateVersion",
+    "consentEpochId",
+    "lastOperationId",
+    "contributionEligible",
+    "withdrawalStatus",
+    "withdrawalRequestedAt",
+    "deletionDeadlineAt",
+    "operation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "contractVersion": {
+      "const": "2.0.0-candidate.1"
+    },
+    "state": {
+      "enum": [
+        "not_enrolled",
+        "enrolled",
+        "review_required",
+        "withdrawal_pending",
+        "withdrawn"
+      ]
+    },
+    "noticeVersion": {
+      "const": "research-consent-2026-09-21-v2"
+    },
+    "policyVersion": {
+      "const": "independent-research-v1"
+    },
+    "acceptedNoticeVersion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stateVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "consentEpochId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "lastOperationId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "contributionEligible": {
+      "type": "boolean"
+    },
+    "withdrawalStatus": {
+      "enum": [
+        "not_requested",
+        "pending",
+        "completion_unverified"
+      ]
+    },
+    "withdrawalRequestedAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "deletionDeadlineAt": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operation": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operationId",
+            "status",
+            "action",
+            "requestSchemaVersion",
+            "requestNoticeVersion",
+            "acceptedNoticeVersion",
+            "resultingState",
+            "consentEpochId"
+          ],
+          "properties": {
+            "operationId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "status": {
+              "enum": [
+                "not_found",
+                "applied",
+                "applied_legacy"
+              ]
+            },
+            "action": {
+              "enum": [
+                null,
+                "join",
+                "withdraw"
+              ]
+            },
+            "requestSchemaVersion": {
+              "enum": [
+                null,
+                1,
+                2
+              ]
+            },
+            "requestNoticeVersion": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "acceptedNoticeVersion": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "resultingState": {
+              "enum": [
+                null,
+                "enrolled",
+                "withdrawal_pending"
+              ]
+            },
+            "consentEpochId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
