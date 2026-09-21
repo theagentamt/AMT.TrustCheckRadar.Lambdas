@@ -1,0 +1,41 @@
+{
+  "status": "engineering_copy_requires_product_language_review",
+  "messages": {
+    "journey.recovery_unavailable": {
+      "en": "Recovery guidance is not available in this build.",
+      "es": "La guía de recuperación no está disponible en esta versión."
+    },
+    "journey.known_threat": {
+      "en": "An independent check found a known threat in a link. Avoid the link.",
+      "es": "Una comprobación independiente detectó una amenaza conocida en un enlace. Evita el enlace."
+    },
+    "journey.known_threat_partial": {
+      "en": "A link has a known threat. Other parts could not be assessed. Avoid the link.",
+      "es": "Un enlace contiene una amenaza conocida. No se pudieron evaluar otras partes. Evita el enlace."
+    },
+    "journey.no_known_threat": {
+      "en": "No known threat was found by the supported link checks. This does not guarantee safety.",
+      "es": "Las comprobaciones de enlaces compatibles no detectaron amenazas conocidas. Esto no garantiza la seguridad."
+    },
+    "journey.hostile_input_stop": {
+      "en": "Analysis stopped because instructions in the content could interfere with the check. The content has not been cleared.",
+      "es": "El análisis se detuvo porque las instrucciones del contenido podrían interferir con la comprobación. No se ha confirmado que el contenido sea seguro."
+    },
+    "journey.clarification_required": {
+      "en": "Clarify who wrote the selected text: you, someone else, both, or unsure. Names are not needed.",
+      "es": "Aclara quién escribió el texto seleccionado: tú, otra persona, ambos o no estás seguro. No se necesitan nombres."
+    },
+    "journey.unsupported": {
+      "en": "This content type cannot be assessed here. Nothing was opened or executed.",
+      "es": "Este tipo de contenido no se puede evaluar aquí. No se abrió ni ejecutó nada."
+    },
+    "journey.provider_unavailable": {
+      "en": "External analysis is unavailable. No safety conclusion was reached.",
+      "es": "El análisis externo no está disponible. No se llegó a una conclusión sobre la seguridad."
+    },
+    "journey.inconclusive": {
+      "en": "There is not enough reliable evidence to assess this content.",
+      "es": "No hay suficientes indicios fiables para evaluar este contenido."
+    }
+  }
+}
