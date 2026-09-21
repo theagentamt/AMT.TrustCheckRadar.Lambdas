@@ -10,6 +10,8 @@ all detailed playbooks, broader backend activation or completion of those storie
 
 - Tracker source: [SECUR4ALL-163](https://andmorethings.youtrack.cloud/issue/SECUR4ALL-163),
   comment **`7-1189`** (the reviewable draft).
+- Subsequent owner-approval records: SECUR4ALL-163 comment **`7-1198`**,
+  ATCR-120 comment **`7-1197`**, and SECUR4ALL-234 comment **`7-1199`**.
 - Orchestration review artifact: `/tmp/amt-atcr120-recovery-approval.md`.
 - SHA-256 of that exact UTF-8 artifact:
   `ce40bd3e6b0529cef759da34a4a1d511fd3358b87b69edf5b02ca9e75d287f22`.
@@ -80,6 +82,8 @@ governed model evidence/actions, shared authority/accounting and paid lifecycle
 readiness are demonstrated under SECUR4ALL-190/228/229/230. A local disabled-service
 notice must not invent a provider result, deduction or refund.
 
-ATCR-120 is assessed against its four native presentation acceptance criteria;
-this increment neither closes the broader backend epics nor claims live billing,
-provider or detailed-recovery acceptance.
+ATCR-120 is assessed against its four native presentation acceptance criteria.
+Component fixtures alone do not demonstrate actual message-result routing; that
+binding remains a concrete open dependency. This increment neither closes the
+broader backend epics nor claims live billing, provider or detailed-recovery
+acceptance.
