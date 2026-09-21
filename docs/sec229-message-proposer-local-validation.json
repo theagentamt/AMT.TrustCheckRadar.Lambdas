@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-21",
+  "source_base": "736a81c9d15b79f0bd570d197a43322feb3aa5a8",
+  "coverageVersion": "qualified-phrases-2026-09-21-v1",
+  "supportedNormalizedWholeMessages": 140,
+  "broad_suite": {
+    "command": "python -m pytest -q",
+    "passed": 1003,
+    "subtests_passed": 212,
+    "expected_isolated_module_skips": 9
+  },
+  "isolated_dynamodb_suite": {
+    "command": "AMT_AUTHORITY_INTEGRATION=1 AWS_EC2_METADATA_DISABLED=true python -m pytest -q tests/shared_check_authority tests/message_consumer tests/message_evaluator",
+    "passed": 502
+  },
+  "checks": [
+    "Python 3.14 compileall",
+    "shellcheck build_lambda_zip.sh",
+    "git diff --check",
+    "Gitleaks changed files: 0 findings",
+    "source-only archive handler import tests",
+    "full ARM64 archive module and native-wheel inventory verification"
+  ],
+  "artifacts": {
+    "message_consumer": {
+      "sha256": "9d44b7596767c7f9ac3c196288bae0229397d825a49d68106658e81c044990a0",
+      "python": "3.14",
+      "architecture": "arm64",
+      "dependencies": "full pinned direct requirements plus resolved transitive wheels",
+      "target_runtime_execution": false
+    },
+    "message_evaluator": {
+      "sha256": "a5d71541d475143167df02f45bc950c84c5f24c021a59b83281ed15cf4e36bc1",
+      "python": "3.14",
+      "architecture": "arm64",
+      "dependencies": "full pinned direct requirements plus resolved transitive wheels",
+      "target_runtime_execution": false
+    }
+  },
+  "not_performed": [
+    "AWS deployment",
+    "provider activation",
+    "OpenAI API request",
+    "live credential read",
+    "provider retention account verification",
+    "physical device qualification"
+  ]
+}

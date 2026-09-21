@@ -271,3 +271,46 @@ def test_deletion_after_evaluation_prevents_receipt_recreation_and_charge(world)
     assert row('CHECK#' + proof)['state'] == 'ADMITTED'
     assert row('CHECK#' + proof).get('resultSummary') is None
     assert row('PERIOD#p1')['usedChecks'] == 0
+
+
+@pytest.mark.parametrize('language,text,rule', [
+    ('en','Please send me your login code.','REQUEST_SECRET_DISCLOSURE'),
+    ('en','Pay this fine by purchasing gift cards and send us the redemption codes.','DEMAND_GIFT_CARD_PAYMENT'),
+    ('en','Send the payment and do not tell your family.','PAYMENT_WITH_SECRECY_PRESSURE'),
+    ('es','Por favor, envíenos el código de acceso de su cuenta.','REQUEST_SECRET_DISCLOSURE'),
+])
+def test_expanded_qualified_phrase_settles_once_and_stores_no_text(world, language, text, rule):
+    service,base,calls,budget=system(world)
+    req=request(text=text);req['language']=language
+    proof=prepare(service,base,req)
+    submit=req|{'operationProof':proof}
+    status,body=service.handle(event(base,'POST /v1/message-checks',submit))
+    assert status==200 and body['outcome']['ruleIds']==[rule]
+    assert body['outcome']['processingOutcome']=='complete' and body['accounting']['chargedChecks']==1
+    for _ in range(2):
+        assert service.handle(event(base,'POST /v1/message-checks',submit))[1]['accounting']==body['accounting']
+        assert reconcile(service,base,'message-check',proof)[1]['accounting']==body['accounting']
+    assert len(calls)==budget.attempts==1 and world[3]('PERIOD#p1')['usedChecks']==1
+    assert text not in json.dumps(world[3]('CHECK#'+proof),default=str)
+
+
+@pytest.mark.parametrize('fail', [False,True])
+def test_optional_model_claim_or_failure_cannot_create_charge(world, fail):
+    proposal_calls=[]
+    def proposer(intent,budget):
+        proposal_calls.append(1)
+        if fail:raise MessageError('PROVIDER_RESPONSE_INVALID')
+        return {'ruleId':'REQUEST_SECRET_DISCLOSURE','spans':[{'start':0,'end':8}]}
+    def provider(body):
+        return evaluate(body['checkId'],body['intent'],proposer=proposer,budget_ms=body['executionBudgetMs'])
+    service,base,calls,budget=system(world,provider)
+    req=request(text='A request outside qualified coverage.')
+    proof=prepare(service,base,req)
+    submit=req|{'operationProof':proof}
+    status,body=service.handle(event(base,'POST /v1/message-checks',submit))
+    assert status==200 and body['accounting']['chargedChecks']==0
+    assert body['outcome']['processingOutcome']==('unavailable' if fail else 'inconclusive')
+    assert service.handle(event(base,'POST /v1/message-checks',submit))[1]['accounting']==body['accounting']
+    assert reconcile(service,base,'message-check',proof)[1]['accounting']==body['accounting']
+    assert len(proposal_calls)==len(calls)==budget.attempts==1
+    assert world[3]('PERIOD#p1')['usedChecks']==0

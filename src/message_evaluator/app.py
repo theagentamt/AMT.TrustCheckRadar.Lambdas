@@ -1,4 +1,4 @@
-"""IAM-only evaluator, no message logging, model credentials or ledger writes."""
+"""IAM-only evaluator; optional gated proposer, no message logs or ledger writes."""
 import json
 import os
 import re
@@ -40,7 +40,14 @@ def lambda_handler(event,context):
         require(context is not None and callable(getattr(context,'get_remaining_time_in_millis',None)))
         budget=min(event['executionBudgetMs'],context.get_remaining_time_in_millis()-1000)
         require(budget>0)
-        return evaluate(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget)
+        proposer = None
+        if os.environ.get('MESSAGE_PROPOSER_ENABLED') == 'true':
+            from .proposer import Settings, propose
+            # Configuration errors are processed as provider unavailability after
+            # independent reviewed-link work, preserving any known threat match.
+            def proposer(intent, remaining_ms):
+                return propose(intent, Settings.from_env(), remaining_ms)
+        return evaluate(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,proposer=proposer)
     except Exception:
         # Only fixed failure output, never an exception payload or raw request.
         return {'enabled':True,'errorCode':'EVALUATOR_UNAVAILABLE'}

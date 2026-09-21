@@ -1,6 +1,8 @@
 """Explicit tested whole-message coverage, not general semantic inference."""
 import re
+import time
 from shared_message_contract.validation import POLICY, validate_intent, validate_summary
+from .coverage import match
 
 # These exact normalized whole-message cases are the initial qualified coverage.
 # Paraphrases, quotes, unknown segments and LLM agreement do not extend it.
@@ -48,9 +50,10 @@ def result(check, *, rules=(), limits=(), evidence=()):
     return validate_summary(value,check)
 
 
-def evaluate(check, intent, *, lookup=None, budget_ms=18000):
+def evaluate(check, intent, *, lookup=None, budget_ms=18000, proposer=None, clock=time.monotonic):
     validate_intent(intent)
     target=intent['target'];text=target['sanitizedText'];limits=[];rules=[];evidence=[]
+    deadline=clock()+budget_ms/1000
     # This stop heuristic protects processing, never establishes an abuse verdict.
     instruction=sum(bool(re.search(p,text,re.IGNORECASE)) for p in (
         r'ignore\s+(?:all\s+)?previous\s+instructions',r'you\s+are\s+chatgpt',r'return\s+exactly',
@@ -59,13 +62,14 @@ def evaluate(check, intent, *, lookup=None, budget_ms=18000):
     if instruction>=2:limits.append('HOSTILE_INPUT_STOP')
     if target['speakerRole'] in ('mixed','unknown'):limits.append('UNKNOWN_SPEAKER')
     normalized=' '.join(text.casefold().split())
-    rule=COVERAGE[intent['language']].get(normalized)
+    rule=COVERAGE[intent['language']].get(normalized) or match(text, intent['language'])
     if not limits and rule and (rule=='BENIGN_FIXED_TEXT' or target['speakerRole']=='other'):
         rules.append(rule)
     else:
         limits.append('INSUFFICIENT_EVIDENCE')
     if target['withheldLinks']:limits.append('WITHHELD_LINKS')
     for link in target['reviewedLinks']:
+        budget_ms=max(0,int((deadline-clock())*1000))
         if lookup is None or budget_ms<14000:
             limits.append('PROVIDER_UNAVAILABLE' if lookup is None else 'BUDGET_LIMIT');continue
         try:
@@ -81,4 +85,18 @@ def evaluate(check, intent, *, lookup=None, budget_ms=18000):
             if raw['processingOutcome']!='complete' or link['scope']!='full_url':limits.append('WITHHELD_LINKS')
         except Exception:
             limits.append('PROVIDER_UNAVAILABLE')
+    # Optional preparatory model transport. A proposal cannot extend qualified
+    # coverage; arbitrary prose remains inconclusive even when the model agrees.
+    # No provider work is needed for a deterministic qualified result.
+    if proposer is not None and not rules and target['speakerRole']=='other' and 'HOSTILE_INPUT_STOP' not in limits:
+        remaining_ms=max(0,int((deadline-clock())*1000))
+        if remaining_ms<250:
+            limits.append('BUDGET_LIMIT')
+        else:
+            try:
+                proposer(intent,remaining_ms)
+            except Exception as exc:
+                from shared_message_contract.validation import MessageError
+                code=exc.code if isinstance(exc,MessageError) else 'PROVIDER_UNAVAILABLE'
+                limits.append(code if code in ('PROVIDER_RESPONSE_INVALID','BUDGET_LIMIT') else 'PROVIDER_UNAVAILABLE')
     return result(check,rules=rules,limits=limits,evidence=evidence)
