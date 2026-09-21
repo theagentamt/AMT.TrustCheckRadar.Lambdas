@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "context",
+    "exposureIds"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "classified",
+        "abstain"
+      ]
+    },
+    "context": {
+      "type": "string",
+      "enum": [
+        "clear",
+        "insufficient",
+        "unsupported",
+        "suspected_injection",
+        "contradictory"
+      ]
+    },
+    "exposureIds": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "string",
+        "enum": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ]
+      }
+    }
+  }
+}

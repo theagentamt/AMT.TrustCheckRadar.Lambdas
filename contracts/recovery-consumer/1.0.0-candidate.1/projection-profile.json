@@ -1,0 +1,29 @@
+{
+  "version": "recovery-projection-1.0",
+  "approvalSha256": "173132b8d5a16d3d5a8ccdbc7355a631f8384634945772993200a3559c89da72",
+  "base": "sanitizer-v1 nine types; same per-submission token reuse, priority and Unicode normalization",
+  "limits": {
+    "rawDeviceCodepoints": 2000,
+    "reviewedCodepoints": 2000,
+    "reviewedUtf8Bytes": 8000,
+    "wireUtf8Bytes": 32768,
+    "uniqueEntities": 100
+  },
+  "supplement": {
+    "domainPattern": "\\b(?:[a-z0-9-]+\\.)+[a-z]{2,63}\\b",
+    "domainTokenType": "url",
+    "labeledValuePattern": "\\b(password|passcode|contraseña|c[oó]digo|code|secret|api[_ -]?key|token)\\s*[:=]\\s*\\S+",
+    "verificationCodeLabels": [
+      "code",
+      "codigo",
+      "código"
+    ],
+    "otherSecretLabelsTokenType": "password",
+    "caseInsensitive": true,
+    "terminalValuePunctuation": ". , ! ; : and unmatched closing parentheses/brackets",
+    "priority": "full URL/email/base nine supported formats win overlapping supplemental candidates; base whole-input normalized once",
+    "unrecognizedOrResidual": "review/edit; no claim of comprehensive personal-data detection"
+  },
+  "submission": "exact explicit reviewed projection; API rejects without rewriting; no manual selections or baseline plan",
+  "serverSecretValidation": "Each explicit label value must be a matching declared token. A validator-only view masks the checked delimiter to avoid inherited residual scanning treating later prose as a secret; original wire/HMAC/vendor text is unchanged."
+}
