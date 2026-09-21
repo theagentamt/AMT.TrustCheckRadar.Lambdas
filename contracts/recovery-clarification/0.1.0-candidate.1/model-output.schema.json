@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "context",
+    "exposureIds",
+    "actionIds",
+    "questionIds"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "classified",
+        "needs_confirmation",
+        "abstained"
+      ]
+    },
+    "context": {
+      "enum": [
+        "clear",
+        "insufficient",
+        "unsupported",
+        "suspected_injection",
+        "contradictory"
+      ]
+    },
+    "exposureIds": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ]
+      }
+    },
+    "actionIds": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "basics_link",
+          "basics_password",
+          "basics_identity",
+          "basics_payment",
+          "basics_device"
+        ]
+      }
+    },
+    "questionIds": {
+      "const": []
+    }
+  }
+}

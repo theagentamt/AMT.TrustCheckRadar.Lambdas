@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "scope",
+    "selectionVersion",
+    "contentBundleVersion",
+    "language",
+    "sanitizedDescription",
+    "entities"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "recovery-clarification-0.1.0-candidate.1"
+    },
+    "scope": {
+      "const": "recovery_clarification"
+    },
+    "selectionVersion": {
+      "const": "recovery-selection-1.0.0"
+    },
+    "contentBundleVersion": {
+      "const": "recovery-basics-1.0"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "sanitizedDescription": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "entities": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "token"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "url",
+              "email",
+              "phone",
+              "ssn",
+              "credit_card",
+              "ip_address",
+              "messenger_handle",
+              "payment_handle",
+              "crypto_wallet",
+              "password",
+              "verification_code"
+            ]
+          },
+          "token": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      }
+    }
+  }
+}

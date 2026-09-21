@@ -1,0 +1,35 @@
+{
+  "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+  "scope": "recovery_clarification",
+  "approval": "Draft",
+  "approvalRecord": null,
+  "enabled": false,
+  "selectionVersion": "recovery-selection-1.0.0",
+  "contentBundleVersion": "recovery-basics-1.0",
+  "inputCodePointLimit": 2000,
+  "inputWireByteLimit": 32768,
+  "outputWireByteLimit": 4096,
+  "questionIds": [],
+  "exposureIds": [
+    "clicked_link",
+    "credentials_or_mfa",
+    "financial_or_identity",
+    "sent_payment",
+    "software_or_remote_access"
+  ],
+  "actionIds": [
+    "basics_link",
+    "basics_password",
+    "basics_identity",
+    "basics_payment",
+    "basics_device"
+  ],
+  "questionRendering": "none; uncertainty uses existing manual exposure choices",
+  "classificationSemantics": "unapproved",
+  "provider": "none",
+  "endpoint": null,
+  "retention": "none",
+  "accounting": "not_implemented",
+  "sanitizedUtf8ByteLimit": 8000,
+  "classificationPolicyVersion": "recovery-classification-draft-1"
+}

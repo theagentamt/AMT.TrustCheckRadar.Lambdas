@@ -1,0 +1,11 @@
+{
+  "capability": "recovery_clarification",
+  "status": "not_implemented",
+  "enabled": false,
+  "endpoint": null,
+  "acceptsFreeText": false,
+  "providerCalls": false,
+  "deductsChecks": false,
+  "preservesDeterministicGuidance": true,
+  "story": "SECUR4ALL-235"
+}
