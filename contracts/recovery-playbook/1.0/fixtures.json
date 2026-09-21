@@ -1,0 +1,1997 @@
+{
+  "bundleVersion": "recovery-playbook-1.0",
+  "cases": [
+    {
+      "id": "en-subset-00",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-01",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-02",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure"
+        ],
+        "followUpActionIds": [],
+        "limitIds": [
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-03",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-04",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "identity_steps"
+        ],
+        "limitIds": [],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-05",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-06",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-07",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-08",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts"
+        ],
+        "limitIds": [
+          "limit_sent_payment"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-09",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-10",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-11",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-12",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_sent_payment"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-13",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-14",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-15",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-16",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-17",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-18",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-19",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-20",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-21",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-22",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-23",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-24",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-25",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-26",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-27",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-28",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-29",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-30",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-subset-31",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "en-unsure",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "en",
+        "exposures": [
+          "sent_payment"
+        ],
+        "unsure": true
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-00",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-01",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-02",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure"
+        ],
+        "followUpActionIds": [],
+        "limitIds": [
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-03",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-04",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "identity_steps"
+        ],
+        "limitIds": [],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-05",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-06",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-07",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-08",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts"
+        ],
+        "limitIds": [
+          "limit_sent_payment"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-09",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-10",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-11",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-12",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_sent_payment"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-13",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-14",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-15",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-16",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-17",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-18",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-19",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-20",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-21",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-22",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-23",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-24",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-25",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-26",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-27",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-28",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-29",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-30",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-subset-31",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ],
+        "unsure": false
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": null
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    },
+    {
+      "id": "es-unsure",
+      "input": {
+        "contractVersion": "recovery-selection-1.0.0",
+        "language": "es",
+        "exposures": [
+          "sent_payment"
+        ],
+        "unsure": true
+      },
+      "expectedPlan": {
+        "nowActionIds": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ],
+        "followUpActionIds": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ],
+        "limitIds": [
+          "limit_sent_payment",
+          "limit_credentials_or_mfa",
+          "limit_clicked_link",
+          "limit_software_or_remote_access"
+        ],
+        "conditionalNoteKey": "link_device_conditional"
+      },
+      "reviewStatus": "engineering_fixture_for_owner_approved_policy"
+    }
+  ]
+}
