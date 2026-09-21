@@ -1,0 +1,37 @@
+{
+  "purpose": "Offset convention examples; not model predictions or semantic validation",
+  "cases": [
+    {
+      "caseId": "dev-019-en",
+      "normalizedForm": "NFC",
+      "codePointLength": 75,
+      "utf16UnitLength": 76,
+      "utf8ByteLength": 79,
+      "proposedCodePointSpan": {
+        "start": 15,
+        "end": 75
+      },
+      "selectedText": "authorize the transfer today or your account will be frozen.",
+      "wrongUtf16StartUsedAsCodepoint": 16,
+      "wrongSelectionStillMayBeStructurallyValid": "uthorize the transfer today or your account will be frozen.",
+      "semanticGrounding": "requires_human_review",
+      "decomposedVariantPolicy": "NFD input is a normalization-boundary test only; normalize before deriving offsets, never reuse pre-normalization indices"
+    },
+    {
+      "caseId": "dev-019-es",
+      "normalizedForm": "NFC",
+      "codePointLength": 78,
+      "utf16UnitLength": 79,
+      "utf8ByteLength": 83,
+      "proposedCodePointSpan": {
+        "start": 18,
+        "end": 78
+      },
+      "selectedText": "autorice la transferencia hoy o su cuenta quedará congelada.",
+      "wrongUtf16StartUsedAsCodepoint": 19,
+      "wrongSelectionStillMayBeStructurallyValid": "utorice la transferencia hoy o su cuenta quedará congelada.",
+      "semanticGrounding": "requires_human_review",
+      "decomposedVariantPolicy": "NFD input is a normalization-boundary test only; normalize before deriving offsets, never reuse pre-normalization indices"
+    }
+  ]
+}

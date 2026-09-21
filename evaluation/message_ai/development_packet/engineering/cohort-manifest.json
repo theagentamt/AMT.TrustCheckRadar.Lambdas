@@ -1,0 +1,714 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Supplemental proposed cohort metadata; existing closed corpus schema unchanged",
+  "qualificationEligible": false,
+  "holdoutEligible": false,
+  "humanReviewed": false,
+  "independentSamplesClaimed": false,
+  "counts": {
+    "cases": 40,
+    "languages": {
+      "en": 20,
+      "es": 20
+    },
+    "translationFamilies": 20
+  },
+  "cases": [
+    {
+      "caseId": "dev-001-en",
+      "familyId": "group-001",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-001-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-001-es",
+      "familyId": "group-001",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-001-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-002-en",
+      "familyId": "group-002",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-002-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-002-es",
+      "familyId": "group-002",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-002-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-003-en",
+      "familyId": "group-003",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-003-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PRETEXT",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-003-es",
+      "familyId": "group-003",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-003-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PRETEXT",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-004-en",
+      "familyId": "group-004",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-004-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_VERIFICATION_BYPASS"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-004-es",
+      "familyId": "group-004",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-004-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_VERIFICATION_BYPASS"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-005-en",
+      "familyId": "group-005",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-005-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-005-es",
+      "familyId": "group-005",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-005-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-006-en",
+      "familyId": "group-006",
+      "language": "en",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-006-es",
+      "challengeTags": [
+        "qualified_benign_rule"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-006-es",
+      "familyId": "group-006",
+      "language": "es",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-006-en",
+      "challengeTags": [
+        "qualified_benign_rule"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-007-en",
+      "familyId": "group-007",
+      "language": "en",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-007-es",
+      "challengeTags": [],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-007-es",
+      "familyId": "group-007",
+      "language": "es",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-007-en",
+      "challengeTags": [],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-008-en",
+      "familyId": "group-008",
+      "language": "en",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-008-es",
+      "challengeTags": [
+        "qualified_benign_rule"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-008-es",
+      "familyId": "group-008",
+      "language": "es",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-008-en",
+      "challengeTags": [
+        "qualified_benign_rule"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "no_known_threat_detected/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-009-en",
+      "familyId": "group-009",
+      "language": "en",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-009-es",
+      "challengeTags": [
+        "quotation_skip"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-009-es",
+      "familyId": "group-009",
+      "language": "es",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-009-en",
+      "challengeTags": [
+        "quotation_skip"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-010-en",
+      "familyId": "group-010",
+      "language": "en",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-010-es",
+      "challengeTags": [
+        "unknown_speaker"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-010-es",
+      "familyId": "group-010",
+      "language": "es",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-010-en",
+      "challengeTags": [
+        "unknown_speaker"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-011-en",
+      "familyId": "group-011",
+      "language": "en",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-011-es",
+      "challengeTags": [
+        "insufficient_context"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; proposed model abstention, not provider failure",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-011-es",
+      "familyId": "group-011",
+      "language": "es",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-011-en",
+      "challengeTags": [
+        "insufficient_context"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; proposed model abstention, not provider failure",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-012-en",
+      "familyId": "group-012",
+      "language": "en",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-012-es",
+      "challengeTags": [
+        "mixed_speaker"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-012-es",
+      "familyId": "group-012",
+      "language": "es",
+      "cohort": "ambiguous",
+      "split": "development",
+      "pairedTranslation": "dev-012-en",
+      "challengeTags": [
+        "mixed_speaker"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; deterministic context/profile skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-013-en",
+      "familyId": "group-013",
+      "language": "en",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-013-es",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-013-es",
+      "familyId": "group-013",
+      "language": "es",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-013-en",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-014-en",
+      "familyId": "group-014",
+      "language": "en",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-014-es",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-014-es",
+      "familyId": "group-014",
+      "language": "es",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-014-en",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-015-en",
+      "familyId": "group-015",
+      "language": "en",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-015-es",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-015-es",
+      "familyId": "group-015",
+      "language": "es",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-015-en",
+      "challengeTags": [
+        "hostile_stop"
+      ],
+      "expectedAiAssessment": "abstain",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/blocked; deterministic guard skip expected",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-016-en",
+      "familyId": "group-016",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-016-es",
+      "challengeTags": [
+        "withheld_link"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/partial",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-016-es",
+      "familyId": "group-016",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-016-en",
+      "challengeTags": [
+        "withheld_link"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/partial",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-017-en",
+      "familyId": "group-017",
+      "language": "en",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-017-es",
+      "challengeTags": [
+        "withheld_link"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; do not clear withheld link",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-017-es",
+      "familyId": "group-017",
+      "language": "es",
+      "cohort": "benign",
+      "split": "development",
+      "pairedTranslation": "dev-017-en",
+      "challengeTags": [
+        "withheld_link"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "unknown/inconclusive; do not clear withheld link",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-018-en",
+      "familyId": "group-018",
+      "language": "en",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-018-es",
+      "challengeTags": [
+        "independent_match"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "high_risk/partial; independent match must remain even with AI no-warning; backend-only joint-link simulation",
+      "expectedPolicySkip": false,
+      "mobileScope": "backend_contract_only_joint_link_not_current_mobile_submission",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-018-es",
+      "familyId": "group-018",
+      "language": "es",
+      "cohort": "adversarial",
+      "split": "development",
+      "pairedTranslation": "dev-018-en",
+      "challengeTags": [
+        "independent_match"
+      ],
+      "expectedAiAssessment": "no_warning",
+      "expectedReasonCategories": [],
+      "pipelineExpectationProposal": "high_risk/partial; independent match must remain even with AI no-warning; backend-only joint-link simulation",
+      "expectedPolicySkip": false,
+      "mobileScope": "backend_contract_only_joint_link_not_current_mobile_submission",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-019-en",
+      "familyId": "group-019",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-019-es",
+      "challengeTags": [
+        "unicode"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-019-es",
+      "familyId": "group-019",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-019-en",
+      "challengeTags": [
+        "unicode"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "pipelineExpectationProposal": "suspicious/complete",
+      "expectedPolicySkip": false,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-020-en",
+      "familyId": "group-020",
+      "language": "en",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-020-es",
+      "challengeTags": [
+        "qualified_warning_rule"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "pipelineExpectationProposal": "high_risk/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    },
+    {
+      "caseId": "dev-020-es",
+      "familyId": "group-020",
+      "language": "es",
+      "cohort": "warning",
+      "split": "development",
+      "pairedTranslation": "dev-020-en",
+      "challengeTags": [
+        "qualified_warning_rule"
+      ],
+      "expectedAiAssessment": "warning",
+      "expectedReasonCategories": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "pipelineExpectationProposal": "high_risk/complete; qualified rule skips AI",
+      "expectedPolicySkip": true,
+      "mobileScope": "current_selected_text_projection",
+      "humanLabelStatus": "unreviewed_proposal"
+    }
+  ]
+}

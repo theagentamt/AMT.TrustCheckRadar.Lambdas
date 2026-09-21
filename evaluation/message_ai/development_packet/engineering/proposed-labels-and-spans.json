@@ -1,0 +1,598 @@
+{
+  "status": "unreviewed_engineering_answer_key_not_ground_truth",
+  "warning": "Do not show this file, corpus expected/simulation, or cohort proposals to reviewers before independent labeling.",
+  "cases": [
+    {
+      "caseId": "dev-001-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "spans": [
+            {
+              "start": 0,
+              "end": 75
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-001-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "spans": [
+            {
+              "start": 0,
+              "end": 99
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-002-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 61
+            }
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 61
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-002-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 67
+            }
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 67
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-003-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PRETEXT",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PRETEXT",
+          "spans": [
+            {
+              "start": 0,
+              "end": 97
+            }
+          ]
+        },
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 97
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-003-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PRETEXT",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PRETEXT",
+          "spans": [
+            {
+              "start": 0,
+              "end": 110
+            }
+          ]
+        },
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 110
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-004-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_VERIFICATION_BYPASS"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_VERIFICATION_BYPASS",
+          "spans": [
+            {
+              "start": 0,
+              "end": 89
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-004-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_VERIFICATION_BYPASS"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_VERIFICATION_BYPASS",
+          "spans": [
+            {
+              "start": 0,
+              "end": 97
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-005-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 98
+            }
+          ]
+        },
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 98
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-005-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PAYMENT_PRESSURE"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 118
+            }
+          ]
+        },
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 118
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-006-en",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-006-es",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-007-en",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-007-es",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-008-en",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-008-es",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-009-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-009-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-010-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-010-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-011-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-011-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-012-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-012-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-013-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-013-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-014-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-014-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-015-en",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-015-es",
+      "proposedAssessment": "abstain",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-016-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 64
+            }
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 64
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-016-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "spans": [
+            {
+              "start": 0,
+              "end": 64
+            }
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 0,
+              "end": 64
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-017-en",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-017-es",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-018-en",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-018-es",
+      "proposedAssessment": "no_warning",
+      "proposedReasonCodes": [],
+      "proposedSpans": [],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-019-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 15,
+              "end": 75
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-019-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "spans": [
+            {
+              "start": 18,
+              "end": 78
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-020-en",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "spans": [
+            {
+              "start": 0,
+              "end": 49
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    },
+    {
+      "caseId": "dev-020-es",
+      "proposedAssessment": "warning",
+      "proposedReasonCodes": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "proposedSpans": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "spans": [
+            {
+              "start": 0,
+              "end": 57
+            }
+          ]
+        }
+      ],
+      "rationale": "Proposed engineering label under the attached rubric; requires blind independent adjudication.",
+      "wholeSentenceSpanReview": "Broad spans deliberately require reviewers to confirm/minimize semantic support; structural validity is not grounding evidence."
+    }
+  ]
+}
