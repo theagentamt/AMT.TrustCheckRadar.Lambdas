@@ -1,0 +1,81 @@
+{
+  "copyReviewSha256": "2d32f2662bc574cb4c21c61d7ba608fa7c262775ce9d0fd9a0d16cbad7469cae",
+  "messages": {
+    "feedback_title": {
+      "en": "Give feedback on this result",
+      "es": "Opina sobre este resultado"
+    },
+    "feedback_question": {
+      "en": "What would you like to report?",
+      "es": "¿Qué quieres informar?"
+    },
+    "feedback_legitimate": {
+      "en": "I think this is legitimate",
+      "es": "Creo que esto es legítimo"
+    },
+    "feedback_scam": {
+      "en": "I think this is a scam",
+      "es": "Creo que esto es una estafa"
+    },
+    "feedback_unclear": {
+      "en": "The result is unclear",
+      "es": "El resultado no está claro"
+    },
+    "feedback_unhelpful": {
+      "en": "The result was not helpful",
+      "es": "El resultado no fue útil"
+    },
+    "feedback_privacy": {
+      "en": "Only your selected category and the identifiers needed to link it to this result are sent. The original message, image, and URL are not sent again.",
+      "es": "Solo se envían la categoría seleccionada y los identificadores necesarios para vincularla con este resultado. El mensaje, la imagen y la URL originales no se vuelven a enviar."
+    },
+    "feedback_boundary": {
+      "en": "Feedback does not change this result or use an analysis check. This is not a live support service, and a personal reply is not promised.",
+      "es": "Tus comentarios no cambian este resultado ni consumen una revisión. Este no es un servicio de asistencia en vivo y no se promete una respuesta personal."
+    },
+    "feedback_send": {
+      "en": "Send feedback",
+      "es": "Enviar comentarios"
+    },
+    "feedback_sending": {
+      "en": "Sending feedback…",
+      "es": "Enviando comentarios…"
+    },
+    "feedback_already_received": {
+      "en": "Feedback was already received for this result. No additional report was saved.",
+      "es": "Ya se recibieron comentarios sobre este resultado. No se guardó otro informe."
+    },
+    "feedback_received": {
+      "en": "Feedback received. Your original result is unchanged.",
+      "es": "Comentarios recibidos. Tu resultado original no ha cambiado."
+    },
+    "feedback_unconfirmed": {
+      "en": "Delivery is not confirmed. You can retry this same report.",
+      "es": "No se ha confirmado la entrega. Puedes volver a intentar enviar el mismo informe."
+    },
+    "feedback_retry": {
+      "en": "Retry this report",
+      "es": "Reintentar este informe"
+    },
+    "feedback_denied": {
+      "en": "Feedback cannot be accepted for this result. Your original result is unchanged.",
+      "es": "No se pueden aceptar comentarios sobre este resultado. Tu resultado original no ha cambiado."
+    },
+    "feedback_sign_in": {
+      "en": "Sign in to send feedback on your own result.",
+      "es": "Inicia sesión para enviar comentarios sobre tu propio resultado."
+    },
+    "feedback_unavailable": {
+      "en": "Feedback is unavailable in this version. Your original result is unchanged.",
+      "es": "Los comentarios no están disponibles en esta versión. Tu resultado original no ha cambiado."
+    },
+    "feedback_cancel": {
+      "en": "Cancel",
+      "es": "Cancelar"
+    },
+    "feedback_wait": {
+      "en": "Please wait before retrying this report.",
+      "es": "Espera antes de volver a intentar enviar este informe."
+    }
+  }
+}

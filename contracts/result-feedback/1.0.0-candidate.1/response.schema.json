@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feedbackTransportVersion",
+    "feedbackId",
+    "checkId",
+    "status",
+    "reasonCode",
+    "retryable",
+    "retryAfterSeconds",
+    "receivedAt",
+    "expiresAt"
+  ],
+  "properties": {
+    "feedbackTransportVersion": {
+      "const": "1.0.0-feedback-candidate.1"
+    },
+    "feedbackId": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        }
+      ]
+    },
+    "checkId": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        }
+      ]
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "already_received",
+        "rejected",
+        "unknown"
+      ]
+    },
+    "reasonCode": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "AUTHENTICATION_REQUIRED",
+            "ACCOUNT_UNAVAILABLE",
+            "ACTIVE_DEVICE_REQUIRED",
+            "INPUT_REJECTED",
+            "CONTRACT_UNSUPPORTED",
+            "RESULT_UNAVAILABLE",
+            "FEEDBACK_ID_CONFLICT",
+            "RATE_LIMITED",
+            "SERVICE_NOT_ENABLED",
+            "SERVICE_UNAVAILABLE",
+            "FEEDBACK_ALREADY_RECEIVED"
+          ]
+        }
+      ]
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "retryAfterSeconds": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        }
+      ]
+    },
+    "receivedAt": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ]
+    },
+    "expiresAt": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "feedbackId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "checkId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "reasonCode": {
+            "const": null
+          },
+          "retryable": {
+            "const": false
+          },
+          "retryAfterSeconds": {
+            "type": "null"
+          },
+          "receivedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "already_received"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "feedbackId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "checkId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "reasonCode": {
+            "const": "FEEDBACK_ALREADY_RECEIVED"
+          },
+          "retryable": {
+            "const": false
+          },
+          "retryAfterSeconds": {
+            "type": "null"
+          },
+          "receivedAt": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "receivedAt": {
+            "type": "null"
+          },
+          "expiresAt": {
+            "type": "null"
+          },
+          "reasonCode": {
+            "enum": [
+              "SERVICE_UNAVAILABLE",
+              "SERVICE_NOT_ENABLED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "rejected"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "receivedAt": {
+            "type": "null"
+          },
+          "expiresAt": {
+            "type": "null"
+          },
+          "reasonCode": {
+            "enum": [
+              "AUTHENTICATION_REQUIRED",
+              "ACCOUNT_UNAVAILABLE",
+              "ACTIVE_DEVICE_REQUIRED",
+              "INPUT_REJECTED",
+              "CONTRACT_UNSUPPORTED",
+              "RESULT_UNAVAILABLE",
+              "FEEDBACK_ID_CONFLICT",
+              "RATE_LIMITED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reasonCode": {
+            "const": "RATE_LIMITED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "retryable": {
+            "const": true
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "retryAfterSeconds": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reasonCode": {
+            "const": "SERVICE_UNAVAILABLE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "retryable": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "AUTHENTICATION_REQUIRED",
+              "ACCOUNT_UNAVAILABLE",
+              "ACTIVE_DEVICE_REQUIRED",
+              "INPUT_REJECTED",
+              "CONTRACT_UNSUPPORTED",
+              "RESULT_UNAVAILABLE",
+              "FEEDBACK_ID_CONFLICT",
+              "SERVICE_NOT_ENABLED",
+              "FEEDBACK_ALREADY_RECEIVED"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "retryable": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}
