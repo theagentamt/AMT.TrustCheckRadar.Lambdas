@@ -155,6 +155,14 @@ class AccountDataHandlerTests(unittest.TestCase):
                 self.assertEqual(response["statusCode"], 400)
         self.assertEqual(self.subject.requests, [])
 
+    def test_accepted_post_is_not_repolled_after_concurrent_identity_completion(self):
+        snapshot = self.subject.status("account-1")
+        with mock.patch.object(self.subject,"request",return_value=snapshot), \
+                mock.patch.object(self.subject,"status",side_effect=RuntimeError("identity already removed")):
+            response = app.lambda_handler(event(body=json.dumps({"schemaVersion":1,"action":"DELETE_ACCOUNT","operationId":"3fefbf1a-caf4-4e72-ab61-4fb36bf925b4"})),None)
+        self.assertEqual(response["statusCode"],202)
+        self.assertEqual(json.loads(response["body"]),snapshot)
+
     def test_service_exception_is_not_copied_into_logs_or_response(self):
         private = "private-account-and-provider-content"
         with mock.patch.object(self.subject, "status", side_effect=RuntimeError(private)), \

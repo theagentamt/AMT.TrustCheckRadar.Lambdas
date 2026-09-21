@@ -76,3 +76,51 @@ contract behavior. Infrastructure owns scoped AdminGetUser/AdminDeleteUser and
 ledger transaction permissions. Missing inventory prevents execution. Synthetic
 Moto/Cognito-stub tests do not qualify real identity deletion, backup erasure,
 restore suppression, physical device behavior, or a complete account lifecycle.
+
+## Account-data integration
+
+The account-data API requires the metadata inventory at admission, with the exact
+manifest/revision and a request time strictly after approval; its transaction checks
+that row while fencing the owned profile. Workers repeat the check before cleanup.
+Owned PENDING_AGE_GATE profiles can request deletion; export still requires completed
+onboarding under the owner's explicit decision.
+
+`ENTITLEMENTS_TABLE_NAME`, `ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256` and
+`ACCOUNT_DATA_INVENTORY_REVISION` are required configuration. The separate
+`ACCOUNT_IDENTITY_FINALIZER_ENABLED` defaults false and must also be enabled before
+account deletion can be activated. No config value creates the authoritative marker.
+
+Purchase cleanup performs bounded guarded transactions, then requires a subsequent
+verified empty owned-partition pass. The ENTITLEMENTS receipt is written atomically
+under the fixed command, purchase inventory and account inventory guards. Material
+inventory changes require advancing the authoritative approval epoch and draining
+or explicitly requalifying prior work; old request identity/time is never rewritten.
+
+Identity finalization runs only in the durable stream/reconciliation path, after
+profile/component cleanup. The synchronous HTTP request does not delete Cognito.
+A terminal fixed fence denies ordinary authenticated status/retry. Duplicate old
+stream events recognize the exact terminal fence and skip cleanup; the V1 authority
+worker uses the same strict terminal-fence validator. Its ZIP now requires the
+shared_account_finalization module. Campaign worker terminal-event handling is
+coordinated in a separate bounded campaign increment.
+
+This source remains disabled. Verified legacy inventories, all writer/restore
+fences, complete campaign coverage, deployed component compatibility and staging
+end-to-end acceptance are prerequisites. A terminal fence is authoritative only
+when written by the reviewed atomic finalizer; it is never provisioned to bypass
+missing component evidence.
+
+## Local validation of the integration
+
+Python 3.14 full ordinary suite: 1,757 passed, 233 subtests, 16 separately run
+integration skips. Isolated SDK/Moto: 43 finalizer cases, six receipt/lifecycle cases,
+four admission cases, and 52 V1 deletion/worker regressions passed. These cover
+inventory/proof races, exact ownership, same-second approval rejection, terminal
+replay, disabled identity calls and provider acknowledgment uncertainty.
+
+The HTTP acceptance regression confirms concurrent identity completion does not
+turn a committed accepted request into an error by re-polling after cleanup.
+Empty inventory pins load safely while disabled. compileall, shellcheck and diff
+check passed. Python 3.14 source-only account-data/V1 deletion packages build;
+packaged imports and the account-data disabled/no-AWS response were verified.
+No live AWS operation or native dependency/deployment qualification is claimed.

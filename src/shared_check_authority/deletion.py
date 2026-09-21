@@ -81,6 +81,12 @@ class AuthorityDeletion:
         if type(page_size) is not int or not 1<=page_size<=20 or type(max_pages) is not int or not 1<=max_pages<=4:
             raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
         if not can_continue():return {'deleted':0,'complete':False,'alreadyComplete':False}
+        from shared_account_finalization.service import completed_fence
+        if isinstance(command,dict) and isinstance(command.get('PK'),str) and command.get('SK')=='ACCOUNT_DELETION':
+            current=self._get(self.ledger,{'PK':command['PK'],'SK':'ACCOUNT_DELETION'})
+            original=None if current==command else command
+            if completed_fence(current,self.environment,self.now(),original):
+                return {'deleted':0,'complete':True,'alreadyComplete':True}
         account=self._command(command);inventory=self._inventory()
         partitions=[self._partition(account,k) for k in sorted(self.keys)]
         receipt_key={'PK':command['PK'],'SK':'ACCOUNT_DELETION#'+COMPONENT}

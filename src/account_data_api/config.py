@@ -6,6 +6,10 @@ from errors import AppError
 
 
 APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "")
+ENTITLEMENTS_TABLE_NAME = os.environ.get("ENTITLEMENTS_TABLE_NAME", "")
+ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256 = os.environ.get("ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256", "")
+ACCOUNT_DATA_INVENTORY_REVISION = int(os.environ.get("ACCOUNT_DATA_INVENTORY_REVISION", "0") or "0")
+ACCOUNT_IDENTITY_FINALIZER_ENABLED = os.environ.get("ACCOUNT_IDENTITY_FINALIZER_ENABLED", "false") == "true"
 USERS_TABLE_NAME = os.environ.get("USERS_TABLE_NAME", "")
 DELETION_LEDGER_TABLE_NAME = os.environ.get("DELETION_LEDGER_TABLE_NAME", "")
 DEVICE_BINDINGS_TABLE_NAME = os.environ.get("DEVICE_BINDINGS_TABLE_NAME", "")
@@ -103,6 +107,9 @@ def validate_config():
         )
     if (
         APP_ENVIRONMENT not in {"dev", "uat", "prod"}
+        or not ENTITLEMENTS_TABLE_NAME
+        or not re.fullmatch(r"[0-9a-f]{64}", ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256)
+        or ACCOUNT_DATA_INVENTORY_REVISION < 1
         or not USERS_TABLE_NAME
         or not DELETION_LEDGER_TABLE_NAME
         or not DEVICE_BINDINGS_TABLE_NAME
@@ -117,7 +124,8 @@ def validate_config():
     ):
         raise AppError("SERVER_UNAVAILABLE", "Account deletion is not configured.")
     if (
-        ACCOUNT_DELETION_POLICY_STATUS != "approved"
+        not ACCOUNT_IDENTITY_FINALIZER_ENABLED
+        or ACCOUNT_DELETION_POLICY_STATUS != "approved"
         or ACCOUNT_DATA_INVENTORY_STATUS != "approved"
         or ACCOUNT_DELETION_COMPLETION_STATUS != "complete"
         or ACCOUNT_DELETION_MAX_REAUTH_AGE_SECONDS != 300

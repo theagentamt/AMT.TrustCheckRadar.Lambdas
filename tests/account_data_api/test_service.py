@@ -7,6 +7,8 @@ from pathlib import Path
 
 MODULE = Path(__file__).resolve().parents[2] / "src" / "account_data_api"
 sys.path.insert(0, str(MODULE))
+sys.path.insert(0, str(MODULE.parent))
+from shared_account_finalization.service import REQUIRED_COMPONENTS
 
 
 def _load(name, path):
@@ -142,13 +144,20 @@ def command():
 
 class AccountDeletionServiceTests(unittest.TestCase):
     def setUp(self):
-        self.ledger = Table()
+        self.ledger = Table({("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY"): {
+            "PK":"INVENTORY#dev", "SK":"ACCOUNT_DATA_INVENTORY",
+            "recordType":"ACCOUNT_DATA_INVENTORY", "schemaVersion":1,"revision":1,
+            "environment":"dev","coverage":"VERIFIED_COMPLETE","manifestSha256":"a"*64,
+            "requiredComponents":list(REQUIRED_COMPONENTS),"usernameIsSubVerified":True,
+            "approvedAtEpoch":99,
+        }})
         self.client = Client(self.ledger)
         self.subject = service.AccountDeletionService(
             environment="dev", ledger_table=self.ledger,
             users_table_name="users", ledger_table_name="ledger",
             dynamodb_client=self.client,
-            required_components=("SESSION_REVOCATION", "HISTORY", "CAMPAIGN"),
+            required_components=REQUIRED_COMPONENTS,
+            inventory_manifest_sha256="a"*64, inventory_revision=1,
             now=lambda: 100,
         )
 
@@ -160,7 +169,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         self.assertEqual(result["status"], "REQUESTED")
         self.assertFalse(result["completionEligible"])
         transaction = self.client.transactions[0]
-        self.assertEqual(len(transaction), 2)
+        self.assertEqual(len(transaction), 3)
         profile = transaction[0]["Update"]
         self.assertEqual(profile["TableName"], "users")
         self.assertIn("#status = :active", profile["ConditionExpression"])
@@ -169,6 +178,16 @@ class AccountDeletionServiceTests(unittest.TestCase):
         stored = self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")]
         self.assertEqual(set(stored), service.COMMAND_FIELDS)
         self.assertEqual(stored["deleteByEpoch"], 86_500)
+
+    def test_admission_requires_current_inventory_strictly_before_request_time(self):
+        marker = self.ledger.items[("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY")]
+        for change in ({"approvedAtEpoch":100}, {"revision":2}, {"manifestSha256":"b"*64}):
+            with self.subTest(change=change):
+                self.ledger.items[("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY")] = marker | change
+                with self.assertRaises(service.AppError) as error:
+                    self.subject.request("account-1", command()["operationId"])
+                self.assertEqual(error.exception.code,"SERVER_UNAVAILABLE")
+                self.assertEqual(self.client.transactions, [])
 
     def test_same_operation_replays_and_different_operation_conflicts(self):
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")] = command()
@@ -218,7 +237,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         result = self.subject.status("account-1")
 
         self.assertEqual(
-            result["components"],
+            [item for item in result["components"] if item["component"] in ("SESSION_REVOCATION", "HISTORY", "CAMPAIGN")],
             [
                 {"component": "SESSION_REVOCATION", "status": "PENDING"},
                 {"component": "HISTORY", "status": "COMPLETE"},

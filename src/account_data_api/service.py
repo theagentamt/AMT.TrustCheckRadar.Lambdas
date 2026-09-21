@@ -4,6 +4,9 @@ import re
 import time
 
 from errors import AppError
+from shared_account_finalization.service import (
+    validate_inventory, inventory_condition, serialize_operation, FinalizationError,
+)
 
 
 COMMAND_FIELDS = {
@@ -50,6 +53,7 @@ class AccountDeletionService:
         self, *, environment, ledger_table, users_table_name,
         ledger_table_name, dynamodb_client, required_components,
         erasure_sla_hours=24, now=lambda: int(time.time()),
+        inventory_manifest_sha256=None, inventory_revision=None,
     ):
         self.environment = environment
         self.ledger_table = ledger_table
@@ -59,12 +63,26 @@ class AccountDeletionService:
         self.required_components = tuple(required_components)
         self.erasure_sla_hours = erasure_sla_hours
         self.now = now
+        self.inventory_manifest_sha256 = inventory_manifest_sha256
+        self.inventory_revision = inventory_revision
 
     def request(self, account_id, operation_id):
         existing = self._command(account_id)
         if existing:
             return self._replay(existing, operation_id)
         now = self.now()
+        inventory = self.ledger_table.get_item(
+            Key={"PK": "INVENTORY#" + self.environment, "SK": "ACCOUNT_DATA_INVENTORY"},
+            ConsistentRead=True,
+        ).get("Item")
+        try:
+            validate_inventory(inventory, self.environment, self.inventory_manifest_sha256,
+                               self.required_components, expected_revision=self.inventory_revision,
+                               now_epoch=now)
+            if inventory["approvedAtEpoch"] >= now:
+                raise FinalizationError("FINALIZER_INVENTORY_UNVERIFIED")
+        except FinalizationError:
+            raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is not verified.") from None
         command = {
             "PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION",
             "schemaVersion": 1, "recordVersion": 1,
@@ -97,6 +115,7 @@ class AccountDeletionService:
                 "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
             }},
         ]
+        transaction.append(serialize_operation(inventory_condition(self.ledger_table_name, inventory)))
         try:
             self.dynamodb_client.transact_write_items(TransactItems=transaction)
         except Exception as err:
@@ -118,6 +137,8 @@ class AccountDeletionService:
                 "status": "NOT_REQUESTED", "completionEligible": False,
                 "components": [],
             }
+        if command.get("status") == "COMPLETE":
+            raise AppError("UNAUTHORIZED", "The account is no longer available.")
         command = validate_command(command, self.environment)
         components = []
         for component in self.required_components:
@@ -144,6 +165,8 @@ class AccountDeletionService:
         ).get("Item")
 
     def _replay(self, command, operation_id):
+        if command.get("status") == "COMPLETE":
+            raise AppError("UNAUTHORIZED", "The account is no longer available.")
         command = validate_command(command, self.environment)
         if command["operationId"] != operation_id:
             raise AppError(
@@ -827,6 +850,7 @@ def reconcile_session_revocations(
     user_profile_deletion_policy_status="pending",
     now=lambda: int(time.time()), remaining_millis=lambda: 30000,
     max_commands=10, minimum_remaining_millis=10000,
+    verify_command=None, delete_entitlements=None, finalize_account=None,
 ):
     if not 1 <= max_commands <= 10 or minimum_remaining_millis != 10000:
         raise ValueError("Invalid reconciliation work budget")
@@ -899,6 +923,8 @@ def reconcile_session_revocations(
             attempted += 1
             try:
                 command = validate_command(raw, environment)
+                if verify_command is not None and verify_command(command) is None:
+                    continue
                 totals["matched"] += 1
                 receipt = ledger_table.get_item(
                     Key={
@@ -965,6 +991,8 @@ def reconcile_session_revocations(
                 totals["campaignOutboxPolicyBlocked"] += (
                     1 if outbox_result.get("policyBlocked") else 0
                 )
+                if delete_entitlements is not None:
+                    delete_entitlements(command)
                 profile_result = delete_user_profile_state(
                     command, users_table=users_table, ledger_table=ledger_table,
                     page_size=100, policy_status=user_profile_deletion_policy_status,
@@ -977,6 +1005,8 @@ def reconcile_session_revocations(
                 totals["userProfilePolicyBlocked"] += (
                     1 if profile_result.get("policyBlocked") else 0
                 )
+                if finalize_account is not None:
+                    finalize_account(command)
             except Exception:
                 totals["commandFailures"] += 1
                 pass_had_failures = True

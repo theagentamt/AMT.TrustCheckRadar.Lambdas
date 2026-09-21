@@ -65,7 +65,7 @@ class Finalizer:
                 and self.components == REQUIRED_COMPONENTS,
                 "FINALIZER_CONFIGURATION_INVALID")
         now = self._now()
-        self._validate_command(command, now)
+        self._validate_command(command, now, self.environment)
         current = self._get({"PK": command["PK"], "SK": command["SK"]})
         if self._completed(current, command, now):
             # The original atomic completion fence remains authoritative after
@@ -134,7 +134,8 @@ class Finalizer:
         require(row["approvedAtEpoch"] < command["occurredAtEpoch"], "FINALIZER_INVENTORY_UNVERIFIED")
         return row
 
-    def _validate_command(self, command, now):
+    @staticmethod
+    def _validate_command(command, now, environment):
         try:
             operation = UUID(command["operationId"])
             account = command["accountId"]
@@ -142,7 +143,7 @@ class Finalizer:
                      and isinstance(account, str) and SUBJECT.fullmatch(account)
                      and command["PK"] == "ACCOUNT#" + account and command["SK"] == "ACCOUNT_DELETION"
                      and integer(command["schemaVersion"]) == 1 and integer(command["recordVersion"]) == 1
-                     and command["environment"] == self.environment and command["eventType"] == "account.deletion.requested"
+                     and command["environment"] == environment and command["eventType"] == "account.deletion.requested"
                      and command["status"] == "REQUESTED" and str(operation) == command["operationId"] and operation.version == 4
                      and integer(command["occurredAtEpoch"]) is not None and 0 < command["occurredAtEpoch"] <= now
                      and integer(command["deleteByEpoch"]) == command["occurredAtEpoch"] + 86400)
@@ -165,7 +166,8 @@ class Finalizer:
                 and receipt["retainUntilEpoch"] > now,
                 "FINALIZER_COMPONENT_UNVERIFIED")
 
-    def _completed(self, current, command, now):
+    @staticmethod
+    def _completed(current, command, now):
         if not isinstance(current, dict) or current.get("status") != "COMPLETE":
             return False
         return (set(current) == COMMAND_FIELDS | {"completedAtEpoch", "retainUntilEpoch"}
@@ -277,3 +279,18 @@ def serialize_operation(operation):
     return {kind: {key: ({name: serialize(value) for name, value in item.items()}
                         if key in {"Item", "Key", "ExpressionAttributeValues"} else item)
                    for key, item in specification.items()}}
+
+
+def completed_fence(value, environment, now, original_command=None):
+    """Validate a durable terminal fence for harmless downstream replay skipping."""
+    if not isinstance(value, dict):
+        return False
+    command = {key:value[key] for key in COMMAND_FIELDS if key in value}
+    command.update(status="REQUESTED",eventType="account.deletion.requested")
+    try:
+        Finalizer._validate_command(command,now,environment)
+    except FinalizationError:
+        return False
+    if original_command is not None and command != original_command:
+        return False
+    return Finalizer._completed(value,command,now)

@@ -42,7 +42,9 @@ def lambda_handler(event, _context):
             body = deletion_request(event)
             result = service.request(account_id, body["operationId"])
             _attempt_post_fence_cleanup(account_id)
-            result = service.status(account_id)
+            # Return the committed acceptance snapshot even if a durable worker
+            # finalizes identity concurrently. Do not turn an accepted request
+            # into a 401 by polling again after irreversible completion.
             _metric("request", True)
             return _response(202, result)
         if route == "GET /v1/users/account-deletion":
@@ -74,6 +76,8 @@ def _service():
         dynamodb_client=boto3.client("dynamodb"),
         required_components=config.required_components(),
         erasure_sla_hours=config.ACCOUNT_DELETION_SLA_HOURS,
+        inventory_manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION,
     )
 
 
@@ -84,6 +88,9 @@ def _attempt_post_fence_cleanup(account_id):
         ConsistentRead=True,
     ).get("Item")
     try:
+        lifecycle = _lifecycle(ledger)
+        if lifecycle.verify(command) is None:
+            return
         ensure_session_revoked(
             command, user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"), ledger_table=ledger,
@@ -144,6 +151,7 @@ def _attempt_post_fence_cleanup(account_id):
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
         )
+        lifecycle.entitlements(command)
         delete_user_profile_state(
             command,
             users_table=boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME),
@@ -180,6 +188,9 @@ def _stream_handler(event):
         try:
             command = command_from_stream(record, environment=config.APP_ENVIRONMENT)
             if command:
+                lifecycle = _lifecycle(ledger)
+                if lifecycle.verify(command) is None:
+                    continue
                 ensure_session_revoked(
                     command, user_pool_id=config.COGNITO_USER_POOL_ID,
                     cognito=cognito, ledger_table=ledger,
@@ -232,6 +243,7 @@ def _stream_handler(event):
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
                 )
+                lifecycle.entitlements(command)
                 delete_user_profile_state(
                     command, users_table=users_table, ledger_table=ledger,
                     page_size=100,
@@ -240,6 +252,7 @@ def _stream_handler(event):
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
                 )
+                lifecycle.finalize(command)
         except Exception:
             LOGGER.error("Account-deletion post-fence stream record failed")
             identifier = (record.get("dynamodb") or {}).get("SequenceNumber")
@@ -267,9 +280,13 @@ def _reconciliation_handler(context=None):
             config.CAMPAIGN_OUTBOX_TABLE_NAME
         )
         users_table = boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME)
+        lifecycle = _lifecycle(ledger)
         result = reconcile_session_revocations(
             environment=config.APP_ENVIRONMENT,
             ledger_table=ledger,
+            verify_command=lifecycle.verify,
+            delete_entitlements=lifecycle.entitlements,
+            finalize_account=lifecycle.finalize,
             device_table=device_table,
             recovery_table=recovery_table,
             abuse_table=abuse_table,
@@ -314,6 +331,28 @@ def _reconciliation_handler(context=None):
     except Exception:
         _reconciliation_failure_metric()
         raise RuntimeError("Account deletion reconciliation failed") from None
+
+
+def _lifecycle(ledger):
+    from lifecycle import Lifecycle
+    from shared_purchase_ownership import OwnershipStore
+    from shared_account_finalization.service import Finalizer
+    resource = boto3.resource("dynamodb")
+    client = boto3.client("dynamodb")
+    now = lambda: int(time.time())
+    ownership = OwnershipStore(table=resource.Table(config.ENTITLEMENTS_TABLE_NAME),
+        ledger=ledger, users_table_name=config.USERS_TABLE_NAME,
+        table_name=config.ENTITLEMENTS_TABLE_NAME, ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+        client=client, environment=config.APP_ENVIRONMENT, now=now)
+    finalizer = Finalizer(ledger_table=ledger,ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+        client=client,cognito=boto3.client("cognito-idp"),user_pool_id=config.COGNITO_USER_POOL_ID,
+        environment=config.APP_ENVIRONMENT,now=now,enabled=config.ACCOUNT_IDENTITY_FINALIZER_ENABLED,
+        manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION)
+    return Lifecycle(ledger=ledger,ledger_name=config.DELETION_LEDGER_TABLE_NAME,client=client,
+        ownership=ownership,finalizer=finalizer,environment=config.APP_ENVIRONMENT,
+        manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION,now=now)
 
 
 def _subject(event):
