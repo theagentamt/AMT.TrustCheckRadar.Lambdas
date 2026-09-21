@@ -57,6 +57,8 @@ def update_participation(
     current_state = current.get("state", "not_enrolled")
     if payload["schemaVersion"] == 2 and payload["expectedStateVersion"] != current.get("stateVersion", 0):
         raise AppError("CONFLICT", "Research participation changed after this choice was reviewed.")
+    if current.get("stateVersion", 0) >= 9007199254740991:
+        raise AppError("SERVER_UNAVAILABLE", "Stored campaign participation revision is exhausted.")
     if action == "join":
         if not config.CONSENT_INDEPENDENCE_ENABLED:
             raise AppError("JOIN_UNAVAILABLE", "New research participation is temporarily unavailable.")
@@ -202,7 +204,7 @@ def _load_current(account_id: str) -> dict:
         or not _integer(item.get("schemaVersion"), 1, 1) or not _integer(item.get("recordVersion"), 1, 1)
         or item.get("environment") != config.ENVIRONMENT
         or item.get("state") not in {"enrolled", "withdrawal_pending", "withdrawn"}
-        or not _integer(item.get("stateVersion"), 1)
+        or not _integer(item.get("stateVersion"), 1, 9007199254740991)
         or not _is_uuid4(item.get("consentEpochId")) or not _is_uuid4(item.get("lastOperationId"))
         or not _version(item.get("noticeVersion")) or not _version(item.get("policyVersion"))
         or not all(_timestamp(item.get(name)) for name in {"effectiveFrom", "updatedAt"} | (optional & set(item)))
@@ -231,7 +233,7 @@ def _load_operation(account_id: str, operation_id: str, *, now_epoch=None) -> di
         or item.get("resultingState") != {"join": "enrolled", "withdraw": "withdrawal_pending"}.get(item.get("action"))
         or not _timestamp(item.get("occurredAt")) or not _integer(item.get("expiresAt"), 1)
         or (version == 2 and (not _integer(item.get("requestSchemaVersion"), 1, 2)
-            or not _integer(item.get("stateVersion"), 1) or not _version(item.get("requestNoticeVersion"))
+            or not _integer(item.get("stateVersion"), 1, 9007199254740991) or not _version(item.get("requestNoticeVersion"))
             or not _version(item.get("noticeVersion"))
             or (item.get("requestSchemaVersion") == 1 and item.get("expectedStateVersion") is not None)
             or (item.get("requestSchemaVersion") == 2 and not _integer(item.get("expectedStateVersion"), 0, 9007199254740991))))):
