@@ -1,9 +1,11 @@
 # ATCR-120: next bounded governed-message binding slice
 
-This is a handoff for the next implementation, not an endpoint declaration,
-activation approval or completion record. The documentation-only recovery PR
-changes no runtime, pinned contract bytes or AWS configuration. ATCR-120 remains
-open where actual result routing is absent; a component fixture is not that proof.
+The backend portion of this bounded slice is now implemented on the governed-message
+feature branch: separately versioned prepare/submit/reconcile handlers, independent
+privacy validation, shared authority settlement and a private deterministic evaluator.
+See [implementation and qualification handoff](message-consumer-handoff.md). This is
+not deployment or activation evidence. Android binding and guarded live integration
+remain distinct acceptance steps; ATCR-120 must not close on component fixtures alone.
 
 ## Owning stories and concrete gap
 
@@ -17,12 +19,11 @@ Primary implementation: [SECUR4ALL-229](https://andmorethings.youtrack.cloud/iss
 (one authority reservation and settlement). Android binds the real response under
 [ATCR-120](https://andmorethings.youtrack.cloud/issue/ATCR-120).
 
-The merged legacy handler now stops detected instruction-style content with an
-honest error. It still uses legacy quota/history and free model result fields.
-There is no new governed V1 message consumer endpoint. Current shared authority
-`core._payload` validates URL-only intent and `summary.validate_summary` accepts
-URL-only minimized private summaries. Passing message text through a URL field or
-relabelling a legacy response would violate both contracts.
+The legacy handler remains separate and is not used by the new message path. The
+new consumer binds explicit sanitized-message intent using a separate account-bound
+HMAC domain and stores only a minimized closed summary. URL intent/proof compatibility
+is retained. The package below records the implementation requirements and remaining
+client/live qualification work, not permission to activate the endpoints.
 
 ## Smallest coherent implementation package
 
@@ -87,17 +88,12 @@ authorization to send extra identifiers or retain message content. A proposal to
 expand collection, retention or research use would require separate approval and
 is outside this slice.
 
-A current versioned, approved message-evidence rubric was not found in the audited
-release. Before producing stronger model-supported verdicts or marking a message
-assessment policy-complete, locate any existing approval or prepare concrete
-EN/ES examples and rules for review under SECUR4ALL-229. Define which verified
-findings support each verdict, what counts as sufficient/complete evidence, and
-which fixed explanations/actions are acceptable. Do not invent confidence/score
-thresholds or treat schema-valid model claims as facts. The initial safe outcome
-set can cover actual hostile/privacy stops, provider failures, insufficient
-evidence and independently verified link threats without claiming a model alone
-establishes safety. Engineering fixtures and newly approved recovery text are not
-approval of this message rubric.
+The owner approved the exact SECUR4ALL-229 rubric on 2026-09-20 America/Chicago;
+see [approval provenance](sec229-message-policy-approval.md). Initial implementation
+qualifies tested exact whole-message EN/ES templates only. Unmatched text and uncertain
+roles are inconclusive without allowance deduction. No model score, second model vote,
+or schema-valid claim alone proves semantics. No AI model is integrated in this slice.
+The historical proposal bytes remain unchanged so the approval fingerprint is auditable.
 
 ## Acceptance evidence for the bounded integration
 
@@ -126,5 +122,6 @@ Detailed recovery playbooks remain separate. This slice supplies the actual
 message result binding that component-only ATCR-120 rendering cannot establish.
 
 For a concrete reviewable policy decision, see the
-[unapproved initial message rubric](sec229-message-rubric-proposal.md). Its proposed
-verdict/completeness/copy rules are not implemented or implied by recovery approval.
+[historical initial message rubric](sec229-message-rubric-proposal.md) and its
+[separate explicit approval record](sec229-message-policy-approval.md). Recovery approval
+alone was not the authority for these message rules.

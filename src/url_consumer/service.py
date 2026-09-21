@@ -103,12 +103,14 @@ class Consumer:
             if not isinstance(client,str) or not re.fullmatch('[A-Za-z0-9_-]{1,64}',client):raise AuthorityError('INPUT_REJECTED')
             if route.endswith('/reconcile'):
                 if set(body)!={'transportVersion','checkId','operationProof'}:raise AuthorityError('INPUT_REJECTED')
-                row=self.a.reconcile(event,proof)
+                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='url')
                 if row.get('clientCheckId') not in (None,client):raise AuthorityError('CHECK_ID_CONFLICT')
                 if row['state']=='ADMITTED':
                     try:row=self.a.recover_expired(event,proof)
                     except AuthorityError as error:
                         if error.code!='OPERATION_PENDING':raise
+                if row['state']=='NOT_STARTED':
+                    return 200,self.envelope(event,client,proof,'rejected',row=row,error='OPERATION_EXPIRED')
                 state={'ADMITTED':'pending','SETTLED':'settled','UNKNOWN':'unknown'}[row['state']]
                 return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row)
             request={k:v for k,v in body.items() if k not in ('transportVersion','operationProof')}

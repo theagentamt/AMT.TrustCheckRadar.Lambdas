@@ -79,3 +79,15 @@ def test_exact_reviewed_combined_diff_is_manual():
     paths=json.loads((Path(__file__).parent/'authority_release_paths.json').read_text())
     assert module.classify(paths)=='authority_manual'
     assert module.classify(paths+['src/web_risk_communication/app.py'])=='all'
+
+
+def test_deletion_integration_and_parent_completion_gate_remain_manual():
+    paths = ['src/v1_authority_deletion/app.py', 'src/v1_authority_deletion/service.py',
+             'src/shared_check_authority/inventory.py', 'src/shared_check_authority/engineering.py',
+             'src/account_data_api/config.py', 'src/account_data_api/service.py',
+             'tests/account_data_api/test_service.py', 'tests/shared_check_authority/test_deletion_worker.py',
+             'scripts/build_lambda_zip.sh', 'scripts/verify_v1_packages.py',
+             'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py',
+             '.github/workflows/ci.yml', 'docs/url-consumer-engineering-integration.md']
+    assert module.classify(paths) == 'authority_manual'
+    assert module.classify(['src/account_data_api/service.py']) == 'all'

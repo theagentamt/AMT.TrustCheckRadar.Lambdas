@@ -449,6 +449,22 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ledger.items,
         )
 
+    def test_v1_component_is_additional_to_legacy_entitlements(self):
+        deletion = command()
+        for missing in ("V1_AUTHORITY", "ENTITLEMENTS"):
+            ledger = Table()
+            for component in service.USER_PROFILE_PREREQUISITES:
+                if component != missing:
+                    receipt = service._component_receipt(deletion, component, 150)
+                    ledger.items[(receipt["PK"], receipt["SK"])] = receipt
+            users = OutboxTable([{"Items": []}])
+            result = service.delete_user_profile_state(
+                deletion, users_table=users, ledger_table=ledger,
+                policy_status="approved", now_epoch=200,
+            )
+            self.assertEqual(result["policyBlocked"], "USER_PROFILE_PREREQUISITES")
+            self.assertEqual(users.queries, [])
+
     def test_user_profile_cleanup_is_policy_blocked_before_reads(self):
         users = OutboxTable([{"Items": []}])
         result = service.delete_user_profile_state(

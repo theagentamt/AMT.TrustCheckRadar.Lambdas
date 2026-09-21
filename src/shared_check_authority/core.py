@@ -1,7 +1,7 @@
 """Transactional V1 admission and complete-only allowance settlement.
 
-All configuration/authority data is server-owned. This core is not deployed or
-imported by a live function. No legacy entitlement fallback exists.
+All configuration/authority data is server-owned. Runtime activation is controlled by the
+Dev adapters and infrastructure. No legacy entitlement fallback exists.
 """
 from dataclasses import dataclass, field
 import hashlib
@@ -20,7 +20,7 @@ TRIAL_COMPLETED_CHECKS = 10
 TRIAL_SECONDS = 7 * 24 * 60 * 60
 VIRUS_TOTAL_ENABLED = False
 CHARGEABLE_OUTCOMES = {'complete'}
-OUTCOMES = {'complete', 'partial', 'failed', 'blocked', 'invalid_input', 'unsupported', 'unavailable'}
+OUTCOMES = {'inconclusive', 'complete', 'partial', 'failed', 'blocked', 'invalid_input', 'unsupported', 'unavailable'}
 
 
 class AuthorityError(Exception):
@@ -110,6 +110,15 @@ class Authority:
         return [self._partition(account, k) for k in sorted(self.s.hmac_keys)]
 
     def _payload(self, account, payload, key_id, client_check_id=None):
+        if isinstance(payload,dict) and payload.get('entryPoint')=='message':
+            try:
+                from shared_message_contract import validate_intent, VERSION
+                validate_intent(payload)
+                if client_check_id is None or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
+                    raise ValueError()
+                encoded=json.dumps({'version':VERSION,'clientCheckId':client_check_id,'intent':payload},sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
+                return self._mac(key_id,'message-payload-v1',account+'\0'+encoded)
+            except Exception:raise AuthorityError('INPUT_REJECTED') from None
         # Hash the complete already-validated request intent, with exact URL/query
         # order/projection preserved. No URL normalization or raw persistence.
         if not isinstance(payload, dict) or set(payload) != {'entryPoint', 'language', 'target'}:
@@ -207,7 +216,9 @@ class Authority:
         return {'ConditionCheck': operation}
 
     def _account_conditions(self, account):
-        return [self._check(self.s.users_table, {'PK': f'USER#{account}', 'SK': 'PROFILE'},
+        from .inventory import verified_inventory, inventory_condition
+        inventory = verified_inventory(self.ddb, self.s.authority_table, self.s.hmac_keys)
+        return [inventory_condition(self.s.authority_table, inventory), self._check(self.s.users_table, {'PK': f'USER#{account}', 'SK': 'PROFILE'},
                            '#s = :active AND ageVerified = :yes AND #sub = :account',
                            {':active': 'ACTIVE', ':yes': True, ':account': account}, {'#s': 'status', '#sub': 'sub'}),
                 self._check(self.s.deletion_table, {'PK': f'ACCOUNT#{account}', 'SK': 'ACCOUNT_DELETION'}, 'attribute_not_exists(PK)')]
@@ -243,9 +254,9 @@ class Authority:
     def _attempt(self, account, partition):
         window = self.now() - self.now() % self.s.attempt_window_seconds
         op = {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': f'ATTEMPT#{window}'},
-              'UpdateExpression': 'SET expiresAt = :expires ADD attempts :one',
+              'UpdateExpression': 'SET expiresAt = :expires, recordType = :type, GSI1PK = :index, GSI1SK = :sort ADD attempts :one',
               'ConditionExpression': 'attribute_not_exists(attempts) OR attempts < :cap',
-              'ExpressionAttributeValues': {':expires': window + self.s.counter_retention_seconds, ':one': 1, ':cap': self.s.attempts_per_window}}
+              'ExpressionAttributeValues': {':expires': window + self.s.counter_retention_seconds, ':one': 1, ':cap': self.s.attempts_per_window, ':type':'V1_ATTEMPT_COUNTER', ':index':'V1_EXPIRING', ':sort':f'{window + self.s.counter_retention_seconds:012d}#{partition}#ATTEMPT#{window}'}}
         try:
             self._transact(self._account_conditions(account) + [{'Update': op}])
         except AuthorityError:
@@ -278,7 +289,9 @@ class Authority:
         grant, _ = self._grant(partition)
         digest = self._payload(account, payload, key_id, client_check_id)
         if not isinstance(preparation_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', preparation_id): raise AuthorityError('INPUT_REJECTED')
-        key = {'PK': partition, 'SK': 'PREPARE#' + preparation_id}
+        # The public client identity owns its preparation row; legacy internal
+        # calls without a client identity retain their explicit preparation ID.
+        key = {'PK': partition, 'SK': 'PREPARE#' + (client_check_id or preparation_id)}
         prior = self._get(self.s.authority_table, key)
         if prior:
             if not hmac.compare_digest(str(prior.get('payloadHmac', '')), digest): raise AuthorityError('CHECK_ID_CONFLICT')
@@ -289,8 +302,10 @@ class Authority:
         if not re.fullmatch(r'[0-9a-f]{16}', nonce) or expiry > 0xffffffff: raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')
         tag = self._mac(key_id, 'operation', account + '\0' + digest + '\0' + f'{expiry:08x}' + '\0' + nonce)[:24]
         check_id = f'v1_{key_id}_{expiry:08x}_{nonce}_{tag}'
-        row = key | {'recordType': 'V1_PREPARATION', 'payloadHmac': digest, 'checkId': check_id,
-                     'expiresAt': self.now() + self.s.receipt_retention_seconds}
+        row = key | {'recordType': 'V1_PREPARATION', 'payloadHmac': digest, 'checkId': check_id, 'admissionState':'OPEN', 'clientCheckId':client_check_id,
+                     'expiresAt': self.now() + self.s.receipt_retention_seconds,
+                     'GSI1PK':'V1_EXPIRING','GSI1SK':f'{self.now() + self.s.receipt_retention_seconds:012d}#{partition}#{key["SK"]}'}
+        if payload.get('entryPoint')=='message':row['projectionScope']='sanitized_message'
         try:
             self._transact(self._authority_conditions(account, partition, device, grant) + [{'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}}])
         except AuthorityError:
@@ -331,6 +346,10 @@ class Authority:
                      'GSI1SK': f'{self.now() + self.s.worker_settlement_seconds:012d}#{partition}#{check_id}',
                      'retentionDeadlineEpoch': self.now() + self.s.receipt_retention_seconds}
         items = self._authority_conditions(account, partition, device, grant)
+        if client_check_id is not None:
+            items.append(self._check(self.s.authority_table, {'PK':partition,'SK':'PREPARE#'+client_check_id},
+                'recordType = :type AND admissionState = :open AND checkId = :proof AND payloadHmac = :digest AND clientCheckId = :client AND expiresAt > :now',
+                {':type':'V1_PREPARATION',':open':'OPEN',':proof':check_id,':digest':digest,':client':client_check_id,':now':self.now()}))
         if period:
             items.append({'Update': {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': period['SK']},
                 'UpdateExpression': 'ADD reservedChecks :one',
@@ -352,13 +371,53 @@ class Authority:
             raise
         return {'admitted': True, 'executionToken': token, 'receipt': self._receipt_public(row)}
 
-    def reconcile(self, event, check_id):
+    def reconcile(self, event, check_id, *, client_check_id=None, expected_scope=None):
         account = self._account(event)  # no device/subscription gate or write/provider
         key_id, _, _, _ = self._token_parts(check_id)
         row = self._get(self.s.authority_table, {'PK': self._partition(account, key_id), 'SK': 'CHECK#' + check_id})
-        if not row or row.get('retentionDeadlineEpoch', row.get('expiresAt', 0)) <= self.now(): return {'state': 'UNKNOWN', 'chargedChecks': None}
+        if expected_scope is not None:
+            if expected_scope not in ('url','sanitized_message'):raise AuthorityError('INPUT_REJECTED')
+            candidate=row
+            if candidate is None and isinstance(client_check_id,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
+                candidate=self._get(self.s.authority_table,{'PK':self._partition(account,key_id),'SK':'PREPARE#'+client_check_id})
+            if candidate and ((candidate.get('projectionScope')=='sanitized_message') != (expected_scope=='sanitized_message')):
+                raise AuthorityError('CHECK_ID_CONFLICT')
+        if not row:
+            return self._close_unadmitted(account,check_id,client_check_id)
+        if row.get('retentionDeadlineEpoch', row.get('expiresAt', 0)) <= self.now(): return {'state': 'UNKNOWN', 'chargedChecks': None}
         self._verify_token(account, check_id, row['payloadHmac'], allow_expired=True)
         return self._receipt_public(row)
+
+    def _close_unadmitted(self, account, proof, client_check_id):
+        unknown={'state':'UNKNOWN','chargedChecks':None}
+        if not isinstance(client_check_id,str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):return unknown
+        key_id,admission_expiry,_,_=self._token_parts(proof)
+        if admission_expiry>self.now():return unknown
+        partition=self._partition(account,key_id)
+        key={'PK':partition,'SK':'PREPARE#'+client_check_id}
+        preparation=self._get(self.s.authority_table,key)
+        if (not preparation or preparation.get('recordType')!='V1_PREPARATION'
+                or preparation.get('clientCheckId')!=client_check_id or preparation.get('checkId')!=proof
+                or integral(preparation.get('expiresAt')) is None or preparation['expiresAt']<=self.now()
+                or preparation.get('admissionState') not in ('OPEN','CLOSED')):return unknown
+        self._verify_token(account,proof,preparation['payloadHmac'],allow_expired=True)
+        check_key={'PK':partition,'SK':'CHECK#'+proof}
+        items=self._account_conditions(account)+[
+            self._check(self.s.authority_table,check_key,'attribute_not_exists(PK)'),
+            {'Update':{'TableName':self.s.authority_table,'Key':key,
+                'UpdateExpression':'SET admissionState = :closed',
+                'ConditionExpression':'recordType = :type AND admissionState = :previous AND checkId = :proof AND payloadHmac = :digest AND clientCheckId = :client AND expiresAt = :expiry AND expiresAt > :now',
+                'ExpressionAttributeValues':{':closed':'CLOSED',':previous':preparation['admissionState'],':type':'V1_PREPARATION',':proof':proof,':digest':preparation['payloadHmac'],':client':client_check_id,':expiry':preparation['expiresAt'],':now':self.now()}}}]
+        try:self._transact(items)
+        except AuthorityError:
+            latest=self._get(self.s.authority_table,check_key)
+            if latest and latest.get('retentionDeadlineEpoch',0)>self.now():
+                self._verify_token(account,proof,latest['payloadHmac'],allow_expired=True)
+                return self._receipt_public(latest)
+            # An uncertain successful close is not asserted as zero without a
+            # subsequent successful authoritative reconciliation transaction.
+            raise
+        return {'state':'NOT_STARTED','chargedChecks':0,'clientCheckId':client_check_id,'expiresAt':preparation['expiresAt']}
 
     def recover_expired(self, event, check_id):
         """Authenticated account control only: expire a lease without provider replay."""
@@ -395,8 +454,14 @@ class Authority:
             raise AuthorityError('RECONCILIATION_REQUIRED')
         charge = int(processing_outcome in CHARGEABLE_OUTCOMES and row['basis'] != 'complimentary')
         if result_summary is not None:
-            from .summary import validate_summary
-            result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
+            if row.get('projectionScope')=='sanitized_message':
+                try:
+                    from shared_message_contract import validate_summary
+                    result_summary=validate_summary(result_summary,row.get('clientCheckId'),processing_outcome)
+                except Exception:raise AuthorityError('RESULT_SUMMARY_INVALID') from None
+            else:
+                from .summary import validate_summary
+                result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
         receipt_id = self._mac(key_id, 'receipt', check_id)[:32]
         items = self._account_conditions(account)
         if row['periodSK']:
@@ -408,11 +473,11 @@ class Authority:
             'UpdateExpression': 'ADD activeCount :minus_one', 'ConditionExpression': 'activeCount >= :one',
             'ExpressionAttributeValues': {':minus_one': -1, ':one': 1}}})
         items.append({'Update': {'TableName': self.s.authority_table, 'Key': key,
-            'UpdateExpression': 'SET #s = :settled, chargedChecks = :charge, receiptId = :receipt, processingOutcome = :outcome, expiresAt = :expiry, resultSummary = :summary, assessmentEpoch = :assessed REMOVE GSI1PK, GSI1SK',
+            'UpdateExpression': 'SET #s = :settled, chargedChecks = :charge, receiptId = :receipt, processingOutcome = :outcome, expiresAt = :expiry, resultSummary = :summary, assessmentEpoch = :assessed, GSI1PK = :index, GSI1SK = :sort',
             'ConditionExpression': '#s = :admitted AND executionToken = :token AND policyVersion = :policy AND settleByEpoch ' + ('<= :now' if expired_recovery else '> :now'),
             'ExpressionAttributeNames': {'#s': 'state'},
             'ExpressionAttributeValues': {':settled': 'SETTLED', ':charge': charge, ':receipt': receipt_id, ':outcome': processing_outcome,
-                                          ':admitted': 'ADMITTED', ':token': execution_token, ':policy': OWNER_POLICY, ':now': self.now(), ':expiry': row['retentionDeadlineEpoch'], ':summary': result_summary, ':assessed': self.now()}}})
+                                          ':admitted': 'ADMITTED', ':token': execution_token, ':policy': OWNER_POLICY, ':now': self.now(), ':expiry': row['retentionDeadlineEpoch'], ':summary': result_summary, ':assessed': self.now(), ':index':'V1_EXPIRING', ':sort':f'{int(row["retentionDeadlineEpoch"]):012d}#{partition}#{key["SK"]}'}}})
         try: self._transact(items)
         except AuthorityError:
             latest = self._get(self.s.authority_table, key)
