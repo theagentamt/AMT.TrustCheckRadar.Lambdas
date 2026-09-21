@@ -224,6 +224,30 @@ def test_unverified_legacy_coverage_blocks_empty_completion_and_export(world):
         store.delete_owned_batch(fence(ddb))
     with pytest.raises(OwnershipError, match="COVERAGE"):
         store.owned_page("account-a")
+    with pytest.raises(OwnershipError, match="COVERAGE"):
+        claim(store)
+
+
+def test_inventory_revision_race_atomically_prevents_claim(world, monkeypatch):
+    store, _ = world
+    original = store._transact
+    def change_inventory(operations):
+        store.table.put_item(Item=store.inventory() | {"revision": 2, "coverage": "PENDING"})
+        original(operations)
+    monkeypatch.setattr(store, "_transact", change_inventory)
+    with pytest.raises(OwnershipError, match="TRANSACTION_UNCONFIRMED"):
+        claim(store)
+    assert store._get(owner_key(HASH)) is None
+    assert store._get({"PK": "USER#account-a", "SK": entitlement("account-a")["SK"]}) is None
+
+
+def test_inventory_change_during_store_verification_invalidates_prior_inventory(world):
+    store, _ = world
+    expected = store.inventory()
+    store.table.put_item(Item=expected | {"revision": 2})
+    with pytest.raises(OwnershipError, match="COVERAGE_CHANGED"):
+        store.claim("account-a", (HASH,), product_id=PRODUCT, entitlement=entitlement("account-a"), expected_entitlement=None, expected_inventory=expected)
+    assert store._get(owner_key(HASH)) is None
 
 
 def test_missing_or_foreign_locator_target_is_not_silently_skipped(world):

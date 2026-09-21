@@ -158,7 +158,7 @@ def _process_owned_purchase(account_id, payload):
         # the public handler is an additional boundary, not this writer's only one.
         if payload.get("platform") != "google_play" or payload.get("packageName") != config.GOOGLE_PLAY_PACKAGE_NAME or payload.get("productId") != config.GOOGLE_PLAY_PRO_PRODUCT_ID:
             raise OwnershipError("PURCHASE_PRODUCT_MISMATCH")
-        store.inventory()
+        inventory = store.inventory()
         hashes, verification = verified_lineage(
             payload["purchaseToken"], product_id=config.GOOGLE_PLAY_PRO_PRODUCT_ID,
             now_epoch=int(time.time()),
@@ -169,7 +169,7 @@ def _process_owned_purchase(account_id, payload):
         )
         # The ownership candidate has no purpose for raw store order identifiers.
         updated.pop("orderId", None)
-        store.claim(account_id, hashes, product_id=config.GOOGLE_PLAY_PRO_PRODUCT_ID, entitlement=updated, expected_entitlement=expected)
+        store.claim(account_id, hashes, product_id=config.GOOGLE_PLAY_PRO_PRODUCT_ID, entitlement=updated, expected_entitlement=expected, expected_inventory=inventory)
     except OwnershipError as err:
         rejected = str(err) in {"PURCHASE_OWNERSHIP_CONFLICT", "PURCHASE_NOT_ACTIVE", "PURCHASE_PRODUCT_MISMATCH"}
         return _build_response(
