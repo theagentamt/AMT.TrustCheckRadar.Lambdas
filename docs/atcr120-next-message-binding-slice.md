@@ -44,8 +44,13 @@ relabelling a legacy response would violate both contracts.
    strict typed findings; close output/action vocabularies and reject model-chosen
    URLs, contacts, tools, policy or executable actions. Do not call the legacy
    message pipeline after this reservation because it would apply another ledger.
-4. Keep sanitized content transient. Hash the validated message intent into its
-   proof; store only the allowlisted minimized result, provenance/limitations and
+4. Keep sanitized content transient. Bind validated message intent with an
+   **account-bound, message-kind domain-separated HMAC**, using the existing
+   authority keyring/purpose-separation approach, never a bare text digest. Bind
+   contract version, logical check identity, language and complete reviewed intent
+   so another account/kind/projection cannot reuse the proof. Keep existing URL
+   proof encoding and digest semantics unchanged. Store only the allowlisted
+   minimized result, provenance/limitations and
    receipt needed for seven-day reconciliation. Reuse approved deletion/expiry
    behavior coherently; do not lose the existing deletion/inventory fences by
    cherry-picking only contract files from the guarded engineering branch.
@@ -60,7 +65,11 @@ relabelling a legacy response would violate both contracts.
    disabled feature flag means the service is not enabled; it is not evidence that
    a provider failed or a real analysis returned inconclusive. Keep runtime/client
    gates closed until the integration evidence below passes and activation is
-   separately authorized.
+   separately authorized. Preserve separate hard provider-attempt/cost budgets,
+   explicit retry/backoff and circuit breakers; inconclusive/no-charge results
+   cannot bypass operational limits or trigger silent resubmission. Exact values
+   remain engineering configuration and release qualification, not new approved
+   numeric policy in this document.
 
 ## Content/privacy prerequisites and decisions
 
