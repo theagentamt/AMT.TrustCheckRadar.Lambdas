@@ -35,7 +35,7 @@ expectations pending selection-policy approval, not human-reviewed recovery advi
 Answers contain only contract version, language, unique closed exposures and an
 unsure boolean. No free text, identifiers, passwords, codes, financial numbers or
 incident history is accepted. Keep selections in volatile screen state, clear on
-exit/account removal, and never include them in analytics, logs, research,
+exit, backgrounding or account change/removal, and never include them in analytics, logs, research,
 requests or deep links. The reference does not persist them. Do not infer an
 exposure from a scam verdict, a URL scan or an AI output.
 

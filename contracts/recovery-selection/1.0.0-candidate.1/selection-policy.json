@@ -82,6 +82,22 @@
     "showAll": {
       "en": "Show all basic steps",
       "es": "Mostrar todos los pasos básicos"
+    },
+    "privacyHint": {
+      "en": "Choose categories only. These choices stay on this screen and are cleared when you leave or put the app in the background.",
+      "es": "Elija solo categorías. Estas opciones permanecen en esta pantalla y se borran al salir o al poner la aplicación en segundo plano."
+    },
+    "stepsTitle": {
+      "en": "Built-in steps",
+      "es": "Pasos incluidos en la aplicación"
+    },
+    "offlineNotice": {
+      "en": "These bundled steps work offline while your account session permits access. Official websites require a connection. Guidance updates arrive with app updates; this screen does not check for updates.",
+      "es": "Estos pasos incluidos funcionan sin conexión mientras su sesión de cuenta permita el acceso. Los sitios oficiales requieren conexión. La guía se actualiza con las actualizaciones de la aplicación; esta pantalla no busca actualizaciones."
+    },
+    "aiUnavailable": {
+      "en": "AI explanations are not available in this version. Reading or choosing these built-in steps does not use an analysis check.",
+      "es": "Las explicaciones con IA no están disponibles en esta versión. Leer o elegir estos pasos incluidos no consume un análisis."
     }
   },
   "actionPresentationOrder": [
@@ -90,5 +106,6 @@
     "basics_identity",
     "basics_link",
     "basics_device"
-  ]
+  ],
+  "selectionRetention": "screen_memory_only_clear_on_exit_background_or_account_change"
 }

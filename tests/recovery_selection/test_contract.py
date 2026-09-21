@@ -123,3 +123,11 @@ def test_manifest_integrity_and_output_state_coherence():
     for change in ({'actionIds':['basics_payment']},{'reason':None},{'reviewDue':True},
                    {'officialLinkIds':['recovery_guidance']},{'secret':'private-marker'}):
         with pytest.raises(ValidationError):validator.validate(limited|change)
+
+
+def test_draft_ui_has_exact_seven_bilingual_pairs_and_ephemeral_policy():
+    policy=m.read('selection-policy.json')
+    assert set(policy['uiDraft'])=={'question','unsure','showAll','privacyHint','stepsTitle','offlineNotice','aiUnavailable'}
+    assert all(set(pair)=={'en','es'} and all(pair.values()) for pair in policy['uiDraft'].values())
+    assert policy['selectionRetention']=='screen_memory_only_clear_on_exit_background_or_account_change'
+    assert policy['approval']=='Draft' and policy['approvalRecord'] is None
