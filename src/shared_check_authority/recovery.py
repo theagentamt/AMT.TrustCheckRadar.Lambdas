@@ -39,6 +39,18 @@ class Recovery:
             'ConditionExpression': '#state = :admitted AND settleByEpoch <= :now AND executionToken = :token AND policyVersion = :policy',
             'ExpressionAttributeNames': {'#state': 'state'},
             'ExpressionAttributeValues': {':settled': 'SETTLED', ':zero': 0, ':failed': 'failed', ':receipt': 'expired_' + hashlib.sha256((partition + '\0' + proof).encode()).hexdigest()[:32], ':expiry': row['retentionDeadlineEpoch'], ':admitted': 'ADMITTED', ':now': now, ':token': row['executionToken'], ':policy': OWNER_POLICY, ':index':'V1_EXPIRING', ':sort':f'{int(row["retentionDeadlineEpoch"]):012d}#{partition}#{key["SK"]}'}}})
+        if row.get('projectionScope') == 'recovery_clarification':
+            # Background reconciliation retains usage only, with no narrative or
+            # model dependency. Other historical scopes keep their exact shape.
+            try:
+                from shared_recovery_contract.constants import VERSION
+                from shared_recovery_contract.usage import usage
+                if row.get('recoveryTransportVersion') != VERSION: raise ValueError()
+                summary = usage(row.get('clientCheckId'), 'failed')
+            except Exception: raise AuthorityError('RECOVERY_REFERENCE_INVALID') from None
+            update = items[-1]['Update']
+            update['UpdateExpression'] += ', resultSummary = :summary, assessmentEpoch = :assessed'
+            update['ExpressionAttributeValues'].update({':summary': summary, ':assessed': now})
         try: self.client.transact_write_items(TransactItems=items)
         except Exception: raise AuthorityError('RECOVERY_TRANSACTION_UNCERTAIN') from None
         return True
