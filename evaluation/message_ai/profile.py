@@ -47,6 +47,7 @@ def profile(model):
                     'src/message_evaluator/policy.py', 'src/message_evaluator/policy_v2.py',
                     'src/message_evaluator/coverage.py', 'src/shared_message_contract/validation.py',
                     'src/shared_message_contract/validation_v2.py',
+                    'src/shared_message_contract/privacy.py',
                     'src/shared_message_contract/runtime.py',
                     'contracts/url-assessment/v1-draft/reference_mapping.py',
                     'evaluation/message_ai/profile.py', 'evaluation/message_ai/corpus.py',

@@ -46,7 +46,8 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None):
     import json
     import re
     import time
-    from shared_message_contract.validation import validate_intent,MessageError
+    from shared_message_contract.validation import MessageError
+    from shared_message_contract.privacy import validate_runtime_intent as validate_intent
     from .policy import evaluate as evaluate_v1
     from .ai_provider import parse
     clock=clock or time.monotonic

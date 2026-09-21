@@ -1,0 +1,38 @@
+[
+  {
+    "httpStatus": 400,
+    "body": {
+      "schemaVersion": "1.0",
+      "requestId": null,
+      "error": {
+        "code": "INVALID_REQUEST",
+        "message": "The submitted request is invalid.",
+        "retryable": false,
+        "details": [
+          {
+            "field": "body",
+            "issue": "Request body must be valid UTF-8 JSON with valid encoding."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpStatus": 400,
+    "body": {
+      "schemaVersion": "1.0",
+      "requestId": null,
+      "error": {
+        "code": "UNSUPPORTED_SCHEMA_VERSION",
+        "message": "The submitted request uses an unsupported schema version.",
+        "retryable": false,
+        "details": [
+          {
+            "field": "schemaVersion",
+            "issue": "Unsupported schema version '9'."
+          }
+        ]
+      }
+    }
+  }
+]

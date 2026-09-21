@@ -1,0 +1,153 @@
+{
+  "profileVersion": "sanitizer-v1-2026-09-21",
+  "purpose": "bounded_on_device_format_masking_not_ownership_or_anonymity",
+  "detectedTypes": {
+    "url": "URL",
+    "email": "EMAIL",
+    "phone": "PHONE",
+    "ssn": "SSN",
+    "credit_card": "CREDIT_CARD",
+    "ip_address": "IP_ADDRESS",
+    "messenger_handle": "MESSENGER_HANDLE",
+    "payment_handle": "PAYMENT_HANDLE",
+    "crypto_wallet": "CRYPTO_WALLET"
+  },
+  "existingGovernedAdditionalTokenTypes": [
+    "password",
+    "verification_code"
+  ],
+  "inputCodePointLimit": 12000,
+  "governedTextCodePointLimit": 8000,
+  "governedBodyUtf8ByteLimit": 32768,
+  "legacyAnalysisBodyUtf8ByteLimit": 65536,
+  "maxGovernedUniqueDeclarations": 100,
+  "inputRejections": [
+    "over_input_limit",
+    "unpaired_surrogate",
+    "Unicode_category_Cf",
+    "Unicode_category_Cc_except_LF_CR_TAB",
+    "reserved_token_collision",
+    "residual_unmasked_IPv4mapped_or_zone_IPv6_requires_edit"
+  ],
+  "reservedCollisionPattern": "\\[[A-Z][A-Z_]*_[0-9]+\\]",
+  "normalization": [
+    "CRLF_and_CR_to_LF",
+    "NFC",
+    "trim_each_line_using_explicit_trimScalarRanges",
+    "collapse_TAB_or_Zs_runs_to_ASCII_space",
+    "collapse_3plus_LF_to_2LF",
+    "outer_trim_using_explicit_trimScalarRanges"
+  ],
+  "overlap": {
+    "sort": [
+      "start_ascending",
+      "span_length_descending",
+      "type_priority_ascending"
+    ],
+    "typePriority": [
+      "url",
+      "email",
+      "crypto_wallet",
+      "ip_address",
+      "credit_card",
+      "phone",
+      "ssn",
+      "payment_handle",
+      "messenger_handle"
+    ],
+    "selection": "accept_if_start_at_or_after_previous_accepted_end"
+  },
+  "tokens": {
+    "shape": "[UPPERCASE_TYPE_N]",
+    "numbering": "contiguous_1_based_per_type_first_accepted_appearance",
+    "declarations": "one_type_token_only_declaration_per_normalized_value_per_submission_in_first_appearance_order",
+    "reuse": "within_submission_only",
+    "rawValueRetention": "transient_local_recognizer_only",
+    "incomingReservedToken": "reject_for_fresh_review_not_renumber"
+  },
+  "formats": {
+    "url": {
+      "scope": "http_or_https_lexical_tokens_including_bracketed_IPv6_even_malformed_hosts_no_fetch",
+      "terminalPunctuationRemoved": "Repeated final . , ! ; : plus closing ) ] } only when unmatched within the candidate",
+      "normalization": "valid_URI_lowercase_scheme_and_host_only_other_raw_components_exact;invalid_URI_exact_NFC_text",
+      "notCovered": [
+        "bare_www",
+        "bare_domain",
+        "non_http_scheme"
+      ]
+    },
+    "email": {
+      "scope": "ASCII_local_and_domain_dot_tld_2_to_63_letters",
+      "normalization": "preserve_local_case_lowercase_domain"
+    },
+    "phone": {
+      "scope": "ASCII_NANP10_or_optional_plus1_area_and_exchange_first_digit_2_to_9_parentheses_space_dot_hyphen",
+      "normalization": "remove_formatting_and_optional_country1_to10digits"
+    },
+    "ssn": {
+      "scope": "ASCII_3digits_hyphen_2digits_hyphen_4digits_format_only",
+      "normalization": "digits_only_no_issuance_validity_claim"
+    },
+    "credit_card": {
+      "scope": "13_to19_ASCII_digits_with_optional_single_space_or_hyphen_between_digits",
+      "normalization": "digits_only_no_Luhn_or_card_validity_claim"
+    },
+    "ip_address": {
+      "scope": "IPv4_four_octets_each0to255_including_leadingzeros;IPv6_purehex_8groups_or_single_doublecolon_compression",
+      "normalization": "IPv4_decimal_octets;IPv6_8lowercase_unpadded_hex_groups",
+      "notCovered": [
+        "IPv4_mapped_IPv6",
+        "IPv6_zone_identifiers"
+      ],
+      "networkLookup": false
+    },
+    "messenger_handle": {
+      "scope": "@_then_ASCII_letter_then0to31_ASCII_alphanumeric_or_underscore",
+      "normalization": "case_preserved"
+    },
+    "payment_handle": {
+      "scope": "$_then_ASCII_letter_then0to31_ASCII_alphanumeric_or_underscore",
+      "normalization": "case_preserved"
+    },
+    "crypto_wallet": {
+      "scope": "EVM0x_plus40hex;Bitcoin1_or3_base58_shape26to35chars;bc1_shape11to90chars",
+      "normalization": "EVM_lowercase;Bitcoin_base58_case_preserved;bc1_all_lower_or_all_upper_fold_lower_mixedcase_preserved",
+      "validation": "conservative_format_masking_only_no_checksum_network_or_ownership_validation"
+    }
+  },
+  "outbound": {
+    "entityFields": [
+      "type",
+      "token"
+    ],
+    "reviewedLinks": [],
+    "withheldLinks": "true_if_any_url_token",
+    "reviewIdentity": "freeze_final_reviewed_text_entities_source_and_speaker_before_prepare;submit_exact_same_intent;new_edits_new_review_and_identity",
+    "oldDispatchedRecords": "no_renormalization_retokenization_or_recharge;reconcile_original_version_and_proof"
+  },
+  "unsupported": "editable_review_and_existing_server_privacy_rejection;never_claim_all_sensitive_data_removed",
+  "trimScalarRanges": [
+    "0009-000D",
+    "001C-0020",
+    "00A0",
+    "1680",
+    "2000-200A",
+    "2028-2029",
+    "202F",
+    "205F",
+    "3000"
+  ],
+  "normalizationNote": "Reject forbidden controls first; line boundaries are LF after CRLF/CR conversion; collapse only TAB and Unicode Zs within lines.",
+  "runtimeGuard": {
+    "module": "shared_message_contract/privacy.py",
+    "error": "PRIVACY_REVIEW_REQUIRED",
+    "scope": "complete_isolated_IPv6_literals_including_IPv4mapped_and_zone_suffixes",
+    "exclusions": "bare_double_colon_punctuation;invalid_partial_or_obfuscated_addresses_not_comprehensive_PII_detection",
+    "placement": [
+      "consumer_after_abuse_attempt_before_check_admission_or_allowance_writes",
+      "evaluator_before_lookup_or_proposer",
+      "vendor_request_builder_before_external_projection"
+    ],
+    "historicalReconciliation": "contentless_reconcile_unaffected;never_rewrite_receipt_or_check_identity"
+  }
+}

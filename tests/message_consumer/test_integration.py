@@ -408,3 +408,82 @@ def test_candidate2_disabled_admission_and_cross_version_provider_fail_closed(wo
     status,body=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
     assert status==200 and body['outcome']['schemaVersion']==2
     assert body['outcome']['processingOutcome']=='unavailable' and body['accounting']['chargedChecks']==0
+
+
+@pytest.mark.parametrize('version',[1,2])
+def test_residual_ipv6_rejected_before_check_mutation_or_provider(world,monkeypatch,version):
+    service,base,calls,budget=ai_system(world) if version==2 else system(world)
+    req=ai_request() if version==2 else request()
+    req['target']['sanitizedText']='Address fe80::1%eth0'
+    def forbidden(*args,**kwargs):pytest.fail('privacy-invalid input mutated authority')
+    attempts=[]
+    monkeypatch.setattr(world[0],'_attempt',lambda *args:attempts.append(True))
+    monkeypatch.setattr(world[0],'_transact',forbidden)
+    monkeypatch.setattr(service,'refresh',forbidden)
+    status,body=service.handle(event(base,'POST /v1/message-checks/prepare',req))
+    assert status==422 and body['errorCode']=='PRIVACY_REVIEW_REQUIRED'
+    assert not calls and budget.attempts==0
+    assert body['accounting']['chargedChecks'] is None and attempts==[True]
+
+
+@pytest.mark.parametrize('version',[1,2])
+def test_token_reuse_exact_reviewed_identity_and_unchanged_reconciliation(world,version):
+    service,base,calls,budget=ai_system(world,'no_warning') if version==2 else system(world)
+    req=ai_request() if version==2 else request()
+    req['target'].update(sanitizedText='Call [PHONE_1] or [PHONE_1].',entities=[{'type':'phone','token':'[PHONE_1]'}])
+    proof=prepare(service,base,req)
+    status,first=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
+    assert status==200 and first['state']=='settled'
+    for field,value in [('sanitizedText','Call [PHONE_1].'),('sourceType','ocr'),('speakerRole','unknown')]:
+        changed=deepcopy(req);changed['target'][field]=value
+        status,response=service.handle(event(base,'POST /v1/message-checks',changed|{'operationProof':proof}))
+        assert status==409 and response['errorCode']=='CHECK_ID_CONFLICT'
+    same=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))[1]
+    recovered=service.handle(event(base,'POST /v1/message-checks/reconcile',{
+        'transportVersion':req['transportVersion'],'checkId':req['checkId'],'operationProof':proof}))[1]
+    assert same['accounting']==recovered['accounting']==first['accounting']
+    assert len(calls)==budget.attempts==1
+
+
+@pytest.mark.parametrize('size',[32767,32768,32769])
+def test_governed_exact_wire_boundaries_remain_32768(world,size):
+    service,base,calls,budget=system(world)
+    req=request(text='😀'*6000)
+    raw=json.dumps(req,ensure_ascii=False)
+    raw+=' '*(size-len(raw.encode('utf-8')))
+    ev=event(base,'POST /v1/message-checks/prepare',req);ev['body']=raw
+    status,response=service.handle(ev)
+    if size<=32768:assert status==200 and response['state']=='prepared'
+    else:assert status==422 and response['errorCode']=='INPUT_REJECTED'
+    assert not calls and budget.attempts==0
+
+
+@pytest.mark.parametrize('raw',['{','x'*32769,json.dumps({'transportVersion':'unsupported'})])
+def test_non_ipv6_invalid_requests_keep_existing_abuse_attempt_accounting(world,monkeypatch,raw):
+    service,base,calls,budget=system(world);attempts=[]
+    monkeypatch.setattr(world[0],'_attempt',lambda *args:attempts.append(True))
+    ev=event(base,'POST /v1/message-checks/prepare',request());ev['body']=raw
+    status,body=service.handle(ev)
+    assert status==422 and len(attempts)==1 and not calls and budget.attempts==0
+
+
+@pytest.mark.parametrize('version',[1,2])
+def test_old_ipv6_receipt_reconciles_without_reinterpretation_after_privacy_hardening(world,monkeypatch,version):
+    from shared_message_contract import privacy
+    from message_consumer import service as service_module
+    service,base,calls,budget=ai_system(world,'no_warning') if version==2 else system(world)
+    req=ai_request() if version==2 else request()
+    req['target']['sanitizedText']='Address fe80::1%eth0'
+    # Simulate the previous admission boundary only; real Moto receipt/settlement.
+    with monkeypatch.context() as prior:
+        prior.setattr(privacy,'reject_residual_ipv6',lambda text:text)
+        proof=prepare(service,base,req)
+        status,old=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
+        assert status==200 and old['state']=='settled'
+    status,replay=service.handle(event(base,'POST /v1/message-checks',req|{'operationProof':proof}))
+    assert status==422 and replay['errorCode']=='PRIVACY_REVIEW_REQUIRED'
+    assert replay['accounting']['chargedChecks'] is None  # Not a claim of zero prior charge.
+    status,recovered=service.handle(event(base,'POST /v1/message-checks/reconcile',{
+        'transportVersion':req['transportVersion'],'checkId':req['checkId'],'operationProof':proof}))
+    assert status==200 and recovered['outcome']==old['outcome'] and recovered['accounting']==old['accounting']
+    assert len(calls)==budget.attempts==1
