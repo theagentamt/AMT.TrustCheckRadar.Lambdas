@@ -192,3 +192,21 @@ def test_full_pass_age_survives_no_time_and_resets_after_progress(world):
 def test_empty_subject_set_cannot_enable_worker(world):
     bridge,_,_=setup(world)
     failure('DELETION_CONFIGURATION_UNAVAILABLE',lambda:DeletionWorker(bridge,stream_arn=STREAM,allowed_subjects=frozenset(),remaining_ms=lambda:30000))
+
+
+def test_terminal_fence_and_old_requested_stream_replay_never_restart_cleanup(world):
+    a,e,put,row,change,clock=world
+    bridge,cmd,_=setup(world)
+    completed=cmd|{'status':'COMPLETE','eventType':'account.deletion.completed','completedAtEpoch':clock[0],'retainUntilEpoch':clock[0]+120*86400}
+    a.ddb.Table('deletion').put_item(Item=completed)
+    worker=DeletionWorker(bridge,stream_arn=STREAM,allowed_subjects=frozenset({ACCOUNT}),remaining_ms=lambda:30000)
+    before=items(a,bridge._partition(ACCOUNT,'k1'))
+    for image in (cmd,completed):
+        response,counts=worker.stream(event(image))
+        assert response=={'batchItemFailures':[]} and counts['deleted']==0 and counts['completed']==1
+    assert items(a,bridge._partition(ACCOUNT,'k1'))==before
+    response,counts=worker.stream(event(cmd|{'operationId':'d2dca50d-d9de-43c8-b95f-83d0a02ccdc7'}))
+    assert counts['failed']==1 and response['batchItemFailures']
+    a.ddb.Table('deletion').put_item(Item=completed|{'completedAtEpoch':True})
+    response,counts=worker.stream(event(completed|{'completedAtEpoch':True}))
+    assert counts['failed']==1 and response['batchItemFailures']
