@@ -1,4 +1,6 @@
-# V1 check authority — undeployed runtime core
+# V1 check authority
+
+Current integration note: [snapshot integrity and readiness](v1-access-snapshot-integrity.md) records the latest bounded SECUR4ALL-230 work. The nine legacy/research runtimes have been migrated in Dev; legacy Web Risk is retired. Modern authority consumer activation remains separately gated. Historical implementation notes below must not be read as current deployment proof.
 
 Status: backend authority for SECUR4ALL-230/233, now included in disabled consumer/entitlement/recovery candidate packages. No protected mobile endpoint is activated and no live table rows are seeded by this increment. See url-consumer-dev-handoff.md for the implemented synchronous lifecycle and remaining activation gates. Existing legacy Web Risk remains unchanged. Canonical mobile contract `0.2.0-candidate.1` remains inactive and its client check ID ownership is unchanged.
 

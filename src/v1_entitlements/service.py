@@ -1,20 +1,24 @@
 """No purchase/operator grants are exposed through this mobile service."""
-from shared_check_authority.core import AuthorityError, OWNER_POLICY, TRIAL_SECONDS, integral
+from shared_check_authority.core import AuthorityError, OWNER_POLICY, TRIAL_SECONDS
 
 
 def access_snapshot(writer, event):
     authority = writer.a
     account = authority._account(event)
     pk, old, sources = writer._read(account)
+    activated, histories = writer.trial_history(account, sources)
     if old:
         writer.refresh_for_account(event, 'refresh-' + str(old['revision']))
-    active_device = True
-    try:
-        authority._device(event, account)
-    except AuthorityError as error:
-        if error.code != 'ACTIVE_DEVICE_REQUIRED':
-            raise
-        active_device = False
+    baseline = authority._get(authority.s.authority_table, {'PK': pk, 'SK': 'ACCESS'})
+    def device_state():
+        try:
+            return authority._device(event, account)
+        except AuthorityError as error:
+            if error.code != 'ACTIVE_DEVICE_REQUIRED':
+                raise
+            return None
+    device = device_state()
+    active_device = device is not None
     grant = period = None
     reason = 'AVAILABLE'
     try:
@@ -26,33 +30,36 @@ def access_snapshot(writer, event):
             reason = error.code
         else:
             raise
-    # Recheck revision after counter reads; never report a mixed revoked snapshot.
+    if grant and grant['basis'] == 'trial':
+        if (activated is None or activated != grant['activatedAtEpoch']
+                or period['startEpoch'] != activated or period['endEpoch'] != activated + TRIAL_SECONDS):
+            raise AuthorityError('AUTHORITY_STATE_INVALID')
+    # A snapshot is advisory, but must not combine a moved account/device/grant
+    # or changed trial history with counters read from an earlier state.
     current = authority._get(authority.s.authority_table, {'PK': pk, 'SK': 'ACCESS'})
-    if grant and (not current or current.get('revision') != grant['revision']):
+    if current != baseline or grant is not None and grant != baseline:
+        raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
+    _, current_histories = writer.trial_history(account, sources)
+    if current_histories != histories or device_state() != device:
+        raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
+    if grant and grant.get('validUntilEpoch') is not None and grant['validUntilEpoch'] <= authority.now():
+        raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
+    if period and period['endEpoch'] <= authority.now():
         raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
     authority._assert_account(account)
     if not active_device:
         reason = 'ACTIVE_DEVICE_REQUIRED'
-    history = None
-    for partition in authority.deletion_partitions(account):
-        candidate = authority._get(authority.s.authority_table, {'PK': partition, 'SK': 'TRIAL_HISTORY'})
-        if candidate:
-            if (candidate.get('recordType') != 'V1_TRIAL_ELIGIBILITY' or candidate.get('policyVersion') != OWNER_POLICY
-                    or integral(candidate.get('activatedAtEpoch')) is None):
-                raise AuthorityError('AUTHORITY_STATE_INVALID')
-            history = candidate
-    activated = int(history['activatedAtEpoch']) if history else None
     basis = grant['basis'] if grant else 'none'
     allowance = {'limit': None, 'completedUsed': None, 'reserved': None, 'remaining': None, 'periodEndsAtEpoch': None}
     if period:
         allowance = {'limit': int(period['limit']), 'completedUsed': int(period['usedChecks']),
                      'reserved': int(period['reservedChecks']),
-                     'remaining': max(0, int(period['limit'] - period['usedChecks'] - period['reservedChecks'])),
+                     'remaining': int(period['limit'] - period['usedChecks'] - period['reservedChecks']),
                      'periodEndsAtEpoch': int(period['endEpoch'])}
     # Snapshot is advisory. Every admission repeats the atomic account/device/grant fences.
     return {'schemaVersion': 1, 'policyVersion': OWNER_POLICY, 'activeDevice': active_device,
             'access': {'basis': basis, 'externalChecksAllowed': reason == 'AVAILABLE', 'reason': reason},
             'allowance': allowance,
-            'trial': {'activationAvailable': writer.trial_retention_approved and active_device and not history and basis == 'none',
+            'trial': {'activationAvailable': writer.trial_retention_approved and active_device and activated is None and basis == 'none',
                       'activatedAtEpoch': activated,
                       'expiresAtEpoch': activated + TRIAL_SECONDS if activated is not None else None}}

@@ -218,6 +218,7 @@ class Authority:
                 or period.get('policyVersion') != OWNER_POLICY or period.get('grantRevision') != integral(grant.get('periodRevision'))
                 or period.get('limit') != limit or integral(period.get('usedChecks')) is None
                 or integral(period.get('reservedChecks')) is None or period['usedChecks'] < 0 or period['reservedChecks'] < 0
+                or period['usedChecks'] + period['reservedChecks'] > limit
                 or integral(period.get('startEpoch')) is None or integral(period.get('endEpoch')) is None
                 or not period['startEpoch'] <= now < period['endEpoch']):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
