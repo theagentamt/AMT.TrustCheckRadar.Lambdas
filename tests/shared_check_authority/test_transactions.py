@@ -34,7 +34,7 @@ def world():
             # Explicit synthetic global ledger provisioning, never a runtime
             # migration or reconstruction from legacy customer counters.
             from shared_check_authority.purchase_usage import key, new_period_usage
-            pointer = key(hashlib.sha256(ACCOUNT.encode()).hexdigest(), hashlib.sha256(sk.encode()).hexdigest())
+            pointer = attrs.get('purchaseUsageKey') or key(hashlib.sha256(ACCOUNT.encode()).hexdigest(), hashlib.sha256(sk.encode()).hexdigest())
             global_row = new_period_usage(pointer, attrs['startEpoch'], attrs['endEpoch'])
             global_row.update({k: attrs[k] for k in ('usedChecks', 'reservedChecks')})
             ddb.Table('authority').put_item(Item=global_row)

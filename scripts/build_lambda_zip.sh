@@ -40,6 +40,7 @@ FUNCTIONS=(
   url_consumer
   url_lease_recovery
   v1_entitlements
+  v1_play_handoff
   v1_authority_deletion
   web_risk_communication
   post_confirmation
@@ -171,7 +172,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -183,6 +184,12 @@ build_function() {
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
 
+  if [[ "$function_name" == "v1_play_handoff" ]]; then
+    mkdir -p "$build_dir/v1_play_handoff"
+    cp -R "$source_dir"/. "$build_dir/v1_play_handoff/"
+    printf 'from v1_play_handoff.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$build_dir/"
+  fi
   if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
     cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
     cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
@@ -270,7 +277,7 @@ build_function() {
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
   fi
-  if [[ "$function_name" == "purchase_handoff" || "$function_name" == "account_data_api" || "$function_name" == "account_export_api" ]]; then
+  if [[ "$function_name" == "purchase_handoff" || "$function_name" == "account_data_api" || "$function_name" == "account_export_api" || "$function_name" == "v1_play_handoff" ]]; then
     cp -R "$ROOT_DIR/src/shared_purchase_ownership" "$build_dir/shared_purchase_ownership"
   fi
 
