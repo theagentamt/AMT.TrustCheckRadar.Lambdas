@@ -30,8 +30,19 @@ def world():
         ddb.Table('authority').put_item(Item={'PK':'V1#CONTROL','SK':'HMAC_KEY_INVENTORY','recordType':'V1_HMAC_KEY_INVENTORY','schemaVersion':1,'revision':1,'coverage':'VERIFIED_COMPLETE','issuedKeys':{k:hashlib.sha256(v).hexdigest() for k,v in settings.hmac_keys.items()}})
         a = Authority(settings, ddb, now=lambda: clock[0])
         pk = a._partition(ACCOUNT, 'k1')
+        def paid_fixture(sk, attrs):
+            # Explicit synthetic global ledger provisioning, never a runtime
+            # migration or reconstruction from legacy customer counters.
+            from shared_check_authority.purchase_usage import key, new_period_usage
+            pointer = key(hashlib.sha256(ACCOUNT.encode()).hexdigest(), hashlib.sha256(sk.encode()).hexdigest())
+            global_row = new_period_usage(pointer, attrs['startEpoch'], attrs['endEpoch'])
+            global_row.update({k: attrs[k] for k in ('usedChecks', 'reservedChecks')})
+            ddb.Table('authority').put_item(Item=global_row)
+            return attrs | {'purchaseUsageKey': pointer}
         def put(table, sk, **attrs):
             prefix = pk if table == 'authority' else ('ACCOUNT#' if table == 'deletion' else 'USER#') + ACCOUNT
+            if table == 'authority' and attrs.get('recordType') == 'V1_ALLOWANCE_PERIOD' and attrs.get('limit') == 200:
+                attrs = paid_fixture(sk, attrs)
             ddb.Table(table).put_item(Item={'PK':prefix,'SK':sk,**attrs})
         put('users','PROFILE',sub=ACCOUNT,status='ACTIVE',ageVerified=True)
         put('devices','ACTIVE_BINDING',recordType='ACTIVE_BINDING_POINTER',stateVersion=1,bindingFingerprint='device-one')
@@ -43,7 +54,13 @@ def world():
         def change(table, sk, **attrs):
             prefix = pk if table == 'authority' else ('ACCOUNT#' if table == 'deletion' else 'USER#') + ACCOUNT
             old = a._get(table,{'PK':prefix,'SK':sk}) or {'PK':prefix,'SK':sk}
-            ddb.Table(table).put_item(Item=old|attrs)
+            changed = old | attrs
+            if table == 'authority' and changed.get('recordType') == 'V1_ALLOWANCE_PERIOD':
+                if changed.get('limit') == 200:
+                    changed = paid_fixture(sk, changed)
+                else:
+                    changed.pop('purchaseUsageKey', None)
+            ddb.Table(table).put_item(Item=changed)
         yield a,event,put,row,change,clock
 
 def admit(w, prep='prepare-1'):
@@ -239,6 +256,8 @@ def test_ambiguous_settlement_does_not_charge_twice(world,monkeypatch):
     result=a.settle(WORKER,cid,op['executionToken'],'complete')
     assert result['chargedChecks']==1 and row('PERIOD#p1')['usedChecks']==1
     assert a.settle(WORKER,cid,op['executionToken'],'complete')==result
+    global_usage = a._get('authority', row('PERIOD#p1')['purchaseUsageKey'])
+    assert global_usage['usedChecks'] == 1 and global_usage['reservedChecks'] == 0
 
 
 def test_worker_deadline_requires_recovery(world):

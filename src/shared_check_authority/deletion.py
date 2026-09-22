@@ -8,7 +8,7 @@ import hashlib
 import hmac
 import re
 import uuid
-from .core import AuthorityError, integral, SUBJECT_PATTERN
+from .core import AuthorityError, integral, SUBJECT_PATTERN, PAID_COMPLETED_CHECKS
 
 COMMAND_FIELDS={'PK','SK','schemaVersion','recordVersion','environment','eventType','accountId','operationId','status','occurredAtEpoch','deleteByEpoch'}
 INVENTORY_KEY={'PK':'V1#CONTROL','SK':'HMAC_KEY_INVENTORY'}
@@ -77,6 +77,74 @@ class AuthorityDeletion:
         else:data['ConditionExpression']='attribute_not_exists(PK)'
         return {'ConditionCheck':data}
 
+    def _purchase_releases(self, partition, targets):
+        """Release each admitted purchase reservation with its receipt deletion.
+
+        Group by global key to avoid duplicate DynamoDB actions. Local PERIOD
+        rows remain until their pending receipts have been visited in sort order.
+        """
+        from .purchase_usage import (period_for_receipt, global_for_period, counter_action,
+                                     local_counter_action, exact_condition, validate_period, read, RETENTION_SECONDS)
+        groups, conditions = {}, {}
+        deleting = {row['SK'] for row in targets}
+        for row in targets:
+            if row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('basis') != 'paid' or row.get('state') != 'ADMITTED':
+                continue
+            period = period_for_receipt(self.ddb, self.table, partition, row)
+            pointer = period['purchaseUsageKey']
+            identity = (pointer['PK'], pointer['SK'])
+            if identity not in groups:
+                groups[identity] = {'period': period, 'count': 0,
+                                    'global': global_for_period(self.ddb, self.table, period, now=self.now(), allow_expired=True)}
+            if groups[identity]['period'] != period:
+                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+            groups[identity]['count'] += 1
+            conditions[row['SK']] = exact_condition(row)
+        actions, global_guards = [], {}
+        for period in targets:
+            if period.get('recordType') != 'V1_ALLOWANCE_PERIOD':
+                continue
+            if 'purchaseUsageKey' not in period and period.get('limit') != PAID_COMPLETED_CHECKS:
+                continue
+            pointer = validate_period(period)
+            identity = (pointer['PK'], pointer['SK'])
+            group = groups.get(identity)
+            released = group['count'] if group and group['period'] == period else 0
+            if released != period['reservedChecks']:
+                # Every CHECK sorts before PERIOD. Missing receipt evidence may
+                # not silently strand reservations and claim completion.
+                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+            conditions[period['SK']] = exact_condition(period)
+            if group or self.now() >= period['endEpoch'] + RETENTION_SECONDS:
+                continue
+            observed = read(self.ddb, self.table, pointer, now=self.now())
+            if (any(observed[k] != period[k] for k in ('startEpoch', 'endEpoch', 'limit'))
+                    or observed['usedChecks'] < period['usedChecks']):
+                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+            # Ownership may already have been released after old reservations
+            # reached zero. A newly restored account can legitimately advance
+            # global counters while this old zero-reservation PERIOD is erased.
+            # Guard immutable funding evidence and monotonic usage, not equality.
+            previous = global_guards.get(identity)
+            minimum = max(period['usedChecks'], previous[1] if previous else 0)
+            global_guards[identity] = (observed, minimum)
+        for observed, minimum in global_guards.values():
+            immutable = {k: v for k, v in observed.items() if k not in ('usedChecks', 'reservedChecks')}
+            guard = exact_condition(immutable)
+            guard['ConditionExpression'] += ' AND usedChecks >= :minimumUsed'
+            guard['ExpressionAttributeValues'][':minimumUsed'] = minimum
+            actions.append({'ConditionCheck': {'TableName': self.table,
+                            'Key': {k: observed[k] for k in ('PK', 'SK')}, **guard}})
+        for group in groups.values():
+            period, count, observed = group['period'], group['count'], group['global']
+            if count > period['reservedChecks']:
+                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+            if period['SK'] not in deleting:
+                actions.append(local_counter_action(self.table, period, -count, 0))
+            if observed is not None:
+                actions.append(counter_action(self.table, observed, -count, 0, now=self.now()))
+        return actions, conditions
+
     def delete_batch(self,command,*,page_size=20,max_pages=2,can_continue=lambda:True):
         if type(page_size) is not int or not 1<=page_size<=20 or type(max_pages) is not int or not 1<=max_pages<=4:
             raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
@@ -125,7 +193,9 @@ class AuthorityDeletion:
                 targets=[x for x in rows if x['SK']!='ACCESS'][:page_size]
                 if targets:
                     items=self._guards(command,inventory)+[self._access_guard(partition,command['operationId'],access is not None)]
-                    items += [{'Delete':{'TableName':self.table,'Key':{'PK':partition,'SK':row['SK']}}} for row in targets]
+                    releases, conditions = self._purchase_releases(partition, targets)
+                    items += releases
+                    items += [{'Delete':{'TableName':self.table,'Key':{'PK':partition,'SK':row['SK']}, **conditions.get(row['SK'], {})}} for row in targets]
                     self._transact(items);deleted+=len(targets);pages+=1
                     if pages>=max_pages:return {'deleted':deleted,'complete':False,'alreadyComplete':False}
                     continue
