@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "contract": "v1-access/schema1",
+  "policyVersion": "owner-2026-09-20-v1",
+  "immutableBaselineCommit": "015fe0063bced8ae7fda597487d3ff9193072b04",
+  "semanticsChanged": false,
+  "files": {
+    "contracts/v1-access/v1/snapshot.schema.json": "968d1407602d2d32c43c95edc057c31633cd522d409f88f125d0f4df8e86813c",
+    "contracts/v1-access/v1/trial-request.schema.json": "c305e0c741990795b6697ab3dcdc9050af3e3699bc39863b3a50523171b34348",
+    "contracts/v1-access/v1/error.schema.json": "3b7f7f442e4b2e8ccd13df9a03a3190b77283effc25570781ff4edf64442a4c3",
+    "contracts/v1-access/v1/fixtures.json": "47050312f22f5082d75198b57b1021860f1fc87cab419e1290f58b89217d3171"
+  }
+}

@@ -70,12 +70,93 @@ class EntitlementWriter:
                 raise AuthorityError('AUTHORITY_MIGRATION_REQUIRED')
         row = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'ACCESS'})
         if row is not None and (row.get('recordType') != 'V1_ACCESS_AUTHORITY'
-                or row.get('schemaVersion') != 1 or row.get('policyVersion') != OWNER_POLICY
+                or integral(row.get('schemaVersion')) != 1 or row.get('policyVersion') != OWNER_POLICY
                 or integral(row.get('revision')) is None or row['revision'] < 1
                 or not isinstance(row.get('sources'), dict)
                 or not set(row['sources']).issubset({'trial', 'paid', 'complimentary'})):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
+        if row is not None:
+            self._validate_sources(row['sources'])
+            if row.get('state') not in ('ACTIVE', 'INACTIVE'):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if row['state'] == 'ACTIVE':
+                basis = row.get('basis')
+                source = row['sources'].get(basis) if isinstance(basis, str) else None
+                fields = ('validFromEpoch', 'validUntilEpoch') + (() if basis == 'complimentary' else ('periodId', 'periodRevision'))
+                if (not source or source['state'] != 'ACTIVE'
+                        or integral(row.get('validFromEpoch')) is None
+                        or row.get('validUntilEpoch') is not None and integral(row['validUntilEpoch']) is None
+                        or basis != 'complimentary' and integral(row.get('periodRevision')) is None
+                        or any(row.get(name) != source.get(name) for name in fields)):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
         return pk, row, deepcopy(row['sources']) if row else {}
+
+    @staticmethod
+    def _validate_sources(sources):
+        """Only accept source forms actually emitted by these trusted writers."""
+        period_fields = {'validFromEpoch', 'validUntilEpoch', 'periodId', 'periodRevision'}
+        paid_fields = {'state', 'store', 'productId', 'subscriptionDigest', 'sourceRevision'}
+        for basis, source in sources.items():
+            if not isinstance(source, dict) or source.get('state') not in ('ACTIVE', 'INACTIVE'):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if basis == 'paid':
+                allowed = paid_fields | period_fields
+                if (set(source) not in (paid_fields, allowed)
+                        or source['state'] == 'ACTIVE' and set(source) != allowed
+                        or source.get('store') not in ('google_play', 'app_store')
+                        or not isinstance(source.get('productId'), str) or not source['productId']
+                        or not isinstance(source.get('subscriptionDigest'), str)
+                        or not re.fullmatch(r'[0-9a-f]{64}', source['subscriptionDigest'])
+                        or integral(source.get('sourceRevision')) is None or source['sourceRevision'] < 1):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+                if set(source) == paid_fields:
+                    continue  # A verified inactive subscription may never have a funded period.
+            elif basis == 'trial':
+                if set(source) != {'state'} | period_fields:
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+            elif set(source) != {'state', 'validFromEpoch', 'validUntilEpoch'}:
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            start, end = integral(source.get('validFromEpoch')), integral(source.get('validUntilEpoch'))
+            if (start is None or start < 0 or (source.get('validUntilEpoch') is None and basis != 'complimentary')
+                    or source.get('validUntilEpoch') is not None and (end is None or end <= start)
+                    or basis == 'trial' and end != start + TRIAL_SECONDS):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if basis != 'complimentary':
+                if (not isinstance(source.get('periodId'), str)
+                        or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', source['periodId'])
+                        or integral(source.get('periodRevision')) is None or source['periodRevision'] < 1):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+
+    def trial_history(self, account, sources=None):
+        """Validate retained eligibility evidence without repairing or extending it.
+
+        Multiple retained namespaces may carry the same historical activation;
+        conflicting clocks must never be normalized into new eligibility.
+        """
+        histories = {}
+        activated = None
+        for partition in self.a.deletion_partitions(account):
+            row = self.a._get(self.a.s.authority_table, {'PK': partition, 'SK': 'TRIAL_HISTORY'})
+            if row is None:
+                histories[partition] = None
+                continue
+            epoch = integral(row.get('activatedAtEpoch'))
+            if (set(row) != {'PK', 'SK', 'recordType', 'policyVersion', 'activationKind', 'activatedAtEpoch'}
+                    or row['PK'] != partition or row['SK'] != 'TRIAL_HISTORY'
+                    or row.get('recordType') != 'V1_TRIAL_ELIGIBILITY'
+                    or row.get('policyVersion') != OWNER_POLICY or row.get('activationKind') != 'explicit'
+                    or epoch is None or not 0 <= epoch <= self.a.now()
+                    or activated is not None and activated != epoch):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            activated = epoch
+            histories[partition] = row
+        if sources is not None and 'trial' in sources:
+            source = sources['trial']
+            if (not isinstance(source, dict) or activated is None
+                    or source.get('validFromEpoch') != activated
+                    or source.get('validUntilEpoch') != activated + TRIAL_SECONDS):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+        return activated, histories
 
     def _device_conditions(self, event, account):
         fingerprint, version = self.a._device(event, account)
@@ -167,15 +248,10 @@ class EntitlementWriter:
         account = self.a._account(verified_event)
         device_conditions = self._device_conditions(verified_event, account)
         pk, old, sources = self._read(account)
-        histories = [self.a._get(self.a.s.authority_table, {'PK': p, 'SK': 'TRIAL_HISTORY'})
-                     for p in self.a.deletion_partitions(account)]
-        if any(histories):
-            history = next(h for h in histories if h)
-            if (history.get('recordType') != 'V1_TRIAL_ELIGIBILITY' or history.get('policyVersion') != OWNER_POLICY
-                    or integral(history.get('activatedAtEpoch')) is None):
-                raise AuthorityError('AUTHORITY_STATE_INVALID')
-            return {'activatedAtEpoch': int(history['activatedAtEpoch']),
-                    'validUntilEpoch': int(history['activatedAtEpoch']) + TRIAL_SECONDS,
+        activated, _ = self.trial_history(account, sources)
+        if activated is not None:
+            return {'activatedAtEpoch': activated,
+                    'validUntilEpoch': activated + TRIAL_SECONDS,
                     'alreadyActivated': True}
         if any(s.get('state') == 'ACTIVE' and (s.get('validUntilEpoch') is None or s['validUntilEpoch'] > self.a.now())
                for s in sources.values()):

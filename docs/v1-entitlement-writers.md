@@ -1,5 +1,7 @@
 # V1 trial, paid authority and complimentary writers
 
+Current integration: see [snapshot integrity](v1-access-snapshot-integrity.md) for strict retained trial evidence and concurrent-read behavior. Trial retention policy has been approved (eligibility until account deletion); qualified storage/deletion and activation still require actual acceptance. Legacy Web Risk is now retired; this does not activate modern access or provide the missing verified paid/operator adapters. Earlier local evidence below is historical.
+
 Status: isolated implementation, never a legacy entitlement fallback. Mobile
 handlers support explicit trial activation and access snapshots; all gates
 remain disabled by default. No live authority rows or grants are seeded.
