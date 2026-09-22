@@ -50,13 +50,16 @@ class ParticipationHandlerTests(unittest.TestCase):
     def setUp(self):
         self.config_patch = mock.patch.object(app.config, "validate_config")
         self.config_patch.start()
+        self.notice_patch = mock.patch.object(app.config, "NOTICE_VERSION", app.config.CURRENT_NOTICE)
+        self.notice_patch.start()
+        self.addCleanup(self.notice_patch.stop)
         self.addCleanup(self.config_patch.stop)
 
     def test_get_uses_only_jwt_subject_and_returns_no_identity(self):
         with mock.patch.object(app, "get_participation", return_value={"schemaVersion": 1, "state": "not_enrolled"}) as getter:
             response = app.lambda_handler(event(), None)
         self.assertEqual(response["statusCode"], 200)
-        getter.assert_called_once_with("user-123")
+        getter.assert_called_once_with("user-123", None)
         self.assertNotIn("user-123", response["body"])
 
     def test_legacy_or_principal_identity_is_not_trusted(self):
@@ -65,14 +68,14 @@ class ParticipationHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 401)
 
     def test_put_validates_exact_contract(self):
-        body = {"schemaVersion": 1, "action": "join", "noticeVersion": app.config.NOTICE_VERSION, "operationId": OPERATION_ID}
+        body = {"schemaVersion": 1, "action": "join", "noticeVersion": app.config.CURRENT_NOTICE, "operationId": OPERATION_ID}
         with mock.patch.object(app, "update_participation", return_value={"schemaVersion": 1, "state": "enrolled"}) as updater:
             response = app.lambda_handler(event("PUT", body), None)
         self.assertEqual(response["statusCode"], 200)
         updater.assert_called_once_with("user-123", body)
 
     def test_unknown_field_including_account_id_is_rejected(self):
-        body = {"schemaVersion": 1, "action": "join", "noticeVersion": app.config.NOTICE_VERSION, "operationId": OPERATION_ID, "accountId": "attacker"}
+        body = {"schemaVersion": 1, "action": "join", "noticeVersion": app.config.CURRENT_NOTICE, "operationId": OPERATION_ID, "accountId": "attacker"}
         response = app.lambda_handler(event("PUT", body), None)
         self.assertEqual(response["statusCode"], 400)
         self.assertEqual(json.loads(response["body"])["error"]["code"], "INVALID_REQUEST")
@@ -81,65 +84,31 @@ class ParticipationHandlerTests(unittest.TestCase):
         value = event("PUT")
         value["body"] = (
             '{"schemaVersion":1,"action":"join","action":"withdraw",'
-            f'"noticeVersion":"{app.config.NOTICE_VERSION}","operationId":"{OPERATION_ID}"}}'
+            f'"noticeVersion":"{app.config.CURRENT_NOTICE}","operationId":"{OPERATION_ID}"}}'
         )
         response = app.lambda_handler(value, None)
         self.assertEqual(response["statusCode"], 400)
 
-    def test_notice_version_and_uuid4_are_enforced(self):
-        for changes in ({"noticeVersion": "old"}, {"operationId": "not-a-uuid"}, {"schemaVersion": True}):
-            body = {"schemaVersion": 1, "action": "join", "noticeVersion": app.config.NOTICE_VERSION, "operationId": OPERATION_ID} | changes
-            with self.subTest(changes=changes):
-                response = app.lambda_handler(event("PUT", body), None)
-                self.assertEqual(response["statusCode"], 400)
+    def test_schema_and_uuid_are_strict(self):
+        for changes in ({"operationId":"not-a-uuid"},{"schemaVersion":True},{"schemaVersion":2.0}):
+            body = {"schemaVersion":2,"expectedStateVersion":0,"action":"join","noticeVersion":app.config.CURRENT_NOTICE,"operationId":OPERATION_ID} | changes
+            response = app.lambda_handler(event("PUT",body),None)
+            self.assertEqual(response["statusCode"],400)
 
-    def test_policy_version_is_the_semantic_string_policy_one(self):
-        values = {
-            "USERS_TABLE_NAME": "users", "ENTITLEMENTS_TABLE_NAME": "entitlements",
-            "DELETION_LEDGER_TABLE_NAME": "ledger", "ENVIRONMENT": "dev",
-            "NOTICE_VERSION": "notice-2026-09", "AUDIT_RETENTION_DAYS": 400,
-            "DELETION_SLA_HOURS": 24, "FREE_MONTHLY_SCAN_LIMIT": 10,
-            "PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT": 15, "PRO_MONTHLY_SCAN_LIMIT": 100,
-        }
-        with mock.patch.multiple(app.config, **values, POLICY_VERSION="policy-1"):
+    def test_get_owned_operation_query_is_explicit(self):
+        value=event(); value["queryStringParameters"]={"operationId":OPERATION_ID}
+        with mock.patch.object(app,"get_participation",return_value={"state":"not_enrolled"}) as getter:
+            self.assertEqual(app.lambda_handler(value,None)["statusCode"],200)
+        getter.assert_called_once_with("user-123",OPERATION_ID)
+
+    def test_exact_config_allows_read_and_withdraw_when_join_closed(self):
+        values={"USERS_TABLE_NAME":"users","DELETION_LEDGER_TABLE_NAME":"ledger","ENVIRONMENT":"dev",
+                "NOTICE_VERSION":app.config.CURRENT_NOTICE,"POLICY_VERSION":app.config.CURRENT_POLICY,
+                "AUDIT_RETENTION_DAYS":400,"DELETION_SLA_HOURS":24,"CONSENT_INDEPENDENCE_ENABLED":False}
+        with mock.patch.multiple(app.config,**values):
             validate_config()
-        with mock.patch.multiple(app.config, **values, POLICY_VERSION=1):
-            with self.assertRaises(RuntimeError):
-                validate_config()
-
-    def test_scan_quotas_are_configurable_with_safe_tier_ordering(self):
-        values = {
-            "USERS_TABLE_NAME": "users", "ENTITLEMENTS_TABLE_NAME": "entitlements",
-            "DELETION_LEDGER_TABLE_NAME": "ledger", "ENVIRONMENT": "dev",
-            "NOTICE_VERSION": "notice-2026-09", "POLICY_VERSION": "policy-1",
-            "AUDIT_RETENTION_DAYS": 400, "DELETION_SLA_HOURS": 24,
-        }
-        with mock.patch.multiple(
-            app.config,
-            **values,
-            FREE_MONTHLY_SCAN_LIMIT=15,
-            PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT=20,
-            PRO_MONTHLY_SCAN_LIMIT=1000,
-        ):
-            validate_config()
-
-        invalid_quotas = ((0, 15, 1000), (15, 15, 1000), (15, 20, 20))
-        for base_free, participating_free, pro in invalid_quotas:
-            with self.subTest(
-                base_free=base_free,
-                participating_free=participating_free,
-                pro=pro,
-            ):
-                with mock.patch.multiple(
-                    app.config,
-                    **values,
-                    FREE_MONTHLY_SCAN_LIMIT=base_free,
-                    PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT=participating_free,
-                    PRO_MONTHLY_SCAN_LIMIT=pro,
-                ):
-                    with self.assertRaises(RuntimeError):
-                        validate_config()
-
+        with mock.patch.multiple(app.config,**(values | {"POLICY_VERSION":"old"})):
+            with self.assertRaises(RuntimeError): validate_config()
 
 if __name__ == "__main__":
     unittest.main()

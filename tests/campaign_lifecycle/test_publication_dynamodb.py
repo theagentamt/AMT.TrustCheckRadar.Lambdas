@@ -25,11 +25,11 @@ def world():
         put=lambda table,row:client.put_item(TableName=table,Item=core.serialize(row))
         marker={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':NOW-1,'locatorSchemaVersion':1,'minimumPeriodId':8,'priorPeriodsErased':True,'writers':core.WRITERS}
         put('pipeline',marker)
-        summary={'PK':'CANDIDATE#'+ID,'SK':'SUMMARY','candidateId':ID,'periodId':PERIOD,'taxonomyBucket':'advance_fee','GSI2PK':f'PERIOD#{PERIOD}#BUCKET#advance_fee','GSI2SK':'CANDIDATE#'+ID,'GSI3PK':'EXPIRY#dev','GSI3SK':NOW+1000,'expiresAt':NOW+1000,'version':1,'contributorCount':12,'submissionCount':12}
+        summary={'PK':'CANDIDATE#'+ID,'SK':'SUMMARY','candidateId':ID,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1','periodId':PERIOD,'taxonomyBucket':'advance_fee','GSI2PK':f'PERIOD#{PERIOD}#BUCKET#advance_fee','GSI2SK':'CANDIDATE#'+ID,'GSI3PK':'EXPIRY#dev','GSI3SK':NOW+1000,'expiresAt':NOW+1000,'version':1,'contributorCount':12,'submissionCount':12}
         put('pipeline',summary)
         for n in range(12):
             token=base64.urlsafe_b64encode(n.to_bytes(32,'big')).decode().rstrip('=')
-            contribution={'PK':summary['PK'],'SK':'CONTRIB#'+token,'GSI1PK':f'CONTRIB#{PERIOD}#{token}','GSI1SK':summary['PK'],'periodId':PERIOD,'expiresAt':NOW+1000,'submissionCount':1,'languageId':'en','signalIds':['tactic.urgency','channel.sms'],'vectorApplied':True,'vector':[1]}
+            contribution={'PK':summary['PK'],'SK':'CONTRIB#'+token,'GSI1PK':f'CONTRIB#{PERIOD}#{token}','GSI1SK':summary['PK'],'periodId':PERIOD,'expiresAt':NOW+1000,'submissionCount':1,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1','languageId':'en','signalIds':['tactic.urgency','channel.sms'],'vectorApplied':True,'vector':[1]}
             put('pipeline',contribution);put('pipeline',core.locator_for_target(contribution,'dev'))
         publication=Publication(client=client,pipeline='pipeline',intelligence='intelligence',environment='dev',manifest_sha256='a'*64,inventory_revision=1,now=lambda:NOW,enabled=True)
         def get(table,pk,sk):
@@ -227,3 +227,20 @@ def test_upgraded_handler_disabled_never_falls_back_to_legacy(world,monkeypatch)
     for operation in ('manage_keys','finalize_periods','expire_transient'):
         with pytest.raises(ValueError):app.lambda_handler(event|{'operation':operation},None)
     assert get('pipeline',summary['PK'],'SUMMARY')==summary
+
+
+def test_legacy_summary_cannot_be_blessed_by_new_publication_candidate(world):
+    publication,d,put,get,summary,_=world
+    old=dict(summary);old.pop('researchPolicyVersion');old.pop('researchNoticeVersion');put('pipeline',old)
+    with pytest.raises(PublicationUnavailable):publication.process(ID)
+    assert get('pipeline',summary['PK'],'SUMMARY')==old
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+
+
+def test_legacy_contribution_cannot_be_published_under_new_summary_marker(world):
+    publication,d,put,get,summary,_=world
+    rows=d.query(TableName='pipeline',KeyConditionExpression='PK=:pk AND begins_with(SK,:prefix)',ExpressionAttributeValues=core.serialize({':pk':summary['PK'],':prefix':'CONTRIB#'}))['Items']
+    old=core.deserialize(rows[0]);old.pop('researchPolicyVersion');put('pipeline',old)
+    assert publication.process(ID)['state']=='FROZEN'
+    with pytest.raises(PublicationUnavailable):publication.process(ID)
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None

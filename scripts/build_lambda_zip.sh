@@ -94,7 +94,7 @@ is_known_function() {
 
 needs_shared_entitlements() {
   case "$1" in
-    campaign_participation|conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
+    conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -276,6 +276,9 @@ build_function() {
 
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+  fi
+  if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_lifecycle" ]]; then
+    cp -R "$ROOT_DIR/src/shared_research_consent" "$build_dir/shared_research_consent"
   fi
   if needs_shared_campaign_contracts "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"

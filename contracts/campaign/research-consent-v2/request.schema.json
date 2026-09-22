@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "action",
+    "noticeVersion",
+    "operationId"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [
+        1,
+        2
+      ]
+    },
+    "action": {
+      "enum": [
+        "join",
+        "withdraw"
+      ]
+    },
+    "noticeVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "operationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "expectedStateVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schemaVersion": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "expectedStateVersion"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "expectedStateVersion"
+          ]
+        }
+      }
+    }
+  ]
+}

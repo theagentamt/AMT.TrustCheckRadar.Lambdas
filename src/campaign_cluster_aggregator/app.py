@@ -19,7 +19,9 @@ def lambda_handler(event, _context):
                 retention_days=config.TRANSIENT_RETENTION_DAYS,
                 max_submissions=config.MAX_CONTRIBUTOR_SUBMISSIONS, dynamodb=dynamodb,
                 locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
-                locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION)
+                locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION,
+                users_table_name=config.USERS_TABLE_NAME, deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+                outbox_table_name=config.OUTBOX_TABLE_NAME)
             successes += 1
         except Exception:
             failures.append({"itemIdentifier": record.get("messageId", "unknown")})

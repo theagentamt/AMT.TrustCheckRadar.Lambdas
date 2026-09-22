@@ -29,6 +29,8 @@ def feature(**updates):
         "schemaVersion": 1,
         "recordVersion": 1,
         "statisticsEventId": EVENT_ID,
+        "researchNoticeVersion": "research-consent-2026-09-21-v2",
+        "researchPolicyVersion": "independent-research-v1",
         "periodId": 1471,
         "contributorToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "GSI1PK": "CONTRIB#1471#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -51,7 +53,7 @@ def feature(**updates):
 
 def candidate():
     return {"PK": "CANDIDATE#11111111-1111-4111-8111-111111111111", "SK": "SUMMARY", "candidateId": "11111111-1111-4111-8111-111111111111", "periodId": 1471,
-            "taxonomyBucket": "advance_fee", "centroid": [1.0, 0.0],
+            "taxonomyBucket": "advance_fee", "researchNoticeVersion":"research-consent-2026-09-21-v2", "researchPolicyVersion":"independent-research-v1", "centroid": [1.0, 0.0],
             "lexicalFingerprint": ["0123456789abcdef", "fedcba9876543210"],
             "signalIds": ["payment_request"], "indicatorIds": [],
             "contributorCount": 9, "submissionCount": 9, "version": 2, "expiresAt": 2_000_000_000}
@@ -69,7 +71,10 @@ class Dynamo:
 
     def get_item(self, Key, **_kwargs):
         pk, sk = Key["PK"]["S"], Key["SK"]["S"]
-        if sk == 'CAMPAIGN_LOCATORS': item = locator_wire(INVENTORY)
+        if sk == 'OBSERVATION_READY': item = service.serialize({'PK':pk,'SK':sk,'eventType':'campaign.observation.ready','statisticsEventId':EVENT_ID,'accountId':'a','environment':'dev','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','campaignConsentGranted':True,'noticeVersion':'research-consent-2026-09-21-v2','expiresAt':2000000000})
+        elif sk == 'CAMPAIGN_PARTICIPATION': item = service.serialize({'state':'enrolled','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','environment':'dev','noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'})
+        elif sk == 'ACCOUNT_DELETION': item = None
+        elif sk == 'CAMPAIGN_LOCATORS': item = locator_wire(INVENTORY)
         elif sk.startswith('LOCATOR#EVENT#'): item = locator_wire(locator_for_target(service.deserialize(self.feature_item),'dev'))
         elif sk.startswith('LOCATOR#CANDIDATE#'):
             target = service.deserialize(self.contribution) | {'PK':sk.removeprefix('LOCATOR#'),'SK':'CONTRIB#'+'a'*43,'GSI1PK':'CONTRIB#1471#'+'a'*43,'periodId':1471}
@@ -77,7 +82,7 @@ class Dynamo:
         elif sk == "FEATURE": item = self.feature_item
         elif sk == "CLUSTERED": item = self.dedupe
         elif sk.startswith("CONTRIB#"):
-            item = (self.contribution | service.serialize({'PK':pk,'SK':sk,'GSI1PK':'CONTRIB#1471#'+'a'*43,'periodId':1471})) if self.contribution else None
+            item = (self.contribution | service.serialize({'PK':pk,'SK':sk,'GSI1PK':'CONTRIB#1471#'+'a'*43,'periodId':1471,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1'})) if self.contribution else None
         else:
             found = next((c for c in self.candidates if c["PK"] == pk and c["SK"] == sk), None)
             item = service.serialize(found) if found else None
@@ -125,6 +130,7 @@ class ClusterServiceTests(unittest.TestCase):
     def process(self, dynamo, message=None):
         return service.process_message(message or body(), environment="dev", schema_version=1,
             table_name="pipeline", retention_days=21, max_submissions=3, dynamodb=dynamo,
+            users_table_name="users",deletion_ledger_table_name="ledger",outbox_table_name="outbox",
             now_epoch=1_780_000_100,locator_manifest_sha256="a"*64,locator_inventory_revision=1)
 
     def test_matches_high_score_and_writes_one_contribution(self):
@@ -138,7 +144,7 @@ class ClusterServiceTests(unittest.TestCase):
         self.assertEqual(updated["contributorCount"], 10)
         self.assertEqual(updated["submissionCount"], 10)
         self.assertEqual(updated["centroid"], [1.0, 0.0])
-        self.assertEqual(len(transaction), 7)
+        self.assertEqual(len(transaction), 10)
 
         contribution = service.deserialize(transaction[2]["Put"]["Item"])
         self.assertEqual(contribution["languageId"], "en")
@@ -155,7 +161,7 @@ class ClusterServiceTests(unittest.TestCase):
         transaction = dynamo.transactions[0]
         created = service.deserialize(transaction[0]["Put"]["Item"])
         self.assertEqual(created["candidateId"], "22222222-2222-4222-8222-222222222222")
-        self.assertEqual(len(transaction), 8)
+        self.assertEqual(len(transaction), 11)
         creation_control = transaction[2]["Put"]
         self.assertEqual(creation_control["Item"]["SK"], {"S": "CREATION_CONTROL"})
         self.assertIn("attribute_not_exists", creation_control["ConditionExpression"])

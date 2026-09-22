@@ -17,7 +17,10 @@ def lambda_handler(event, _context):
         identity = _jwt_subject(event)
         route = _route_key(event)
         if route == "GET /v1/users/campaign-participation":
-            result = get_participation(identity)
+            query = event.get("queryStringParameters") or {}
+            if type(query) is not dict or not set(query).issubset({"operationId"}):
+                raise AppError("INVALID_REQUEST", "The query parameters are invalid.")
+            result = get_participation(identity, query.get("operationId"))
         elif route == "PUT /v1/users/campaign-participation":
             result = update_participation(identity, parse_request(event, notice_version=config.NOTICE_VERSION))
         else:
@@ -28,7 +31,7 @@ def lambda_handler(event, _context):
         LOGGER.warning("Campaign participation request rejected | errorCode=%s retryable=%s", err.code, err.retryable)
         return _response(err.status_code, _error_body(err))
     except Exception:
-        LOGGER.exception("Unexpected campaign participation error")
+        LOGGER.error("Unexpected campaign participation error")
         return _response(500, _error_body(AppError("INTERNAL_ERROR", "An internal error occurred.")))
 
 

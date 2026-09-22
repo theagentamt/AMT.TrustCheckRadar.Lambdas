@@ -186,183 +186,25 @@ class PurchaseHandoffServiceTests(unittest.TestCase):
             store_type.return_value.claim.assert_not_called()
             self.assertEqual(result["verificationStatus"], "failed_retryable")
 
-    def test_accepts_verified_google_play_purchase(self):
-        payload = {
-            "productId": "trustcheck_radar_pro_monthly",
-            "platform": "google_play",
-            "purchaseToken": "purchase-token-12345",
-            "purchaseState": "PURCHASED",
-            "packageName": "com.example.app",
-            "orderId": None,
-            "purchaseTime": None,
-            "subscriptionMetadata": {},
-        }
-
-        with mock.patch.object(
-            service,
-            "verify_purchase",
-            return_value={
-                "status": "accepted",
-                "reason": "Google Play verified the subscription purchase.",
-                "normalizedStatus": "active",
-                "isAccessGranted": True,
-                "billingPeriodStartUtc": "2026-06-27T19:15:00Z",
-                "billingPeriodEndUtc": "2026-07-27T19:15:00Z",
-            },
-        ):
-            result = service.process_purchase_handoff(account_id="user-123", payload=payload)
-
-        self.assertEqual(result["verificationStatus"], "accepted")
-        self.assertEqual(result["entitlement"]["tier"], "pro")
-        self.assertEqual(result["entitlement"]["status"], "active")
-        self.assertEqual(result["entitlement"]["platform"], "google_play")
-        self.assertEqual(result["entitlement"]["productId"], "trustcheck_radar_pro_monthly")
-        self.assertEqual(result["usage"]["remainingCount"], 100)
-        self.assertFalse(result["idempotencyReplay"])
-        transaction = fake_client.transactions[0]
-        self.assertEqual(transaction[0]["ConditionCheck"]["TableName"], "users")
-        self.assertEqual(
-            transaction[1]["ConditionCheck"]["TableName"], "deletion-ledger"
-        )
-
-    def test_duplicate_replay_returns_safe_result_without_double_granting(self):
-        token_hash = idempotency_module.hash_purchase_token("purchase-token-12345")
-        fake_table.put_item(
-            {
-                "PK": "USER#user-123",
-                "SK": "ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
-                "accountId": "user-123",
-                "entitlementTier": "PRO",
-                "subscriptionStatus": "active",
-                "platform": "google_play",
-                "productId": "trustcheck_radar_pro_monthly",
-                "billingPeriodStartUtc": "2026-06-27T19:15:00Z",
-                "billingPeriodEndUtc": "2026-07-27T19:15:00Z",
-                "isAccessGranted": True,
-                "monthlyScanLimit": 100,
-                "remainingMonthlyScans": 93,
-                "remainingCredits": 0,
-                "createdAt": "2026-06-27T19:15:05Z",
-                "updatedAt": "2026-06-28T00:00:00Z",
-            }
-        )
-        fake_table.put_item(
-            {
-                "PK": f"TOKEN#{token_hash}",
-                "SK": "IDEMPOTENCY",
-                "purchaseTokenHash": token_hash,
-                "accountId": "user-123",
-                "platform": "google_play",
-                "productId": "trustcheck_radar_pro_monthly",
-                "verificationStatus": "accepted",
-                "normalizedStatus": "active",
-                "updatedAt": "2026-06-28T00:00:00Z",
-            }
-        )
-        payload = {
-            "productId": "trustcheck_radar_pro_monthly",
-            "platform": "google_play",
-            "purchaseToken": "purchase-token-12345",
-            "purchaseState": "PURCHASED",
-            "packageName": "com.example.app",
-            "orderId": None,
-            "purchaseTime": None,
-            "subscriptionMetadata": {},
-        }
-
-        result = service.process_purchase_handoff(account_id="user-123", payload=payload)
-
-        self.assertEqual(result["verificationStatus"], "accepted")
-        self.assertTrue(result["idempotencyReplay"])
-        self.assertEqual(result["usage"]["remainingCount"], 93)
-
-    def test_returns_rejected_for_canceled_or_expired_state(self):
-        payload = {
-            "productId": "trustcheck_radar_pro_monthly",
-            "platform": "google_play",
-            "purchaseToken": "purchase-token-12345",
-            "purchaseState": "PURCHASED",
-            "packageName": "com.example.app",
-            "orderId": None,
-            "purchaseTime": None,
-            "subscriptionMetadata": {},
-        }
-
-        with mock.patch.object(
-            service,
-            "verify_purchase",
-            return_value={
-                "status": "rejected",
-                "reason": "Google Play reports the subscription status as expired.",
-                "normalizedStatus": "expired",
-                "isAccessGranted": False,
-                "billingPeriodStartUtc": "2026-05-27T19:15:00Z",
-                "billingPeriodEndUtc": "2026-06-27T19:15:00Z",
-            },
-        ):
-            result = service.process_purchase_handoff(account_id="user-123", payload=payload)
-
-        self.assertEqual(result["verificationStatus"], "rejected")
-        self.assertEqual(result["entitlement"]["tier"], "free")
-        self.assertEqual(result["entitlement"]["status"], "expired")
-
-    def test_returns_pending_for_pending_state(self):
-        payload = {
-            "productId": "trustcheck_radar_pro_monthly",
-            "platform": "google_play",
-            "purchaseToken": "purchase-token-12345",
-            "purchaseState": "PENDING",
-            "packageName": "com.example.app",
-            "orderId": None,
-            "purchaseTime": None,
-            "subscriptionMetadata": {},
-        }
-
-        with mock.patch.object(
-            service,
-            "verify_purchase",
-            return_value={
-                "status": "pending",
-                "reason": "Google Play reports the subscription purchase as pending.",
-                "normalizedStatus": "pending",
-                "isAccessGranted": False,
-                "billingPeriodStartUtc": None,
-                "billingPeriodEndUtc": None,
-            },
-        ):
-            result = service.process_purchase_handoff(account_id="user-123", payload=payload)
-
-        self.assertEqual(result["verificationStatus"], "pending")
-        self.assertEqual(result["entitlement"]["status"], "expired")
-
-    def test_returns_retryable_failure_for_upstream_issue(self):
-        payload = {
-            "productId": "trustcheck_radar_pro_monthly",
-            "platform": "google_play",
-            "purchaseToken": "purchase-token-12345",
-            "purchaseState": "PURCHASED",
-            "packageName": "com.example.app",
-            "orderId": None,
-            "purchaseTime": None,
-            "subscriptionMetadata": {},
-        }
-
-        with mock.patch.object(
-            service,
-            "verify_purchase",
-            return_value={
-                "status": "failed_retryable",
-                "reason": "Unable to reach Google Play verification service.",
-                "normalizedStatus": None,
-                "isAccessGranted": False,
-                "billingPeriodStartUtc": None,
-                "billingPeriodEndUtc": None,
-            },
-        ):
-            result = service.process_purchase_handoff(account_id="user-123", payload=payload)
-
-        self.assertEqual(result["verificationStatus"], "failed_retryable")
-        self.assertFalse(result["idempotencyReplay"])
+    def test_retired_legacy_path_preserves_paid_usage_and_token_without_provider(self):
+        import copy
+        fake_table.put_item({"PK":"USER#user-123", "SK":"ENTITLEMENT#google_play#trustcheck_radar_pro_monthly",
+            "entitlementTier":"PRO", "remainingMonthlyScans":37,"remainingCredits":2,
+            "purchaseTokenHash":"existing-owner", "billingPeriodStartUtc":"2026-09-01T00:00:00Z"})
+        fake_table.put_item({"PK":"TOKEN#existing-owner","SK":"IDEMPOTENCY","accountId":"user-123"})
+        before=copy.deepcopy(fake_table.items)
+        with mock.patch.object(service.config,"PURCHASE_OWNERSHIP_CANDIDATE_ENABLED",False), \
+             mock.patch("verification.verify_purchase") as verify, \
+             mock.patch.object(service,"_process_owned_purchase") as owned:
+            for state in ("PURCHASED","RESTORED","PENDING"):
+                with self.subTest(state=state), self.assertRaises(service.AppError) as raised:
+                    service.process_purchase_handoff(account_id="user-123",payload=self._candidate_payload()|{"purchaseState":state})
+                self.assertEqual(raised.exception.code,"LEGACY_MIGRATION_REQUIRED")
+                self.assertFalse(raised.exception.retryable)
+            verify.assert_not_called();owned.assert_not_called()
+        self.assertFalse(hasattr(service,"_commit_verified_result"))
+        self.assertEqual(fake_table.items,before)
+        self.assertEqual(fake_client.transactions,[])
 
     def test_fixed_account_deletion_fence_blocks_purchase_replay_and_writes(self):
         fake_table.put_item({

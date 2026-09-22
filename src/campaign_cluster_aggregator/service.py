@@ -6,6 +6,7 @@ import time
 import uuid
 
 from scoring import similarity, updated_centroid
+from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, cluster_authority
 from shared_campaign_contracts import APP_FEATURE_FIELDS, AppFeaturesContractError, validate_app_features
 from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
     locator_put, locator_condition, get_owned_locator, locator_pointer)
@@ -25,27 +26,37 @@ PERSISTED_FEATURE_FIELDS = APP_FEATURE_FIELDS | {
     "GSI3PK",
     "GSI3SK",
     "expiresAt",
+    "researchNoticeVersion",
+    "researchPolicyVersion",
 }
 
 
 def process_message(body: str, *, environment: str, schema_version: int, table_name: str,
                     retention_days: int, max_submissions: int, dynamodb, now_epoch=None,
-                    locator_manifest_sha256=None, locator_inventory_revision=0) -> str:
+                    locator_manifest_sha256=None, locator_inventory_revision=0,
+                    users_table_name=None, deletion_ledger_table_name=None, outbox_table_name=None) -> str:
     envelope = _envelope(body, environment, schema_version)
     event_id = envelope["statisticsEventId"]
     feature_raw = dynamodb.get_item(TableName=table_name,
         Key={"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "FEATURE"}}, ConsistentRead=True).get("Item")
     if not feature_raw:
         return "missing"
-    feature = _validated_feature(deserialize(feature_raw), event_id, environment, schema_version)
+    raw_feature = deserialize(feature_raw)
+    if 'researchNoticeVersion' not in raw_feature or 'researchPolicyVersion' not in raw_feature:
+        return "legacy-feature-suppressed"
+    feature = _validated_feature(raw_feature, event_id, environment, schema_version)
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if feature.get("expiresAt", 0) <= now_epoch or feature.get("suppressed") is True:
         return "suppressed"
+    consent_guards = cluster_authority(feature, users=users_table_name, ledger=deletion_ledger_table_name,
+        outbox=outbox_table_name, client=dynamodb, now_epoch=now_epoch)
+    if consent_guards is None:
+        return "participation-suppressed"
     inventory = load_inventory(dynamodb,table_name,environment,locator_manifest_sha256,locator_inventory_revision,now_epoch)
     if feature['periodId'] < inventory['minimumPeriodId']:
         raise RuntimeError('Campaign locator period is not covered')
     event_locator = get_owned_locator(dynamodb,table_name,locator_for_target(feature,environment))
-    write_guards = [inventory_condition(table_name,inventory),locator_condition(table_name,event_locator)]
+    write_guards = [inventory_condition(table_name,inventory),locator_condition(table_name,event_locator), *consent_guards]
     tombstone = dynamodb.get_item(
         TableName=table_name,
         Key={"PK": {"S": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}"},
@@ -69,6 +80,9 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     existing = dynamodb.get_item(TableName=table_name, Key=contribution_key, ConsistentRead=True).get("Item")
     expires_at = now_epoch + retention_days * 86400
     if existing:
+        existing_purpose = deserialize(existing)
+        if existing_purpose.get("researchNoticeVersion") != CURRENT_NOTICE or existing_purpose.get("researchPolicyVersion") != CURRENT_POLICY:
+            raise RuntimeError("Legacy candidate contribution requires reviewed migration")
         expires_at = min(expires_at, _required_number(existing, "expiresAt"))
     expiration_index = _expiration_index(environment, expires_at)
     if existing:
@@ -139,6 +153,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             "GSI1PK": f"CONTRIB#{feature['periodId']}#{feature['contributorToken']}",
             "GSI1SK": f"CANDIDATE#{candidate_id}",
             "periodId": feature["periodId"], "submissionCount": 1, "vectorApplied": True,
+            "researchNoticeVersion": CURRENT_NOTICE, "researchPolicyVersion": CURRENT_POLICY,
             "vector": feature["vector"], "languageId": feature["languageId"],
             "signalIds": feature["signalIds"], "indicatorIds": feature["indicatorIds"],
             **expiration_index,
@@ -216,13 +231,17 @@ def _load_candidates(dynamodb, table_name, feature):
     for key in response.get("Items", []):
         raw = dynamodb.get_item(TableName=table_name,
             Key={"PK": key["PK"], "SK": key["SK"]}, ConsistentRead=True).get("Item")
-        if raw: candidates.append(deserialize(raw))
+        if raw:
+            value = deserialize(raw)
+            if value.get("researchNoticeVersion") == CURRENT_NOTICE and value.get("researchPolicyVersion") == CURRENT_POLICY:
+                candidates.append(value)
     return candidates
 
 
 def _new_candidate(candidate_id, feature, environment, expires_at):
     return {"PK": f"CANDIDATE#{candidate_id}", "SK": "SUMMARY", "candidateId": candidate_id,
             "periodId": feature["periodId"], "taxonomyBucket": feature["taxonomyBucket"],
+            "researchNoticeVersion": CURRENT_NOTICE, "researchPolicyVersion": CURRENT_POLICY,
             "GSI2PK": f"PERIOD#{feature['periodId']}#BUCKET#{feature['taxonomyBucket']}",
             "GSI2SK": f"CANDIDATE#{candidate_id}", "centroid": feature["vector"],
             "lexicalFingerprint": feature.get("lexicalFingerprint", []),

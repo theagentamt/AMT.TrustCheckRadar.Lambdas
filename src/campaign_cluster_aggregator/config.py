@@ -2,6 +2,9 @@ import os
 
 APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "")
 CAMPAIGN_SCHEMA_VERSION = int(os.environ.get("CAMPAIGN_SCHEMA_VERSION", "1"))
+USERS_TABLE_NAME = os.environ.get("USERS_TABLE_NAME", "")
+DELETION_LEDGER_TABLE_NAME = os.environ.get("DELETION_LEDGER_TABLE_NAME", "")
+OUTBOX_TABLE_NAME = os.environ.get("OUTBOX_TABLE_NAME", "")
 PIPELINE_TABLE_NAME = os.environ.get("PIPELINE_TABLE_NAME", "")
 TRANSIENT_RETENTION_DAYS = int(os.environ.get("TRANSIENT_RETENTION_DAYS", "21"))
 MIN_CONTRIBUTOR_COUNT = int(os.environ.get("MIN_CONTRIBUTOR_COUNT", "10"))
@@ -11,7 +14,7 @@ MAX_CONTRIBUTOR_SUBMISSIONS = int(os.environ.get("MAX_CONTRIBUTOR_SUBMISSIONS", 
 def validate_config():
     if APP_ENVIRONMENT not in {"dev", "uat", "prod"} or CAMPAIGN_SCHEMA_VERSION != 1:
         raise RuntimeError("Invalid campaign environment or schema")
-    if not PIPELINE_TABLE_NAME:
+    if not PIPELINE_TABLE_NAME or not USERS_TABLE_NAME or not DELETION_LEDGER_TABLE_NAME or not OUTBOX_TABLE_NAME:
         raise RuntimeError("PIPELINE_TABLE_NAME is required")
     if TRANSIENT_RETENTION_DAYS > 21 or MIN_CONTRIBUTOR_COUNT != 10 or MAX_CONTRIBUTOR_SUBMISSIONS != 3:
         raise RuntimeError("Campaign privacy bounds do not match V1")
