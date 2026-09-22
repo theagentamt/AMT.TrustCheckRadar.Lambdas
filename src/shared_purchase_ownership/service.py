@@ -6,8 +6,10 @@ which a different active account must obtain fresh store verification to claim.
 Coverage is separately inventoried: adding locators does not discover old rows.
 """
 from datetime import datetime
+from dataclasses import dataclass, field
 from decimal import Decimal
 import hashlib
+import json
 import re
 from uuid import UUID
 
@@ -24,6 +26,29 @@ LOCATOR_FIELDS = {"PK", "SK", "recordType", "schemaVersion", "accountId", "purch
 
 class OwnershipError(RuntimeError):
     """Fixed code only: never carries a token, account, SDK error or stored content."""
+
+
+@dataclass(frozen=True)
+class ClaimObservation:
+    """Call-local evidence captured before fresh provider verification; never persist."""
+    account_id: str = field(repr=False)
+    product_id: str = field(repr=False)
+    environment: str
+    table_name: str = field(repr=False)
+    hashes: tuple[str, ...] = field(repr=False)
+    _rows: str = field(repr=False)
+
+    @property
+    def inventory(self):
+        return json.loads(self._rows)["inventory"]
+
+    @property
+    def owners(self):
+        return tuple(json.loads(self._rows)["owners"])
+
+    @property
+    def locators(self):
+        return tuple(json.loads(self._rows)["locators"])
 
 
 def integer(value):
@@ -121,6 +146,78 @@ class OwnershipStore:
             self.client.transact_write_items(TransactItems=[serialize_operation(op) for op in operations])
         except Exception:
             raise OwnershipError("PURCHASE_TRANSACTION_UNCONFIRMED") from None
+
+    def observe_claim(self, account_id, hashes, *, product_id):
+        """Read exact ownership evidence before re-verifying the complete lineage.
+
+        Discover unknown predecessors first, then observe and freshly verify all
+        of them again. No ownership, entitlement or provider mutation occurs.
+        """
+        subject(account_id)
+        if (not isinstance(hashes, tuple) or not 1 <= len(hashes) <= MAX_LINEAGE
+                or any(not isinstance(h, str) or not HASH.fullmatch(h) for h in hashes)
+                or len(set(hashes)) != len(hashes)):
+            raise OwnershipError("PURCHASE_LINEAGE_INVALID")
+        if not isinstance(product_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", product_id):
+            raise OwnershipError("PURCHASE_PRODUCT_MISMATCH")
+        inventory = self.inventory()
+        owners, locators = [], []
+        for digest in hashes:
+            owner = self._get(owner_key(digest))
+            expected_locator = locator_item(account_id, digest)
+            locator = self._get({k: expected_locator[k] for k in ("PK", "SK")})
+            if owner is not None:
+                validate_owner(owner, digest, account_id, product_id)
+                if validate_locator(locator, account_id) != digest:
+                    raise OwnershipError("PURCHASE_LOCATOR_INVALID")
+            elif locator is not None:
+                raise OwnershipError("PURCHASE_LOCATOR_INVALID")
+            owners.append(owner)
+            locators.append(locator)
+        # Validated rows contain only strings and integral DynamoDB numbers.
+        def native_integer(value):
+            number = integer(value)
+            if number is None:
+                raise OwnershipError("PURCHASE_VALUE_INVALID")
+            return number
+        rows = json.dumps({"inventory": inventory, "owners": owners, "locators": locators},
+                          sort_keys=True, separators=(",", ":"), default=native_integer)
+        return ClaimObservation(account_id, product_id, self.environment, self.table_name, hashes, rows)
+
+    def prepare_claim_actions(self, observation, verified_hashes, *, product_id):
+        """Return native-value actions for ONE caller-owned authority transaction.
+
+        The caller supplies fresh provider proof and account/device/deletion plus
+        authority guards. This builder cannot execute or write a legacy grant.
+        A conflict requires re-observation and fresh verification, not stale retry.
+        """
+        if (type(observation) is not ClaimObservation
+                or observation.environment != self.environment or observation.table_name != self.table_name
+                or product_id != observation.product_id or verified_hashes != observation.hashes
+                or not isinstance(verified_hashes, tuple)):
+            raise OwnershipError("PURCHASE_OBSERVATION_INVALID")
+        current = self.observe_claim(observation.account_id, verified_hashes, product_id=product_id)
+        if current != observation:
+            raise OwnershipError("PURCHASE_OBSERVATION_CHANGED")
+        now = self.now()
+        if type(now) is not int or now <= 0:
+            raise OwnershipError("PURCHASE_CONFIGURATION_UNAVAILABLE")
+        operations = [self._inventory_guard(observation.inventory)]
+        for digest, previous, old_locator in zip(verified_hashes, observation.owners, observation.locators):
+            owner = {**owner_key(digest), "recordType": "PURCHASE_OWNERSHIP", "schemaVersion": 1,
+                     "revision": 1 if previous is None else integer(previous["revision"]) + 1,
+                     "accountId": observation.account_id, "purchaseTokenHash": digest,
+                     "platform": "google_play", "productId": product_id, "verifiedAtEpoch": now}
+            for item, old in ((owner, previous), (locator_item(observation.account_id, digest), old_locator)):
+                put = {"TableName": self.table_name, "Item": item,
+                       "ConditionExpression": "attribute_not_exists(PK)"}
+                if old is not None:
+                    fields = sorted(old)
+                    put.update(ConditionExpression=" AND ".join(f"#f{i} = :v{i}" for i in range(len(fields))),
+                               ExpressionAttributeNames={f"#f{i}": name for i, name in enumerate(fields)},
+                               ExpressionAttributeValues={f":v{i}": old[name] for i, name in enumerate(fields)})
+                operations.append({"Put": put})
+        return operations
 
     def claim(self, account_id, hashes, *, product_id, entitlement, expected_entitlement, expected_inventory=None):
         """Called only after fresh successful `verified_lineage`, never cache replay."""

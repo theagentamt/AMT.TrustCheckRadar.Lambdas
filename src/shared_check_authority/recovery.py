@@ -26,7 +26,11 @@ class Recovery:
                     'ConditionExpression': 'recordType = :type AND attribute_exists(#state) AND #state <> :deleting',
                     'ExpressionAttributeNames': {'#state': 'state'},
                     'ExpressionAttributeValues': {':type': 'V1_ACCESS_AUTHORITY', ':deleting': 'DELETING'}}}]
-        if row.get('periodSK'):
+        if row.get('basis') == 'paid':
+            from .purchase_usage import period_for_receipt, paired_counter_actions
+            period = period_for_receipt(self.ddb, self.table, partition, row)
+            items.extend(paired_counter_actions(self.ddb, self.table, period, -1, 0, now=now, allow_expired=True))
+        elif row.get('periodSK'):
             items.append({'Update': {'TableName': self.table, 'Key': {'PK': partition, 'SK': row['periodSK']},
                 'UpdateExpression': 'ADD reservedChecks :minus_one',
                 'ConditionExpression': 'recordType = :type AND reservedChecks >= :one AND grantRevision = :revision AND policyVersion = :policy',

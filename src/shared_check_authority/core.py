@@ -225,6 +225,11 @@ class Authority:
         if grant['basis'] == 'trial' and (grant.get('activationKind') != 'explicit' or integral(grant.get('activatedAtEpoch')) is None
                 or grant['validFromEpoch'] != grant['activatedAtEpoch'] or grant['validUntilEpoch'] != grant['activatedAtEpoch'] + TRIAL_SECONDS):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
+        if grant['basis'] == 'paid':
+            from .purchase_usage import global_for_period
+            global_for_period(self.ddb, self.s.authority_table, period, now=now)
+        elif 'purchaseUsageKey' in period:
+            raise AuthorityError('AUTHORITY_STATE_INVALID')
         if not allow_exhausted and period['usedChecks'] + period['reservedChecks'] >= limit:
             raise AuthorityError('ALLOWANCE_EXHAUSTED')
         return grant, period
@@ -368,6 +373,7 @@ class Authority:
                      'GSI1PK': 'V1_PENDING',
                      'GSI1SK': f'{self.now() + self.s.worker_settlement_seconds:012d}#{partition}#{check_id}',
                      'retentionDeadlineEpoch': self.now() + self.s.receipt_retention_seconds}
+        if grant['basis'] == 'paid':row['purchaseUsageKey']=dict(period['purchaseUsageKey'])
         if payload.get('messageTransportVersion'):row['messageTransportVersion']=payload['messageTransportVersion']
         if payload.get('recoveryTransportVersion'):row['recoveryTransportVersion']=payload['recoveryTransportVersion']
         items = self._authority_conditions(account, partition, device, grant)
@@ -375,7 +381,10 @@ class Authority:
             items.append(self._check(self.s.authority_table, {'PK':partition,'SK':'PREPARE#'+client_check_id},
                 'recordType = :type AND admissionState = :open AND checkId = :proof AND payloadHmac = :digest AND clientCheckId = :client AND expiresAt > :now',
                 {':type':'V1_PREPARATION',':open':'OPEN',':proof':check_id,':digest':digest,':client':client_check_id,':now':self.now()}))
-        if period:
+        if period and grant['basis'] == 'paid':
+            from .purchase_usage import paired_counter_actions
+            items.extend(paired_counter_actions(self.ddb, self.s.authority_table, period, 1, 0, now=self.now()))
+        elif period:
             items.append({'Update': {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': period['SK']},
                 'UpdateExpression': 'ADD reservedChecks :one',
                 'ConditionExpression': 'usedChecks = :used AND reservedChecks = :reserved AND grantRevision = :revision AND policyVersion = :policy AND endEpoch > :now',
@@ -521,7 +530,11 @@ class Authority:
                 result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
         receipt_id = self._mac(key_id, 'receipt', check_id)[:32]
         items = self._account_conditions(account)
-        if row['periodSK']:
+        if row['basis'] == 'paid':
+            from .purchase_usage import period_for_receipt, paired_counter_actions
+            original_period = period_for_receipt(self.ddb, self.s.authority_table, partition, row)
+            items.extend(paired_counter_actions(self.ddb, self.s.authority_table, original_period, -1, charge, now=self.now()))
+        elif row['periodSK']:
             items.append({'Update': {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': row['periodSK']},
                 'UpdateExpression': 'ADD reservedChecks :minus_one, usedChecks :charge',
                 'ConditionExpression': 'reservedChecks >= :one AND grantRevision = :revision AND policyVersion = :policy',

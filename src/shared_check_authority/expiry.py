@@ -19,19 +19,21 @@ class Expiry:
     def _get(self, key):
         return self.ddb.Table(self.table).get_item(Key=key, ConsistentRead=True).get('Item')
 
-    def _inventory(self, key_id):
+    def _inventory(self, key_id=None):
         row = self._get(INVENTORY_KEY)
         if (not row or set(row) != {'PK', 'SK', 'recordType', 'schemaVersion', 'revision', 'coverage', 'issuedKeys'}
                 or row.get('recordType') != 'V1_HMAC_KEY_INVENTORY' or integral(row.get('schemaVersion')) != 1
                 or integral(row.get('revision')) is None or row['revision'] < 1 or row.get('coverage') != 'VERIFIED_COMPLETE'
                 or not isinstance(row.get('issuedKeys'), dict) or not 1 <= len(row['issuedKeys']) <= 4
-                or key_id not in row['issuedKeys']
+                or key_id is not None and key_id not in row['issuedKeys']
                 or any(not isinstance(k, str) or not re.fullmatch(r'[A-Za-z0-9]{1,8}', k)
                        or not isinstance(v, str) or not re.fullmatch(r'[0-9a-f]{64}', v) for k, v in row['issuedKeys'].items())):
             raise AuthorityError('EXPIRY_INVENTORY_UNAVAILABLE')
         return row
 
     def expire(self, partition, sort_key):
+        if isinstance(partition, str) and partition.startswith('V1#PURCHASE_USAGE#'):
+            return self._expire_purchase_usage(partition, sort_key)
         match = PARTITION.fullmatch(partition) if isinstance(partition, str) else None
         if not match or not isinstance(sort_key, str):
             raise AuthorityError('EXPIRY_REFERENCE_INVALID')
@@ -92,6 +94,27 @@ class Expiry:
                 return False
             current_access = self._get({'PK': partition, 'SK': 'ACCESS'})
             if current_access and current_access.get('state') == 'DELETING':
+                return False
+            raise AuthorityError('EXPIRY_TRANSACTION_UNCERTAIN') from None
+        return True
+
+    def _expire_purchase_usage(self, partition, sort_key):
+        from .purchase_usage import valid_key, validate, exact_condition
+        key = valid_key({'PK': partition, 'SK': sort_key})
+        row = self._get(key)
+        if row is None:
+            return False
+        validate(row, key, self.now(), allow_expired=True)
+        if row['expiresAt'] > self.now():
+            return False
+        inventory = self._inventory()
+        # The accounting deadline is final even if abandoned reservations remain:
+        # every original receipt's logical charging window has ended by this point.
+        deletion = {'TableName': self.table, 'Key': key, **exact_condition(row)}
+        try:
+            self.client.transact_write_items(TransactItems=[inventory_condition(self.table, inventory), {'Delete': deletion}])
+        except Exception:
+            if self._get(key) is None:
                 return False
             raise AuthorityError('EXPIRY_TRANSACTION_UNCERTAIN') from None
         return True
