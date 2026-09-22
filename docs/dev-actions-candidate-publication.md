@@ -19,6 +19,6 @@ The [migration handoff](research-consent-access-migration.md) remains authoritat
 ## Local validation for this workflow change
 
 - `actionlint .github/workflows/publish.yml` passed.
-- Publisher tests: 22 passed, covering exact scope/checksum rejection before cloud access, Dev target binding, conditional publication, exact retry and concurrent object replacement.
+- Publisher tests: 22 passed (14 candidate and eight existing resolver cases), covering exact scope/checksum rejection before cloud access, Dev target binding, conditional publication, exact retry and concurrent object replacement.
 - Existing nine full-dependency packages from the integrated source passed the new Python 3.14 offline compile/import verifier; no handler invocation occurred.
 - Compile checks and `git diff --check` passed. A fresh Actions build will produce its own source/run/version evidence; no Actions success or live publication is claimed by this local record.
