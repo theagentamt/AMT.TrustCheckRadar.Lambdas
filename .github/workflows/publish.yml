@@ -10,6 +10,18 @@ on:
       - completed
   workflow_dispatch:
     inputs:
+      mode:
+        description: Main CI promotion or reviewed Dev candidate publication
+        required: true
+        default: main_ci
+        type: choice
+        options:
+          - main_ci
+          - research_candidate
+      source_sha:
+        description: Exact release-V01 commit for research_candidate (must equal dispatch ref)
+        required: false
+        type: string
       environment:
         description: Environment artifact bucket to publish to
         required: true
@@ -20,8 +32,8 @@ on:
           - uat
           - prod
       source_run_id:
-        description: Successful main-branch CI run containing the exact artifacts to promote
-        required: true
+        description: Successful main-branch CI run for main_ci mode
+        required: false
         type: string
 
 permissions:
@@ -36,7 +48,7 @@ concurrency:
 jobs:
   publish:
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.mode == 'main_ci') ||
       (github.event_name == 'workflow_run' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
@@ -232,3 +244,113 @@ jobs:
             echo
             echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip. Contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
           } >> "${GITHUB_STEP_SUMMARY}"
+
+
+  research-candidate:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/release-V01' &&
+      inputs.mode == 'research_candidate' && inputs.environment == 'dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: dev
+    env:
+      ARTIFACT_BUCKET: ${{ vars.ARTIFACT_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - name: Validate exact release and Dev target
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ && "$SOURCE_SHA" == "$GITHUB_SHA" ]]
+          [[ -z "$SOURCE_RUN_ID" ]]
+          [[ "$ARTIFACT_BUCKET" == 'trustcheckradar-dev-107827791950-artifacts' ]]
+          [[ "$AWS_REGION" == 'us-east-1' ]]
+          [[ "$AWS_ROLE_ARN" == 'arn:aws:iam::107827791950:role/trustcheckradar-dev-lambda-publisher' ]]
+      - name: Check out exact reviewed release
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Install local validation dependencies
+        run: python -m pip install --requirement requirements-dev.txt 'moto[dynamodb]==5.2.3'
+      - name: Run ordinary source gates
+        run: |
+          python -m pytest -q
+          python -m compileall -q src tests scripts
+      - name: Run consent and campaign emulator gates in their isolated process
+        env:
+          AMT_AUTHORITY_INTEGRATION: '1'
+          AWS_DEFAULT_REGION: us-east-1
+        run: >-
+          python -m pytest -q
+          tests/shared_campaign_locators/test_dynamodb.py
+          tests/campaign_lifecycle/test_publication_dynamodb.py
+          tests/campaign_participation/test_migration_dynamodb.py
+      - name: Run retired replay and inventory gates in their isolated process
+        env:
+          AMT_AUTHORITY_INTEGRATION: '1'
+          AWS_DEFAULT_REGION: us-east-1
+        run: >-
+          python -m pytest -q
+          tests/legacy_retirement/test_boundary_dynamodb.py
+          tests/legacy_retirement/test_inventory_cli.py
+      - name: Build exactly nine full-dependency candidate packages
+        run: |
+          set -euo pipefail
+          for function in campaign_participation campaign_observation_publisher campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle conversation_analysis entitlement_snapshot web_risk_communication purchase_handoff; do
+            bash scripts/build_lambda_zip.sh --function "$function" --python-version 3.14 --arch arm64
+          done
+          python - <<'PYTHON'
+          from hashlib import sha256
+          from pathlib import Path
+          dist = Path('dist')
+          (dist / 'SHA256SUMS').write_text(''.join(
+              sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
+              for p in sorted(dist.glob('*.zip'))))
+          PYTHON
+          python scripts/publish_research_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/research-candidate-build.json
+      - name: Preserve candidate build evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: research-candidate-packages
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS
+            dist/research-candidate-build.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Configure scoped short-lived publisher credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: research-candidate-${{ github.run_id }}
+      - name: Verify account and publish immutable Dev objects
+        run: |
+          set -euo pipefail
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == '107827791950' ]]
+          python scripts/publish_research_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/research-candidate-publication.json
+      - name: Preserve exact S3 versions and checksums
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: research-candidate-publication
+          path: dist/research-candidate-publication.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record publication boundary
+        run: |
+          {
+            echo '## Dev candidate artifacts published'
+            echo "Source commit: $SOURCE_SHA"
+            echo 'Nine immutable ZIPs published; exact S3 versions and checksums are in research-candidate-publication.'
+            echo 'No runtime, alias, route, IAM, data, migration gate or consumer changed. Deployment and availability qualification remain separate.'
+            echo 'Python 3.14 source compile/import checks do not qualify native ARM64 extension execution.'
+          } >> "$GITHUB_STEP_SUMMARY"
