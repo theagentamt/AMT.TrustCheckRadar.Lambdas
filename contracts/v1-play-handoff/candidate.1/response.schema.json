@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractVersion",
+    "requestId",
+    "status",
+    "acknowledgment",
+    "snapshotRequired",
+    "idempotencyReplay"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "contractVersion": {
+      "const": "v1-play-handoff-1.0.0-candidate.1"
+    },
+    "requestId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "status": {
+      "enum": [
+        "committed",
+        "pending",
+        "not_granted"
+      ]
+    },
+    "acknowledgment": {
+      "enum": [
+        "acknowledged",
+        "pending",
+        "not_applicable"
+      ]
+    },
+    "snapshotRequired": {
+      "const": true
+    },
+    "idempotencyReplay": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "committed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "acknowledgment": {
+            "enum": [
+              "acknowledged",
+              "pending"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "acknowledgment": {
+            "const": "not_applicable"
+          },
+          "idempotencyReplay": {
+            "const": false
+          }
+        }
+      }
+    }
+  ]
+}
