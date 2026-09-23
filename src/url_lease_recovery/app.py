@@ -64,7 +64,7 @@ def run_passes(resource, table, context, *, now):
         if remaining() <= reserve + 3000:
             continue
         try:
-            key = {'PK': 'V1#CONTROL', 'SK': sort_key}
+            key = {'PK': 'V1#CHECKPOINT', 'SK': sort_key}
             current = resource.Table(table).get_item(Key=key, ConsistentRead=True).get('Item', {})
             overdue = _oldest_overdue(resource, table, index, now())
             # Leave a bounded transaction timeout to checkpoint the last attempted row.

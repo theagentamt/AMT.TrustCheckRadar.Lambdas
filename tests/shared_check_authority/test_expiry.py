@@ -165,7 +165,7 @@ def test_both_passes_have_independent_durable_cursors(setup):
     assert counts['recovered'] == 1 and counts['expiredDeleted'] >= 1
     assert counts['leaseExamined'] >= 1 and counts['expiryExamined'] >= 1
     for sk in ('LEASE_SWEEP_CURSOR', 'EXPIRY_SWEEP_CURSOR'):
-        cursor = a._get('authority', {'PK': 'V1#CONTROL', 'SK': sk})
+        cursor = a._get('authority', {'PK': 'V1#CHECKPOINT', 'SK': sk})
         assert cursor['revision'] == 1
     assert row('CHECK#' + proof)['state'] == 'SETTLED'
     assert 'cursor' not in counts and 'checkId' not in counts
@@ -176,7 +176,7 @@ def test_oldest_poison_stays_visible_despite_fair_cursor(setup):
     a = world[0]
     oldest = record('PREPARE#poison', expiry=world[5][0] - 1000, recordType='UNKNOWN')
     record('PREPARE#later', expiry=world[5][0] - 2)
-    a.ddb.Table('authority').put_item(Item={'PK': 'V1#CONTROL', 'SK': 'EXPIRY_SWEEP_CURSOR', 'revision': 1,
+    a.ddb.Table('authority').put_item(Item={'PK': 'V1#CHECKPOINT', 'SK': 'EXPIRY_SWEEP_CURSOR', 'revision': 1,
                                          'cursor': {k: oldest[k] for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK')}})
     result = run_passes(a.ddb, 'authority', Context(), now=a.now)
     assert result['expiredDeleted'] == 1 and result['oldestOverdueSeconds'] == 1000
@@ -203,3 +203,31 @@ def test_handler_disabled_never_constructs_resource(monkeypatch):
     monkeypatch.setenv('STAGE', 'dev')
     monkeypatch.delenv('LEASE_SWEEP_ENABLED', raising=False)
     assert lambda_handler({'schemaVersion': 1}, None) == {'enabled': False, 'recovered': 0}
+
+
+def test_checkpoint_never_reuses_legacy_cursors_or_writes_inventory_partition(setup, monkeypatch):
+    worker, world, pk, record = setup
+    a = world[0]
+    record()
+    original_inventory = a._get('authority', {'PK': 'V1#CONTROL', 'SK': 'HMAC_KEY_INVENTORY'})
+    legacy = []
+    for sk in ('LEASE_SWEEP_CURSOR', 'EXPIRY_SWEEP_CURSOR'):
+        value = {'PK': 'V1#CONTROL', 'SK': sk, 'revision': 99, 'cursor': {'invalid': 'legacy cursor'}}
+        legacy.append(value)
+        a.ddb.Table('authority').put_item(Item=value)
+    original = a.ddb.meta.client.transact_write_items
+    def guarded(**kwargs):
+        for action in kwargs['TransactItems']:
+            for kind in ('Put', 'Update', 'Delete'):
+                if kind in action:
+                    data = action[kind]
+                    assert data.get('Key', data.get('Item'))['PK'] != 'V1#CONTROL'
+        return original(**kwargs)
+    monkeypatch.setattr(a.ddb.meta.client, 'transact_write_items', guarded)
+    result = run_passes(a.ddb, 'authority', Context(), now=a.now)
+    assert result['failed'] == 0 and result['expiredDeleted'] == 1
+    for old in legacy:
+        assert a._get('authority', {k: old[k] for k in ('PK','SK')}) == old
+        new = a._get('authority', {'PK': 'V1#CHECKPOINT', 'SK': old['SK']})
+        assert new['revision'] == 1 and new['cursor'] is None
+    assert a._get('authority', {'PK': 'V1#CONTROL', 'SK': 'HMAC_KEY_INVENTORY'}) == original_inventory
