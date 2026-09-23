@@ -1,0 +1,5 @@
+# Closed Play preparation candidate
+
+POST /v1/purchases/google-play/prepare, authenticated current active device and approved Dev subject. Separate PLAY_PREPARATION_ENABLED defaults false. Explicit preparation before checkout records account-lifetime billing reverse mapping; no token, entitlement, allowance, trial, charge or provider call. Idempotent repeated preparation preserves the original metadata. The binding is the existing Android account-namespace SHA256, not an account identifier transmitted raw to Google.
+
+200 exact response; 400 INVALID_REQUEST; 401 AUTHENTICATION_REQUIRED; 403 ACCESS_UNAVAILABLE; 503 SERVICE_NOT_ENABLED (retryable false) or SERVICE_UNAVAILABLE (retryable true). Errors contain only schemaVersion=1, this contractVersion and error {code,retryable}. No body/error grants access. Delete removes both mapping records; export discloses preparation time only. A confirmed preparation plus fresh Google binding/lineage/funded-order proof can recover an initial interrupted handoff. Missing mapping never guesses an account. Activation requires coordinated cleanup/export/inventory and client integration; this document does not activate them.

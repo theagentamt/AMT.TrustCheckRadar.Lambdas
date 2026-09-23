@@ -13,8 +13,8 @@ TOKEN='synthetic-purchase-token'
 NOW=1800000000
 class Kms:
  def __init__(self):self.calls=[];self.saved={}
- def encrypt(self,**kw):
-  self.calls.append(('encrypt',kw));opaque=b'opaque-ciphertext-'+str(len(self.calls)).encode();self.saved[opaque]=(kw['Plaintext'],kw['EncryptionContext']);return {'KeyId':ARN,'CiphertextBlob':opaque}
+ def generate_data_key(self,**kw):
+  self.calls.append(('generate_data_key',kw));opaque=b'opaque-key-'+str(len(self.calls)).encode();plain=__import__('os').urandom(32);self.saved[opaque]=(plain,kw['EncryptionContext']);return {'KeyId':ARN,'CiphertextBlob':opaque,'Plaintext':plain}
  def decrypt(self,**kw):
   self.calls.append(('decrypt',kw));plain,context=self.saved[kw['CiphertextBlob']]
   assert context==kw['EncryptionContext'];return {'KeyId':ARN,'Plaintext':plain}
@@ -28,7 +28,7 @@ def test_ciphertext_only_and_exact_context(world):
  kms,cipher,row=world
  assert TOKEN not in str(row) and row['expiresAt']==NOW+100+RETENTION_SECONDS
  assert cipher.decrypt(row,NOW)==TOKEN
- assert kms.calls[0][1]['EncryptionContext']==dict(purpose='google-play-reconciliation',environment='dev',accountPartition=PK,tokenDigest=token_hash(TOKEN))
+ assert kms.calls[0][1]['EncryptionContext']==dict(purpose='google-play-reconciliation',environment='dev')
 
 def test_shorter_verified_end_shortens_retention_not_max_ever(world):
  kms,cipher,row=world
@@ -71,3 +71,21 @@ def test_account_deletion_and_record_races_do_not_return_token(world,phase):
   def now(self):return NOW
  with pytest.raises(AuthorityError):load_owned(A(),'synthetic-account',token_hash(TOKEN),cipher,token_table='play-tokens')
  if phase=='before':assert len(kms.calls)==1
+
+
+def test_maximum_token_uses_envelope_encryption_not_kms_plaintext_limit(world):
+ kms,cipher,_=world;token='a'*4096
+ row=prepare_put('tokens',PK,token,access_until_epoch=NOW+100,next_attempt_epoch=NOW,now=NOW,cipher=cipher)['Put']['Item']
+ assert cipher.decrypt(row,NOW)==token
+ assert all('Plaintext' not in request for operation,request in kms.calls)
+ assert all(request['EncryptionContext']=={'purpose':'google-play-reconciliation','environment':'dev'} for _,request in kms.calls)
+
+
+def test_exhausted_attempts_keep_hourly_reconciliation_without_retention_extension(world):
+ from shared_play_lifecycle.tokens import retry_action
+ _,_,row=world;deadline=row['expiresAt'];now=NOW
+ for _ in range(10):
+  updated=retry_action('tokens',row,now=now)['Put']['Item']
+  assert updated['expiresAt']==deadline and updated['nextAttemptAtEpoch']<=now+3600
+  row=updated;now=int(row['nextAttemptAtEpoch'])
+ assert row['attemptCount']==8 and row['lastOutcome']=='exhausted' and now<deadline

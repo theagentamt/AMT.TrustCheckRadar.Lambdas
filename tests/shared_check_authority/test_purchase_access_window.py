@@ -123,12 +123,14 @@ def test_shortening_uses_latest_deadline_and_preserves_used(world):
     failure('EXTERNAL_ACCESS_UNAVAILABLE', lambda: a.prepare(world[1], PAYLOAD, 'revoked'))
 
 
-def test_shortening_with_pending_reservation_is_reconciliation_required(world):
+def test_future_deadline_shortening_preserves_pending_reservation(world):
     a, _, _, row, _, clock = world
     admit(world)
     before, global_before = state(world)
-    failure('PURCHASE_USAGE_RECONCILIATION_REQUIRED', lambda: set_access(world, clock[0]))
-    assert state(world) == (before, global_before)
+    set_access(world, clock[0])
+    local, current = state(world)
+    assert local['reservedChecks'] == current['reservedChecks'] == 1
+    assert current['expiresAt'] == clock[0] + usage.RETENTION_SECONDS
 
 
 def test_due_shortening_exact_delete_never_recreates_global(world):
@@ -227,16 +229,16 @@ def test_stale_expiry_delete_cannot_remove_concurrent_extended_row(world, monkey
     assert state(world)[1] == extended
 
 
-def test_missing_shortened_global_does_not_silently_complete_old_account_erasure(world):
+def test_zero_reserved_old_account_period_erases_without_global_dependency(world):
     a, _, _, _, _, clock = world
     period, original = state(world)
     # Another owner shortened/expired the global after ownership release. The
-    # old local deadline alone cannot prove why its global disappeared early.
+    # old zero-reserved local period can be erased without touching that ledger.
     a.ddb.Table('authority').delete_item(Key=period['purchaseUsageKey'])
     bridge, command, _ = setup(world)
-    with pytest.raises(AuthorityError, match='PURCHASE_USAGE_UNAVAILABLE'):
-        finish(bridge, command)
-    assert receipt(a) is None and state(world)[0] is not None
+    assert finish(bridge, command)['complete']
+    assert receipt(a) is not None
+    assert a._get('authority', period['purchaseUsageKey']) is None
 
 
 def test_snapshot_uses_verified_access_end_without_public_schema_change(world):
@@ -274,13 +276,13 @@ def test_extended_period_does_not_make_exhausted_allowance_available(world):
     assert state(world)[1]['usedChecks'] == row('PERIOD#p1')['usedChecks'] == 200
 
 
-def test_stale_receipt_cannot_override_shorter_local_or_unknown_access_evidence(world):
+def test_receipt_rejects_invalid_historical_access_evidence(world):
     a, _, _, row, _, _ = world
     proof, _ = admit(world)
     period, _ = state(world)
     observed = row('CHECK#' + proof)
     partition = a._partition(ACCOUNT, 'k1')
-    for invalid in (True, None, int(period['endEpoch']) + 1):
+    for invalid in (True, None, int(period['startEpoch']) - 1):
         failure('PURCHASE_USAGE_MISMATCH', lambda: usage.period_for_receipt(
             a.ddb, 'authority', partition, observed | {'accessUntilEpoch': invalid}))
 

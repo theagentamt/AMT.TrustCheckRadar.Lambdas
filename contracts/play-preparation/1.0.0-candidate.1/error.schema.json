@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractVersion",
+    "error"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "contractVersion": {
+      "const": "v1-play-preparation-1.0.0-candidate.1"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "INVALID_REQUEST",
+            "AUTHENTICATION_REQUIRED",
+            "ACCESS_UNAVAILABLE",
+            "SERVICE_NOT_ENABLED",
+            "SERVICE_UNAVAILABLE"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

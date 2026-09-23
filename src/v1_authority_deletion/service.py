@@ -5,8 +5,10 @@ CURSOR_KEY={'PK':'V1#CONTROL','SK':'DELETION_RECONCILIATION_CURSOR'}
 
 
 class DeletionWorker:
-    def __init__(self,bridge,*,stream_arn,remaining_ms,allowed_subjects):
+    def __init__(self,bridge,*,stream_arn,remaining_ms,allowed_subjects,cursor_key=None):
         if not isinstance(allowed_subjects,frozenset) or not allowed_subjects or any(not isinstance(x,str) or not SUBJECT_PATTERN.fullmatch(x) for x in allowed_subjects):raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
+        self.cursor_key=CURSOR_KEY if cursor_key is None else cursor_key
+        if self.cursor_key not in (CURSOR_KEY,{'PK':'PLAY#CONTROL','SK':'TOKEN_DELETION_CURSOR'}):raise AuthorityError('DELETION_CONFIGURATION_UNAVAILABLE')
         self.allowed_subjects=allowed_subjects
         self.bridge,self.stream_arn,self.remaining_ms=bridge,stream_arn,remaining_ms
 
@@ -48,7 +50,7 @@ class DeletionWorker:
 
     def reconcile(self):
         resource=self.bridge.ddb;table=resource.Table(self.bridge.ledger)
-        saved=table.get_item(Key=CURSOR_KEY,ConsistentRead=True).get('Item')
+        saved=table.get_item(Key=self.cursor_key,ConsistentRead=True).get('Item')
         if saved is not None and (set(saved)!={'PK','SK','revision','cursor','scanStartedAtEpoch','lastFullPassAtEpoch'} or integral(saved.get('revision')) is None or saved['revision']<1):raise AuthorityError('DELETION_CURSOR_INVALID')
         revision=saved['revision'] if saved else 0
         cursor=saved.get('cursor') if saved else None
@@ -87,7 +89,7 @@ class DeletionWorker:
                 break
         # Advance after failed/poison commands; next full scan retries them.
         # CAS prevents concurrent invocations silently overwriting progress.
-        operation={'TableName':self.bridge.ledger,'Key':CURSOR_KEY,
+        operation={'TableName':self.bridge.ledger,'Key':self.cursor_key,
             'UpdateExpression':'SET revision = :next, #cursor = :cursor, scanStartedAtEpoch = :started, lastFullPassAtEpoch = :last',
             'ConditionExpression':'attribute_not_exists(revision)' if revision==0 else 'revision = :old',
             'ExpressionAttributeNames':{'#cursor':'cursor'},'ExpressionAttributeValues':{':next':revision+1,':cursor':cursor,':started':started,':last':last_pass}}

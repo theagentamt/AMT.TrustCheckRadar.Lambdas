@@ -1,0 +1,314 @@
+{
+  "startRequest": {
+    "schemaVersion": 1,
+    "action": "START_EXPORT"
+  },
+  "continueRequest": {
+    "schemaVersion": 1,
+    "action": "CONTINUE_EXPORT",
+    "cursor": "k1.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "firstPage": {
+    "schemaVersion": 1,
+    "exportTransportVersion": "1.0.0-account-export-candidate.3",
+    "operation": "ACCOUNT_EXPORT",
+    "operationId": "cf8cf905-2ff2-43bd-a290-eb43847ca5cf",
+    "status": "IN_PROGRESS",
+    "startedAtEpoch": 1800000000,
+    "expiresAtEpoch": 1800000900,
+    "observedAtEpoch": 1800000001,
+    "pageNumber": 0,
+    "family": "profile",
+    "items": [
+      {
+        "email": "synthetic@example.invalid",
+        "status": "ACTIVE",
+        "ageVerified": true
+      }
+    ],
+    "nextCursor": "k1.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "scope": {
+      "version": "v1-user-visible-2026-09-23",
+      "included": [
+        "profile",
+        "identity",
+        "devices",
+        "recovery",
+        "subscriptions",
+        "usage",
+        "purchases",
+        "access",
+        "allowance",
+        "trial",
+        "receipts",
+        "history",
+        "recognition",
+        "participation",
+        "consent",
+        "analysis_requests",
+        "scan_consumption",
+        "research_observations",
+        "research_contributions",
+        "play_verification"
+      ],
+      "excluded": [
+        "original_submissions",
+        "security_and_internal_controls",
+        "research_pipeline_internals",
+        "other_peoples_data",
+        "non_user_linkable_aggregates",
+        "historical_backups",
+        "transient_streams_and_queues",
+        "operational_logs",
+        "external_provider_and_store_records",
+        "purchase_credentials"
+      ],
+      "consistency": "OBSERVED_VALUES",
+      "cancellation": "LOCAL_DOWNLOAD_ONLY"
+    }
+  },
+  "emptyContinuationPage": {
+    "schemaVersion": 1,
+    "exportTransportVersion": "1.0.0-account-export-candidate.3",
+    "operation": "ACCOUNT_EXPORT",
+    "operationId": "cf8cf905-2ff2-43bd-a290-eb43847ca5cf",
+    "status": "IN_PROGRESS",
+    "startedAtEpoch": 1800000000,
+    "expiresAtEpoch": 1800000900,
+    "observedAtEpoch": 1800000001,
+    "pageNumber": 2,
+    "family": "devices",
+    "items": [],
+    "nextCursor": "k1.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "scope": {
+      "version": "v1-user-visible-2026-09-23",
+      "included": [
+        "profile",
+        "identity",
+        "devices",
+        "recovery",
+        "subscriptions",
+        "usage",
+        "purchases",
+        "access",
+        "allowance",
+        "trial",
+        "receipts",
+        "history",
+        "recognition",
+        "participation",
+        "consent",
+        "analysis_requests",
+        "scan_consumption",
+        "research_observations",
+        "research_contributions",
+        "play_verification"
+      ],
+      "excluded": [
+        "original_submissions",
+        "security_and_internal_controls",
+        "research_pipeline_internals",
+        "other_peoples_data",
+        "non_user_linkable_aggregates",
+        "historical_backups",
+        "transient_streams_and_queues",
+        "operational_logs",
+        "external_provider_and_store_records",
+        "purchase_credentials"
+      ],
+      "consistency": "OBSERVED_VALUES",
+      "cancellation": "LOCAL_DOWNLOAD_ONLY"
+    }
+  },
+  "finalPage": {
+    "schemaVersion": 1,
+    "exportTransportVersion": "1.0.0-account-export-candidate.3",
+    "operation": "ACCOUNT_EXPORT",
+    "operationId": "cf8cf905-2ff2-43bd-a290-eb43847ca5cf",
+    "status": "COMPLETE",
+    "startedAtEpoch": 1800000000,
+    "expiresAtEpoch": 1800000900,
+    "observedAtEpoch": 1800000001,
+    "pageNumber": 20,
+    "family": "play_verification",
+    "items": [
+      {
+        "kind": "google_play_preparation",
+        "platform": "google_play",
+        "preparedAtEpoch": 1800000000
+      }
+    ],
+    "nextCursor": null,
+    "scope": {
+      "version": "v1-user-visible-2026-09-23",
+      "included": [
+        "profile",
+        "identity",
+        "devices",
+        "recovery",
+        "subscriptions",
+        "usage",
+        "purchases",
+        "access",
+        "allowance",
+        "trial",
+        "receipts",
+        "history",
+        "recognition",
+        "participation",
+        "consent",
+        "analysis_requests",
+        "scan_consumption",
+        "research_observations",
+        "research_contributions",
+        "play_verification"
+      ],
+      "excluded": [
+        "original_submissions",
+        "security_and_internal_controls",
+        "research_pipeline_internals",
+        "other_peoples_data",
+        "non_user_linkable_aggregates",
+        "historical_backups",
+        "transient_streams_and_queues",
+        "operational_logs",
+        "external_provider_and_store_records",
+        "purchase_credentials"
+      ],
+      "consistency": "OBSERVED_VALUES",
+      "cancellation": "LOCAL_DOWNLOAD_ONLY"
+    }
+  },
+  "errors": [
+    {
+      "statusCode": 400,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "INVALID_REQUEST",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 400,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "INVALID_CURSOR",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 401,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "REAUTHENTICATION_REQUIRED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 401,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "AUTHENTICATION_REQUIRED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 403,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "ACCOUNT_UNAVAILABLE",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 403,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "ACTIVE_DEVICE_REQUIRED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 409,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "ACCESS_CHANGED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 409,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "SOURCE_CHANGED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 410,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "EXPORT_EXPIRED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 413,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "EXPORT_LIMIT_EXCEEDED",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "statusCode": 503,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "SERVICE_NOT_ENABLED",
+          "retryable": true
+        }
+      }
+    },
+    {
+      "statusCode": 503,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "SERVICE_UNAVAILABLE",
+          "retryable": true
+        }
+      }
+    },
+    {
+      "statusCode": 503,
+      "body": {
+        "schemaVersion": 1,
+        "error": {
+          "code": "SOURCE_UNAVAILABLE",
+          "retryable": true
+        }
+      }
+    }
+  ]
+}

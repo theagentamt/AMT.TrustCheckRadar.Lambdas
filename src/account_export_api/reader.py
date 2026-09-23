@@ -10,9 +10,10 @@ from shared_check_authority.inventory import verified_inventory
 
 
 class Reader:
-    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None):
+    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None):
         self.a, self.tables, self.cognito, self.pool = authority, tables, cognito, user_pool_id
         self.purchase_reader, self.kms = purchase_reader, kms
+        self.play_token_table = play_token_table
 
     def auth(self, event):
         account = self.a._account(event)
@@ -88,10 +89,17 @@ class Reader:
             plan.append(('research_contributions','pipeline',period,arn,False))
         plan += [('participation','users',pk,'CAMPAIGN_PARTICIPATION',True),
                  ('consent','users',pk,'CAMPAIGN_CONSENT#',False)]
+        if self.play_token_table is not None:
+            for kid in inventory['keys']:
+                plan.append(('play_verification',None,self.a._partition(context['account'],kid),None,False))
         return plan
 
     def read(self, context, entry, position, cutoff):
         family, table, pk, sort, single = entry
+        if family == 'play_verification':
+            from shared_play_lifecycle.export import page
+            items,next_position=page(self.a,self.play_token_table,context['account'],pk,position)
+            return family,items,next_position
         if family == 'research_contributions':
             return self._research(context, pk, sort, position)
         if family == 'identity':

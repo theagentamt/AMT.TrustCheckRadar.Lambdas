@@ -251,6 +251,8 @@ class EntitlementWriter:
             if other != pk:
                 items.append(self.a._check(self.a.s.authority_table, {'PK': other, 'SK': 'ACCESS'}, 'attribute_not_exists(PK)'))
         items += list(extras) + [self._put(row, condition, values), self._put(audit)]
+        if len(items) > 100:
+            raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
         try:
             self.a._transact(items)
         except AuthorityError:
@@ -337,6 +339,23 @@ class EntitlementWriter:
             raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
         return self._commit_paid(decision.account, decision, operation_id, observed=True,
             expected_access=expected_access, extras=list(ownership_actions)+list(token_actions), request_digest=request_digest)
+
+    def commit_background_initial_paid(self, worker, decision, operation_id, *, expected_access, ownership_actions, token_actions=(), request_digest=None):
+        """Trusted prepared-account recovery, never an automatic ownership transfer.
+
+        Only the verified adapter can supply ownership claim CAS and the exact
+        reverse/forward preparation mapping proof. No client decision/JWT enters.
+        """
+        if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in self.lifecycle_principals:
+            raise AuthorityError('LIFECYCLE_AUTHORIZATION_REQUIRED')
+        if (type(decision) is not VerifiedMonthlyDecision or not decision.active or not ownership_actions
+                or expected_access is not None and (not isinstance(expected_access,dict) or 'paid' in expected_access.get('sources',{}))
+                or any(set(action) not in ({'ConditionCheck'},{'Put'}) for action in ownership_actions)
+                or not any('Put' in action and action['Put'].get('Item',{}).get('PK','').startswith('TOKEN#') for action in ownership_actions)
+                or sum('ConditionCheck' in action and action['ConditionCheck'].get('Key',{}).get('PK','').startswith('PLAY_BINDING#') for action in ownership_actions)!=1):
+            raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+        return self._commit_paid(decision.account,decision,operation_id,observed=True,
+            expected_access=expected_access,extras=list(ownership_actions)+list(token_actions),request_digest=request_digest)
 
     def _commit_paid(self, account, decision, operation_id, *, observed, expected_access, extras, request_digest):
         if type(decision) is not VerifiedMonthlyDecision:
@@ -432,7 +451,11 @@ class EntitlementWriter:
                     raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
                 period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#'+previous['periodId']})
                 pointer = purchase_usage.validate_period(period)
+                if (period['grantRevision'] != previous['periodRevision']
+                        or period['startEpoch'] != previous['validFromEpoch']):
+                    raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
                 usage = self.a._get(self.a.s.authority_table, pointer)
+                closed_pending = False
                 if usage is None:
                     if now < purchase_usage.usage_deadline(period) or now < access_end+purchase_usage.RETENTION_SECONDS or period['reservedChecks'] != 0:
                         raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
@@ -441,8 +464,15 @@ class EntitlementWriter:
                     purchase_usage.validate(usage,pointer,now,allow_expired=True)
                     if any(usage[k] != period[k] for k in ('startEpoch','endEpoch','usedChecks','reservedChecks','limit')) or purchase_usage.effective_access_end(usage)!=purchase_usage.effective_access_end(period):
                         raise AuthorityError('PURCHASE_USAGE_MISMATCH')
-                    extras.extend(purchase_usage.access_window_actions(self.a.s.authority_table,pointer,usage,access_end,now=now))
+                    if access_end + purchase_usage.RETENTION_SECONDS <= now and period['reservedChecks'] > 0:
+                        extras.extend(purchase_usage.due_reservation_actions(self.a.ddb, self.a.s.authority_table,
+                            period, usage, access_end, now=now))
+                        closed_pending = True
+                    else:
+                        extras.extend(purchase_usage.access_window_actions(self.a.s.authority_table,pointer,usage,access_end,now=now))
                 updated_period = dict(period, accessUntilEpoch=access_end)
+                if closed_pending:
+                    updated_period['reservedChecks'] = 0
                 extras.append({'Put': {'TableName': self.a.s.authority_table, 'Item': updated_period, **purchase_usage.exact_condition(period)}})
                 source['validUntilEpoch'] = access_end
         if previous and decision.source_revision == previous['sourceRevision'] and source != previous:

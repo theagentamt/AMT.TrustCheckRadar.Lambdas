@@ -166,7 +166,7 @@ def required_components():
             "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY",
             "ANALYSIS_ABUSE", "HISTORY", "CAMPAIGN",
             "CAMPAIGN_OUTBOX",
-            "ENTITLEMENTS", "V1_AUTHORITY", "USER_PROFILE", "IDENTITY",
+            "ENTITLEMENTS", "V1_AUTHORITY", "PLAY_TOKENS", "USER_PROFILE", "IDENTITY",
         }.issubset(values)
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is invalid.")

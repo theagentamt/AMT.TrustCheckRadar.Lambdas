@@ -18,7 +18,7 @@ from v1_entitlements.service import access_snapshot
 ROLE='arn:aws:iam::107827791950:role/synthetic-play-lifecycle'
 ARN='arn:aws:kms:us-east-1:107827791950:key/12345678-1234-1234-1234-123456789abc'
 class Cipher:
- def encrypt(self,token,partition):return ARN,base64.b64encode(hashlib.sha256((partition+token).encode()).digest()).decode()
+ def encrypt(self,token,partition):return ARN,base64.b64encode(hashlib.sha256((partition+token).encode()).digest()).decode(),base64.b64encode(b'synthetic-wrapped-key').decode()
 
 @pytest.fixture
 def lifecycle(handoff):
@@ -48,11 +48,12 @@ def test_grace_preserves_funded_period_usage_and_real_snapshot(lifecycle):
  assert stored['expiresAt']==usage['expiresAt'] and p['purchaseToken'] not in str(stored)
 
 
-def test_duplicate_notification_never_calls_provider_or_grants_again(lifecycle):
+def test_duplicate_notification_reverifies_ack_without_granting_again(lifecycle):
  h,w,p,r=lifecycle;a,e,_,row,_,_=w
  r.refresh(p['purchaseToken'],'notification-one');before=row('ACCESS');calls=h.client.calls
- assert r.refresh(p['purchaseToken'],'notification-one')=={'state':'committed','idempotencyReplay':True}
- assert h.client.calls==calls and row('ACCESS')==before
+ replay=r.refresh(p['purchaseToken'],'notification-one')
+ assert replay['state']=='committed' and replay['idempotencyReplay'] and replay['acknowledgment']=='acknowledged'
+ assert h.client.calls>calls and row('ACCESS')==before
 
 
 def test_current_head_hold_stops_new_admission_keeps_pending_settlement(lifecycle):
@@ -85,16 +86,16 @@ def test_shorter_verified_end_shortens_token_and_usage_deadlines(lifecycle):
  assert retained['expiresAt']==end+604800
 
 
-def test_shortening_with_pending_work_is_explicit_unqualified_reconciliation(lifecycle):
+def test_shortening_with_pending_work_preserves_settlement(lifecycle):
  from datetime import datetime,timezone
  h,w,p,r=lifecycle;a,e,_,row,_,clock=w
- proof=a.prepare(e,PAYLOAD,'pending');a.admit(e,PAYLOAD,proof)
- before=a.ddb.Table('authority').scan()['Items'];tokens=a.ddb.Table('play-tokens').scan()['Items']
+ proof=a.prepare(e,PAYLOAD,'pending');admitted=a.admit(e,PAYLOAD,proof)
  h.client.head['subscriptionState']='SUBSCRIPTION_STATE_ON_HOLD';h.client.head['lineItems'][0]['expiryTime']=datetime.fromtimestamp(clock[0]+3600,timezone.utc).isoformat().replace('+00:00','Z')
- with pytest.raises(AuthorityError,match='PURCHASE_USAGE_RECONCILIATION_REQUIRED'):r.refresh(p['purchaseToken'],'shorter-pending')
- assert a.ddb.Table('authority').scan()['Items']==before and a.ddb.Table('play-tokens').scan()['Items']==tokens
- # This unresolved atomic shortening/revocation case blocks activation of the
- # candidate; no claim that immediate revocation has been completed is made.
+ r.refresh(p['purchaseToken'],'shorter-pending')
+ assert row('ACCESS')['state']=='INACTIVE'
+ a.settle(WORKER,proof,admitted['executionToken'],'complete')
+ period=row('PERIOD#'+row('ACCESS')['sources']['paid']['periodId'])
+ assert period['usedChecks']==1 and period['reservedChecks']==0
 
 
 @pytest.mark.parametrize('kind',['account','ownership','authority'])
@@ -118,7 +119,7 @@ def test_provider_race_cannot_commit_lifecycle_update(lifecycle,kind):
 def test_unknown_token_cannot_guess_initial_account_or_claim_ownership(lifecycle):
  h,w,p,r=lifecycle;calls=h.client.calls
  assert r.refresh('unknown-token-123456','unknown-event')['reason']=='OWNERSHIP_NOT_ESTABLISHED'
- assert h.client.calls==calls
+ assert h.client.calls>calls
 
 
 def test_worker_identity_required_before_provider(lifecycle):
@@ -164,3 +165,44 @@ def test_renewal_rejects_mismatched_previous_funded_identity(lifecycle,field):
  h.client.ordered['lineItems'][0]['subscriptionDetails'].update(servicePeriodStartTime='2026-10-01T00:00:00Z',servicePeriodEndTime='2026-11-01T00:00:00Z')
  with pytest.raises(AuthorityError,match='IMMUTABLE_PERIOD_CONFLICT'):r.refresh(p['purchaseToken'],'mismatched-renewal')
  assert a.ddb.Table('authority').scan()['Items']==before and a.ddb.Table('play-tokens').scan()['Items']==tokens
+
+
+def test_prepared_initial_purchase_recovers_without_device_session(handoff):
+ from shared_play_lifecycle.bindings import Bindings
+ h,w,p=handoff;a,e,_,row,_,_=w
+ a.ddb.create_table(TableName='play-tokens',BillingMode='PAY_PER_REQUEST',KeySchema=[{'AttributeName':'PK','KeyType':'HASH'},{'AttributeName':'SK','KeyType':'RANGE'}],AttributeDefinitions=[{'AttributeName':'PK','AttributeType':'S'},{'AttributeName':'SK','AttributeType':'S'}])
+ Bindings(h.writer,'play-tokens').prepare(e)
+ h.writer.lifecycle_principals=frozenset({ROLE})
+ r=Reconciler(h.writer,h.ownership,h.client,TrustedLifecycleWorker(ROLE),token_table='play-tokens',token_cipher=Cipher())
+ result=r.refresh(p['purchaseToken'],'initial-background')
+ assert result['state']=='committed' and result['acknowledgment']=='acknowledged'
+ period=row('PERIOD#'+row('ACCESS')['periodId'])
+ assert period['usedChecks']==0 and period['reservedChecks']==0 and period['limit']==200
+ assert r.refresh(p['purchaseToken'],'initial-background')['idempotencyReplay']
+ assert row(period['SK'])==period
+
+
+def test_ack_failure_is_recovered_by_duplicate_without_grant_reset(lifecycle):
+ from shared_play_verification.proof import PlayVerificationError
+ h,w,p,r=lifecycle;a,e,_,row,_,_=w
+ h.client.head['acknowledgementState']='ACKNOWLEDGEMENT_STATE_PENDING'
+ original=h.client.acknowledge
+ h.client.acknowledge=lambda _:(_ for _ in ()).throw(PlayVerificationError('PLAY_PROVIDER_UNAVAILABLE'))
+ first=r.refresh(p['purchaseToken'],'ack-repair');before=row('ACCESS');period=row('PERIOD#'+before['periodId'])
+ assert first['acknowledgment']=='pending'
+ h.client.acknowledge=original
+ second=r.refresh(p['purchaseToken'],'ack-repair')
+ assert second['acknowledgment']=='acknowledged' and second['idempotencyReplay']
+ assert row('ACCESS')==before and row(period['SK'])==period
+
+
+def test_deletion_during_external_ack_does_not_recreate_account_metadata(lifecycle):
+ h,w,p,r=lifecycle;a,e,_,row,_,_=w
+ h.client.head['acknowledgementState']='ACKNOWLEDGEMENT_STATE_PENDING'
+ observed=[]
+ def ack(_):
+  observed.extend(a.ddb.Table('play-tokens').scan()['Items'])
+  a.ddb.Table(a.s.deletion_table).put_item(Item={'PK':'ACCOUNT#'+ACCOUNT,'SK':'ACCOUNT_DELETION'})
+ h.client.acknowledge=ack
+ with pytest.raises(AuthorityError):r.refresh(p['purchaseToken'],'delete-during-ack')
+ assert observed and a.ddb.Table('play-tokens').scan()['Items']==observed

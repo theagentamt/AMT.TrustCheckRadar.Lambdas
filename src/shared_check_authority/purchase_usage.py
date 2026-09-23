@@ -5,6 +5,7 @@ period identity and counters remain unchanged by an access extension.
 Every mutation below is a native action for a caller-owned atomic transaction.
 """
 import re
+import hashlib
 from .core import AuthorityError, OWNER_POLICY, PAID_COMPLETED_CHECKS, integral
 
 RETENTION_SECONDS = 604800
@@ -99,8 +100,9 @@ def exact_condition(row):
 def access_window_actions(table, pointer, observed_global, access_until_epoch, *, now):
     """Trusted fresh-proof caller only; compose with local period/source fencing.
 
-    There is no expiry inference from event time. Shortening cannot discard an
-    unresolved reservation. Already-due zero-reservation rows are atomically
+    There is no expiry inference from event time. Future deadlines preserve
+    reservations; already-due reservations require atomic receipt closure.
+    Already-due zero-reservation rows are atomically
     deleted, requiring an explicitly qualified caller Delete permission.
     """
     observed = validate(observed_global, pointer, now, allow_expired=True)
@@ -109,8 +111,6 @@ def access_window_actions(table, pointer, observed_global, access_until_epoch, *
     proposed.update({k: observed[k] for k in ('usedChecks', 'reservedChecks')})
     old_access = effective_access_end(observed)
     if access_until_epoch > old_access and now >= observed['expiresAt']:
-        raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
-    if access_until_epoch < old_access and observed['reservedChecks'] != 0:
         raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
     condition = exact_condition(observed)
     if proposed['expiresAt'] <= now:
@@ -206,7 +206,119 @@ def period_for_receipt(resource, table, partition, receipt):
     period = resource.Table(table).get_item(Key={'PK': partition, 'SK': receipt['periodSK']}, ConsistentRead=True).get('Item')
     if validate_period(period) != pointer or period['grantRevision'] != receipt['grantRevision']:
         raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+    # This is historical admission evidence, not authority to retain or charge
+    # beyond the current verified local/global deadline after shortening.
     admitted_access = integral(receipt.get('accessUntilEpoch', period['endEpoch']))
-    if admitted_access is None or not period['startEpoch'] <= admitted_access <= effective_access_end(period):
+    if admitted_access is None or not period['startEpoch'] <= admitted_access:
         raise AuthorityError('PURCHASE_USAGE_MISMATCH')
     return period
+
+
+_PENDING_FIELDS = {'PK', 'SK', 'recordType', 'checkId', 'payloadHmac', 'clientCheckId',
+    'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome',
+    'basis', 'grantRevision', 'authorityRevision', 'policyVersion', 'periodSK',
+    'executionToken', 'settleByEpoch', 'GSI1PK', 'GSI1SK', 'retentionDeadlineEpoch',
+    'purchaseUsageKey'}
+
+
+def due_reservation_actions(resource, table, period, observed_global, access_until_epoch, *, now):
+    """Prepare bounded, zero-charge closure; caller atomically fences ACCESS and PERIOD.
+
+    All current reservations must be accounted for. An incomplete query or a
+    malformed matching receipt never permits global deletion. Other periods and
+    their reservations remain untouched. No provider response is reconstructed.
+    """
+    pointer = validate_period(period)
+    observed = validate(observed_global, pointer, now, allow_expired=True)
+    proposed = new_period_usage(pointer, period['startEpoch'], period['endEpoch'],
+                                access_until_epoch=access_until_epoch)
+    count = integral(period['reservedChecks'])
+    if (proposed['expiresAt'] > now or not 1 <= count <= 16
+            or any(observed[k] != period[k] for k in ('startEpoch', 'endEpoch', 'usedChecks', 'reservedChecks', 'limit'))
+            or effective_access_end(observed) != effective_access_end(period)):
+        raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+    partition = period['PK']
+    pending, cursor = [], None
+    for _ in range(8):
+        args = {'KeyConditionExpression': 'PK = :pk AND begins_with(SK, :check)',
+                'ExpressionAttributeValues': {':pk': partition, ':check': 'CHECK#'},
+                'ConsistentRead': True, 'Limit': 100}
+        if cursor:
+            args['ExclusiveStartKey'] = cursor
+        response = resource.Table(table).query(**args)
+        for row in response.get('Items', []):
+            if row.get('state') == 'SETTLED':
+                continue
+            if row.get('periodSK') != period['SK'] and row.get('purchaseUsageKey') != pointer:
+                continue
+            optional = {'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'}
+            if (not _PENDING_FIELDS <= set(row) or set(row) - _PENDING_FIELDS - optional
+                    or row.get('PK') != partition or row.get('periodSK') != period['SK']
+                    or row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY
+                    or row.get('state') != 'ADMITTED' or row.get('basis') != 'paid'
+                    or row.get('purchaseUsageKey') != pointer or integral(row.get('grantRevision')) != period['grantRevision']
+                    or not isinstance(row.get('checkId'), str)
+                    or not re.fullmatch(r'v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}', row['checkId'])
+                    or row.get('SK') != 'CHECK#' + row['checkId']
+                    or not isinstance(row.get('executionToken'), str) or not re.fullmatch(r'[0-9a-f]{32}', row['executionToken'])
+                    or not isinstance(row.get('payloadHmac'), str) or not re.fullmatch(r'[0-9a-f]{64}', row['payloadHmac'])
+                    or any(row.get(k) is not None for k in ('chargedChecks', 'receiptId', 'processingOutcome'))
+                    or integral(row.get('authorityRevision')) is None or row['authorityRevision'] < 1
+                    or integral(row.get('settleByEpoch')) is None or row['settleByEpoch'] < 0
+                    or integral(row.get('retentionDeadlineEpoch')) is None or row['retentionDeadlineEpoch'] < row['settleByEpoch']
+                    or integral(row.get('accessUntilEpoch', period['endEpoch'])) is None
+                    or row.get('accessUntilEpoch', period['endEpoch']) < period['startEpoch']
+                    or row.get('GSI1PK') != 'V1_PENDING'
+                    or row.get('GSI1SK') != f'{int(row["settleByEpoch"]):012d}#{partition}#{row["checkId"]}'
+                    or row.get('projectionScope') not in ('full_url', 'origin_only', 'sanitized_message', 'recovery_clarification')):
+                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+            scope = row['projectionScope']
+            client = row['clientCheckId']
+            if (client is not None and (not isinstance(client, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', client))
+                    or scope in ('full_url', 'origin_only') and ('messageTransportVersion' in row or 'recoveryTransportVersion' in row)
+                    or scope == 'sanitized_message' and (client is None or 'recoveryTransportVersion' in row
+                        or row.get('messageTransportVersion', '1.0.0-message-candidate.2') != '1.0.0-message-candidate.2')
+                    or scope == 'recovery_clarification' and (client is None or 'messageTransportVersion' in row)):
+                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+            if scope == 'recovery_clarification':
+                from shared_recovery_contract.constants import VERSION
+                if row.get('recoveryTransportVersion') != VERSION:
+                    raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+            pending.append(row)
+            if len(pending) > count:
+                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+        cursor = response.get('LastEvaluatedKey')
+        if not cursor:
+            break
+    if cursor or len(pending) != count:
+        raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+    inflight_key = {'PK': partition, 'SK': 'INFLIGHT'}
+    inflight = resource.Table(table).get_item(Key=inflight_key, ConsistentRead=True).get('Item')
+    if (not isinstance(inflight, dict) or set(inflight) != {'PK', 'SK', 'activeCount'}
+            or integral(inflight.get('activeCount')) is None or inflight['activeCount'] < count):
+        raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+    actions = [{'Delete': {'TableName': table, 'Key': pointer, **exact_condition(observed)}},
+               {'Put': {'TableName': table, 'Item': inflight | {'activeCount': inflight['activeCount'] - count},
+                        **exact_condition(inflight)}}]
+    for row in pending:
+        condition = exact_condition(row)
+        deadline = row['retentionDeadlineEpoch']
+        key = {k: row[k] for k in ('PK', 'SK')}
+        if deadline <= now:
+            actions.append({'Delete': {'TableName': table, 'Key': key, **condition}})
+            continue
+        settled = row | {'state': 'SETTLED', 'chargedChecks': 0, 'processingOutcome': 'failed',
+                         'receiptId': 'expired_' + hashlib.sha256((partition + '\0' + row['checkId']).encode()).hexdigest()[:32],
+                         'expiresAt': deadline, 'GSI1PK': 'V1_EXPIRING',
+                         'GSI1SK': f'{int(deadline):012d}#{partition}#{row["SK"]}'}
+        if row['projectionScope'] == 'recovery_clarification':
+            try:
+                from shared_recovery_contract.constants import VERSION
+                from shared_recovery_contract.usage import usage
+                if row.get('recoveryTransportVersion') != VERSION:
+                    raise ValueError()
+                settled.update(resultSummary=usage(row.get('clientCheckId'), 'failed'), assessmentEpoch=now)
+            except Exception:
+                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED') from None
+        actions.append({'Put': {'TableName': table, 'Item': settled, **condition}})
+    return actions
