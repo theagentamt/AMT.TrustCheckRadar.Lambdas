@@ -1,0 +1,97 @@
+{
+  "sourceSha": "39cce61623794a123e61d25f5248b0c081eccf4a",
+  "allVerified": true,
+  "artifacts": [
+    {
+      "function": "play_lifecycle_ingress",
+      "versionId": "en3DZOtDjduMnzOYUepN9C6LEzMj439q",
+      "sha256": "068717931c3a55e2521e9e0682d99ce70973e25c5eb56857a536f3fa662dad1a",
+      "bytes": 6241017,
+      "downloadVerified": true
+    },
+    {
+      "function": "play_lifecycle_worker",
+      "versionId": "J3ewLvbGRxPXES3qKGESAyqN1Y4SK4bX",
+      "sha256": "61d66ff6b1c53c061272756124b161f7f359e7df11dd281a784ce2ec0d9781cb",
+      "bytes": 6244077,
+      "downloadVerified": true
+    },
+    {
+      "function": "play_token_deletion",
+      "versionId": "pObvgJkqm0o5KWpFtiQ8E6tmzqGUS5MZ",
+      "sha256": "25a30170bb53afb8253c95e335d76c5527531faea0f644c733b12cc5cfe2da14",
+      "bytes": 6241234,
+      "downloadVerified": true
+    },
+    {
+      "function": "v1_play_handoff",
+      "versionId": "x6WH5tnuSa8F1dJRfo0oMvXJQbdssyfW",
+      "sha256": "dac08a762404e0d692edc7547987168fa4f076d4f80976ba6ccf35df7c9bf1ac",
+      "bytes": 6232755,
+      "downloadVerified": true
+    },
+    {
+      "function": "url_consumer",
+      "versionId": "QMq0XD1xRogqUM51iPjD71XQD7liaiPw",
+      "sha256": "63c88940c601f1a58e5e278904c6892eb3a9068a77b0ba5b834f46cbe3e755b0",
+      "bytes": 693106,
+      "downloadVerified": true
+    },
+    {
+      "function": "url_lease_recovery",
+      "versionId": "b7u.Gz0sGsE6Ou2DhuMcDTzBUBf4vm63",
+      "sha256": "6b9ba8b94e6fcb564932e5a98d0638194436dfa7788e9452db7c9399a3f92be6",
+      "bytes": 47884,
+      "downloadVerified": true
+    },
+    {
+      "function": "v1_entitlements",
+      "versionId": "4v213SSYD50qrijRyBRDNW54IcRTww92",
+      "sha256": "c45bb2d32946847a5f1ec24110566c61cc61a5d8ac875431e1ae54705d193a13",
+      "bytes": 51941,
+      "downloadVerified": true
+    },
+    {
+      "function": "v1_authority_deletion",
+      "versionId": "yG9KvplPKb.k9EYNjiFt7OQei49b7scw",
+      "sha256": "e51c4943640a234f7cbed2f94cadf949a321c0c6a717bd12c5c18498e33b18c7",
+      "bytes": 59406,
+      "downloadVerified": true
+    },
+    {
+      "function": "message_consumer",
+      "versionId": "e291pouZVNTcSfcwGJcr8c6ujVdSGpBD",
+      "sha256": "080242a2b575afe99ac341fd83b9dfa15777e4fd609dc84749c94145b76c2d20",
+      "bytes": 753690,
+      "downloadVerified": true
+    },
+    {
+      "function": "recovery_consumer",
+      "versionId": "Sus6Hf4cs6rW02FHZhdhk3YGZZzG3iPQ",
+      "sha256": "b0d89e94e409800820af2055b91ce6eb49096a4678f447930b46ee9f2feb4e9e",
+      "bytes": 733440,
+      "downloadVerified": true
+    },
+    {
+      "function": "result_feedback",
+      "versionId": "u_ZaNCjKKhIxN5sGR6Y6gr0vQU8Qk4T6",
+      "sha256": "fbe438d059088eecc9bc44d4510bbded13d012df658f6cb479b4376d6c024602",
+      "bytes": 714716,
+      "downloadVerified": true
+    },
+    {
+      "function": "account_export_api",
+      "versionId": "yXGRM6bfQinj9Wf_l6LF6Who9XTmQSRR",
+      "sha256": "fead7f78c7ce3d1e8ecec57199eec00a1f75d47a937d2ec024edf833ad94e687",
+      "bytes": 5083522,
+      "downloadVerified": true
+    },
+    {
+      "function": "account_data_api",
+      "versionId": "zJDzK5ozh5t4gVkrzAlHVbRfQqxMIlMo",
+      "sha256": "d5065c415fe40ed01385d699b782b8f04396d3447775b30eaaad2942a387ecb4",
+      "bytes": 41379,
+      "downloadVerified": true
+    }
+  ]
+}
