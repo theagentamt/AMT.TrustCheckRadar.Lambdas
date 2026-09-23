@@ -41,6 +41,9 @@ FUNCTIONS=(
   url_lease_recovery
   v1_entitlements
   v1_play_handoff
+  play_lifecycle_ingress
+  play_lifecycle_worker
+  play_token_deletion
   v1_authority_deletion
   web_risk_communication
   post_confirmation
@@ -172,7 +175,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -184,6 +187,12 @@ build_function() {
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
 
+  if [[ "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" ]]; then
+    mkdir -p "$build_dir/$function_name"
+    cp -R "$source_dir"/. "$build_dir/$function_name/"
+    printf 'from %s.app import lambda_handler\n' "$function_name" > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_purchase_ownership" "$ROOT_DIR/src/shared_account_finalization" "$ROOT_DIR/src/v1_authority_deletion" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
+  fi
   if [[ "$function_name" == "v1_play_handoff" ]]; then
     mkdir -p "$build_dir/v1_play_handoff"
     cp -R "$source_dir"/. "$build_dir/v1_play_handoff/"
@@ -261,6 +270,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
     cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp -R "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
   fi
   # Every shared-authority consumer can recover a recovery lease without the
   # model/parser/bundle modules. Keep this lightweight dependency in old workers.

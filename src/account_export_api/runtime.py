@@ -69,10 +69,13 @@ def load():
             table_name=tables['entitlements'],ledger_table_name=tables['deletion'],
             client=boto3.client('dynamodb',region_name='us-east-1',config=config),
             environment='dev',now=authority.now)
+        play_tokens=os.environ.get('ACCOUNT_EXPORT_PLAY_TOKENS_ENABLED')=='true'
+        token_table=os.environ['PLAY_TOKEN_TABLE_NAME'] if play_tokens else None
+        require(not play_tokens or token_table and token_table!=tables['authority'],'SERVICE_UNAVAILABLE',503)
         reader = Reader(authority,tables,cognito,os.environ['COGNITO_USER_POOL_ID'],
                         purchase_reader=store,
-                        kms=boto3.client('kms',region_name='us-east-1',config=config))
-        return Export(reader,cursor)
+                        kms=boto3.client('kms',region_name='us-east-1',config=config),play_token_table=token_table)
+        return Export(reader,cursor,play_verification=play_tokens)
     except ExportError:
         raise
     except Exception:

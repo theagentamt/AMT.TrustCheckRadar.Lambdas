@@ -46,9 +46,15 @@ def _runtime():
     try:session=authorized_session(secret,os.environ['GOOGLE_PLAY_SERVICE_ACCOUNT_SECRET_ARN'])
     finally:secret.close()
     client=PlayClient(session,deadline_monotonic=deadline)
+    if os.environ.get('PLAY_LIFECYCLE_ENABLED')=='true':
+        from shared_play_lifecycle.runtime import cipher,token_table
+        return Handoff(writer,ownership,client,allow_test=True,require_test=True,lifecycle_enabled=True,token_cipher=cipher(),token_table=token_table())
     return Handoff(writer,ownership,client,allow_test=True,require_test=True)
 
 def lambda_handler(event,_context):
+    if isinstance(event,dict) and event.get('routeKey')=='POST /v1/purchases/google-play/prepare':
+        from shared_play_lifecycle.preparation import handle
+        return handle(event)
     request_id=None;handoff=None
     try:
         if os.environ.get('STAGE')!='dev' or os.environ.get('PLAY_HANDOFF_ENABLED')!='true':raise PlayVerificationError('PURCHASE_SERVICE_UNAVAILABLE')
@@ -66,4 +72,6 @@ def lambda_handler(event,_context):
         code=_code(error);status,retryable=ERRORS[code]
         return _response(status,{'schemaVersion':1,'contractVersion':CONTRACT,'requestId':request_id,'error':{'code':code,'retryable':retryable}})
     finally:
-        if handoff is not None:handoff.client.close()
+        if handoff is not None:
+            handoff.client.close()
+            if handoff.token_cipher is not None:handoff.token_cipher.client.close()

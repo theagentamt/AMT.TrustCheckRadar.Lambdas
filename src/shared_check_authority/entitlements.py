@@ -340,6 +340,23 @@ class EntitlementWriter:
         return self._commit_paid(decision.account, decision, operation_id, observed=True,
             expected_access=expected_access, extras=list(ownership_actions)+list(token_actions), request_digest=request_digest)
 
+    def commit_background_initial_paid(self, worker, decision, operation_id, *, expected_access, ownership_actions, token_actions=(), request_digest=None):
+        """Trusted prepared-account recovery, never an automatic ownership transfer.
+
+        Only the verified adapter can supply ownership claim CAS and the exact
+        reverse/forward preparation mapping proof. No client decision/JWT enters.
+        """
+        if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in self.lifecycle_principals:
+            raise AuthorityError('LIFECYCLE_AUTHORIZATION_REQUIRED')
+        if (type(decision) is not VerifiedMonthlyDecision or not decision.active or not ownership_actions
+                or expected_access is not None and (not isinstance(expected_access,dict) or 'paid' in expected_access.get('sources',{}))
+                or any(set(action) not in ({'ConditionCheck'},{'Put'}) for action in ownership_actions)
+                or not any('Put' in action and action['Put'].get('Item',{}).get('PK','').startswith('TOKEN#') for action in ownership_actions)
+                or sum('ConditionCheck' in action and action['ConditionCheck'].get('Key',{}).get('PK','').startswith('PLAY_BINDING#') for action in ownership_actions)!=1):
+            raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+        return self._commit_paid(decision.account,decision,operation_id,observed=True,
+            expected_access=expected_access,extras=list(ownership_actions)+list(token_actions),request_digest=request_digest)
+
     def _commit_paid(self, account, decision, operation_id, *, observed, expected_access, extras, request_digest):
         if type(decision) is not VerifiedMonthlyDecision:
             raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')

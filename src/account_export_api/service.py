@@ -49,8 +49,11 @@ def parse(event):
 
 
 class Export:
-    def __init__(self, reader, cursor, now=lambda: int(time.time())):
+    def __init__(self, reader, cursor, now=lambda: int(time.time()), *, play_verification=False):
         self.reader, self.cursor, self.now = reader, cursor, now
+        self.version = '1.0.0-account-export-candidate.3' if play_verification else VERSION
+        self.scope = {**SCOPE,'version':'v1-user-visible-2026-09-23','included':SCOPE['included']+['play_verification'],'excluded':SCOPE['excluded']+['purchase_credentials']} if play_verification else SCOPE
+        self.manifest_version = self.scope['version']
 
     def page(self, event, body):
         # auth() checks JWT, recent signed auth_time, exact current device pointer,
@@ -58,7 +61,7 @@ class Export:
         context = self.reader.auth(event)
         now = self.now()
         if body['action'] == 'START_EXPORT':
-            token = {'version': VERSION, 'manifest': MANIFEST_VERSION,
+            token = {'version': self.version, 'manifest': self.manifest_version,
                      'account': context['account'], 'device': context['device'],
                      'bindingVersion': context['bindingVersion'],
                      'operationId': str(uuid.uuid4()), 'startedAtEpoch': now,
@@ -75,12 +78,12 @@ class Export:
         require(type(items) is list and len(items) <= 25, 'SERVICE_UNAVAILABLE', 503)
         next_index = index if position is not None else index + 1
         complete = next_index == len(plan)
-        response = {'schemaVersion': 1, 'exportTransportVersion': VERSION,
+        response = {'schemaVersion': 1, 'exportTransportVersion': self.version,
                     'operation': 'ACCOUNT_EXPORT', 'operationId': token['operationId'],
                     'status': 'COMPLETE' if complete else 'IN_PROGRESS',
                     'startedAtEpoch': token['startedAtEpoch'], 'expiresAtEpoch': token['expiresAtEpoch'],
                     'observedAtEpoch': self.now(), 'pageNumber': token['pageNumber'],
-                    'family': family, 'items': items, 'nextCursor': None, 'scope': SCOPE}
+                    'family': family, 'items': items, 'nextCursor': None, 'scope': self.scope}
         # Include the next capability in the wire byte budget. Fixed point is
         # bounded because decimal byte counters can change token length slightly.
         if not complete:
@@ -108,7 +111,7 @@ class Export:
         require(set(token) == {'version', 'manifest', 'account', 'device', 'bindingVersion',
                               'operationId', 'startedAtEpoch', 'expiresAtEpoch', 'pageNumber',
                               'familyIndex', 'position', 'totalBytes', 'inventory'}, 'INVALID_CURSOR')
-        require(token['version'] == VERSION and token['manifest'] == MANIFEST_VERSION
+        require(token['version'] == self.version and token['manifest'] == self.manifest_version
                 and token['account'] == context['account'] and token['device'] == context['device']
                 and token['bindingVersion'] == context['bindingVersion'], 'INVALID_CURSOR')
         for field in ('bindingVersion', 'startedAtEpoch', 'expiresAtEpoch', 'pageNumber', 'familyIndex', 'totalBytes'):

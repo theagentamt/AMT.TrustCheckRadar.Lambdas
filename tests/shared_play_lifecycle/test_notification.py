@@ -5,7 +5,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'src'))
 from shared_play_lifecycle.notification import parse_delivery,NotificationError
 
 NOW=1800000000
-CONFIG=dict(audience='https://api.example/v1/google-play/rtdn',service_account_email='push@example.iam.gserviceaccount.com',service_account_subject='123456789012345678901',subscription_resource='projects/test-project/subscriptions/play-rtdn',now_epoch=NOW)
+CONFIG=dict(audience='https://api-dev.andmorethings.net/v1/notifications/google-play',service_account_email='push@example.iam.gserviceaccount.com',service_account_subject='123456789012345678901',subscription_resource='projects/test-project/subscriptions/play-rtdn',now_epoch=NOW)
 CLAIMS=dict(iss='https://accounts.google.com',aud=CONFIG['audience'],email=CONFIG['service_account_email'],email_verified=True,sub=CONFIG['service_account_subject'],iat=NOW-10,exp=NOW+3590)
 TOKEN='synthetic-purchase-token'
 def body(part=None):

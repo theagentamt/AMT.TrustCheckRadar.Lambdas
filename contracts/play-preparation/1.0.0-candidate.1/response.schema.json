@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractVersion",
+    "accountBinding",
+    "prepared"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "contractVersion": {
+      "const": "v1-play-preparation-1.0.0-candidate.1"
+    },
+    "accountBinding": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prepared": {
+      "const": true
+    }
+  }
+}
