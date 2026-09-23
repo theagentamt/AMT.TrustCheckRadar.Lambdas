@@ -30,7 +30,7 @@
       "bytes": 192569,
       "hostNativeDependencySubstitutions": [],
       "exitCode": 0,
-      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-message-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:53:28.660532Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-message-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:43.897410Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
       "stderr": "",
       "packageScope": "source-only archive; host dependencies used for local smoke"
     },
@@ -41,7 +41,7 @@
       "bytes": 172319,
       "hostNativeDependencySubstitutions": [],
       "exitCode": 0,
-      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-recovery-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:53:28.768499Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"usage\\\":null,\\\"resultAvailability\\\":\\\"none\\\",\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-recovery-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:43.996519Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"usage\\\":null,\\\"resultAvailability\\\":\\\"none\\\",\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
       "stderr": "",
       "packageScope": "source-only archive; host dependencies used for local smoke"
     },
@@ -63,15 +63,15 @@
       "bytes": 131985,
       "hostNativeDependencySubstitutions": [],
       "exitCode": 0,
-      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:53:28.905563Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_UNAVAILABLE\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:44.123234Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_UNAVAILABLE\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
       "stderr": "",
       "packageScope": "source-only archive; host dependencies used for local smoke"
     },
     {
       "function": "url_lease_recovery",
       "handler": "app",
-      "sha256": "896113aeac3dc0aaccd3cba196849e438fd43ffbd46596d3f4b306046fa2c5dd",
-      "bytes": 46170,
+      "sha256": "00d5c47904111d6f7734c59b57fabddf876af50c0f23716fff8158086d404ac8",
+      "bytes": 46174,
       "hostNativeDependencySubstitutions": [],
       "exitCode": 0,
       "stdout": "{\"enabled\": false, \"recovered\": 0}",
@@ -113,5 +113,11 @@
       "stderr": "",
       "packageScope": "full Linux arm64 dependency archive"
     }
-  ]
+  ],
+  "priorFullSuiteSource": "a58e02503fcc79eaaa24f01ea7791b9cdca5de96",
+  "combinedSource": "3da9c52697d4757a6868994cdd0161ce530b36f0",
+  "combinedTargetedSdk": {
+    "passed": 64,
+    "scope": "expiry/checkpoint, purchase access window and lifecycle reconciliation"
+  }
 }
