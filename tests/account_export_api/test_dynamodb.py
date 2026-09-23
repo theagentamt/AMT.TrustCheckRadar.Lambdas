@@ -93,3 +93,62 @@ def test_owner_requires_completed_onboarding_and_active_device_for_export(world)
     resource.Table('devices').delete_item(Key={'PK':'USER#account-a','SK':'ACTIVE_BINDING'})
     with pytest.raises(AuthorityError,match='ACTIVE_DEVICE_REQUIRED'):
         service.page(event,{'action':'START_EXPORT'})
+
+
+@pytest.fixture
+def play_export(world):
+    from shared_play_lifecycle.tokens import prepare_put
+    service,event,resource=world
+    resource.create_table(TableName='play-tokens',BillingMode='PAY_PER_REQUEST',
+        KeySchema=[{'AttributeName':'PK','KeyType':'HASH'},{'AttributeName':'SK','KeyType':'RANGE'}],
+        AttributeDefinitions=[{'AttributeName':'PK','AttributeType':'S'},{'AttributeName':'SK','AttributeType':'S'}])
+    authority=service.reader.a
+    service.reader.play_token_table='play-tokens'
+    candidate=Export(service.reader,service.cursor,now=service.now,play_verification=True)
+    partition=authority._partition('account-a','k1')
+    class SyntheticCipher:
+        def encrypt(self,token,partition):
+            return ('arn:aws:kms:us-east-1:107827791950:key/12345678-1234-1234-1234-123456789abc',
+                    base64.b64encode(hashlib.sha256(token.encode()).digest()).decode(),base64.b64encode(b'wrapped').decode())
+    tokens=[]
+    for index in range(27):
+        item=prepare_put('play-tokens',partition,'synthetic-export-token-'+str(index),
+            access_until_epoch=NOW+1000,next_attempt_epoch=NOW,now=NOW,cipher=SyntheticCipher())['Put']['Item']
+        resource.Table('play-tokens').put_item(Item=item);tokens.append(item)
+    expired=prepare_put('play-tokens',partition,'synthetic-expired-export-token',
+        access_until_epoch=NOW-604801,next_attempt_epoch=NOW-604802,now=NOW-604802,cipher=SyntheticCipher())['Put']['Item']
+    resource.Table('play-tokens').put_item(Item=expired)
+    yield candidate,event,resource,tokens,expired
+
+
+def test_candidate_three_traverses_actual_paginated_metadata_without_credentials(play_export):
+    service,event,resource,tokens,expired=play_export
+    current=service.page(event,{'action':'START_EXPORT'});pages=[current]
+    while current['nextCursor']:
+        current=service.page(event,{'action':'CONTINUE_EXPORT','cursor':current['nextCursor']});pages.append(current)
+        assert len(pages)<100
+    selected=[p for p in pages if p['family']=='play_verification']
+    assert len(selected)==2 and sum(len(p['items']) for p in selected)==27
+    assert current['status']=='COMPLETE'
+    assert all(p['exportTransportVersion']=='1.0.0-account-export-candidate.3' for p in pages)
+    assert {p['family'] for p in pages}==set(current['scope']['included'])
+    assert 'purchase_credentials' in current['scope']['excluded']
+    public=repr([p['items'] for p in selected])
+    for token in tokens+[expired]:
+        assert all(secret not in public for secret in (token['ciphertext'],token['wrappedDataKey'],token['tokenDigest'],token['PK'],token['kmsKeyArn']))
+    assert resource.Table('play-tokens').get_item(Key={k:expired[k] for k in ('PK','SK')})['Item']==expired
+
+
+def test_deletion_between_play_metadata_read_and_response_rejects_page(play_export,monkeypatch):
+    service,event,resource,_,_=play_export
+    current=service.page(event,{'action':'START_EXPORT'})
+    original=service.reader.read
+    def deletion_race(*args,**kwargs):
+        result=original(*args,**kwargs)
+        if result[0]=='play_verification':
+            resource.Table('deletion').put_item(Item={'PK':'ACCOUNT#account-a','SK':'ACCOUNT_DELETION','status':'REQUESTED'})
+        return result
+    monkeypatch.setattr(service.reader,'read',deletion_race)
+    with pytest.raises(AuthorityError,match='ACCOUNT_UNAVAILABLE'):
+        while current['nextCursor']:
+            current=service.page(event,{'action':'CONTINUE_EXPORT','cursor':current['nextCursor']})
