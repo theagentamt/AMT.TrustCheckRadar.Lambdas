@@ -26,6 +26,30 @@
   states. Report them accurately. Preserve existing deployment approvals and
   environment gates; this branch policy does not authorize a deployment.
 
+## Independent component acceptance and physical-device testing
+
+- The owner's standing rule applies to all stories: do not require or perform
+  physical-device testing at this stage. Use emulator/simulator evidence where
+  suitable, and explicitly defer acceptance that needs physical hardware to the
+  linked physical-device follow-up, currently
+  [ATCR-148](https://andmorethings.youtrack.cloud/issue/ATCR-148).
+- A blocked Android or iOS task, or unavailable mobile hardware, does not by
+  itself block Lambda or infrastructure work. Continue backend, contract, fixture
+  and integration qualification that can be completed independently. Name any
+  concrete technical dependency and limit the blocked scope to the work that
+  actually depends on it.
+- A component story may close when its scoped acceptance, relevant validation,
+  committed and pushed evidence, verified release integration and tracker updates
+  meet the completion rules above. Record any deferred physical-device acceptance
+  explicitly and link the follow-up. This standing owner approval permits that
+  deferral; it does not turn an unperformed test into a pass or waive unresolved
+  backend acceptance.
+- Component completion, emulator/simulator validation, full end-to-end acceptance
+  and release readiness are separate claims. Keep the physical-device follow-up
+  open until its acceptance is performed. Preserve all existing activation,
+  deployment, privacy, retention, review and CI gates; this rule grants no new
+  runtime activation or deployment permission.
+
 ## CI timing and local validation
 
 - GitHub CI checks run automatically only on pushes or merges to `main`. Do not
