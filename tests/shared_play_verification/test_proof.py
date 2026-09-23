@@ -58,3 +58,21 @@ def test_lineage_cycle_and_changed_observation_rejected():
  with pytest.raises(PlayVerificationError,match='PLAY_LINEAGE_INVALID'):discover_lineage(TOKEN,lambda _:h)
  h.pop('linkedPurchaseToken')
  with pytest.raises(PlayVerificationError,match='PLAY_OBSERVATION_CHANGED'):verify(TOKEN,fetch_subscription=lambda _:h,fetch_order=lambda _:o,now_epoch=NOW,expected_hashes=('0'*64,))
+
+
+def test_explicit_lifecycle_policy_keeps_funded_dates_during_grace():
+ head,order=fixture()
+ head['subscriptionState']='SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
+ head['lineItems'][0]['expiryTime']='2026-10-08T00:00:00Z'
+ proof=verify(TOKEN,fetch_subscription=lambda _:head,fetch_order=lambda _:order,
+              now_epoch=1790899200,allow_access_extension=True)
+ assert proof.period_end_epoch==1790812800 and proof.access_until_epoch==1791417600
+ assert proof.period_start_epoch<proof.period_end_epoch<proof.access_until_epoch
+
+
+def test_inactive_proof_reports_only_provider_supplied_end():
+ head,order=fixture();head['subscriptionState']='SUBSCRIPTION_STATE_ON_HOLD'
+ proof=verify(TOKEN,fetch_subscription=lambda _:head,fetch_order=lambda _:(_ for _ in ()).throw(AssertionError('no order lookup')),now_epoch=NOW)
+ assert not proof.active and proof.access_until_epoch==1790812800
+ head['lineItems'][0].pop('expiryTime')
+ assert verify(TOKEN,fetch_subscription=lambda _:head,fetch_order=lambda _:order,now_epoch=NOW).access_until_epoch is None

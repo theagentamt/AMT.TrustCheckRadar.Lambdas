@@ -90,7 +90,7 @@ def discover_lineage(purchase_token,fetch):
     raise PlayVerificationError('PLAY_LINEAGE_LIMIT')
 
 
-def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_hashes=None,allow_test=False):
+def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_hashes=None,allow_test=False,allow_access_extension=False):
     """Fetch authoritative state; caller separately pins reviewed P1M catalog config.
 
     Funded-period bounds come only from the exact successful order. Current expiry
@@ -110,7 +110,9 @@ def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_ha
     test='testPurchase' in head;require(not test or allow_test,'PLAY_TEST_PURCHASE_NOT_ALLOWED')
     root=hashes[-1];active=state in {'active','grace','canceled'}
     base=dict(state=state,acknowledgment=ack,token_hashes=hashes,subscription_identity=root,verified_at_epoch=now_epoch,obfuscated_account_id=obfuscated,active=active,test_purchase=test)
-    if not active:return PlayProof(**base)
+    if not active:
+        end=timestamp(item['expiryTime']) if 'expiryTime' in item else None
+        return PlayProof(**base,access_until_epoch=end)
     expiry=timestamp(item.get('expiryTime'));require(expiry>now_epoch,'PLAY_ACCESS_EXPIRED')
     order_id=item.get('latestSuccessfulOrderId');require(isinstance(order_id,str) and ORDER.fullmatch(order_id) is not None,'PLAY_FUNDED_PERIOD_UNAVAILABLE')
     try:order=fetch_order(order_id)
@@ -123,8 +125,8 @@ def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_ha
     require(ordered.get('productId')==PRODUCT and type(details) is dict and details.get('basePlanId')==BASE_PLAN and not details.get('offerId'),'PLAY_ORDER_MISMATCH')
     phase=details.get('offerPhaseDetails');require(type(phase) is dict and set(phase)=={'baseDetails'} and type(phase['baseDetails']) is dict and not phase['baseDetails'],'PLAY_PLAN_UNSUPPORTED')
     start,end=timestamp(details.get('servicePeriodStartTime')),timestamp(details.get('servicePeriodEndTime'))
-    require(start<=now_epoch<end and start<end,'PLAY_FUNDED_PERIOD_UNAVAILABLE')
-    require(expiry==end,'PLAY_PERIOD_EXTENSION_UNSUPPORTED')
+    require(start<end and start<=now_epoch and (allow_access_extension or now_epoch<end),'PLAY_FUNDED_PERIOD_UNAVAILABLE')
+    require(type(allow_access_extension) is bool and (expiry>=end if allow_access_extension else expiry==end),'PLAY_PERIOD_EXTENSION_UNSUPPORTED')
     after=_read(fetch_subscription,purchase_token)
     # Compare only protocol-relevant fields; order/customer/address/pricing never persist.
     keys=('subscriptionState','acknowledgementState','lineItems','linkedPurchaseToken','externalAccountIdentifiers','testPurchase','outOfAppPurchaseContext')
