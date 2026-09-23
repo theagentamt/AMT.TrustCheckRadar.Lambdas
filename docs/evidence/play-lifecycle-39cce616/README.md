@@ -9,3 +9,22 @@ All13 artifacts were rebuilt with dependencies (where declared), Python3.14/arm6
 Runtime installation is a separate orchestrator-controlled step. The intended immediate closed Dev scope is new3 lifecycle handlers plus existing handoff and4 modern authority/URL functions; the other5 artifacts remain candidates until their infrastructure/deletion/export inventories are qualified. Empty-event AWS smoke and infrastructure no-drift evidence belong to that deployment, not this publication.
 
 The source validation record remains docs/play-lifecycle-runtime-validation.md. No real Google purchase/order/ack request was sent. No story-wide live acceptance, five-minute checkpoint policy approval, physical erasure deadline or release readiness is inferred from these artifacts.
+
+## Closed Dev runtime verification
+
+`aws-disabled-smoke.json` records the eight authorized empty-event invocations on AWS at 2026-09-23T05:04:25Z. Before invoking, the harness read every selected `live` alias and its immutable version configuration, rejected weighted aliases, and required exact published code hashes, Python 3.14, arm64, configured handlers, successful update state, closed feature gates and empty subject allowlists where present. Each response executed the expected immutable version with no `FunctionError`.
+
+| Function | Live version | Expected and observed |
+| --- | --- | --- |
+| play-lifecycle-ingress | 1 | HTTP 503 |
+| play-lifecycle-worker | 1 | enabled=false |
+| play-token-deletion | 1 | enabled=false |
+| v1-play-handoff | 2 | HTTP 503 |
+| url-consumer | 7 | HTTP 503 |
+| url-lease-recovery | 7 | enabled=false |
+| v1-entitlements | 7 | HTTP 503 |
+| v1-authority-deletion | 6 | enabled=false |
+
+The harness sent only `{}` to these eight aliases, requested no execution logs, and used one SDK attempt per invocation. The reviewed closed branches return before provider or account operations. This verifies package loading and those disabled paths in AWS; it does not exercise enabled Google verification/acknowledgment, token encryption, accounting, export, deletion or cleanup. It does not prove physical erasure deadlines or approve the checkpoint exception. Infrastructure permissions, schedules, stream mappings, retention controls and Terraform no-drift checks are separately owned deployment evidence.
+
+The remaining five published artifacts were not deployed in this increment. SECUR4ALL-125 remains open for the applicable enabled-flow and operational acceptance; source integration, publication and closed deployment are distinct from full lifecycle readiness.

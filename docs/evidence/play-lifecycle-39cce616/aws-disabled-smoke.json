@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "39cce61623794a123e61d25f5248b0c081eccf4a",
+  "verifiedAtUtc": "2026-09-23T05:04:25.485366+00:00",
+  "scope": "eight closed Dev aliases; empty events only",
+  "providerOrCustomerDataRequests": false,
+  "functions": [
+    {
+      "function": "trustcheckradar-dev-play-lifecycle-ingress",
+      "artifact": "play_lifecycle_ingress",
+      "alias": "live",
+      "version": "1",
+      "codeSha256": "BocXkxw6VeJSHp4Ggtmc5wlz4lxetWhXpTbz+mYtrRo=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "app.lambda_handler",
+      "closedFlags": {
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "HTTP503",
+        "actual": {
+          "statusCode": 503
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-play-lifecycle-worker",
+      "artifact": "play_lifecycle_worker",
+      "alias": "live",
+      "version": "1",
+      "codeSha256": "YdZv9rHFPAYScnVhJLFh9/NZ598R3SgaeEzi7A2Xgcs=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "app.lambda_handler",
+      "closedFlags": {
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_TOKEN_CLEANUP_ENABLED": false,
+        "PLAY_CHECKPOINT_POLICY_APPROVED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "enabled=false",
+        "actual": {
+          "enabled": false
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-play-token-deletion",
+      "artifact": "play_token_deletion",
+      "alias": "live",
+      "version": "1",
+      "codeSha256": "JaMBcLtTr7glPJXjNddsVSdTH66g9kTHM7Esxc/i2hQ=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "app.lambda_handler",
+      "closedFlags": {
+        "PLAY_TOKEN_CLEANUP_ENABLED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "enabled=false",
+        "actual": {
+          "enabled": false
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-v1-play-handoff",
+      "artifact": "v1_play_handoff",
+      "alias": "live",
+      "version": "2",
+      "codeSha256": "2sCKdiQE4NaS7cdUeYcWj6TwdtT4CXa6bM8133yb8aw=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "v1_play_handoff.app.lambda_handler",
+      "closedFlags": {
+        "PLAY_HANDOFF_ENABLED": false,
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_PREPARATION_ENABLED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "HTTP503",
+        "actual": {
+          "statusCode": 503
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-url-consumer",
+      "artifact": "url_consumer",
+      "alias": "live",
+      "version": "7",
+      "codeSha256": "Y8iJQMYB8aWOXieJBMaJLrOpBop3sLpbg09Gy+PnVbA=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "app.lambda_handler",
+      "closedFlags": {
+        "CONSUMER_ENABLED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "HTTP503",
+        "actual": {
+          "statusCode": 503
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-url-lease-recovery",
+      "artifact": "url_lease_recovery",
+      "alias": "live",
+      "version": "7",
+      "codeSha256": "a5uouU5vy1ZJMuWpjQY4GUQ236d4jpRS23yTmaP5K+Y=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "app.lambda_handler",
+      "closedFlags": {
+        "LEASE_SWEEP_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "enabled=false",
+        "actual": {
+          "enabled": false
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-v1-entitlements",
+      "artifact": "v1_entitlements",
+      "alias": "live",
+      "version": "7",
+      "codeSha256": "xFuy0ylGhHpfHsJBEFZsYcxhpdish1Qx4a5UcF0ZOhM=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "v1_entitlements.app.lambda_handler",
+      "closedFlags": {
+        "V1_ENTITLEMENTS_ENABLED": false,
+        "AUTHORITY_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "HTTP503",
+        "actual": {
+          "statusCode": 503
+        },
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-v1-authority-deletion",
+      "artifact": "v1_authority_deletion",
+      "alias": "live",
+      "version": "6",
+      "codeSha256": "5RxJQ2QKI098vtL5TK35SaMhwManF70SxcGEmOM7GMc=",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "handler": "v1_authority_deletion.app.lambda_handler",
+      "closedFlags": {
+        "V1_AUTHORITY_DELETION_ENABLED": false
+      },
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expected": "enabled=false",
+        "actual": {
+          "enabled": false
+        },
+        "passed": true
+      }
+    }
+  ]
+}
