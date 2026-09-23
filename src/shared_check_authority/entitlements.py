@@ -251,6 +251,8 @@ class EntitlementWriter:
             if other != pk:
                 items.append(self.a._check(self.a.s.authority_table, {'PK': other, 'SK': 'ACCESS'}, 'attribute_not_exists(PK)'))
         items += list(extras) + [self._put(row, condition, values), self._put(audit)]
+        if len(items) > 100:
+            raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
         try:
             self.a._transact(items)
         except AuthorityError:
@@ -432,7 +434,11 @@ class EntitlementWriter:
                     raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
                 period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#'+previous['periodId']})
                 pointer = purchase_usage.validate_period(period)
+                if (period['grantRevision'] != previous['periodRevision']
+                        or period['startEpoch'] != previous['validFromEpoch']):
+                    raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
                 usage = self.a._get(self.a.s.authority_table, pointer)
+                closed_pending = False
                 if usage is None:
                     if now < purchase_usage.usage_deadline(period) or now < access_end+purchase_usage.RETENTION_SECONDS or period['reservedChecks'] != 0:
                         raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
@@ -441,8 +447,15 @@ class EntitlementWriter:
                     purchase_usage.validate(usage,pointer,now,allow_expired=True)
                     if any(usage[k] != period[k] for k in ('startEpoch','endEpoch','usedChecks','reservedChecks','limit')) or purchase_usage.effective_access_end(usage)!=purchase_usage.effective_access_end(period):
                         raise AuthorityError('PURCHASE_USAGE_MISMATCH')
-                    extras.extend(purchase_usage.access_window_actions(self.a.s.authority_table,pointer,usage,access_end,now=now))
+                    if access_end + purchase_usage.RETENTION_SECONDS <= now and period['reservedChecks'] > 0:
+                        extras.extend(purchase_usage.due_reservation_actions(self.a.ddb, self.a.s.authority_table,
+                            period, usage, access_end, now=now))
+                        closed_pending = True
+                    else:
+                        extras.extend(purchase_usage.access_window_actions(self.a.s.authority_table,pointer,usage,access_end,now=now))
                 updated_period = dict(period, accessUntilEpoch=access_end)
+                if closed_pending:
+                    updated_period['reservedChecks'] = 0
                 extras.append({'Put': {'TableName': self.a.s.authority_table, 'Item': updated_period, **purchase_usage.exact_condition(period)}})
                 source['validUntilEpoch'] = access_end
         if previous and decision.source_revision == previous['sourceRevision'] and source != previous:

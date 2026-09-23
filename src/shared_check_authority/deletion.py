@@ -84,7 +84,7 @@ class AuthorityDeletion:
         rows remain until their pending receipts have been visited in sort order.
         """
         from .purchase_usage import (period_for_receipt, global_for_period, counter_action,
-                                     local_counter_action, exact_condition, validate_period, read, usage_deadline)
+                                     local_counter_action, exact_condition, validate_period)
         groups, conditions = {}, {}
         deleting = {row['SK'] for row in targets}
         for row in targets:
@@ -100,7 +100,7 @@ class AuthorityDeletion:
                 raise AuthorityError('PURCHASE_USAGE_MISMATCH')
             groups[identity]['count'] += 1
             conditions[row['SK']] = exact_condition(row)
-        actions, global_guards = [], {}
+        actions = []
         for period in targets:
             if period.get('recordType') != 'V1_ALLOWANCE_PERIOD':
                 continue
@@ -115,26 +115,9 @@ class AuthorityDeletion:
                 # not silently strand reservations and claim completion.
                 raise AuthorityError('PURCHASE_USAGE_MISMATCH')
             conditions[period['SK']] = exact_condition(period)
-            if group or self.now() >= usage_deadline(period):
-                continue
-            observed = read(self.ddb, self.table, pointer, now=self.now())
-            if (any(observed[k] != period[k] for k in ('startEpoch', 'endEpoch', 'limit'))
-                    or observed['usedChecks'] < period['usedChecks']):
-                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
-            # Ownership may already have been released after old reservations
-            # reached zero. A newly restored account can legitimately advance
-            # global counters while this old zero-reservation PERIOD is erased.
-            # Guard immutable funding evidence and monotonic usage, not equality.
-            previous = global_guards.get(identity)
-            minimum = max(period['usedChecks'], previous[1] if previous else 0)
-            global_guards[identity] = (observed, minimum)
-        for observed, minimum in global_guards.values():
-            immutable = {k: v for k, v in observed.items() if k not in ('usedChecks', 'reservedChecks')}
-            guard = exact_condition(immutable)
-            guard['ConditionExpression'] += ' AND usedChecks >= :minimumUsed'
-            guard['ExpressionAttributeValues'][':minimumUsed'] = minimum
-            actions.append({'ConditionCheck': {'TableName': self.table,
-                            'Key': {k: observed[k] for k in ('PK', 'SK')}, **guard}})
+            # A strictly validated zero-reservation local period is safe to
+            # erase under the durable account fence regardless of a later
+            # owner's shorter global deadline. No global mutation is needed.
         for group in groups.values():
             period, count, observed = group['period'], group['count'], group['global']
             if count > period['reservedChecks']:
