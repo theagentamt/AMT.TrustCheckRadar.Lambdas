@@ -188,7 +188,7 @@ build_function() {
     mkdir -p "$build_dir/v1_play_handoff"
     cp -R "$source_dir"/. "$build_dir/v1_play_handoff/"
     printf 'from v1_play_handoff.app import lambda_handler\n' > "$build_dir/app.py"
-    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$build_dir/"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/shared_play_lifecycle" "$build_dir/"
   fi
   if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
     cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"

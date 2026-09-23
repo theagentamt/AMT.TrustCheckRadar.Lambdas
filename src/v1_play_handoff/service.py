@@ -23,8 +23,8 @@ def account_binding(account):return sha256(b'TrustCheckRadar/account-namespace/v
 
 
 class Handoff:
-    def __init__(self,writer,ownership,client,*,allow_test=False,require_test=False):
-        self.writer=writer;self.a=writer.a;self.ownership=ownership;self.client=client;self.allow_test=allow_test;self.require_test=require_test
+    def __init__(self,writer,ownership,client,*,allow_test=False,require_test=False,lifecycle_enabled=False,token_cipher=None,token_table=None):
+        self.writer=writer;self.a=writer.a;self.ownership=ownership;self.client=client;self.allow_test=allow_test;self.require_test=require_test;self.lifecycle_enabled=lifecycle_enabled is True;self.token_cipher=token_cipher;self.token_table=token_table
 
     def handle(self,event,payload):
         payload=request_payload(payload);account=self.a._account(event)
@@ -38,7 +38,7 @@ class Handoff:
         # fresh full-lineage verification; conflicts require a new provider read.
         _,hashes=discover_lineage(payload['purchaseToken'],self.client.subscription)
         observed=self.ownership.observe_claim(account,hashes,product_id=PRODUCT)
-        proof=verify(payload['purchaseToken'],fetch_subscription=self.client.subscription,fetch_order=self.client.order,now_epoch=self.a.now(),expected_hashes=hashes,allow_test=self.allow_test)
+        proof=verify(payload['purchaseToken'],fetch_subscription=self.client.subscription,fetch_order=self.client.order,now_epoch=self.a.now(),expected_hashes=hashes,allow_test=self.allow_test,allow_access_extension=self.lifecycle_enabled)
         if self.require_test and not proof.test_purchase:raise PlayVerificationError('PLAY_TEST_PURCHASE_REQUIRED')
         cross_account_restore = proof.obfuscated_account_id != account_binding(account)
         known_owned_lineage = any(owner is not None for owner in observed.owners)
@@ -54,8 +54,15 @@ class Handoff:
         if prior is None:
             actions=self.ownership.prepare_claim_actions(observed,proof.token_hashes,product_id=PRODUCT)
             previous=sources.get('paid')
+            if previous and previous.get('headTokenDigest') is not None and previous['headTokenDigest'] not in proof.token_hashes:
+                raise PlayVerificationError('PLAY_TRANSITION_UNSUPPORTED')
+            if self.lifecycle_enabled:
+                if self.token_cipher is None or not isinstance(self.token_table,str) or not self.token_table or self.token_table==self.a.s.authority_table:raise PlayVerificationError('PURCHASE_SERVICE_UNAVAILABLE')
+                from shared_play_lifecycle.tokens import key as token_key,prepare_put
+                retained=self.a._get(self.token_table,token_key(pk,proof.token_hashes[0]))
+                actions.append(prepare_put(self.token_table,pk,payload['purchaseToken'],access_until_epoch=proof.access_until_epoch,next_attempt_epoch=min(self.a.now()+3600,proof.access_until_epoch+604800),now=self.a.now(),cipher=self.token_cipher,observed=retained))
             revision=1 if previous is None else int(previous['sourceRevision'])+1
-            decision=VerifiedMonthlyDecision(account=account,store='google_play',product_id=PRODUCT,subscription_id=proof.subscription_identity,source_revision=revision,verified_at_epoch=proof.verified_at_epoch,active=True,period_id=proof.order_digest,period_start_epoch=proof.period_start_epoch,period_end_epoch=proof.period_end_epoch,require_existing_usage=cross_account_restore and (not known_owned_lineage or sources.get('paid') is None))
+            decision=VerifiedMonthlyDecision(account=account,store='google_play',product_id=PRODUCT,subscription_id=proof.subscription_identity,source_revision=revision,verified_at_epoch=proof.verified_at_epoch,active=True,period_id=proof.order_digest,period_start_epoch=proof.period_start_epoch,period_end_epoch=proof.period_end_epoch,require_existing_usage=cross_account_restore and (not known_owned_lineage or sources.get('paid') is None),access_until_epoch=proof.access_until_epoch,head_token_digest=proof.token_hashes[0])
             self.writer.commit_verified_paid(event,decision,payload['requestId'],observation={'access':access,'device':device},transaction_extras=actions,request_digest=request_digest)
         # A lost transaction acknowledgment is reconciled only by the exact owned
         # request receipt. Never acknowledge a purchase from an uncertain grant.
@@ -79,7 +86,7 @@ class Handoff:
         # A complimentary overlay or another same-period verification may advance
         # ACCESS revision. Acknowledge only if the verified paid source remains
         # durable; a revoked/different period never qualifies via historical audit.
-        if not current or paid.get('state')!='ACTIVE' or paid.get('subscriptionDigest')!=subscription or paid.get('periodId')!=period_id or paid.get('validFromEpoch')!=proof.period_start_epoch or paid.get('validUntilEpoch')!=proof.period_end_epoch:
+        if not current or paid.get('state')!='ACTIVE' or paid.get('subscriptionDigest')!=subscription or paid.get('periodId')!=period_id or paid.get('validFromEpoch')!=proof.period_start_epoch or paid.get('validUntilEpoch')!=proof.access_until_epoch:
             return self._result(payload,'committed','pending',prior is not None)
         from shared_check_authority.purchase_usage import global_for_period
         period=self.a._get(self.a.s.authority_table,{'PK':pk,'SK':'PERIOD#'+period_id})

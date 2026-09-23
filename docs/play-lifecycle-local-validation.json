@@ -1,0 +1,123 @@
+{
+  "scope": "Inactive source validation only; no publication, deployment or provider requests",
+  "sdk": {
+    "affectedSuiteBeforeFinalTwoFieldIdentityGuard": 434,
+    "finalLifecycleSuiteIncludingIdentityGuard": 16,
+    "consumerCompatibility": 113
+  },
+  "ordinary": {
+    "passed": 1847,
+    "subtestsPassed": 232,
+    "skipped": 28
+  },
+  "immutableMobileContractUnchanged": true,
+  "archiveChecks": [
+    {
+      "function": "account_export_api",
+      "handler": "app",
+      "sha256": "de3a43244dfe9f3adf25bf0bb0c3c34aa83e9d693116ca74eed33a77dbb8f60a",
+      "bytes": 84202,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"private, no-store\", \"Pragma\": \"no-cache\"}, \"body\": \"{\\\"schemaVersion\\\":1,\\\"error\\\":{\\\"code\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryable\\\":true}}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "message_consumer",
+      "handler": "app",
+      "sha256": "9e0619c5ef676db1c05488c3b35df40239b96931a9eafc8a1b11a20ab5a655c6",
+      "bytes": 192569,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-message-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:43.897410Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "recovery_consumer",
+      "handler": "app",
+      "sha256": "e1f8eac4ad8f7cd8ad4e20b15392b281dcee0f6c8e8a8d12d8d53a5b3e198c60",
+      "bytes": 172319,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-recovery-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:43.996519Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"usage\\\":null,\\\"resultAvailability\\\":\\\"none\\\",\\\"errorCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "result_feedback",
+      "handler": "app",
+      "sha256": "40ddc95f0f80a24a3c394d27aae370fb838246370595c63688db145ae5ed8e19",
+      "bytes": 153595,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"feedbackTransportVersion\\\":\\\"1.0.0-feedback-candidate.1\\\",\\\"feedbackId\\\":null,\\\"checkId\\\":null,\\\"status\\\":\\\"unknown\\\",\\\"reasonCode\\\":\\\"SERVICE_NOT_ENABLED\\\",\\\"retryable\\\":false,\\\"retryAfterSeconds\\\":null,\\\"receivedAt\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "url_consumer",
+      "handler": "app",
+      "sha256": "946bcd2fffa00721da472bc97231dceba10085c929ac3a66c254b91a372558e6",
+      "bytes": 131985,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"transportVersion\\\":\\\"1.0.0-candidate.1\\\",\\\"checkId\\\":null,\\\"operationProof\\\":null,\\\"state\\\":\\\"unknown\\\",\\\"access\\\":{\\\"state\\\":\\\"temporarily_unavailable\\\",\\\"basis\\\":\\\"unknown\\\",\\\"externalChecksAllowed\\\":false,\\\"builtInChecksAllowed\\\":false,\\\"reconciliationAllowed\\\":false,\\\"remainingChecks\\\":null,\\\"resetsAt\\\":null,\\\"unlimited\\\":false,\\\"observedAt\\\":\\\"2026-09-23T02:56:44.123234Z\\\"},\\\"accounting\\\":{\\\"state\\\":\\\"unknown\\\",\\\"chargedChecks\\\":null,\\\"receiptId\\\":null,\\\"requiresReconciliation\\\":true},\\\"outcome\\\":null,\\\"errorCode\\\":\\\"SERVICE_UNAVAILABLE\\\",\\\"retryAfterSeconds\\\":null,\\\"expiresAt\\\":null}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "url_lease_recovery",
+      "handler": "app",
+      "sha256": "00d5c47904111d6f7734c59b57fabddf876af50c0f23716fff8158086d404ac8",
+      "bytes": 46174,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"enabled\": false, \"recovered\": 0}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "v1_authority_deletion",
+      "handler": "v1_authority_deletion.app",
+      "sha256": "24defb2ce1d18a7272a6f684f0a3501411743c8f76899f716980c6439e5a2418",
+      "bytes": 57566,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"enabled\": false}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "v1_entitlements",
+      "handler": "v1_entitlements.app",
+      "sha256": "9a0fb0e99f923a5b45640185337295f5a9e4293ed10f32b88a4647b66bad0795",
+      "bytes": 50231,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"schemaVersion\\\":1,\\\"error\\\":{\\\"code\\\":\\\"ACCESS_SERVICE_UNAVAILABLE\\\",\\\"retryable\\\":false}}\"}",
+      "stderr": "",
+      "packageScope": "source-only archive; host dependencies used for local smoke"
+    },
+    {
+      "function": "v1_play_handoff",
+      "handler": "v1_play_handoff.app",
+      "sha256": "c0df08afaa04e89b799bc7970f540f0f8ed3ec135d93e344fcbf18711bd76c29",
+      "bytes": 6219335,
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ],
+      "exitCode": 0,
+      "stdout": "{\"statusCode\": 503, \"headers\": {\"Content-Type\": \"application/json\", \"Cache-Control\": \"no-store\"}, \"body\": \"{\\\"schemaVersion\\\":1,\\\"contractVersion\\\":\\\"v1-play-handoff-1.0.0-candidate.1\\\",\\\"requestId\\\":null,\\\"error\\\":{\\\"code\\\":\\\"PURCHASE_SERVICE_UNAVAILABLE\\\",\\\"retryable\\\":false}}\"}",
+      "stderr": "",
+      "packageScope": "full Linux arm64 dependency archive"
+    }
+  ],
+  "priorFullSuiteSource": "a58e02503fcc79eaaa24f01ea7791b9cdca5de96",
+  "combinedSource": "3da9c52697d4757a6868994cdd0161ce530b36f0",
+  "combinedTargetedSdk": {
+    "passed": 64,
+    "scope": "expiry/checkpoint, purchase access window and lifecycle reconciliation"
+  }
+}

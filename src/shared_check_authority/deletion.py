@@ -84,7 +84,7 @@ class AuthorityDeletion:
         rows remain until their pending receipts have been visited in sort order.
         """
         from .purchase_usage import (period_for_receipt, global_for_period, counter_action,
-                                     local_counter_action, exact_condition, validate_period, read, RETENTION_SECONDS)
+                                     local_counter_action, exact_condition, validate_period, read, usage_deadline)
         groups, conditions = {}, {}
         deleting = {row['SK'] for row in targets}
         for row in targets:
@@ -115,7 +115,7 @@ class AuthorityDeletion:
                 # not silently strand reservations and claim completion.
                 raise AuthorityError('PURCHASE_USAGE_MISMATCH')
             conditions[period['SK']] = exact_condition(period)
-            if group or self.now() >= period['endEpoch'] + RETENTION_SECONDS:
+            if group or self.now() >= usage_deadline(period):
                 continue
             observed = read(self.ddb, self.table, pointer, now=self.now())
             if (any(observed[k] != period[k] for k in ('startEpoch', 'endEpoch', 'limit'))

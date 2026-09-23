@@ -1,5 +1,6 @@
 """No purchase/operator grants are exposed through this mobile service."""
 from shared_check_authority.core import AuthorityError, OWNER_POLICY, TRIAL_SECONDS
+from shared_check_authority.purchase_usage import effective_access_end
 
 
 def access_snapshot(writer, event):
@@ -44,7 +45,7 @@ def access_snapshot(writer, event):
         raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
     if grant and grant.get('validUntilEpoch') is not None and grant['validUntilEpoch'] <= authority.now():
         raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
-    if period and period['endEpoch'] <= authority.now():
+    if period and effective_access_end(period) <= authority.now():
         raise AuthorityError('AUTHORITY_SNAPSHOT_CHANGED')
     authority._assert_account(account)
     if not active_device:
@@ -55,7 +56,7 @@ def access_snapshot(writer, event):
         allowance = {'limit': int(period['limit']), 'completedUsed': int(period['usedChecks']),
                      'reserved': int(period['reservedChecks']),
                      'remaining': int(period['limit'] - period['usedChecks'] - period['reservedChecks']),
-                     'periodEndsAtEpoch': int(period['endEpoch'])}
+                     'periodEndsAtEpoch': min(effective_access_end(period), int(grant['validUntilEpoch']))}
     # Snapshot is advisory. Every admission repeats the atomic account/device/grant fences.
     return {'schemaVersion': 1, 'policyVersion': OWNER_POLICY, 'activeDevice': active_device,
             'access': {'basis': basis, 'externalChecksAllowed': reason == 'AVAILABLE', 'reason': reason},

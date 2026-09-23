@@ -220,15 +220,17 @@ class Authority:
                 or integral(period.get('reservedChecks')) is None or period['usedChecks'] < 0 or period['reservedChecks'] < 0
                 or period['usedChecks'] + period['reservedChecks'] > limit
                 or integral(period.get('startEpoch')) is None or integral(period.get('endEpoch')) is None
-                or not period['startEpoch'] <= now < period['endEpoch']):
+                or period['startEpoch'] > now):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
         if grant['basis'] == 'trial' and (grant.get('activationKind') != 'explicit' or integral(grant.get('activatedAtEpoch')) is None
                 or grant['validFromEpoch'] != grant['activatedAtEpoch'] or grant['validUntilEpoch'] != grant['activatedAtEpoch'] + TRIAL_SECONDS):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
         if grant['basis'] == 'paid':
-            from .purchase_usage import global_for_period
+            from .purchase_usage import effective_access_end, global_for_period
+            if now >= effective_access_end(period):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
             global_for_period(self.ddb, self.s.authority_table, period, now=now)
-        elif 'purchaseUsageKey' in period:
+        elif 'purchaseUsageKey' in period or 'accessUntilEpoch' in period or now >= period['endEpoch']:
             raise AuthorityError('AUTHORITY_STATE_INVALID')
         if not allow_exhausted and period['usedChecks'] + period['reservedChecks'] >= limit:
             raise AuthorityError('ALLOWANCE_EXHAUSTED')
@@ -373,7 +375,10 @@ class Authority:
                      'GSI1PK': 'V1_PENDING',
                      'GSI1SK': f'{self.now() + self.s.worker_settlement_seconds:012d}#{partition}#{check_id}',
                      'retentionDeadlineEpoch': self.now() + self.s.receipt_retention_seconds}
-        if grant['basis'] == 'paid':row['purchaseUsageKey']=dict(period['purchaseUsageKey'])
+        if grant['basis'] == 'paid':
+            from .purchase_usage import effective_access_end
+            row['purchaseUsageKey'] = dict(period['purchaseUsageKey'])
+            row['accessUntilEpoch'] = effective_access_end(period)
         if payload.get('messageTransportVersion'):row['messageTransportVersion']=payload['messageTransportVersion']
         if payload.get('recoveryTransportVersion'):row['recoveryTransportVersion']=payload['recoveryTransportVersion']
         items = self._authority_conditions(account, partition, device, grant)
