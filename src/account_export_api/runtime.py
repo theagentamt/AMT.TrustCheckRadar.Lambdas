@@ -31,6 +31,32 @@ class Settings:
                 and self.active_key_id in self.hmac_keys, 'SERVICE_UNAVAILABLE', 503)
 
 
+def parse_cursor_keyring(raw):
+    """Validate operator-owned secret in memory; never expose its contents.
+
+    This can be called by setup qualification without enabling export or making
+    any AWS calls. Every malformed secret is a server-configuration failure.
+    """
+    try:
+        require(type(raw) is str and len(raw.encode('utf-8')) <= 4096)
+        ring = json.loads(raw, object_pairs_hook=unique_pairs,
+                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        require(type(ring) is dict and set(ring) == {'activeKeyId', 'keys'}
+                and type(ring['activeKeyId']) is str
+                and type(ring['keys']) is dict and 1 <= len(ring['keys']) <= 4)
+        keys = {}
+        for kid, encoded in ring['keys'].items():
+            require(type(encoded) is str)
+            decoded = base64.b64decode(encoded, validate=True)
+            require(base64.b64encode(decoded).decode('ascii') == encoded)
+            keys[kid] = decoded
+        # Reuse the capability's exact key ID, membership and length contract.
+        Cursor('dev', ring['activeKeyId'], keys)
+        return ring['activeKeyId'], keys
+    except Exception:
+        raise ExportError('SERVICE_UNAVAILABLE', 503) from None
+
+
 def load():
     require(os.environ.get('STAGE') == 'dev' and os.environ.get('ACCOUNT_EXPORT_ENABLED') == 'true', 'SERVICE_NOT_ENABLED', 503)
     require(os.environ.get('ACCOUNT_EXPORT_POLICY_VERSION') == POLICY
@@ -58,10 +84,8 @@ def load():
             raw = secrets.get_secret_value(SecretId=arn,VersionStage='AWSCURRENT')['SecretString']
         finally:
             secrets.close()
-        require(type(raw) is str and len(raw) <= 4096,'SERVICE_UNAVAILABLE',503)
-        ring = json.loads(raw,object_pairs_hook=unique_pairs)
-        require(type(ring) is dict and set(ring) == {'activeKeyId','keys'} and type(ring['keys']) is dict,'SERVICE_UNAVAILABLE',503)
-        cursor = Cursor('dev',ring['activeKeyId'],{k:base64.b64decode(v,validate=True) for k,v in ring['keys'].items()})
+        cursor_active, cursor_keys = parse_cursor_keyring(raw)
+        cursor = Cursor('dev',cursor_active,cursor_keys)
         cognito = boto3.client('cognito-idp',region_name='us-east-1',config=config)
         from shared_purchase_ownership import OwnershipStore
         store = OwnershipStore(table=resource.Table(tables['entitlements']),
