@@ -3,7 +3,6 @@ import logging
 import os
 
 import boto3
-from botocore.exceptions import ClientError
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
@@ -86,12 +85,15 @@ def lambda_handler(event, _context):
             ]
         )
         return event
-    except KeyError as err:
-        LOGGER.warning("Post confirmation event missing required attribute: %s", err)
-        raise
-    except ClientError:
-        LOGGER.exception("Failed to create user profile during post confirmation")
-        raise
+    except (KeyError, TypeError, AttributeError):
+        LOGGER.warning("POST_CONFIRMATION_INVALID_EVENT")
+        raise RuntimeError("POST_CONFIRMATION_INVALID_EVENT") from None
+    except Exception:
+        # SDK messages and exception chains can contain identifiers. Lambda also
+        # logs uncaught exceptions, so replacing the application log alone is
+        # insufficient; only this fixed diagnostic may reach the trigger caller.
+        LOGGER.error("POST_CONFIRMATION_FAILED")
+        raise RuntimeError("POST_CONFIRMATION_FAILED") from None
 
 
 def _get_required_attribute(attributes, key):
