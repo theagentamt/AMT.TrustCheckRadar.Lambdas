@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "scope": "profile_fence_two_artifacts",
+  "sourceSha": "c4b1cae34b9a90a9803022302a6ad7f2d8a13e38",
+  "environment": "dev",
+  "runtimeUpdated": false,
+  "activationApproved": false,
+  "artifacts": [
+    {
+      "function": "post_confirmation",
+      "artifact": "post_confirmation.zip",
+      "sha256": "962801e6256b812301e6405fbd8bde33beb8cb34d7dab173375b1efd4bf26e88",
+      "sourceCodeHash": "ligB5iVrgSMB5kBfvYveM764yzTX2rFzN1se/Uvybog=",
+      "bytes": 1397,
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "handler": "app.lambda_handler",
+      "bundledDependencies": [],
+      "bucket": "trustcheckradar-dev-107827791950-artifacts",
+      "key": "releases/c4b1cae34b9a90a9803022302a6ad7f2d8a13e38/post_confirmation.zip",
+      "versionId": "Q3mNvjrnCsqfPOZUCO9LB22jTH5nuWHi"
+    },
+    {
+      "function": "age_attestation",
+      "artifact": "age_attestation.zip",
+      "sha256": "e1f70b37c6073ce64d818de24ede20ce589c6d730776fd53a05fff3565337818",
+      "sourceCodeHash": "4fcLN8YHPOZNgY3iTt4gzlicbXMHdv1ToF//NWUzeBg=",
+      "bytes": 2984,
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "handler": "app.lambda_handler",
+      "bundledDependencies": [],
+      "bucket": "trustcheckradar-dev-107827791950-artifacts",
+      "key": "releases/c4b1cae34b9a90a9803022302a6ad7f2d8a13e38/age_attestation.zip",
+      "versionId": "oC3vBJfvil2SDUji4XbWM3fjUlmrfEXV"
+    }
+  ],
+  "publicationComplete": true
+}
