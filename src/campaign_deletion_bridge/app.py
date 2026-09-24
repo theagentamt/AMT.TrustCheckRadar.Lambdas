@@ -1,13 +1,16 @@
 import logging
 import os
 import boto3
+from botocore.config import Config
 import config
-from service import delete_account_contributions, parse_deletion_record
+from service import parse_deletion_record
+from retained_periods import delete_retained_contributions
 
 LOGGER = logging.getLogger()
 LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
-dynamodb = boto3.client("dynamodb")
-kms = boto3.client("kms")
+SDK_CONFIG = Config(connect_timeout=2, read_timeout=3, retries={"total_max_attempts":1})
+dynamodb = boto3.client("dynamodb", config=SDK_CONFIG)
+kms = boto3.client("kms", config=SDK_CONFIG)
 
 
 def lambda_handler(event, context):
@@ -21,7 +24,11 @@ def lambda_handler(event, context):
                                             schema_version=config.CAMPAIGN_SCHEMA_VERSION)
             if not command:
                 continue
-            result = delete_account_contributions(command,table_name=config.PIPELINE_TABLE_NAME,
+            identity = context.invoked_function_arn.split(":")
+            if len(identity) not in (7,8) or identity[0:3] != ["arn","aws","lambda"]:
+                raise RuntimeError("Campaign runtime identity is invalid")
+            result = delete_retained_contributions(command,environment=config.APP_ENVIRONMENT,
+                aws_account_id=identity[4],aws_region=identity[3],table_name=config.PIPELINE_TABLE_NAME,
                 retention_days=config.TRANSIENT_RETENTION_DAYS,dynamodb=dynamodb,kms=kms,remaining_ms=remaining,
                 deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
                 locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
