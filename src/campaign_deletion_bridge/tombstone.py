@@ -6,7 +6,9 @@ BASE={'PK','SK','recordType','schemaVersion','environment','periodId','createdAt
 
 
 def validate(value,environment,partition):
-    require(type(value) is dict and set(value) in (BASE,BASE|{'locatorCleanupRevision','locatorCleanupState'})
+    require(type(value) is dict and set(value) in (BASE,BASE|{'locatorCleanupRevision','locatorCleanupState'},
+                BASE|{'retainedPeriodSweep','retainedPeriodSweepRevision'},
+                BASE|{'locatorCleanupRevision','locatorCleanupState','retainedPeriodSweep','retainedPeriodSweepRevision'})
             and value.get('PK')==partition and value.get('SK')=='TOMBSTONE'
             and value.get('recordType')=='CAMPAIGN_DELETION_TOMBSTONE'
             and integer(value.get('schemaVersion'))==2 and value.get('environment')==environment
@@ -15,6 +17,9 @@ def validate(value,environment,partition):
     created=integer(value.get('createdAtEpoch'),1)
     deadline=integer(value.get('deletionDeadlineEpoch'),1)
     require(created<deadline<=created+21*86400 and integer(value.get('GSI3SK'))==deadline)
+    if 'retainedPeriodSweep' in value:
+        from retained_periods import validate_cursor
+        validate_cursor(value)
     return value
 
 
