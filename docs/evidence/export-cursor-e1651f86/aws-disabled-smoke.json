@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "e1651f86e30fc1478f69ba16a4049be8baf0e5f3",
+  "verifiedAtUtc": "2026-09-24T04:03:00.974427+00:00",
+  "scope": "one closed Dev export cursor-fix $LATEST candidate; empty event only",
+  "providerOrCustomerDataRequests": false,
+  "revisionGuardLimitation": "Unqualified Invoke has no RevisionId precondition; configuration is checked before and after each invocation, not atomically pinned by an alias.",
+  "functions": [
+    {
+      "function": "trustcheckradar-dev-account-export-api",
+      "artifact": "account_export_api",
+      "revisionId": "c1ab92bc-20d6-4b25-a287-08c00a488361",
+      "version": "$LATEST",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "codeSha256": "ynYTDY4o8nhqZOq+uIuyFTckEamaec1TWt9TKmRdsSk=",
+      "closedFlags": {
+        "ACCOUNT_EXPORT_ENABLED": false,
+        "ACCOUNT_EXPORT_PLAY_TOKENS_ENABLED": false
+      },
+      "expectedCode": "SERVICE_NOT_ENABLED",
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expectedStatus": 503,
+        "actualStatus": 503,
+        "actualCode": "SERVICE_NOT_ENABLED",
+        "revisionUnchangedAfterInvoke": true,
+        "passed": true
+      }
+    }
+  ]
+}
