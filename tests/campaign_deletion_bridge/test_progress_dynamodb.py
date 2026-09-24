@@ -12,6 +12,7 @@ if os.environ.get('AMT_AUTHORITY_INTEGRATION') != '1':
 import boto3
 from moto import mock_aws
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT/'src'))
 sys.path.insert(0,str(ROOT/'src/campaign_deletion_bridge'))
 import progress
 import locator_progress
@@ -64,10 +65,12 @@ def candidate(put,count=61):
     put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'SUMMARY','version':1,'expiresAt':NOW+1000,'GSI3PK':'EXPIRY#dev',
          'GSI3SK':NOW+1000,'centroid':[Decimal('.9')],'contributorCount':999,'submissionCount':999})
     put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'CONTRIB#'+TOKEN,'GSI1PK':PART,'GSI1SK':'CANDIDATE#11111111-1111-4111-8111-111111111111',
+         'metadataSchemaVersion':1,'lexicalFingerprint':['ffffffffffffffff'],'signalIds':['deleted_signal'],'indicatorIds':['deleted_indicator'],
          'periodId':10,'submissionCount':1,'vectorApplied':True,'vector':[Decimal('.9')],'expiresAt':NOW+1000})
     put(locator_for_target({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'CONTRIB#'+TOKEN,'GSI1PK':PART,'periodId':10,'expiresAt':NOW+1000},'dev'))
     for i in range(count):
         put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':f'CONTRIB#other{i:03}','submissionCount':2,'vectorApplied':True,
+             'metadataSchemaVersion':1,'lexicalFingerprint':['0123456789abcdef'],'signalIds':['retained_signal'],'indicatorIds':['retained_indicator'],
              'vector':[Decimal('.5')],'expiresAt':NOW+1000})
 
 

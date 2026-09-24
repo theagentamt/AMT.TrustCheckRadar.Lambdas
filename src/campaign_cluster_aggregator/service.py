@@ -8,6 +8,7 @@ import uuid
 from scoring import similarity, updated_centroid
 from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, cluster_authority
 from shared_campaign_contracts import APP_FEATURE_FIELDS, AppFeaturesContractError, validate_app_features
+from shared_campaign_contracts.metadata import validate_metadata, merge_metadata
 from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
     locator_put, locator_condition, get_owned_locator, locator_pointer)
 
@@ -83,6 +84,9 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         existing_purpose = deserialize(existing)
         if existing_purpose.get("researchNoticeVersion") != CURRENT_NOTICE or existing_purpose.get("researchPolicyVersion") != CURRENT_POLICY:
             raise RuntimeError("Legacy candidate contribution requires reviewed migration")
+        validate_metadata(existing_purpose)
+        if selected is None:
+            raise RuntimeError("Campaign contribution has no current summary")
         expires_at = min(expires_at, _required_number(existing, "expiresAt"))
     expiration_index = _expiration_index(environment, expires_at)
     if existing:
@@ -94,7 +98,8 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
                 _tombstone_condition(table_name, feature),
                 _dedupe_action(table_name,event_id,candidate_id,environment,min(expires_at,feature['expiresAt']),"CONTRIBUTOR_CAPPED",event_locator),
                 {"ConditionCheck":{"TableName":table_name,"Key":{"PK":{"S":f"CANDIDATE#{candidate_id}"},"SK":{"S":"SUMMARY"}},
-                    "ConditionExpression":"attribute_exists(PK) AND attribute_not_exists(lifecycleState)"}},
+                    "ConditionExpression":"version = :version AND attribute_not_exists(lifecycleState)",
+                    "ExpressionAttributeValues":{":version":{"N":str(selected["version"])}}}},
                 *write_guards,
             ])
             return "contributor-capped"
@@ -105,15 +110,17 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
                             "SET expiresAt = :expiry, GSI3PK = :expiry_partition, GSI3SK = :expiry "
                             "ADD submissionCount :one"
                         ),
-                        "ConditionExpression": "submissionCount < :maximum",
-                        "ExpressionAttributeValues": {":one": {"N": "1"}, ":maximum": {"N": str(max_submissions)},
+                        "ConditionExpression": "submissionCount < :maximum AND metadataSchemaVersion = :mv AND lexicalFingerprint = :lex AND signalIds = :signals AND indicatorIds = :indicators",
+                        "ExpressionAttributeValues": {**serialize({":mv":1,":lex":existing_purpose["lexicalFingerprint"],
+                                                      ":signals":existing_purpose["signalIds"],":indicators":existing_purpose["indicatorIds"]}),
+                                                      ":one": {"N": "1"}, ":maximum": {"N": str(max_submissions)},
                                                       ":expiry_partition": {"S": expiration_index["GSI3PK"]},
                                                       ":expiry": {"N": str(expires_at)}}}},
             {"Update": {"TableName": table_name,
                         "Key": {"PK": {"S": f"CANDIDATE#{candidate_id}"}, "SK": {"S": "SUMMARY"}},
                         "UpdateExpression": "ADD submissionCount :one SET version = version + :one",
-                        "ConditionExpression":"attribute_exists(PK) AND attribute_not_exists(lifecycleState)",
-                        "ExpressionAttributeValues": {":one": {"N": "1"}}}},
+                        "ConditionExpression":"version = :version AND attribute_not_exists(lifecycleState)",
+                        "ExpressionAttributeValues": {":one": {"N": "1"}, ":version":{"N":str(selected["version"])}}}},
             _dedupe_action(table_name,event_id,candidate_id,environment,min(expires_at,feature['expiresAt']),"COUNTED",event_locator),
             *write_guards,
         ])
@@ -127,8 +134,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         candidate["contributorCount"] += 1
         candidate["submissionCount"] += 1
         candidate["version"] += 1
-        candidate["lexicalFingerprint"] = sorted(set(candidate.get("lexicalFingerprint", [])) | set(feature.get("lexicalFingerprint", [])))[:32]
-        candidate["signalIds"] = sorted(set(candidate.get("signalIds", [])) | set(feature.get("signalIds", [])))[:16]
+        candidate.update(merge_metadata(validate_metadata(candidate), feature))
 
     put_candidate = {"Put": {"TableName": table_name, "Item": serialize(candidate)}}
     if selected:
@@ -155,6 +161,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
             "periodId": feature["periodId"], "submissionCount": 1, "vectorApplied": True,
             "researchNoticeVersion": CURRENT_NOTICE, "researchPolicyVersion": CURRENT_POLICY,
             "vector": feature["vector"], "languageId": feature["languageId"],
+            "metadataSchemaVersion": 1, "lexicalFingerprint": feature["lexicalFingerprint"],
             "signalIds": feature["signalIds"], "indicatorIds": feature["indicatorIds"],
             **expiration_index,
             "expiresAt": expires_at,
@@ -234,6 +241,7 @@ def _load_candidates(dynamodb, table_name, feature):
         if raw:
             value = deserialize(raw)
             if value.get("researchNoticeVersion") == CURRENT_NOTICE and value.get("researchPolicyVersion") == CURRENT_POLICY:
+                validate_metadata(value)
                 candidates.append(value)
     return candidates
 
@@ -244,7 +252,8 @@ def _new_candidate(candidate_id, feature, environment, expires_at):
             "researchNoticeVersion": CURRENT_NOTICE, "researchPolicyVersion": CURRENT_POLICY,
             "GSI2PK": f"PERIOD#{feature['periodId']}#BUCKET#{feature['taxonomyBucket']}",
             "GSI2SK": f"CANDIDATE#{candidate_id}", "centroid": feature["vector"],
-            "lexicalFingerprint": feature.get("lexicalFingerprint", []),
+            "metadataSchemaVersion": 1,
+            "lexicalFingerprint": sorted(feature["lexicalFingerprint"]),
             "signalIds": feature.get("signalIds", []), "indicatorIds": feature.get("indicatorIds", []),
             "contributorCount": 1, "submissionCount": 1, "version": 1,
             "reviewState": "UNFINALIZED", **_expiration_index(environment, expires_at),

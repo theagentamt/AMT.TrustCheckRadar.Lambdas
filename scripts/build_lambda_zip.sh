@@ -105,7 +105,7 @@ needs_shared_entitlements() {
 
 needs_shared_campaign_contracts() {
   case "$1" in
-    campaign_cluster_aggregator|campaign_observation_publisher|conversation_analysis) return 0 ;;
+    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|conversation_analysis) return 0 ;;
     *) return 1 ;;
   esac
 }

@@ -53,7 +53,7 @@ def feature(**updates):
 
 def candidate():
     return {"PK": "CANDIDATE#11111111-1111-4111-8111-111111111111", "SK": "SUMMARY", "candidateId": "11111111-1111-4111-8111-111111111111", "periodId": 1471,
-            "taxonomyBucket": "advance_fee", "researchNoticeVersion":"research-consent-2026-09-21-v2", "researchPolicyVersion":"independent-research-v1", "centroid": [1.0, 0.0],
+            "taxonomyBucket": "advance_fee", "metadataSchemaVersion":1, "researchNoticeVersion":"research-consent-2026-09-21-v2", "researchPolicyVersion":"independent-research-v1", "centroid": [1.0, 0.0],
             "lexicalFingerprint": ["0123456789abcdef", "fedcba9876543210"],
             "signalIds": ["payment_request"], "indicatorIds": [],
             "contributorCount": 9, "submissionCount": 9, "version": 2, "expiresAt": 2_000_000_000}
@@ -63,7 +63,7 @@ class Dynamo:
     def __init__(self, feature_item=None, candidates=None, contribution=None, dedupe=None):
         self.feature_item = service.serialize(feature_item) if feature_item else None
         self.candidates = candidates or []
-        self.contribution = contribution
+        self.contribution = (contribution | service.serialize({"metadataSchemaVersion":1,"lexicalFingerprint":["0123456789abcdef"],"signalIds":["payment_request"],"indicatorIds":["payment.crypto"]})) if contribution else None
         self.dedupe = dedupe
         self.transactions = []
         self.puts = []

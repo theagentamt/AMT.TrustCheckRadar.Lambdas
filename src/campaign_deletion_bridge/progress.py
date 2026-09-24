@@ -8,6 +8,7 @@ MAX_STEPS = 10
 
 
 from cleanup_errors import CoverageUnavailable
+from shared_campaign_contracts.metadata import validate_metadata, merge_metadata, empty_metadata
 
 
 def wire(value):
@@ -72,9 +73,12 @@ def recompute_page(ddb, table, pk, now):
     version, expiry = integer(summary.get('version'),1), integer(summary.get('expiresAt'),1)
     require(expiry > now)
     saved = get(ddb,table,pk,'DELETION_RECOMPUTE')
+    if saved is not None:
+        validate_repair(saved, summary, now)
     if saved is None or saved.get('summaryVersion') != version:
         state = {'PK':pk,'SK':'DELETION_RECOMPUTE','revision':1 if saved is None else integer(saved.get('revision'),1)+1,
                  'summaryVersion':version,'cursor':None,'contributors':0,'submissions':0,'vectors':0,'sums':[],
+                 'metadataSchemaVersion':1, **empty_metadata(),
                  'cutoffEpoch':now,'expiresAt':expiry,'GSI3PK':summary['GSI3PK'],'GSI3SK':expiry}
         put = {'TableName':table,'Item':wire(state)}
         if saved is None:
@@ -83,14 +87,7 @@ def recompute_page(ddb, table, pk, now):
             put.update(ConditionExpression='revision = :r',ExpressionAttributeValues=wire({':r':saved['revision']}))
         ddb.transact_write_items(TransactItems=[condition(table,pk,'SUMMARY',version),{'Put':put}])
         return False
-    expected = {'PK','SK','revision','summaryVersion','cursor','contributors','submissions','vectors','sums','cutoffEpoch','expiresAt','GSI3PK','GSI3SK'}
-    require(set(saved) == expected and saved['expiresAt'] == expiry and saved['GSI3PK'] == summary['GSI3PK'] and saved['GSI3SK'] == expiry)
-    for field in ('revision','contributors','submissions','vectors','cutoffEpoch'):
-        integer(saved[field])
-    require(saved['cutoffEpoch'] <= now and type(saved['sums']) is list and len(saved['sums']) <= 384)
-    require(all(type(v) in (int,Decimal) and Decimal(v).is_finite() for v in saved['sums']))
     cursor = saved['cursor']
-    require(cursor is None or (type(cursor) is str and cursor.startswith('CONTRIB#') and len(cursor) <= 2048))
     args = dict(TableName=table, KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',
                 ExpressionAttributeValues=wire({':pk':pk,':prefix':'CONTRIB#'}),ConsistentRead=True,Limit=PAGE_SIZE)
     if cursor:
@@ -103,6 +100,11 @@ def recompute_page(ddb, table, pk, now):
         require(row.get('PK') == pk and type(row.get('SK')) is str and row['SK'].startswith('CONTRIB#'))
         if integer(row.get('expiresAt'),1) <= saved['cutoffEpoch']:
             continue
+        try:
+            metadata = validate_metadata(row)
+        except ValueError:
+            raise CoverageUnavailable() from None
+        state.update(merge_metadata(state, metadata))
         state['contributors'] += 1
         state['submissions'] += min(3,integer(row.get('submissionCount'),1))
         require(type(row.get('vectorApplied')) is bool)
@@ -131,10 +133,34 @@ def recompute_page(ddb, table, pk, now):
     else:
         centroid = [(v / state['vectors']).quantize(Decimal('.0000001')) for v in state['sums']]
         action = {'Update':{'TableName':table,'Key':key(pk,'SUMMARY'),
-            'UpdateExpression':'SET centroid = :centroid, contributorCount = :count, submissionCount = :submissions, #v = :next',
+            'UpdateExpression':'SET centroid = :centroid, contributorCount = :count, submissionCount = :submissions, #v = :next, metadataSchemaVersion = :mv, lexicalFingerprint = :lex, signalIds = :signals, indicatorIds = :indicators',
             'ConditionExpression':'#v = :v AND attribute_not_exists(lifecycleState)','ExpressionAttributeNames':{'#v':'version'},
             'ExpressionAttributeValues':wire({':v':version,':next':version+1,':centroid':centroid,
-                                               ':count':state['contributors'],':submissions':state['submissions']})}}
+                                               ':count':state['contributors'],':submissions':state['submissions'], ':mv':1,
+                                               ':lex':state['lexicalFingerprint'],':signals':state['signalIds'],':indicators':state['indicatorIds']})}}
     ddb.transact_write_items(TransactItems=[action,{'Delete':{'TableName':table,'Key':key(pk,'DELETION_RECOMPUTE'),
         'ConditionExpression':'revision = :r','ExpressionAttributeValues':wire({':r':saved['revision']})}}])
     return True
+
+
+def validate_repair(saved, summary, now):
+    expected = {'PK','SK','revision','summaryVersion','cursor','contributors','submissions','vectors','sums',
+                'cutoffEpoch','expiresAt','GSI3PK','GSI3SK','metadataSchemaVersion',*empty_metadata()}
+    require(set(saved) == expected and saved['PK'] == summary['PK'] and saved['SK'] == 'DELETION_RECOMPUTE'
+            and saved['expiresAt'] == summary['expiresAt'] and saved['GSI3PK'] == summary['GSI3PK']
+            and saved['GSI3SK'] == summary['expiresAt'])
+    for field in ('revision','summaryVersion','cutoffEpoch'):
+        integer(saved[field],1)
+    for field in ('contributors','submissions','vectors'):
+        integer(saved[field])
+    require(saved['vectors'] <= saved['contributors'] <= saved['submissions'] <= 3*saved['contributors'])
+    require(saved['cutoffEpoch'] <= now and type(saved['sums']) is list and len(saved['sums']) <= 384)
+    require(all(type(v) in (int,Decimal) and Decimal(v).is_finite() for v in saved['sums']))
+    require((saved['vectors'] == 0) == (len(saved['sums']) == 0))
+    cursor = saved['cursor']
+    require(cursor is None or (type(cursor) is str and cursor.startswith('CONTRIB#') and len(cursor) <= 2048))
+    try:
+        metadata = validate_metadata(saved)
+    except ValueError:
+        raise CoverageUnavailable() from None
+    require(all(saved[k] == v for k,v in metadata.items()))
