@@ -85,9 +85,9 @@ def _handle_cognito_trigger(event, context):
         )
 
         return event
-    except Exception as err:
-        LOGGER.exception("Cognito age attestation trigger failed", exc_info=err)
-        raise
+    except Exception:
+        LOGGER.error("AGE_ATTESTATION_TRIGGER_FAILED")
+        raise RuntimeError("AGE_ATTESTATION_TRIGGER_FAILED") from None
 
 
 def _process_attestation(*, sub: str, over_18_acknowledged: bool, age_policy_version: str):
@@ -300,11 +300,18 @@ def _update_user_attestation(
             ]
         )
     except ClientError as err:
-        if err.response.get("Error", {}).get("Code") in {
-            "ConditionalCheckFailedException",
-            "TransactionCanceledException",
-        }:
-            raise ValueError("User profile not found for sub") from err
+        code = err.response.get("Error", {}).get("Code")
+        reasons = err.response.get("CancellationReasons", [])
+        conditional_cancel = (
+            code == "TransactionCanceledException"
+            and isinstance(reasons, list)
+            and len(reasons) == 2
+            and all(isinstance(reason, dict) for reason in reasons)
+            and any(reason.get("Code") == "ConditionalCheckFailed" for reason in reasons)
+            and all(reason.get("Code") in {"None", "ConditionalCheckFailed"} for reason in reasons)
+        )
+        if code == "ConditionalCheckFailedException" or conditional_cancel:
+            raise ValueError("User profile not found for sub") from None
         raise
 
 
@@ -323,7 +330,7 @@ def _response(status_code: int, body: dict):
 def _internal_error_response(*, context, err: Exception, sub: str | None):
     error_code = "AGE_ATTESTATION_INTERNAL_ERROR"
     request_id = getattr(context, "aws_request_id", None) or str(uuid.uuid4())
-    LOGGER.exception("Age attestation failed | error_code=%s", error_code, exc_info=err)
+    LOGGER.error("Age attestation failed | error_code=%s", error_code)
     return _response(
         500,
         {
