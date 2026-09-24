@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "e1651f86e30fc1478f69ba16a4049be8baf0e5f3",
+  "noNetwork": true,
+  "awsRuntimeQualified": false,
+  "artifacts": [
+    {
+      "function": "account_export_api",
+      "sha256": "ca76130d8e28f2786a64eabeb88bb215372411a99a79cd535adf532a645db129",
+      "bytes": 5084210,
+      "sourceFilesCompared": 56,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store",
+          "Pragma": "no-cache"
+        },
+        "body": "{\"schemaVersion\":1,\"error\":{\"code\":\"SERVICE_NOT_ENABLED\",\"retryable\":true}}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    }
+  ]
+}
