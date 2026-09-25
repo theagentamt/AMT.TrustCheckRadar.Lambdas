@@ -102,12 +102,17 @@ prefix/projection logic accepts this event and does not export the key or IDs.
 Original request/audit retention is never refreshed. Positive withdrawal replay first validates the current pinned completion and
 linked inventories, requires its own job absent and its exact unexpired completion
 audit; unrelated remaining jobs may coexist. Component receipt/seal replay also
-requires current qualified markers. A full-account terminal fence alone produces
+requires current qualified markers. Both positive replay paths now re-prove all
+retained partitions and use a check-only transaction to guard the current evidence;
+logical retention is checked before and after that SDK call. A full-account terminal fence alone produces
 only terminalAcknowledged=true with campaignComplete=false, including after
 receipt retirement; legacy terminal state is not new erasure proof. Replay
-performs no new write and does not recreate a retired receipt,
+performs no record mutation (its verification transaction is check-only) and does
+not recreate a retired receipt,
 update a later consent epoch or extend a previous completion audit. Lost response
-or concurrent completion can resolve only from exact durable terminal evidence.
+or concurrent completion can resolve only from exact durable terminal evidence
+plus this fresh proof. See campaign-runtime-qualification-candidate.md for the
+synthetic restore matrix and its historical limitations.
 
 ## Future IAM and activation dependencies
 

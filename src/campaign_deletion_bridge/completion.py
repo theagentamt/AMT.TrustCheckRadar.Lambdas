@@ -59,7 +59,7 @@ class Completion:
         try:return self._complete(deepcopy(original))
         except Exception:raise CompletionUnavailable() from None
 
-    def _complete(self,command):
+    def _complete(self,command,*,replay_only=False):
         now=R.integer(self.now(),1)
         need(self.env in ('dev','uat','prod') and type(self.max_periods) is int and 1<=self.max_periods<=32)
         need(type(self.account) is str and re.fullmatch('[0-9]{12}',self.account)
@@ -85,15 +85,8 @@ class Completion:
         recovery=R.validate_inventory(self._get(self.ledger,'INVENTORY#'+self.env,'CAMPAIGN_RECOVERY_INVENTORY'),
             self.env,self.recovery_manifest,self.recovery_revision,now)
         need(locator['approvedAtEpoch']<command['occurredAtEpoch'] and recovery['approvedAtEpoch']<command['occurredAtEpoch'])
-        if terminal:
-            self._withdrawal_replay(command,stored,now)
-            return self._result(True)
-        if command['SK']=='ACCOUNT_DELETION' and receipt is not None:
-            self._receipt(receipt,command,now)
-            control=R.validate_control(self._get(self.ledger,command['PK'],R.CONTROL_SK),self.env,command['PK'])
-            need(control['state']=='SEALED' and self._get(self.ledger,command['PK'],R.JOB_PREFIX+command['operationId']) is None)
-            return self._result(True)
-        need(receipt is None)
+        replay=terminal or (command['SK']=='ACCOUNT_DELETION' and receipt is not None)
+        need(replay or (not replay_only and receipt is None))
         guards=[R.condition(self.ledger,marker),R.condition(self.pipeline,locator),R.condition(self.ledger,recovery)]
         first,last=int(locator['minimumPeriodId']),int(command['occurredAtEpoch'])//PERIOD_SECONDS
         need(0<=first<=last and last-first+1<=self.max_periods)
@@ -109,6 +102,26 @@ class Completion:
                 KeyConditionExpression='PK = :pk',ExpressionAttributeValues=R.wire({':pk':partition}))
             need(type(page.get('Items')) is list and [R.plain(x) for x in page['Items']]==[tomb] and not page.get('LastEvaluatedKey'))
             guards.extend([R.condition(self.pipeline,record),R.condition(self.pipeline,tomb)])
+        if replay:
+            guards.append(R.condition(self.ledger,stored))
+            if terminal:
+                guards.extend(self._withdrawal_replay(command,stored,now))
+            else:
+                self._receipt(receipt,command,now)
+                control=R.validate_control(self._get(self.ledger,command['PK'],R.CONTROL_SK),self.env,command['PK'])
+                need(control['state']=='SEALED')
+                need(self._get(self.ledger,command['PK'],R.JOB_PREFIX+command['operationId']) is None)
+                guards.extend([R.condition(self.ledger,receipt),R.condition(self.ledger,control),
+                    R.absent(self.ledger,command['PK'],R.JOB_PREFIX+command['operationId'])])
+            fresh=R.integer(self.now(),1);need(fresh>=now)
+            deadline=stored['completedAtEpoch']+400*86400 if terminal else receipt['retainUntilEpoch']
+            need(fresh<deadline)
+            need(len(guards)<=100)
+            # Check-only stable proof: never regenerate audit/receipt or counters.
+            # Lost verification acknowledgement fails closed, without recursion.
+            self._call(self.ddb.transact_write_items,TransactItems=R.serialize_actions(guards))
+            finished=R.integer(self.now(),1);need(fresh<=finished<deadline)
+            return self._result(True)
         job=R.validate_job(self._get(self.ledger,command['PK'],R.JOB_PREFIX+command['operationId']),self.env,command)
         control=R.validate_control(self._get(self.ledger,command['PK'],R.CONTROL_SK),self.env,command['PK'])
         need(control['state']=='OPEN' and control['revision']<9007199254740991)
@@ -138,21 +151,9 @@ class Completion:
         need(len(operations)<=100)
         try:self._call(self.ddb.transact_write_items,TransactItems=R.serialize_actions(operations))
         except Exception:
-            # No current-time regeneration on ambiguous acknowledgement. Only an
-            # exact durable terminal write can turn this into a replay result.
-            current=self._get(self.ledger,command['PK'],command['SK'])
-            if self._terminal(command,current,now):
-                if command['SK']=='ACCOUNT_DELETION':
-                    return {'schemaVersion':1,'campaignComplete':False,'alreadyComplete':False,
-                            'accountComplete':False,'terminalAcknowledged':True}
-                self._withdrawal_replay(command,current,now)
-                return self._result(True)
-            if command['SK']=='ACCOUNT_DELETION':
-                saved=self._get(self.ledger,command['PK'],'ACCOUNT_DELETION#CAMPAIGN')
-                if saved==receipt and self._get(self.ledger,job['PK'],job['SK']) is None:
-                    sealed=self._get(self.ledger,command['PK'],R.CONTROL_SK)
-                    if sealed==control|{'revision':control['revision']+1,'pendingJobs':0,'state':'SEALED'}:return self._result(True)
-            raise
+            # Reconcile ambiguous mutation only through a fresh stable replay
+            # proof; a still-pending command cannot dispatch another mutation.
+            return self._complete(command,replay_only=True)
         return self._result(False)
 
     def _marker(self,row,command,now):
@@ -212,6 +213,9 @@ class Completion:
         audit=self._get(self.users,expected['PK'],expected['SK'])
         need(audit==expected and R.integer(audit['schemaVersion'],1)==1
              and R.integer(audit['recordVersion'],1)==1 and now<expected['expiresAt'])
+        return [R.condition(self.users,audit),
+            R.condition(self.ledger,control) if control else R.absent(self.ledger,command['PK'],R.CONTROL_SK),
+            R.absent(self.ledger,command['PK'],R.JOB_PREFIX+command['operationId'])]
 
     def _receipt(self,row,command,now):
         need(type(row) is dict and set(row)==RECEIPT_FIELDS)
