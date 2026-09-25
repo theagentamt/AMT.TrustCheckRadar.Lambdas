@@ -67,6 +67,9 @@ def world():
                      "usernameIsSubVerified": True, "approvedAtEpoch": NOW - 20}
         table.put_item(Item=command)
         table.put_item(Item=inventory)
+        table.put_item(Item={"PK":command["PK"],"SK":"CAMPAIGN_RECOVERY_CONTROL",
+            "recordType":"CAMPAIGN_RECOVERY_CONTROL","schemaVersion":1,"environment":"dev",
+            "revision":2,"pendingJobs":0,"state":"SEALED"})
         for component in REQUIRED_COMPONENTS[:-1]:
             table.put_item(Item=receipt(command, component))
         cognito = Cognito()
@@ -270,3 +273,23 @@ def test_shared_admission_inventory_helper_and_atomic_guard(world):
     table.put_item(Item=inventory | {"revision": 2})
     with pytest.raises(Exception):
         finalizer.client.transact_write_items(TransactItems=[serialize_operation(inventory_condition("ledger", inventory))])
+
+
+@pytest.mark.parametrize("kind", ["missing", "open", "unknown"])
+def test_recovery_jobs_must_be_authoritatively_sealed_before_identity(world, kind):
+    finalizer, table, command, _, cognito = world
+    key={"PK":command["PK"],"SK":"CAMPAIGN_RECOVERY_CONTROL"}
+    if kind == "missing":table.delete_item(Key=key)
+    else:
+        value=table.get_item(Key=key)["Item"]
+        value.update({"state":"OPEN","pendingJobs":1} if kind=="open" else {"extra":True})
+        table.put_item(Item=value)
+    with pytest.raises(FinalizationError, match="CAMPAIGN_RECOVERY_UNVERIFIED"):
+        finalizer.finalize(command)
+    assert not cognito.gets and not cognito.deletes
+
+
+def test_finalizer_removes_sealed_control_in_atomic_terminal_transaction(world):
+    finalizer, table, command, _, _=world
+    finalizer.finalize(command)
+    assert row(table,{"PK":command["PK"],"SK":"CAMPAIGN_RECOVERY_CONTROL"}) is None

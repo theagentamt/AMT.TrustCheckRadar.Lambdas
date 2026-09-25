@@ -172,6 +172,12 @@ def update_participation(
             }
         )
 
+    if action == "withdraw" and config.CAMPAIGN_RECOVERY_WRITES_ENABLED:
+        from shared_campaign_recovery.jobs import enqueue_actions
+        from shared_campaign_recovery.records import plain, serialize_actions
+        command = plain(transaction[-1]["Put"]["Item"])
+        transaction.extend(serialize_actions(enqueue_actions(
+            dynamodb, config.DELETION_LEDGER_TABLE_NAME, command)))
     transaction.extend(_account_authority_checks(account_id))
 
     try:

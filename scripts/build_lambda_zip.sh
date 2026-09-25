@@ -297,6 +297,9 @@ build_function() {
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_research_consent" "$build_dir/shared_research_consent"
   fi
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "campaign_participation" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "v1_authority_deletion" || "$function_name" == "history_account_deletion_bridge" || "$function_name" == "history_lifecycle" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_recovery" "$build_dir/shared_campaign_recovery"
+  fi
   if needs_shared_campaign_contracts "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"
   fi

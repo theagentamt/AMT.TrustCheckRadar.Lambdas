@@ -53,7 +53,7 @@ class AccountDeletionService:
         self, *, environment, ledger_table, users_table_name,
         ledger_table_name, dynamodb_client, required_components,
         erasure_sla_hours=24, now=lambda: int(time.time()),
-        inventory_manifest_sha256=None, inventory_revision=None,
+        inventory_manifest_sha256=None, inventory_revision=None, campaign_recovery_writes_enabled=False,
     ):
         self.environment = environment
         self.ledger_table = ledger_table
@@ -65,6 +65,7 @@ class AccountDeletionService:
         self.now = now
         self.inventory_manifest_sha256 = inventory_manifest_sha256
         self.inventory_revision = inventory_revision
+        self.campaign_recovery_writes_enabled = campaign_recovery_writes_enabled
 
     def request(self, account_id, operation_id):
         existing = self._command(account_id)
@@ -116,6 +117,11 @@ class AccountDeletionService:
             }},
         ]
         transaction.append(serialize_operation(inventory_condition(self.ledger_table_name, inventory)))
+        if self.campaign_recovery_writes_enabled:
+            from shared_campaign_recovery.jobs import enqueue_actions
+            from shared_campaign_recovery.records import serialize_actions
+            transaction.extend(serialize_actions(enqueue_actions(
+                self.dynamodb_client, self.ledger_table_name, command)))
         try:
             self.dynamodb_client.transact_write_items(TransactItems=transaction)
         except Exception as err:

@@ -171,3 +171,5 @@ def required_components():
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is invalid.")
     return tuple(values)
+
+CAMPAIGN_RECOVERY_WRITES_ENABLED = os.environ.get("CAMPAIGN_RECOVERY_WRITES_ENABLED", "false") == "true"
