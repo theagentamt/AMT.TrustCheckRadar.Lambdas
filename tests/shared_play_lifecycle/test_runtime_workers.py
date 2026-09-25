@@ -183,7 +183,8 @@ def test_real_token_receipt_is_required_before_synthetic_identity_finalization(t
  _,command,_=setup(tokens)
  ledger=a.ddb.Table('deletion');manifest='a'*64
  ledger.put_item(Item={'PK':'INVENTORY#dev','SK':'ACCOUNT_DATA_INVENTORY','recordType':'ACCOUNT_DATA_INVENTORY','schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':manifest,'requiredComponents':list(REQUIRED_COMPONENTS),'usernameIsSubVerified':True,'approvedAtEpoch':now-1})
- # Other component proofs are synthetic preconditions, not their integration test.
+ # Recovery seal and other component proofs are synthetic preconditions, not their integration test.
+ ledger.put_item(Item={'PK':command['PK'],'SK':'CAMPAIGN_RECOVERY_CONTROL','recordType':'CAMPAIGN_RECOVERY_CONTROL','schemaVersion':1,'environment':'dev','revision':2,'pendingJobs':0,'state':'SEALED'})
  for component in REQUIRED_COMPONENTS:
   if component in ('PLAY_TOKENS','USER_PROFILE','IDENTITY'):continue
   ledger.put_item(Item={'PK':command['PK'],'SK':'ACCOUNT_DELETION#'+component,'schemaVersion':1,'recordVersion':1,'environment':'dev','eventType':'account.deletion.component.completed','component':component,'status':'COMPLETE','operationId':command['operationId'],'requestOccurredAtEpoch':now,'occurredAtEpoch':now,'retainUntilEpoch':now+RETENTION_SECONDS})

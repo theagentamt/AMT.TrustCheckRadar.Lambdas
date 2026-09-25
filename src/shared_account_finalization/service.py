@@ -83,10 +83,20 @@ class Finalizer:
         identity_key = {"PK": command["PK"], "SK": "ACCOUNT_DELETION#IDENTITY"}
         # No separate identity receipt may predate the atomic completed fence.
         require(self._get(identity_key) is None, "FINALIZER_IDENTITY_EVIDENCE_INVALID")
+        # Count authority is part of the reviewed full inventory. GSI absence is
+        # never an erasure proof; only the atomic last-job/CAMPAIGN receipt seal
+        # can authorize identity removal.
+        from shared_campaign_recovery.records import validate_control, RecoveryUnavailable, CONTROL_SK
+        recovery = self._get({"PK": command["PK"], "SK": CONTROL_SK})
+        try:
+            validate_control(recovery, self.environment, command["PK"])
+            require(recovery["state"] == "SEALED", "FINALIZER_CAMPAIGN_RECOVERY_UNVERIFIED")
+        except RecoveryUnavailable:
+            raise FinalizationError("FINALIZER_CAMPAIGN_RECOVERY_UNVERIFIED") from None
         proofs = [inventory, *receipts]
         # Check the entire immutable proof set before the irreversible provider
         # call, then check again atomically when recording completion.
-        self._transact([self._condition(row) for row in [command, *proofs]])
+        self._transact([self._condition(row) for row in [command, recovery, *proofs]])
         self._delete_identity(command["accountId"])
         completed_at = self._now()
         require(completed_at >= now, "FINALIZER_CLOCK_INVALID")
@@ -101,6 +111,8 @@ class Finalizer:
                      "completedAtEpoch": completed_at, "retainUntilEpoch": completed_at + RETENTION_SECONDS}
         put = {"TableName": self.ledger_name, "Item": completed, **match_row(command)}
         operations = [self._condition(row) for row in proofs]
+        operations.append({"Delete": {"TableName": self.ledger_name,
+            "Key": {"PK": recovery["PK"], "SK": recovery["SK"]}, **match_row(recovery)}})
         operations.extend([
             {"Put": {"TableName": self.ledger_name, "Item": identity, "ConditionExpression": "attribute_not_exists(PK)"}},
             {"Put": put},

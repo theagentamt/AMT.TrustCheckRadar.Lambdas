@@ -1,0 +1,86 @@
+{
+  "scope": "Local source-byte and compile validation only; no import of Linux native dependencies, publication or deployment. Two campaign packages have no extra requirements; seven dependent packages intentionally source-only.",
+  "packages": [
+    {
+      "function": "campaign_deletion_bridge",
+      "sha256": "5ccf2a34fbef74ca2f72c7308993cdd52f8bec4690ecdfd108af766981c7f65f",
+      "sizeBytes": 30028,
+      "pythonFilesCompared": 19,
+      "dependenciesIncluded": true,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "campaign_participation",
+      "sha256": "12c95893009ff74e4ee7f5a5e65400db6f81ce3b5ec3d1bbb1f302088eba3f52",
+      "sizeBytes": 14294,
+      "pythonFilesCompared": 10,
+      "dependenciesIncluded": true,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "account_data_api",
+      "sha256": "69bdc83f7645d0f5fbdf89afd21b6ce47d194afb570c2e32a59b7dc35f04cd00",
+      "sizeBytes": 47543,
+      "pythonFilesCompared": 21,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "v1_authority_deletion",
+      "sha256": "1e0859ad751cecf31752e18ac8fe67352e3eb847b14bac2a50e70505a55be49f",
+      "sizeBytes": 65430,
+      "pythonFilesCompared": 32,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "history_account_deletion_bridge",
+      "sha256": "684e5ea39f7721d5ebf3066a47fed76a7c3cddedaede989e32652e110688b2c5",
+      "sizeBytes": 18205,
+      "pythonFilesCompared": 11,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "history_lifecycle",
+      "sha256": "9a8a772edb0c6f202c2982d31dc3840027153a2497b462e193241e0f3db66811",
+      "sizeBytes": 30116,
+      "pythonFilesCompared": 15,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "play_lifecycle_ingress",
+      "sha256": "8ec52a8d6cbcedd4deca0b51cfe4b05c03e9f65526661d8496fcf0f5d7670329",
+      "sizeBytes": 99609,
+      "pythonFilesCompared": 52,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "play_lifecycle_worker",
+      "sha256": "0cc414f6fd5adba34b22e99304c077d9a6fbfd33910395b9c6df9a46638948ad",
+      "sizeBytes": 102669,
+      "pythonFilesCompared": 54,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    },
+    {
+      "function": "play_token_deletion",
+      "sha256": "1896f4eb3e3c3023aeede826f4afecf153ef065eed9f09e380dd3c26a82213f2",
+      "sizeBytes": 99826,
+      "pythonFilesCompared": 52,
+      "dependenciesIncluded": false,
+      "python": "3.14",
+      "architecture": "arm64"
+    }
+  ]
+}

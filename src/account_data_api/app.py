@@ -78,6 +78,7 @@ def _service():
         erasure_sla_hours=config.ACCOUNT_DELETION_SLA_HOURS,
         inventory_manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
         inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION,
+        campaign_recovery_writes_enabled=config.CAMPAIGN_RECOVERY_WRITES_ENABLED,
     )
 
 

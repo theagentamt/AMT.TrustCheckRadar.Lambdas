@@ -33,3 +33,5 @@ def validate_config() -> None:
         raise RuntimeError("Campaign participation policy versions are not configured")
     if AUDIT_RETENTION_DAYS != 400 or DELETION_SLA_HOURS != 24:
         raise RuntimeError("Campaign participation retention policy is invalid")
+
+CAMPAIGN_RECOVERY_WRITES_ENABLED = os.environ.get("CAMPAIGN_RECOVERY_WRITES_ENABLED", "false") == "true"
