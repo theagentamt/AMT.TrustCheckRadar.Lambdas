@@ -1,9 +1,11 @@
 # SEC207 isolated completion runtime qualification
 
-This increment hardens positive completion replay and supplies a separate, bounded
-synthetic AWS runner. Production `campaign_deletion_bridge/app.py` stays unchanged:
-completion remains unwired and all deployed activation/producer/recovery gates stay
-false. No production inventory writer, backfill or erasure is added.
+The original PR57 increment hardened positive completion replay and supplied a
+separate bounded synthetic AWS runner without changing the production handler.
+The subsequent campaign-completion-worker-candidate.md integrates that primitive
+behind default-false stream/completion gates. The qualification builder continues
+to preserve the exact committed production app.py; it does not replace the handler
+with the runner. No production inventory writer or backfill is added.
 
 ## Positive replay
 
@@ -31,7 +33,9 @@ and undergo reconciliation/reapproval before new completion claims.
 
 Run ID is exactly twelve lowercase hexadecimal characters. Resource prefix is
 `amt-campaign-completion-qual-<runid>`. Dedicated tables end in `-pipeline`, `-ledger`,
-and `-users`, with String PK/SK and no indexes needed. Function ends in `-runner`.
+and `-users`, with String PK/SK. The ledger additionally requires the exact ACTIVE
+CampaignRecoveryDueIndex (campaignRecoveryPartition String / nextAttemptAtEpoch
+Number, KEYS_ONLY); other fixture tables have no indexes. Function ends in `-runner`.
 Region/account are fixed to `us-east-1` / `107827791950`. Each table and HMAC key must
 have exactly the four reviewed tags: Purpose `campaign-completion-qualification`,
 QualificationRunId the run ID, Environment `dev`, Project `trustcheckradar`.
@@ -67,7 +71,8 @@ resource provisioning, explicit invocation and cleanup; the runner creates no AW
 resources or policies.
 
 IAM needed by this fixture only: exact-table DescribeTable/ListTagsOfResource,
-GetItem/Query/Scan/PutItem/UpdateItem/DeleteItem/ConditionCheckItem and exact-key
+GetItem/Query/Scan/PutItem/UpdateItem/DeleteItem/ConditionCheckItem, Query on the exact
+ledger CampaignRecoveryDueIndex ARN, and exact-key
 DescribeKey/ListResourceTags/GenerateMac. Transactions use constituent permissions.
 No Lambda, STS, Cognito, provider, S3, backup, key-management or logging API calls.
 The HMAC fixture key is scheduled for deletion with the approved seven-day minimum
@@ -123,3 +128,17 @@ Done or authorize deployment/activation of completion.
   response was added. Six ordinary bridge tests plus nine subtests passed.
 - Final package checks are recorded with the frozen source/artifact handoff; no
   cloud result is implied by these local counts.
+
+## Subsequent actual-handler integration fixture cases
+
+The runner now includes seven actual stream/scheduled handler cases in addition to
+the original 28 primitive/containment cases. After strict resource preflight it
+sets only in-process app settings to these fixture tables/keys and restores them
+after each case; no AWS Lambda environment or production gate is changed. Real
+source `app.lambda_handler` and `Worker` execute. Stream records are synthetic
+DynamoDB stream-shaped events, not proof of ESM delivery configuration. Scheduled
+setup allows at most eight bounded index-visibility queries before invoking the
+real recovery handler. An eventual query is used solely for discovery; completion
+still requires the strong transactional proof. Cases cover stream completion and
+replay, scheduled completion, disabled stream/completion, missing marker and stale
+cleanup after concurrent sealing. Total fixed cloud runner cases:35.

@@ -1,4 +1,4 @@
-"""Bounded eventual discovery. Never emits a completion receipt or removes a job."""
+"""Bounded eventual discovery; only the independently gated cleanup adapter can complete jobs."""
 import time
 from .records import *
 from .jobs import update
@@ -25,7 +25,7 @@ class Worker:
     def run(self):
         now=integer(self.now(),1)
         metrics={name:0 for name in ('RecoveryTicks','RecoveryFailures','CommandsAttempted',
-            'CommandsUnverified','SidecarSchemaFailures','IndexCandidatesObserved',
+            'CommandsUnverified','CommandsCompleted','CommandsTerminalAcknowledged','SidecarSchemaFailures','IndexCandidatesObserved',
             'ObservedPendingAgeSeconds','ObservedOverdueCommands','RecoveryBudgetExhausted','RecoveryShardTruncated')}
         if self.remaining_ms()<6000:
             metrics['RecoveryBudgetExhausted']=1
@@ -89,9 +89,15 @@ class Worker:
                     if self.remaining_ms()<6000:
                         metrics['RecoveryBudgetExhausted']=1
                         return metrics
-                    metrics['CommandsAttempted']+=1;metrics['CommandsUnverified']+=1
-                    try:self.cleanup(command)
-                    except Exception:metrics['RecoveryFailures']+=1
+                    metrics['CommandsAttempted']+=1
+                    try:
+                        outcome=self.cleanup(command)
+                        status=outcome.get('completionStatus') if isinstance(outcome,dict) else None
+                        if status=='COMPLETE':metrics['CommandsCompleted']+=1
+                        elif status=='TERMINAL_ACKNOWLEDGED':metrics['CommandsTerminalAcknowledged']+=1
+                        else:metrics['CommandsUnverified']+=1
+                    except Exception:
+                        metrics['RecoveryFailures']+=1;metrics['CommandsUnverified']+=1
                 cursor=page.get('LastEvaluatedKey')
                 if not cursor:break
             if cursor:metrics['RecoveryShardTruncated']+=1

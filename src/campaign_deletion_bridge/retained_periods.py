@@ -88,7 +88,7 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
         expected=command|{'status':'COMPLETE','completedAtEpoch':completed}
         if command['eventType']=='account.deletion.requested':
             expected|={'eventType':'account.deletion.completed','retainUntilEpoch':completed+120*86400}
-        require(stored==expected)
+        require(stored==expected and completed<=now)
         return result|{'alreadyCompleted':True,'reason':'ALREADY_COMPLETED'}
     require(stored==command)
     budget()

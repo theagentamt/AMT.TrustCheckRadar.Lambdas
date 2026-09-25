@@ -1,3 +1,8 @@
+> Current integration: see [campaign-completion-worker-candidate.md](campaign-completion-worker-candidate.md).
+> The original standalone source and validation below describe PR56; the primitive
+> is now called by explicitly default-false stream/recovery orchestration. No live
+> inventory approval or completion activation is inferred from this integration.
+
 # Unwired stable campaign completion (SECUR4ALL-207)
 
 `campaign_deletion_bridge/completion.py` is an internal candidate. Neither a
