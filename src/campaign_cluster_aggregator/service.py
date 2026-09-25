@@ -5,6 +5,7 @@ import json
 import time
 import uuid
 
+from shared_campaign_locators import period as period_fence
 from scoring import similarity, updated_centroid
 from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, cluster_authority
 from shared_campaign_contracts import APP_FEATURE_FIELDS, AppFeaturesContractError, validate_app_features
@@ -36,6 +37,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
                     retention_days: int, max_submissions: int, dynamodb, now_epoch=None,
                     locator_manifest_sha256=None, locator_inventory_revision=0,
                     users_table_name=None, deletion_ledger_table_name=None, outbox_table_name=None) -> str:
+    period_fence.configuration()
     envelope = _envelope(body, environment, schema_version)
     event_id = envelope["statisticsEventId"]
     feature_raw = dynamodb.get_item(TableName=table_name,
@@ -49,6 +51,9 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     now_epoch = int(time.time()) if now_epoch is None else now_epoch
     if feature.get("expiresAt", 0) <= now_epoch or feature.get("suppressed") is True:
         return "suppressed"
+    period_record=period_fence.read(dynamodb,table_name,feature['periodId'],
+        locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
+    dynamodb=period_fence.GuardedClient(dynamodb,table_name,period_record)
     consent_guards = cluster_authority(feature, users=users_table_name, ledger=deletion_ledger_table_name,
         outbox=outbox_table_name, client=dynamodb, now_epoch=now_epoch)
     if consent_guards is None:

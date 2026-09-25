@@ -18,6 +18,7 @@ import progress
 import locator_progress
 from shared_campaign_locators import locator_for_target, locator_pointer
 from uuid import UUID
+from tests.campaign_period_fixtures import enable, row as period_row
 spec=importlib.util.spec_from_file_location('deletion_service',ROOT/'src/campaign_deletion_bridge/service.py')
 service=importlib.util.module_from_spec(spec);spec.loader.exec_module(service)
 NOW=10*14*86400+8*86400
@@ -30,7 +31,8 @@ COMMAND={'PK':'ACCOUNT#a','SK':'ACCOUNT_DELETION','schemaVersion':1,'recordVersi
          'deleteByEpoch':NOW+86400,'operationId':OP}
 
 @pytest.fixture
-def world():
+def world(monkeypatch):
+    enable(monkeypatch)
     with mock_aws():
         d=boto3.client('dynamodb',region_name='us-east-1')
         for name in ('pipeline','ledger'):
@@ -45,7 +47,7 @@ def world():
         put({'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
              'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':NOW-100,
              'locatorSchemaVersion':1,'minimumPeriodId':9,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']})
-        put({'PK':'PERIOD#10','SK':'HMAC_KEY','keyArn':'synthetic','status':'ENABLED'})
+        put(period_row(10))
         yield d,put
 
 
@@ -146,7 +148,7 @@ def test_expired_or_missing_key_and_deadline_cannot_be_skipped(world):
     d,put=world
     d.delete_item(TableName='pipeline',Key=progress.key('PERIOD#10','HMAC_KEY'))
     with pytest.raises(progress.CoverageUnavailable):run(d)
-    put({'PK':'PERIOD#10','SK':'HMAC_KEY','keyArn':'synthetic','status':'ENABLED'})
+    put(period_row(10))
     put({'PK':PART,'SK':'TOMBSTONE','expiresAt':NOW})
     with pytest.raises(progress.CoverageUnavailable):run(d)
     assert progress.get(d,'pipeline',PART,'TOMBSTONE')['expiresAt']==NOW

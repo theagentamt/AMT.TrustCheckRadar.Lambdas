@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -13,6 +14,8 @@ for name in ("service", "scoring"): sys.modules.pop(name, None)
 import scoring  # noqa: E402
 import service  # noqa: E402
 from shared_campaign_locators import locator_for_target,serialize as locator_wire
+from tests.campaign_period_fixtures import row as period_row,GENERATION
+os.environ.update(CAMPAIGN_PERIOD_ADMISSION_ENABLED='true',CAMPAIGN_PERIOD_ADMISSION_GENERATION=GENERATION,CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID='107827791950',AWS_REGION='us-east-1')
 INVENTORY={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
 'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':1,
 'locatorSchemaVersion':1,'minimumPeriodId':0,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']}
@@ -70,6 +73,7 @@ class Dynamo:
         self.queries = []
 
     def get_item(self, Key, **_kwargs):
+        if Key["SK"]["S"]=="HMAC_KEY":return {"Item":locator_wire(period_row(int(Key["PK"]["S"].split("#")[1])))}
         pk, sk = Key["PK"]["S"], Key["SK"]["S"]
         if sk == 'OBSERVATION_READY': item = service.serialize({'PK':pk,'SK':sk,'eventType':'campaign.observation.ready','statisticsEventId':EVENT_ID,'accountId':'a','environment':'dev','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','campaignConsentGranted':True,'noticeVersion':'research-consent-2026-09-21-v2','expiresAt':2000000000})
         elif sk == 'CAMPAIGN_PARTICIPATION': item = service.serialize({'state':'enrolled','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','environment':'dev','noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'})
@@ -144,7 +148,7 @@ class ClusterServiceTests(unittest.TestCase):
         self.assertEqual(updated["contributorCount"], 10)
         self.assertEqual(updated["submissionCount"], 10)
         self.assertEqual(updated["centroid"], [1.0, 0.0])
-        self.assertEqual(len(transaction), 10)
+        self.assertEqual(len(transaction), 11)
 
         contribution = service.deserialize(transaction[2]["Put"]["Item"])
         self.assertEqual(contribution["languageId"], "en")
@@ -161,7 +165,7 @@ class ClusterServiceTests(unittest.TestCase):
         transaction = dynamo.transactions[0]
         created = service.deserialize(transaction[0]["Put"]["Item"])
         self.assertEqual(created["candidateId"], "22222222-2222-4222-8222-222222222222")
-        self.assertEqual(len(transaction), 11)
+        self.assertEqual(len(transaction), 12)
         creation_control = transaction[2]["Put"]
         self.assertEqual(creation_control["Item"]["SK"], {"S": "CREATION_CONTROL"})
         self.assertIn("attribute_not_exists", creation_control["ConditionExpression"])

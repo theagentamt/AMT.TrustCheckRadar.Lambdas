@@ -4,6 +4,7 @@ import os
 import boto3
 
 import config
+from shared_campaign_locators import period as period_fence
 from contracts import ContractError, parse_stream_record
 from service import publish_observation
 
@@ -18,6 +19,7 @@ cloudwatch_client = boto3.client("cloudwatch")
 
 
 def lambda_handler(event, _context):
+    period_fence.runtime(_context)
     config.validate_config()
     records = event.get("Records") if isinstance(event, dict) else None
     if not isinstance(records, list):

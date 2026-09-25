@@ -2,6 +2,7 @@ import logging
 import os
 import boto3
 import config
+from shared_campaign_locators import period as period_fence
 from service import process_message
 
 LOGGER = logging.getLogger()
@@ -10,6 +11,7 @@ dynamodb = boto3.client("dynamodb")
 
 
 def lambda_handler(event, _context):
+    period_fence.runtime(_context)
     config.validate_config()
     failures, successes = [], 0
     for record in event.get("Records", []):

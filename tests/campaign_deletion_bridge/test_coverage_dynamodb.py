@@ -44,7 +44,9 @@ def tomb(period):
 
 
 @pytest.fixture
-def world():
+def world(monkeypatch):
+    from tests.campaign_period_fixtures import enable,fields
+    enable(monkeypatch)
     with mock_aws():
         d = boto3.client('dynamodb',region_name='us-east-1')
         for table in ('pipeline','ledger'):
@@ -55,7 +57,7 @@ def world():
         put(INV);put(CMD,'ledger')
         for period in range(1498,1501):
             put({'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':ARN,'status':'ENABLED','periodId':period,
-                 'retireAfterEpoch':(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS})
+                 'retireAfterEpoch':(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS,**fields()})
             put(tomb(period))
         calls=[]
         def mac(**kwargs):

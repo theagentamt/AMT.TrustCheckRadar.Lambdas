@@ -12,6 +12,7 @@ import re
 from coverage_assessment import _key_record,_state
 from service import PERIOD_SECONDS,TOKEN_DOMAIN
 from shared_campaign_locators import load_inventory
+from shared_campaign_locators import period as period_fence
 from shared_campaign_recovery import records as R
 from shared_campaign_recovery.jobs import update
 
@@ -61,6 +62,7 @@ class Completion:
         except Exception:raise CompletionUnavailable() from None
 
     def _complete(self,command,*,replay_only=False):
+        period_fence.configuration()
         now=R.integer(self.now(),1)
         need(self.env in ('dev','uat','prod') and type(self.max_periods) is int and 1<=self.max_periods<=32)
         need(type(self.account) is str and re.fullmatch('[0-9]{12}',self.account)
@@ -93,6 +95,7 @@ class Completion:
         need(0<=first<=last and last-first+1<=self.max_periods)
         for period in range(first,last+1):
             record=self._get(self.pipeline,f'PERIOD#{period}','HMAC_KEY')
+            period_fence.validate(record,period,self.locator_manifest,self.locator_revision,now)
             arn=_key_record(record,period,self.account,self.region)
             mac=self._call(self.kms.generate_mac,KeyId=arn,Message=TOKEN_DOMAIN+command['accountId'].encode(),MacAlgorithm='HMAC_SHA_256')
             need(mac.get('KeyId')==arn and mac.get('MacAlgorithm')=='HMAC_SHA_256' and type(mac.get('Mac')) is bytes and len(mac['Mac'])==32)

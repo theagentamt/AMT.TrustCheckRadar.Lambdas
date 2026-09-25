@@ -215,3 +215,26 @@ def test_new_tombstone_cursor_uses_original_request_deadline(world):
     anchor=get(world.d,'pipeline',partition(1500),'TOMBSTONE')
     assert anchor['createdAtEpoch']==NOW and anchor['deletionDeadlineEpoch']==NOW+21*86400
     assert 'expiresAt' not in anchor
+
+
+def test_closing_period_cleanup_keeps_key_and_all_original_deadlines(world):
+    for period in (1498,1499):
+        row=get(world.d,'pipeline',f'PERIOD#{period}','HMAC_KEY')
+        world.put(row|{'admissionState':'CLOSING','admissionRevision':2})
+    item=locator(1498);world.put(item)
+    before=get(world.d,'pipeline','PERIOD#1498','HMAC_KEY')
+    assert run(world)['deleted']==1
+    assert get(world.d,'pipeline','PERIOD#1498','HMAC_KEY')==before
+    assert get(world.d,'pipeline',partition(1498),'TOMBSTONE')['deletionDeadlineEpoch']==NOW+21*86400
+
+
+def test_generation_change_after_mac_preserves_selected_locator(world):
+    item=locator(1498);world.put(item)
+    class Race:
+        def __getattr__(self,name):return getattr(world.d,name)
+        def transact_write_items(self,**kwargs):
+            if any('Delete' in a for a in kwargs['TransactItems']):
+                world.put(get(world.d,'pipeline','PERIOD#1498','HMAC_KEY')|{'admissionGeneration':'00000000-0000-4000-8000-000000000001'})
+            return world.d.transact_write_items(**kwargs)
+    assert run(world,dynamodb=Race())['reason']=='SELECTED_PERIOD_UNVERIFIED'
+    assert get(world.d,'pipeline',item['PK'],item['SK'])==item

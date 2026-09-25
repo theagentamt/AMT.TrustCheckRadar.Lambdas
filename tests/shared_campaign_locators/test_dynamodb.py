@@ -45,7 +45,9 @@ def observation(event=EVENT):
         'indicatorIds':['payment.crypto'],'confidence':0.9}}
 
 @pytest.fixture
-def world():
+def world(monkeypatch):
+    from tests.campaign_period_fixtures import enable,row
+    enable(monkeypatch)
     with mock_aws():
         d=boto3.client('dynamodb',region_name='us-east-1')
         for name in ('pipeline','ledger','users','outbox'):
@@ -59,14 +61,14 @@ def world():
             d.create_table(**args)
         put=lambda row,table='pipeline':d.put_item(TableName=table,Item=wire(row))
         put(INV);put({'PK':'USER#a','SK':'CAMPAIGN_PARTICIPATION','state':'enrolled','consentEpochId':EPOCH,'environment':'dev','noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'},'users')
-        for period in (PERIOD,PERIOD-1):put({'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':'synthetic','status':'ENABLED'})
+        for period in (PERIOD,PERIOD-1):put(row(period))
         yield d,put
 
 
 def publish(d,event=EVENT,**override):
     d.put_item(TableName='outbox',Item=wire(json.loads(json.dumps(observation(event) | {'PK':f'EVENT#{event}','SK':'OBSERVATION_READY','eventType':'campaign.observation.ready'}),parse_float=Decimal)))
     return publisher.publish_observation(observation(event),pipeline_table_name='pipeline',users_table_name='users',deletion_ledger_table_name='ledger',
-        cluster_queue_url='synthetic',hmac_key_id='synthetic',transient_retention_days=21,dynamodb_client=d,
+        cluster_queue_url='synthetic',hmac_key_id='arn:aws:kms:us-east-1:107827791950:key/12345678-1234-4234-8234-123456789abc',transient_retention_days=21,dynamodb_client=d,
         kms_client=SimpleNamespace(generate_mac=lambda **_:{'Mac':b'x'*32}),sqs_client=SimpleNamespace(send_message=lambda **_:{}),now_epoch=NOW,**(PINS|override))
 
 
