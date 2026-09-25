@@ -1,6 +1,7 @@
 """Synthetic-only packaged AWS qualification. Never imported by production app.py."""
 import base64
 import hashlib
+import importlib
 import json
 import os
 from pathlib import Path
@@ -27,7 +28,9 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'post_completion_locator', 'expired_withdrawal_audit', 'tomb_race', 'key_race',
          'inventory_race', 'writer_tombstone_race', 'replay_proof_race', 'budget_cutoff',
          'wrong_resource', 'wrong_environment', 'concurrent_completion', 'overlapping_withdrawal',
-         'terminal_account', 'replay_expiry_race')
+         'terminal_account', 'replay_expiry_race', 'handler_stream_complete',
+         'handler_stream_replay', 'handler_scheduled_complete', 'handler_stream_disabled',
+         'handler_completion_disabled', 'handler_missing_completion_marker', 'handler_stale_cleanup_after_seal')
 
 
 class QualificationFailure(Exception):
@@ -94,7 +97,16 @@ class Runner:
             arn = f'arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/{name}'
             require(table['TableArn'] == arn and table['TableStatus'] == 'ACTIVE')
             require(table['KeySchema'] == [{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}])
-            require({(x['AttributeName'], x['AttributeType']) for x in table['AttributeDefinitions']} == {('PK','S'), ('SK','S')})
+            expected_attributes={('PK','S'), ('SK','S')}
+            if name==self.tables['ledger']:
+                expected_attributes|={('campaignRecoveryPartition','S'),('nextAttemptAtEpoch','N')}
+                indexes=table.get('GlobalSecondaryIndexes',[])
+                require(len(indexes)==1 and indexes[0]['IndexName']==R.INDEX and indexes[0]['IndexStatus']=='ACTIVE'
+                    and indexes[0]['KeySchema']==[{'AttributeName':'campaignRecoveryPartition','KeyType':'HASH'},
+                        {'AttributeName':'nextAttemptAtEpoch','KeyType':'RANGE'}]
+                    and indexes[0]['Projection']=={'ProjectionType':'KEYS_ONLY'})
+            else:require(not table.get('GlobalSecondaryIndexes'))
+            require({(x['AttributeName'], x['AttributeType']) for x in table['AttributeDefinitions']} == expected_attributes)
             tags = self.call(self.d.list_tags_of_resource, ResourceArn=arn)
             require(not tags.get('NextToken') and {x['Key']: x['Value'] for x in tags['Tags']} == self.config['tags'])
         key = self.call(self.kms.describe_key, KeyId=self.config['key'])['KeyMetadata']
@@ -208,6 +220,8 @@ class Runner:
             except QualificationFailure: return
             raise QualificationFailure('EXPECTED_PREFLIGHT_REFUSAL')
         self.seed()
+        if case.startswith('handler_'):
+            self.handler_case(case);return
         if case.startswith('withdrawal') or case=='expired_withdrawal_audit': self.withdrawal()
         if case in ('account_complete_replay','withdrawal_complete_replay','expired_withdrawal_audit'):
             require(not self.complete()['alreadyComplete']); before=self.snapshot()
@@ -299,6 +313,77 @@ class Runner:
                     return call
             self.refused(client=Cutoff(),remaining=lambda:budget[0]);require(not late);return
         self.race(case)
+
+    def handler_case(self,case):
+        # Only this isolated, preflighted fixture runner sets in-process settings.
+        # No Lambda environment update, production resource or live trigger.
+        app=importlib.import_module('app')
+        settings={'APP_ENVIRONMENT':'dev','CAMPAIGN_SCHEMA_VERSION':1,
+            'PIPELINE_TABLE_NAME':self.tables['pipeline'],'USERS_TABLE_NAME':self.tables['users'],
+            'DELETION_LEDGER_TABLE_NAME':self.tables['ledger'],'PARTICIPATION_ITEM_SK':'CAMPAIGN_PARTICIPATION',
+            'PARTICIPATION_AUDIT_DAYS':400,'CONTRIBUTOR_RECOVERY_DAYS':7,'TRANSIENT_RETENTION_DAYS':21,
+            'CAMPAIGN_DELETION_STREAM_ENABLED':True,'CAMPAIGN_COMPLETION_ENABLED':True,'CAMPAIGN_RECOVERY_ENABLED':True,
+            'CAMPAIGN_COMPLETION_MANIFEST_SHA256':'c'*64,'CAMPAIGN_COMPLETION_INVENTORY_REVISION':1,
+            'CAMPAIGN_RECOVERY_MANIFEST_SHA256':'b'*64,'CAMPAIGN_RECOVERY_INVENTORY_REVISION':1,
+            'CAMPAIGN_LOCATOR_MANIFEST_SHA256':'a'*64,'CAMPAIGN_LOCATOR_INVENTORY_REVISION':1,
+            'CAMPAIGN_RECOVERY_INDEX_NAME':R.INDEX}
+        old={name:getattr(app.config,name) for name in settings};clients=app.dynamodb,app.kms
+        app.dynamodb,app.kms=self.d,self.kms
+        for name,value in settings.items():setattr(app.config,name,value)
+        stream={'Records':[{'eventName':'INSERT','eventSource':'aws:dynamodb','eventSourceARN':
+            f"arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/{self.tables['ledger']}/stream/2026-09-24T00:00:00.000",
+            'dynamodb':{'SequenceNumber':'1','NewImage':R.wire(self.cmd)}}]}
+        try:
+            if case=='handler_stream_disabled':app.config.CAMPAIGN_DELETION_STREAM_ENABLED=False
+            if case=='handler_completion_disabled':app.config.CAMPAIGN_COMPLETION_ENABLED=False
+            if case=='handler_missing_completion_marker':self.delete('ledger','INVENTORY#dev','CAMPAIGN_COMPLETION_INVENTORY')
+            before=self.snapshot();sealed=[None]
+            if case=='handler_stale_cleanup_after_seal':
+                parent=self;first=[True]
+                class Race:
+                    def __getattr__(self,name):return getattr(parent.d,name)
+                    def transact_write_items(self,**kwargs):
+                        if first[0]:
+                            first[0]=False;parent.complete();sealed[0]=parent.snapshot()
+                        return parent.d.transact_write_items(**kwargs)
+                app.dynamodb=Race()
+            if case=='handler_scheduled_complete':
+                # Discovery is eventual; bounded visibility wait is fixture setup,
+                # never erasure/full-pass proof. Completion still uses strong reads.
+                visible=False
+                for _ in range(8):
+                    page=self.call(self.d.query,TableName=self.tables['ledger'],IndexName=R.INDEX,Limit=8,
+                        KeyConditionExpression='campaignRecoveryPartition = :p',
+                        ExpressionAttributeValues=R.wire({':p':R.partition('dev',R.shard(OP))}))
+                    if any(R.plain(row).get('SK')==R.JOB_PREFIX+OP for row in page.get('Items',[])):
+                        visible=True;break
+                    time.sleep(0.1)
+                require(visible)
+                out=app.lambda_handler({'schemaVersion':1,'operation':'reconcile-campaign-cleanup'},self.context)
+                require(out['CommandsCompleted']==1 and out['CommandsUnverified']==0 and out['complete'] is False)
+            elif case in ('handler_stream_complete','handler_stream_replay'):
+                require(app.lambda_handler(stream,self.context)['completed']==1)
+                if case=='handler_stream_replay':
+                    completed=self.snapshot();require(app.lambda_handler(stream,self.context)['completed']==1)
+                    require(self.snapshot()==completed)
+            else:
+                try:app.lambda_handler(stream,self.context)
+                except RuntimeError as exc:
+                    require(str(exc)==('CAMPAIGN_DELETION_STREAM_DISABLED' if case=='handler_stream_disabled'
+                                      else 'CAMPAIGN_DELETION_RECONCILIATION_REQUIRED'))
+                else:raise QualificationFailure('EXPECTED_HANDLER_REFUSAL')
+                if case=='handler_stream_disabled':require(self.snapshot()==before)
+                elif case=='handler_stale_cleanup_after_seal':require(self.snapshot()==sealed[0])
+                else:
+                    require(self.get('ledger',self.cmd['PK'],R.JOB_PREFIX+OP) is not None)
+                    require(self.get('ledger',self.cmd['PK'],'ACCOUNT_DELETION#CAMPAIGN') is None)
+                return
+            require(self.get('ledger',self.cmd['PK'],R.JOB_PREFIX+OP) is None)
+            require(self.get('ledger',self.cmd['PK'],R.CONTROL_SK)['state']=='SEALED')
+            require(self.get('ledger',self.cmd['PK'],'ACCOUNT_DELETION#CAMPAIGN')['status']=='COMPLETE')
+        finally:
+            for name,value in old.items():setattr(app.config,name,value)
+            app.dynamodb,app.kms=clients
 
     def race(self, case):
         parent=self; first=[True]; mutations=[0]

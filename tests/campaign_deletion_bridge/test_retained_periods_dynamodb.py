@@ -193,15 +193,18 @@ def test_handler_uses_runtime_identity_and_still_rejects_incomplete_stream_work(
     app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
     app.config=SimpleNamespace(validate_config=lambda:None,APP_ENVIRONMENT='dev',CAMPAIGN_SCHEMA_VERSION=1,
         PIPELINE_TABLE_NAME='pipeline',TRANSIENT_RETENTION_DAYS=21,DELETION_LEDGER_TABLE_NAME='ledger',
-        CAMPAIGN_LOCATOR_MANIFEST_SHA256='a'*64,CAMPAIGN_LOCATOR_INVENTORY_REVISION=1)
+        CAMPAIGN_LOCATOR_MANIFEST_SHA256='a'*64,CAMPAIGN_LOCATOR_INVENTORY_REVISION=1,
+        CAMPAIGN_DELETION_STREAM_ENABLED=True,CAMPAIGN_COMPLETION_ENABLED=False)
     app.dynamodb=world.d;app.kms=world.kms
     context=SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:synthetic:live',
                             get_remaining_time_in_millis=lambda:30000)
     # Real current time isn't this synthetic command's clock.
     import retained_periods
     monkeypatch.setattr(retained_periods.time,'time',lambda:NOW+1)
-    event={'Records':[{'eventName':'INSERT','dynamodb':{'NewImage':wire(CMD),'SequenceNumber':'123'}}]}
-    with pytest.raises(RuntimeError,match='requires reconciliation'):app.lambda_handler(event,context)
+    event={'Records':[{'eventName':'INSERT','eventSource':'aws:dynamodb','eventSourceARN':
+        'arn:aws:dynamodb:us-east-1:107827791950:table/ledger/stream/2026-09-24T00:00:00.000',
+        'dynamodb':{'NewImage':wire(CMD),'SequenceNumber':'123'}}]}
+    with pytest.raises(RuntimeError,match='RECONCILIATION_REQUIRED'):app.lambda_handler(event,context)
     assert cursor(world)['nextPeriodId']==1499
     assert app.SDK_CONFIG.retries['total_max_attempts']==1 and app.SDK_CONFIG.read_timeout==3
 

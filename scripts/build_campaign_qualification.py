@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Local-only clean-source builder for an isolated qualification Lambda ZIP."""
 import argparse
-import ast
 import hashlib
 import json
 from pathlib import Path
@@ -33,6 +32,7 @@ def build(source, output):
             '--python-version','3.14','--arch','arm64','--output-dir',temp],cwd=ROOT,check=True)
         production=Path(temp)/'campaign_deletion_bridge.zip'
         payload=production.read_bytes();prod_digest=hashlib.sha256(payload).hexdigest()
+        (output/'campaign_deletion_bridge.zip').write_bytes(payload)
         members={}
         with zipfile.ZipFile(production) as archive:
             require(len(archive.namelist())==len(set(archive.namelist())), 'Duplicate archive members')
@@ -43,13 +43,13 @@ def build(source, output):
                 data=archive.read(name)
                 require(data==git('show',source+':'+source_path), 'Production source mismatch: '+name)
                 compile(data,name,'exec');members[name]=data
-        require(not any(isinstance(node,(ast.Import,ast.ImportFrom)) and 'completion' in ast.unparse(node)
-                        for node in ast.walk(ast.parse(members['app.py']))), 'Production handler must remain unwired')
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness
         manifest={'schemaVersion':1,'sourceSha':source,'handler':'campaign_qualification.lambda_handler',
             'runtime':'python3.14','architecture':'arm64','productionZipSha256':prod_digest,
+            'productionArchive':'campaign_deletion_bridge.zip','productionZipSizeBytes':len(payload),
+            'productionHandler':'app.lambda_handler',
             'syntheticOnly':True,'historicalCoverageApproved':False,
             'memberSha256':{name:hashlib.sha256(data).hexdigest() for name,data in sorted(members.items())}}
         members['qualification-manifest.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()

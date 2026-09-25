@@ -1,4 +1,5 @@
-"""Unwired campaign completion primitive. No handler, environment gate or marker writer.
+"""Qualified campaign completion primitive, called only through explicitly gated orchestration.
+No approval marker writer is provided.
 
 Strong partition absence becomes stable only under the separately reviewed full
 writer/repair/publication/restore inventory and persistent transactional fences.

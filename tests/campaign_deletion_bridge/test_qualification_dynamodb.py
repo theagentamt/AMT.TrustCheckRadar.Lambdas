@@ -32,10 +32,17 @@ def runner(monkeypatch):
         d=boto3.client('dynamodb',region_name=Q.REGION)
         config=Q.configuration(ENV,CONTEXT,event(Q.CASES[0]))
         for table in config['tables'].values():
-            d.create_table(TableName=table,BillingMode='PAY_PER_REQUEST',
+            args=dict(TableName=table,BillingMode='PAY_PER_REQUEST',
                 KeySchema=[{'AttributeName':'PK','KeyType':'HASH'},{'AttributeName':'SK','KeyType':'RANGE'}],
                 AttributeDefinitions=[{'AttributeName':k,'AttributeType':'S'} for k in ('PK','SK')],
                 Tags=[{'Key':k,'Value':v} for k,v in config['tags'].items()])
+            if table==config['tables']['ledger']:
+                args['AttributeDefinitions']+=[{'AttributeName':'campaignRecoveryPartition','AttributeType':'S'},
+                    {'AttributeName':'nextAttemptAtEpoch','AttributeType':'N'}]
+                args['GlobalSecondaryIndexes']=[{'IndexName':Q.R.INDEX,'KeySchema':[
+                    {'AttributeName':'campaignRecoveryPartition','KeyType':'HASH'},
+                    {'AttributeName':'nextAttemptAtEpoch','KeyType':'RANGE'}],'Projection':{'ProjectionType':'KEYS_ONLY'}}]
+            d.create_table(**args)
         kms=SimpleNamespace(
             describe_key=lambda **kw:{'KeyMetadata':{'Arn':KEY,'KeyState':'Enabled','KeySpec':'HMAC_256','KeyUsage':'GENERATE_VERIFY_MAC'}},
             list_resource_tags=lambda **kw:{'Tags':[{'TagKey':k,'TagValue':v} for k,v in config['tags'].items()]},

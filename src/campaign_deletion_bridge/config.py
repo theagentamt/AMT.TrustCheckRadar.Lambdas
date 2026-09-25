@@ -1,4 +1,5 @@
 import os
+import re
 
 APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT") or os.environ.get("ENVIRONMENT", "")
 CAMPAIGN_SCHEMA_VERSION = int(os.environ.get("CAMPAIGN_SCHEMA_VERSION", "1"))
@@ -18,8 +19,14 @@ def validate_config():
         raise RuntimeError("Invalid campaign deletion storage configuration")
     if PARTICIPATION_ITEM_SK != "CAMPAIGN_PARTICIPATION" or PARTICIPATION_AUDIT_DAYS != 400:
         raise RuntimeError("Invalid campaign participation completion policy")
-    if CONTRIBUTOR_RECOVERY_DAYS != 7 or TRANSIENT_RETENTION_DAYS > 21:
+    if CONTRIBUTOR_RECOVERY_DAYS != 7 or not 1 <= TRANSIENT_RETENTION_DAYS <= 21:
         raise RuntimeError("Invalid campaign deletion configuration")
+    if CAMPAIGN_COMPLETION_ENABLED:
+        for manifest,revision in ((CAMPAIGN_COMPLETION_MANIFEST_SHA256,CAMPAIGN_COMPLETION_INVENTORY_REVISION),
+            (CAMPAIGN_LOCATOR_MANIFEST_SHA256,CAMPAIGN_LOCATOR_INVENTORY_REVISION),
+            (CAMPAIGN_RECOVERY_MANIFEST_SHA256,CAMPAIGN_RECOVERY_INVENTORY_REVISION)):
+            if not isinstance(manifest,str) or not re.fullmatch('[0-9a-f]{64}',manifest) or type(revision) is not int or revision<1:
+                raise RuntimeError("Invalid campaign completion qualification pins")
 
 CAMPAIGN_LOCATOR_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_LOCATOR_MANIFEST_SHA256", "")
 CAMPAIGN_LOCATOR_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_LOCATOR_INVENTORY_REVISION", "0") or "0")
@@ -28,3 +35,8 @@ CAMPAIGN_RECOVERY_ENABLED = os.environ.get("CAMPAIGN_RECOVERY_ENABLED", "false")
 CAMPAIGN_RECOVERY_INDEX_NAME = os.environ.get("CAMPAIGN_RECOVERY_INDEX_NAME", "CampaignRecoveryDueIndex")
 CAMPAIGN_RECOVERY_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_RECOVERY_MANIFEST_SHA256", "")
 CAMPAIGN_RECOVERY_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_RECOVERY_INVENTORY_REVISION", "0") or "0")
+
+CAMPAIGN_DELETION_STREAM_ENABLED = os.environ.get("CAMPAIGN_DELETION_STREAM_ENABLED", "false") == "true"
+CAMPAIGN_COMPLETION_ENABLED = os.environ.get("CAMPAIGN_COMPLETION_ENABLED", "false") == "true"
+CAMPAIGN_COMPLETION_MANIFEST_SHA256 = os.environ.get("CAMPAIGN_COMPLETION_MANIFEST_SHA256", "")
+CAMPAIGN_COMPLETION_INVENTORY_REVISION = int(os.environ.get("CAMPAIGN_COMPLETION_INVENTORY_REVISION", "0") or "0")
