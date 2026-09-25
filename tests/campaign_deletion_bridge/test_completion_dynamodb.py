@@ -53,7 +53,8 @@ def test_account_completion_consumes_last_job_seals_and_receipts_atomically(qual
     assert receipt['retainUntilEpoch']==NOW+1+120*86400
     assert get(w,'ledger',CMD['PK'],CMD['SK'])==CMD
     assert w.snapshot()['pipeline']==before['pipeline']
-    assert result(w)['alreadyComplete'] is True and len(calls)==1
+    assert result(w)['alreadyComplete'] is True and len(calls)==2
+    assert all('ConditionCheck' in action for action in calls[-1]['TransactItems'])
     assert get(w,'ledger',CMD['PK'],'ACCOUNT_DELETION#CAMPAIGN')==receipt
 
 @pytest.mark.parametrize('bad',['missing','old_locator_only','late_approval','future','unknown','wrong_link','missing_invariant'])
@@ -117,7 +118,10 @@ def test_qualified_producer_cannot_insert_locator_during_absence_proof(qualified
 
 def test_lost_ack_recovers_exact_receipt_without_new_retention(qualified):
     w=qualified;real=w.d.transact_write_items
-    def lost(**kw):real(**kw);raise RuntimeError('private lost acknowledgment')
+    def lost(**kw):
+        out=real(**kw)
+        if any('ConditionCheck' not in a for a in kw['TransactItems']):raise RuntimeError('private lost acknowledgment')
+        return out
     w.d.transact_write_items=lost
     assert result(w)['alreadyComplete']
     receipt=get(w,'ledger',CMD['PK'],'ACCOUNT_DELETION#CAMPAIGN')
@@ -235,7 +239,10 @@ def test_actual_concurrent_completion_reconciles_winner_without_second_receipt(q
 
 def test_withdrawal_lost_ack_does_not_repeat_audit_or_counter_decrement(qualified):
     w=qualified;cmd,state=withdrawal(w);real=w.d.transact_write_items
-    def lost(**kw):real(**kw);raise RuntimeError('lost')
+    def lost(**kw):
+        out=real(**kw)
+        if any('ConditionCheck' not in a for a in kw['TransactItems']):raise RuntimeError('lost')
+        return out
     w.d.transact_write_items=lost
     assert result(w,cmd)['alreadyComplete']
     rows=w.d.query(TableName='users',KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',ExpressionAttributeValues=R.wire({':pk':state['PK'],':prefix':'CAMPAIGN_CONSENT#'}))['Items']
@@ -335,3 +342,52 @@ def test_real_campaign_seal_then_profile_cleanup_then_identity_consumes_control(
     assert f.finalize(CMD)['complete'] and identity.calls==1
     assert get(w,'ledger',CMD['PK'],R.CONTROL_SK) is None
     assert candidate(w).complete(CMD)['campaignComplete'] is False
+
+
+@pytest.mark.parametrize('withdraw',[False,True])
+def test_restored_locator_after_completion_blocks_new_positive_replay(qualified,withdraw):
+    w=qualified;cmd=withdrawal(w)[0] if withdraw else CMD
+    result(w,cmd);w.put(locator(1498));before=w.snapshot()
+    with pytest.raises(CompletionUnavailable):result(w,cmd)
+    assert w.snapshot()==before
+
+@pytest.mark.parametrize('change',['tomb','key','inventory','job','control','receipt','lost_verification'])
+def test_positive_replay_requires_fresh_transactionally_stable_proofs(qualified,change):
+    w=qualified;result(w);real=w.d.transact_write_items
+    def race(**kw):
+        assert all('ConditionCheck' in a for a in kw['TransactItems'])
+        if change=='lost_verification':real(**kw);raise RuntimeError('lost')
+        locations={'tomb':('pipeline',partition(1498),'TOMBSTONE'),
+            'key':('pipeline','PERIOD#1498','HMAC_KEY'),
+            'inventory':('ledger','INVENTORY#dev','CAMPAIGN_COMPLETION_INVENTORY'),
+            'control':('ledger',CMD['PK'],R.CONTROL_SK),'receipt':('ledger',CMD['PK'],'ACCOUNT_DELETION#CAMPAIGN')}
+        if change=='job':w.put(R.new_job(CMD),'ledger')
+        else:
+            table,pk,sk=locations[change];row=get(w,table,pk,sk);row[{'tomb':'locatorCleanupRevision','key':'status','inventory':'revision','control':'revision','receipt':'recordVersion'}[change]] = 'RETIRED' if change=='key' else 99;w.put(row,table)
+        return real(**kw)
+    w.d.transact_write_items=race
+    with pytest.raises(CompletionUnavailable):result(w)
+
+
+@pytest.mark.parametrize('withdraw',[False,True])
+def test_replay_rechecks_logical_deadline_after_provider_and_partition_reads(qualified,withdraw):
+    w=qualified;cmd=withdrawal(w)[0] if withdraw else CMD;result(w,cmd)
+    clock=[NOW+1+(400 if withdraw else 120)*86400-1]
+    real=w.d.query
+    def query(**kw):out=real(**kw);clock[0]+=1;return out
+    w.d.query=query;w.d.transact_write_items=lambda **kw:pytest.fail('expired replay proof')
+    before=w.snapshot()
+    with pytest.raises(CompletionUnavailable):result(w,cmd,now=lambda:clock[0])
+    assert w.snapshot()==before
+
+
+@pytest.mark.parametrize('withdraw',[False,True])
+def test_replay_expiry_during_check_transaction_cannot_return_success(qualified,withdraw):
+    w=qualified;cmd=withdrawal(w)[0] if withdraw else CMD;result(w,cmd)
+    clock=[NOW+1+(400 if withdraw else 120)*86400-1];real=w.d.transact_write_items
+    def transaction(**kw):
+        assert all('ConditionCheck' in a for a in kw['TransactItems'])
+        out=real(**kw);clock[0]+=1;return out
+    w.d.transact_write_items=transaction;before=w.snapshot()
+    with pytest.raises(CompletionUnavailable):result(w,cmd,now=lambda:clock[0])
+    assert w.snapshot()==before
