@@ -2,12 +2,15 @@
 import base64
 import hashlib
 import importlib
+import importlib.util
+import sys
 import json
 import os
 from pathlib import Path
 import re
 import time
 from copy import deepcopy
+from decimal import Decimal
 
 import boto3
 from botocore.config import Config
@@ -30,7 +33,10 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'wrong_resource', 'wrong_environment', 'concurrent_completion', 'overlapping_withdrawal',
          'terminal_account', 'replay_expiry_race', 'handler_stream_complete',
          'handler_stream_replay', 'handler_scheduled_complete', 'handler_stream_disabled',
-         'handler_completion_disabled', 'handler_missing_completion_marker', 'handler_stale_cleanup_after_seal')
+         'handler_completion_disabled', 'handler_missing_completion_marker', 'handler_stale_cleanup_after_seal',
+         'period_close_replay','period_legacy_refusal','period_stale_generation','period_foreign_key',
+         'period_publisher_first_race','period_publisher_last_race','period_late_cluster',
+         'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing')
 
 
 class QualificationFailure(Exception):
@@ -166,7 +172,9 @@ class Runner:
             'status':'DELETION_REQUESTED','deletionOperationId':OP})
         for period in (self.period-1, self.period):
             self.put('pipeline', {'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':self.config['key'],
-                'status':'ENABLED','periodId':period,'retireAfterEpoch':(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS})
+                'status':'ENABLED','periodId':period,'retireAfterEpoch':(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS,
+                'admissionSchemaVersion':1,'admissionGeneration':OP,'admissionState':'OPEN',
+                'admissionRevision':1,'admissionManifestSha256':'a'*64,'admissionInventoryRevision':1,'admissionChangedAtEpoch':self.when-100})
             self.put('pipeline', {'PK':self.partition(period),'SK':'TOMBSTONE','recordType':'CAMPAIGN_DELETION_TOMBSTONE',
                 'schemaVersion':2,'environment':'dev','periodId':period,'createdAtEpoch':self.when,
                 'deletionDeadlineEpoch':self.when+21*86400,'GSI3PK':'EXPIRY#dev','GSI3SK':self.when+21*86400,
@@ -211,7 +219,137 @@ class Runner:
         # Deliberate restored legacy/unknown locator; must be preserved/refused.
         return {'PK':self.partition(self.period-1),'SK':'LOCATOR#EVENT#'+OP,'legacyFixture':True}
 
+    def worker_module(self, worker, name):
+        base=Path(__file__).resolve().parent/'_qualification_workers'/worker
+        if not base.exists():
+            # Source-only local fixture runner. Packaged mode never uses this branch.
+            base=Path(__file__).resolve().parents[2]/'src'/worker
+        def load(module, filename):
+            spec=importlib.util.spec_from_file_location(module,base/(filename+'.py'))
+            value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
+        dependency={'campaign_observation_publisher':'contracts','campaign_cluster_aggregator':'scoring'}.get(worker)
+        old=sys.modules.get(dependency) if dependency else None
+        try:
+            if dependency:sys.modules[dependency]=load('_qualified_'+worker+'_'+dependency,dependency)
+            return load('_qualified_'+worker+'_'+name,name)
+        finally:
+            if dependency:
+                if old is None:sys.modules.pop(dependency,None)
+                else:sys.modules[dependency]=old
+
+    def period_case(self, case):
+        from shared_campaign_locators import period as P
+        pk=f'PERIOD#{self.period-1}'
+        def close():return P.close(self.d,self.tables['pipeline'],'dev',self.period-1,'a'*64,1,self.now,self.context.get_remaining_time_in_millis)
+        if case=='period_close_replay':
+            before=self.get('pipeline',pk,'HMAC_KEY');require(close()['changed'])
+            after=self.get('pipeline',pk,'HMAC_KEY');require(not close()['changed'])
+            require(self.get('pipeline',pk,'HMAC_KEY')==after and after['retireAfterEpoch']==before['retireAfterEpoch']);return
+        if case in ('period_legacy_refusal','period_stale_generation','period_foreign_key'):
+            value=self.get('pipeline',pk,'HMAC_KEY')
+            if case=='period_legacy_refusal':value={k:v for k,v in value.items() if not k.startswith('admission')}
+            elif case=='period_stale_generation':value['admissionGeneration']='00000000-0000-4000-8000-000000000001'
+            else:value['keyArn']=value['keyArn'].replace(ACCOUNT,'111111111111')
+            self.put('pipeline',value);before=self.snapshot()
+            try:close()
+            except Exception:require(self.snapshot()==before);return
+            raise QualificationFailure('EXPECTED_REFUSAL')
+        if case=='period_cleanup_closing':
+            close();self.handler_case('handler_stream_complete');return
+        # Isolated producer fixture, same three tables. SQS and candidate-index
+        # discovery are injected; actual publisher/cluster DDB transactions run.
+        for period in (self.period-1,self.period):self.delete('pipeline',self.partition(period),'TOMBSTONE')
+        self.delete('ledger',self.cmd['PK'],self.cmd['SK'])
+        self.put('users',{'PK':'USER#'+self.subject,'SK':'PROFILE','sub':self.subject,'status':'ACTIVE'})
+        self.put('users',{'PK':'USER#'+self.subject,'SK':'CAMPAIGN_PARTICIPATION','state':'enrolled',
+            'environment':'dev','consentEpochId':OP,'noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'})
+        publisher=self.worker_module('campaign_observation_publisher','service')
+        cluster=self.worker_module('campaign_cluster_aggregator','service')
+        base=self.period*PERIOD_SECONDS-100
+        item={'schemaVersion':1,'recordVersion':1,'environment':'dev','statisticsEventId':OP,'accountId':self.subject,
+            'campaignConsentGranted':True,'consentEpochId':OP,'noticeVersion':'research-consent-2026-09-21-v2',
+            'observedAtEpoch':base,'expiresAt':self.now+1000,'appFeatures':{'schemaVersion':1,'extractorVersion':'android-1.0.0',
+            'languageId':'en','taxonomyBucket':'advance_fee','vector':[1.0,0.0],'lexicalFingerprint':['0123456789abcdef'],
+            'signalIds':['payment_request'],'indicatorIds':['payment.crypto'],'confidence':0.9}}
+        # Existing candidate discovery is fixed to this fixture's strongly read
+        # candidate. This is not a GSI propagation or SQS delivery qualification.
+        current=[]
+        cluster._load_candidates=lambda *_:([cluster.deserialize(R.wire(self.get('pipeline','CANDIDATE#'+current[0],'SUMMARY')))] if current else [])
+        sent=[];parent=self
+        class Queue:
+            def send_message(self,**kw):
+                sent.append(kw)
+                if case=='period_late_cluster':close()
+        def publish(event,client=None):
+            row=item|{'statisticsEventId':event}
+            self.put('users',json.loads(json.dumps(row|{'PK':'EVENT#'+event,'SK':'OBSERVATION_READY','eventType':'campaign.observation.ready'}),parse_float=Decimal))
+            return publisher.publish_observation(row,pipeline_table_name=self.tables['pipeline'],users_table_name=self.tables['users'],
+                deletion_ledger_table_name=self.tables['ledger'],cluster_queue_url='synthetic',hmac_key_id=self.config['key'],
+                transient_retention_days=21,dynamodb_client=client or self.d,kms_client=self.kms,sqs_client=Queue(),
+                now_epoch=self.now,locator_manifest_sha256='a'*64,locator_inventory_revision=1)
+        def aggregate(event,client=None):
+            body=json.dumps({'schemaVersion':1,'recordVersion':1,'environment':'dev','statisticsEventId':event,'eventType':'campaign.cluster.requested'})
+            value=cluster.process_message(body,environment='dev',schema_version=1,table_name=self.tables['pipeline'],retention_days=21,
+                max_submissions=3,dynamodb=client or self.d,now_epoch=self.now,locator_manifest_sha256='a'*64,locator_inventory_revision=1,
+                users_table_name=self.tables['users'],deletion_ledger_table_name=self.tables['ledger'],outbox_table_name=self.tables['users'])
+            dedupe=self.get('pipeline','EVENT#'+event,'CLUSTERED')
+            if dedupe:current[:]=[dedupe['candidateId']]
+            return value
+        class Race:
+            def __init__(self,target):self.calls=0;self.target=target
+            def __getattr__(self,n):return getattr(parent.d,n)
+            def transact_write_items(self,**kw):
+                self.calls+=1
+                if self.calls==self.target:close()
+                return parent.d.transact_write_items(**kw)
+        if case.startswith('period_publisher_') or case=='period_late_cluster':
+            try:publish(OP,Race(1 if case=='period_publisher_first_race' else 2) if case!='period_late_cluster' else None)
+            except Exception:pass
+            else:raise QualificationFailure('EXPECTED_REFUSAL')
+            require(self.get('pipeline',pk,'HMAC_KEY')['admissionState']=='CLOSING')
+            dedupe=self.get('pipeline','EVENT#'+OP,'DEDUPE')
+            require(dedupe is None or dedupe['status']=='PENDING')
+            if case=='period_publisher_first_race':
+                require(dedupe is None and not sent
+                    and self.get('pipeline','EVENT#'+OP,'FEATURE') is None
+                    and self.get('pipeline',self.partition(self.period-1),'LOCATOR#EVENT#'+OP) is None)
+            if case!='period_publisher_first_race':
+                try:aggregate(OP)
+                except Exception:pass
+                else:raise QualificationFailure('EXPECTED_REFUSAL')
+            require(self.get('pipeline','EVENT#'+OP,'CLUSTERED') is None);return
+        from uuid import uuid4
+        if case!='period_cluster_new_race':
+            publish(OP);aggregate(OP)
+            if case=='period_cluster_capped_race':
+                for _ in range(2):
+                    event=str(uuid4());publish(event);aggregate(event)
+        event=str(uuid4());publish(event)
+        before=self.snapshot()
+        try:aggregate(event,Race(1))
+        except Exception:pass
+        else:raise QualificationFailure('EXPECTED_REFUSAL')
+        require(self.get('pipeline',pk,'HMAC_KEY')['admissionState']=='CLOSING')
+        after=self.snapshot()
+        # Only the closing record changed, never any feature/contribution/count.
+        for snapshot in (before,after):
+            snapshot['pipeline']=[v for v in snapshot['pipeline'] if v.get('SK')!='HMAC_KEY']
+        require(after==before and self.get('pipeline','EVENT#'+event,'CLUSTERED') is None)
+
     def run(self, case):
+        # In-memory synthetic runtime pins only after the outer resource preflight.
+        pins={'CAMPAIGN_PERIOD_ADMISSION_ENABLED':'true',
+              'CAMPAIGN_PERIOD_ADMISSION_GENERATION':OP,
+              'CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID':ACCOUNT,'AWS_REGION':REGION}
+        previous={name:os.environ.get(name) for name in pins}
+        os.environ.update(pins)
+        try:return self._run(case)
+        finally:
+            for name,value in previous.items():
+                if value is None:os.environ.pop(name,None)
+                else:os.environ[name]=value
+
+    def _run(self, case):
         if case in ('wrong_resource','wrong_environment'):
             env = dict(os.environ)
             env['QUALIFICATION_PIPELINE_TABLE' if case=='wrong_resource' else 'AWS_REGION'] = 'not-the-fixture'
@@ -220,6 +358,8 @@ class Runner:
             except QualificationFailure: return
             raise QualificationFailure('EXPECTED_PREFLIGHT_REFUSAL')
         self.seed()
+        if case.startswith('period_'):
+            self.period_case(case);return
         if case.startswith('handler_'):
             self.handler_case(case);return
         if case.startswith('withdrawal') or case=='expired_withdrawal_audit': self.withdrawal()

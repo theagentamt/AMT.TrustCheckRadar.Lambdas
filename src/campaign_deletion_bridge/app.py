@@ -6,6 +6,7 @@ import re
 import boto3
 from botocore.config import Config
 import config
+from shared_campaign_locators import period as period_fence
 from service import parse_deletion_record
 from retained_periods import delete_retained_contributions
 from orchestration import process
@@ -65,6 +66,7 @@ def lambda_handler(event, context):
         # A accidentally delivered pending stream batch must not be acknowledged.
         raise RuntimeError('CAMPAIGN_DELETION_STREAM_DISABLED') from None
     config.validate_config()
+    period_fence.runtime(context)
     identity=_identity(context)
     if not isinstance(event,dict) or not isinstance(event.get('Records'),list) or len(event['Records'])>10:
         raise RuntimeError('CAMPAIGN_DELETION_EVENT_INVALID')
@@ -100,6 +102,7 @@ def _recover(event, context):
         raise RuntimeError("Invalid campaign recovery event")
     if config.CAMPAIGN_RECOVERY_INDEX_NAME != INDEX:
         raise RuntimeError("Invalid campaign recovery index")
+    period_fence.runtime(context)
     identity=_identity(context)
     remaining=context.get_remaining_time_in_millis
     def cleanup(command):return _process(command,context,identity)

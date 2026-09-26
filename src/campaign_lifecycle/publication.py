@@ -1,5 +1,6 @@
 """Default-disabled, bounded aggregate publication and paired cleanup recovery."""
 from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY
+from shared_campaign_locators import period as period_fence
 import hashlib
 import json
 from decimal import Decimal
@@ -59,7 +60,8 @@ class Publication:
         return self.locators.deserialize(raw) if raw else None
 
     def _transaction(self,inventory,actions):
-        self.d.transact_write_items(TransactItems=[self.locators.inventory_condition(self.pipeline,inventory),*actions])
+        require(self.remaining()>=6000)
+        self.d.transact_write_items(TransactItems=[period_fence.condition(self.pipeline,self.period_record),self.locators.inventory_condition(self.pipeline,inventory),*actions])
 
     def _guard(self,candidate):
         return {'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(candidate['PK'],'SUMMARY'),**self._match(candidate)}}
@@ -75,6 +77,7 @@ class Publication:
 
     def process(self,candidate_id):
         require(self.enabled)
+        period_fence.configuration()
         from shared_campaign_locators import core
         self.locators=core
         try:
@@ -90,6 +93,8 @@ class Publication:
             # A missing TTL-expired checkpoint does not certify paired cleanup.
             raise PublicationUnavailable()
         self._validate(candidate,candidate_id,now,inventory)
+        require(self.remaining()>=6000)
+        self.period_record=period_fence.read(self.d,self.pipeline,int(candidate['periodId']),self.manifest,self.revision,now,states=('CLOSING',))
         phase=candidate.get('lifecycleState')
         if phase is None:
             # A pre-existing aggregate with no atomic phase evidence requires
@@ -219,6 +224,7 @@ class Publication:
     def expire_locator(self, partition, sort_key):
         """One owned expiration pair; never infer whole-scope absence from a GSI."""
         require(self.enabled)
+        period_fence.configuration()
         from shared_campaign_locators import core
         self.locators = core
         require(self.env in ('dev', 'uat', 'prod') and self.remaining() >= 5000)
@@ -235,6 +241,8 @@ class Publication:
         require(locator['SK'] == sort_key
                 and locator['periodId'] >= inventory['minimumPeriodId']
                 and locator['targetExpiresAtEpoch'] <= now)
+        require(self.remaining()>=6000)
+        self.period_record=period_fence.read(self.d,self.pipeline,int(locator['periodId']),self.manifest,self.revision,now)
         actions = core.paired_delete_actions(self.pipeline, locator)
         if locator['targetKind'] == 'CONTRIBUTION':
             # Summary repair/publication owns live candidate mutations. An

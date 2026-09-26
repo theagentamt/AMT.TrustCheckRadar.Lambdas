@@ -43,13 +43,33 @@ def build(source, output):
                 data=archive.read(name)
                 require(data==git('show',source+':'+source_path), 'Production source mismatch: '+name)
                 compile(data,name,'exec');members[name]=data
+        production_archives={'campaign_deletion_bridge':{'sha256':prod_digest,'sizeBytes':len(payload),'handler':'app.lambda_handler'}}
+        for function in ('campaign_observation_publisher','campaign_cluster_aggregator','campaign_lifecycle'):
+            subprocess.run(['bash','scripts/build_lambda_zip.sh','--function',function,
+                '--python-version','3.14','--arch','arm64','--output-dir',temp],cwd=ROOT,check=True)
+            path=Path(temp)/(function+'.zip');data=path.read_bytes()
+            (output/path.name).write_bytes(data)
+            production_archives[function]={'sha256':hashlib.sha256(data).hexdigest(),'sizeBytes':len(data),'handler':'app.lambda_handler'}
+            with zipfile.ZipFile(path) as archive:
+                require(len(archive.namelist())==len(set(archive.namelist())), 'Duplicate archive members')
+                for name in archive.namelist():
+                    require(name.endswith('.py') and not name.startswith('/') and '..' not in Path(name).parts,'Unexpected archive member')
+                    source_path=('src/'+function+'/'+name if '/' not in name else 'src/'+name)
+                    value=archive.read(name)
+                    require(value==git('show',source+':'+source_path),'Production source mismatch: '+source_path)
+                    compile(value,name,'exec')
+                    if '/' not in name:
+                        members['_qualification_workers/'+function+'/'+name]=value
+                    else:
+                        require(name not in members or members[name]==value,'Shared source mismatch')
+                        members[name]=value
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness
         manifest={'schemaVersion':1,'sourceSha':source,'handler':'campaign_qualification.lambda_handler',
             'runtime':'python3.14','architecture':'arm64','productionZipSha256':prod_digest,
             'productionArchive':'campaign_deletion_bridge.zip','productionZipSizeBytes':len(payload),
-            'productionHandler':'app.lambda_handler',
+            'productionHandler':'app.lambda_handler','productionArchives':production_archives,
             'syntheticOnly':True,'historicalCoverageApproved':False,
             'memberSha256':{name:hashlib.sha256(data).hexdigest() for name,data in sorted(members.items())}}
         members['qualification-manifest.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()

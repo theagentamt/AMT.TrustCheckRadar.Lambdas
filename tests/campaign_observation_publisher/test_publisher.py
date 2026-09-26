@@ -31,6 +31,8 @@ sys.modules["botocore.exceptions"] = botocore_exceptions
 
 
 from shared_campaign_locators import locator_for_target,serialize as locator_wire
+from tests.campaign_period_fixtures import row as period_row,GENERATION,ARN as PERIOD_ARN
+os.environ.update(CAMPAIGN_PERIOD_ADMISSION_ENABLED='true',CAMPAIGN_PERIOD_ADMISSION_GENERATION=GENERATION,CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID='107827791950',AWS_REGION='us-east-1')
 INVENTORY={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
 'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':1,
 'locatorSchemaVersion':1,'minimumPeriodId':0,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']}
@@ -58,6 +60,7 @@ class FakeDynamo:
             return {"Item": self.deletion_item} if self.deletion_item else {}
         key = _kwargs.get('Key',{})
         pk,sk = key.get('PK',{}).get('S'),key.get('SK',{}).get('S')
+        if sk=='HMAC_KEY':return {'Item':locator_wire(period_row(int(pk.split('#')[1])))}
         if sk=='CAMPAIGN_LOCATORS':return {'Item':locator_wire(INVENTORY)}
         if sk!='DEDUPE':
             value=self.persisted.get((pk,sk))
@@ -368,7 +371,7 @@ class ServiceTests(unittest.TestCase):
             users_table_name="users",
             deletion_ledger_table_name="deletion-ledger",
             cluster_queue_url="https://sqs.example/cluster",
-            hmac_key_id="alias/period-key",
+            hmac_key_id=PERIOD_ARN,
             transient_retention_days=21,
             dynamodb_client=fake_dynamo,
             kms_client=fake_kms,
@@ -597,7 +600,7 @@ class HandlerTests(unittest.TestCase):
     def test_handler_uses_content_free_completion_log(self):
         with mock.patch.object(app, "publish_observation", return_value="published") as publish, \
              self.assertLogs(level="INFO") as captured:
-            result = app.lambda_handler(stream_event(), None)
+            result = app.lambda_handler(stream_event(), types.SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:test'))
 
         self.assertEqual(result, {"processed": 1, "results": {"published": 1}})
         self.assertEqual(publish.call_count, 1)
@@ -611,7 +614,7 @@ class HandlerTests(unittest.TestCase):
 
     def test_malformed_record_emits_only_content_free_metric(self):
         with self.assertRaises(contracts.ContractError):
-            app.lambda_handler(stream_event(valid_item(environment="prod")), None)
+            app.lambda_handler(stream_event(valid_item(environment="prod")), types.SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:test'))
 
         self.assertEqual(len(fake_cloudwatch.calls), 1)
         metric = fake_cloudwatch.calls[0]["MetricData"][0]

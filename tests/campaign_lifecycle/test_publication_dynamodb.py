@@ -17,7 +17,9 @@ NOW=(PERIOD+1)*14*86400+7*86400
 ID='33e21f1c-6a88-45c7-bbcb-1e0f281dcb34'
 
 @pytest.fixture
-def world():
+def world(monkeypatch):
+    from tests.campaign_period_fixtures import enable,row
+    enable(monkeypatch)
     with mock_aws():
         client=boto3.client('dynamodb',region_name='us-east-1')
         for name in ('pipeline','intelligence'):
@@ -25,6 +27,7 @@ def world():
         put=lambda table,row:client.put_item(TableName=table,Item=core.serialize(row))
         marker={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':NOW-1,'locatorSchemaVersion':1,'minimumPeriodId':8,'priorPeriodsErased':True,'writers':core.WRITERS}
         put('pipeline',marker)
+        put('pipeline',row(PERIOD,state='CLOSING'))
         summary={'PK':'CANDIDATE#'+ID,'SK':'SUMMARY','candidateId':ID,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1','periodId':PERIOD,'taxonomyBucket':'advance_fee','GSI2PK':f'PERIOD#{PERIOD}#BUCKET#advance_fee','GSI2SK':'CANDIDATE#'+ID,'GSI3PK':'EXPIRY#dev','GSI3SK':NOW+1000,'expiresAt':NOW+1000,'version':1,'contributorCount':12,'submissionCount':12}
         put('pipeline',summary)
         for n in range(12):
@@ -57,7 +60,8 @@ def test_atomic_publication_then_paired_cleanup_keeps_summary_last(world):
     assert finish(p)['complete']
     assert get('pipeline',summary['PK'],'SUMMARY') is None
     remaining=[core.deserialize(v) for v in d.scan(TableName='pipeline')['Items']]
-    assert remaining==[core.deserialize(core.serialize(marker))]
+    assert len(remaining)==2 and core.deserialize(core.serialize(marker)) in remaining
+    assert any(v.get('SK')=='HMAC_KEY' for v in remaining)
     assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE')==aggregate
 
 
@@ -225,7 +229,7 @@ def test_upgraded_handler_disabled_never_falls_back_to_legacy(world,monkeypatch)
     monkeypatch.setattr(configuration,'CAMPAIGN_LOCATOR_MANIFEST_SHA256','a'*64)
     monkeypatch.setattr(configuration,'CAMPAIGN_LOCATOR_INVENTORY_REVISION','1')
     for operation in ('manage_keys','finalize_periods','expire_transient'):
-        with pytest.raises(ValueError):app.lambda_handler(event|{'operation':operation},None)
+        with pytest.raises(ValueError):app.lambda_handler(event|{'operation':operation},type('Context',(),{'invoked_function_arn':'arn:aws:lambda:us-east-1:107827791950:function:test'})())
     assert get('pipeline',summary['PK'],'SUMMARY')==summary
 
 
@@ -244,3 +248,67 @@ def test_legacy_contribution_cannot_be_published_under_new_summary_marker(world)
     assert publication.process(ID)['state']=='FROZEN'
     with pytest.raises(PublicationUnavailable):publication.process(ID)
     assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+
+@pytest.mark.parametrize('phase',['freeze','publish','cleanup','expire'])
+def test_period_generation_change_fences_every_lifecycle_transaction(world,phase):
+    p,d,put,get,summary,marker=world
+    from shared_campaign_locators import period as fence
+    if phase in ('publish','cleanup'):p.process(ID)
+    if phase=='cleanup':p.process(ID)
+    if phase=='expire':
+        # An orphan expired feature pair requires the same exact generation.
+        # Fixture locator is sufficient: paired absence deletes remain guarded.
+        token='A'*43
+        locator={'PK':f'CONTRIB#{PERIOD}#{token}','SK':'LOCATOR#EVENT#'+ID,
+            'recordType':'CAMPAIGN_CONTRIBUTOR_LOCATOR','schemaVersion':1,'environment':'dev','periodId':PERIOD,
+            'targetKind':'FEATURE','targetPK':'EVENT#'+ID,'targetSK':'FEATURE','targetExpiresAtEpoch':NOW-1,
+            'GSI3PK':'EXPIRY#dev','GSI3SK':NOW-1}
+        put('pipeline',locator)
+    before=[v for v in d.scan(TableName='pipeline')['Items'] if v.get('SK',{}).get('S')!='HMAC_KEY']
+    real=d.transact_write_items;calls=[]
+    def race(**kw):
+        record=get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY')
+        put('pipeline',record|{'admissionGeneration':str(uuid4())});calls.append(kw)
+        return real(**kw)
+    d.transact_write_items=race
+    with pytest.raises(d.exceptions.TransactionCanceledException):
+        if phase=='expire':p.expire_locator(locator['PK'],locator['SK'])
+        else:p.process(ID)
+    assert len(calls)==1
+    if phase=='freeze':assert 'lifecycleState' not in get('pipeline',summary['PK'],'SUMMARY')
+    if phase=='publish':assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+    after=[v for v in d.scan(TableName='pipeline')['Items'] if v.get('SK',{}).get('S')!='HMAC_KEY']
+    assert after==before
+
+
+def test_open_period_cannot_freeze_or_publish(world):
+    p,d,put,get,summary,marker=world
+    from shared_campaign_locators.core import LocatorUnavailable
+    record=get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY');put('pipeline',record|{'admissionState':'OPEN'})
+    with pytest.raises(LocatorUnavailable):p.process(ID)
+    assert get('pipeline',summary['PK'],'SUMMARY')==summary
+
+
+def test_actual_close_handler_uses_exact_event_and_runtime_identity(world,monkeypatch):
+    import importlib.util,sys
+    from types import SimpleNamespace
+    from shared_campaign_locators.core import LocatorUnavailable
+    p,d,put,get,summary,marker=world
+    directory=Path(__file__).resolve().parents[2]/'src/campaign_lifecycle'
+    settings=SimpleNamespace(validate_candidate=lambda:None,APP_ENVIRONMENT='dev',PIPELINE_TABLE_NAME='pipeline',
+        CAMPAIGN_LOCATOR_MANIFEST_SHA256='a'*64,CAMPAIGN_LOCATOR_INVENTORY_REVISION='1')
+    monkeypatch.setenv('AWS_DEFAULT_REGION','us-east-1')
+    monkeypatch.setitem(sys.modules,'config',settings)
+    spec=importlib.util.spec_from_file_location('period_lifecycle_app',directory/'app.py')
+    app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
+    monkeypatch.setattr(app,'dynamodb',d);monkeypatch.setattr(app.time,'time',lambda:NOW)
+    context=SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:test',get_remaining_time_in_millis=lambda:30000)
+    event={'schemaVersion':1,'environment':'dev','operation':'close_period','periodId':PERIOD}
+    record=get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY');put('pipeline',record|{'admissionState':'OPEN'})
+    assert app.lambda_handler(event,context)['changed'] is True
+    after=get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY')
+    assert app.lambda_handler(event,context)['changed'] is False
+    with pytest.raises(ValueError):app.lambda_handler(event|{'extra':True},context)
+    monkeypatch.setenv('CAMPAIGN_PERIOD_ADMISSION_ENABLED','false')
+    with pytest.raises(LocatorUnavailable):app.lambda_handler(event,context)
+    assert get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY')==after

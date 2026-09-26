@@ -63,6 +63,8 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
                                  now_epoch=None, max_steps=10, remaining_ms=None, deletion_ledger_table_name=None,
                                  locator_manifest_sha256=None, locator_inventory_revision=0):
     from cleanup_errors import CoverageUnavailable
+    from shared_campaign_locators import period as period_fence
+    period_fence.configuration()
     from progress import CommandGuardedClient
     from locator_progress import sweep
     from shared_campaign_locators import load_inventory, InventoryGuardedClient
@@ -107,6 +109,8 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
             Key={"PK":{"S":f"PERIOD#{period_id}"},"SK":{"S":"HMAC_KEY"}}, ConsistentRead=True).get("Item")
         if not key_record or key_record.get("status") != {"S":"ENABLED"}:
             raise CoverageUnavailable()
+        period_record=period_fence.validate(plain(key_record),period_id,locator_manifest_sha256,locator_inventory_revision,now_epoch)
+        selected=period_fence.GuardedClient(dynamodb,table_name,period_record)
         mac = kms.generate_mac(KeyId=key_record["keyArn"]["S"],
             Message=TOKEN_DOMAIN + command["accountId"].encode(),MacAlgorithm="HMAC_SHA_256")["Mac"]
         if not isinstance(mac, bytes) or len(mac) != 32:
@@ -114,9 +118,9 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
         token = base64.urlsafe_b64encode(mac).decode().rstrip("=")
         partition = f"CONTRIB#{period_id}#{token}"
         from tombstone import ensure
-        ensure(dynamodb,table_name,command['environment'],partition,period_id,
+        ensure(selected,table_name,command['environment'],partition,period_id,
                command['occurredAtEpoch'],retention_days)
-        result = sweep(dynamodb,table_name,command["environment"],partition,command["operationId"],now_epoch,
+        result = sweep(selected,table_name,command["environment"],partition,command["operationId"],now_epoch,
                        max_steps=max_steps,remaining_ms=remaining_ms)
         for name in ("deleted","recomputedCandidates"):
             totals[name] += result[name]

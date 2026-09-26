@@ -7,6 +7,7 @@ import time
 from botocore.exceptions import ClientError
 
 from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, authorized, condition_checks
+from shared_campaign_locators import period as period_fence
 from contracts import build_cluster_envelope
 from shared_campaign_contracts import validate_app_features
 from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
@@ -33,6 +34,7 @@ def publish_observation(
     now_epoch: int | None = None,
     locator_manifest_sha256=None, locator_inventory_revision=0,
 ) -> str:
+    period_fence.configuration()
     if not item["campaignConsentGranted"]:
         return "consent-suppressed"
 
@@ -47,10 +49,15 @@ def publish_observation(
         return "participation-suppressed"
 
     period_id = contributor_period_id(item["observedAtEpoch"])
+    period_record=period_fence.read(dynamodb_client,pipeline_table_name,period_id,
+        locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
     if hmac_key_id is None:
         if hmac_key_resolver is None:
             raise ValueError("A period HMAC key resolver is required")
         hmac_key_id = hmac_key_resolver(period_id)
+    if hmac_key_id != period_record['keyArn']:
+        raise RuntimeError('Campaign period key is unavailable')
+    dynamodb_client=period_fence.GuardedClient(dynamodb_client,pipeline_table_name,period_record)
     event_id = item["statisticsEventId"]
     key = {"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "DEDUPE"}}
     existing = dynamodb_client.get_item(
@@ -169,6 +176,10 @@ def publish_observation(
     ):
         return "participation-suppressed"
     envelope = build_cluster_envelope(item)
+    latest=period_fence.read(dynamodb_client,pipeline_table_name,period_id,
+        locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
+    if latest != period_record:
+        raise RuntimeError('Campaign period changed')
     sqs_client.send_message(
         QueueUrl=cluster_queue_url,
         MessageBody=json.dumps(envelope, separators=(",", ":"), sort_keys=True),

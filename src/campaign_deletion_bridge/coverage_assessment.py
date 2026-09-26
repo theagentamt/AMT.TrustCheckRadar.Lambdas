@@ -11,6 +11,7 @@ from uuid import UUID
 from progress import get, integer, key, plain, wire
 from service import PERIOD_SECONDS, RECOVERY_SECONDS, TOKEN_DOMAIN, parse_deletion_record
 from shared_campaign_locators import load_inventory, validate_locator
+from shared_campaign_locators import period as period_fence
 from tombstone import validate as validate_tombstone
 
 
@@ -78,7 +79,7 @@ def _key_record(record, period, account, region):
     if record.get('status') == 'RETIRED':
         raise _Unverified('PERIOD_RETIREMENT_UNPROVEN')
     try:
-        valid = (set(record) == KEY_FIELDS and record['PK'] == f'PERIOD#{period}'
+        valid = (set(record) == KEY_FIELDS | period_fence.ADMISSION_FIELDS and record['PK'] == f'PERIOD#{period}'
                  and record['SK'] == 'HMAC_KEY' and record['status'] == 'ENABLED'
                  and integer(record['periodId']) == period
                  and integer(record['retireAfterEpoch']) == (period + 1) * PERIOD_SECONDS + RECOVERY_SECONDS
@@ -153,6 +154,7 @@ def assess_account_coverage(command, *, environment, aws_account_id, aws_region,
             try:
                 record = get(dynamodb, table_name, f'PERIOD#{period}', 'HMAC_KEY')
                 arn = _key_record(record, period, aws_account_id, aws_region)
+                period_fence.validate(record,period,locator_manifest_sha256,locator_inventory_revision,now_epoch)
                 snapshots.append((table_name, record['PK'], record['SK'], record))
                 try:
                     response = kms.generate_mac(KeyId=arn, Message=TOKEN_DOMAIN + command['accountId'].encode(),

@@ -11,6 +11,7 @@ from coverage_assessment import _key_record
 from progress import get, key, wire, require, integer, CommandGuardedClient
 from service import parse_deletion_record, PERIOD_SECONDS, TOKEN_DOMAIN
 from shared_campaign_locators import load_inventory, InventoryGuardedClient
+from shared_campaign_locators import period as period_fence
 from tombstone import ensure, validate
 from locator_progress import sweep
 
@@ -66,6 +67,7 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
         deletion_ledger_table_name,retention_days,dynamodb,kms,locator_manifest_sha256,
         locator_inventory_revision,now_epoch=None,max_periods=8,max_steps=10,remaining_ms=None):
     """A cursor advance may precede a failed attempt; its locator state is never reset."""
+    period_fence.configuration()
     command=deepcopy(command)
     now=int(time.time()) if now_epoch is None else now_epoch
     require(type(now) is int and type(max_periods) is int and 1<=max_periods<=32
@@ -99,6 +101,7 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
     guarded=InventoryGuardedClient(CommandGuardedClient(dynamodb,deletion_ledger_table_name,command),table_name,inventory)
     def derive(period):
         budget();record=get(dynamodb,table_name,f'PERIOD#{period}','HMAC_KEY')
+        period_fence.validate(record,period,locator_manifest_sha256,locator_inventory_revision,now)
         arn=_key_record(record,period,aws_account_id,aws_region)
         budget();response=kms.generate_mac(KeyId=arn,Message=TOKEN_DOMAIN+command['accountId'].encode(),MacAlgorithm='HMAC_SHA_256')
         require(response.get('KeyId')==arn and response.get('MacAlgorithm')=='HMAC_SHA_256'
