@@ -25,7 +25,7 @@ Username exactly equals its unique `sub`; no inferred or fabricated mapping.
 Keep the existing resource/source pins and add only:
 
 - `QUALIFICATION_COGNITO_POOL_ID`: exact disposable pool ID in us-east-1.
-- `QUALIFICATION_COGNITO_SUBJECT`: exact canonical UUIDv4 user subject.
+- `QUALIFICATION_COGNITO_SUBJECT`: exact canonical UUID user subject (no assumed UUID version).
 
 Input is exactly schemaVersion1, operation `qualify-account-deletion-identity`,
 runId matching the fixture, and case `identity_complete` or
@@ -94,3 +94,23 @@ preflight refusal without writes, fixed handler/event separation, per-call guard
 error minimization and the original 52-case baseline. Local modeled Cognito is
 not actual AWS identity deletion; cloud execution belongs to the reviewed root
 fixture provisioner and must be reported separately.
+
+## Cognito subject version compatibility
+
+The first isolated AWS invocation of source b964c5f stopped at configuration:
+Cognito returned a canonical UUIDv7 subject and the fixture incorrectly required
+UUIDv4. It did not reach fixture data mutation or identity deletion. The separate
+infrastructure evidence retains that failed result and cleanup; it is not a pass.
+The fixture now validates canonical UUID syntax without guessing the provider's
+UUID version. Provenance still requires the exact independently provisioned pool,
+its exact metadata/tags and returned Username equal to the unique sub.
+
+The finalizer, account-data command processing, History cleanup, campaign/recovery,
+shared purchase ownership and V1/Play cleanup treat account subjects as exact
+bounded strings; the Dev engineering allowlist already accepts canonical UUIDs
+without a version constraint. Their UUIDv4 checks refer to operation/consent/event
+identities, which remain unchanged. No production source change is required.
+Thirty-six focused SDK/Moto cases pass, including both complete and delete-ack-loss
+all-component paths with a modeled returned UUIDv7 sub, plus malformed/uppercase/
+compact/brace/whitespace rejection. The earlier 159 combined cases remain prior
+baseline evidence. Actual AWS rerun requires a new disposable pool and subject.

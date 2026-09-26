@@ -21,10 +21,15 @@ def event(case='identity_complete'):
 
 
 @pytest.fixture
-def world(runner):
+def world(runner, request, monkeypatch):
     client=boto3.client('cognito-idp',region_name=Q.REGION)
     pool=client.create_user_pool(PoolName=PREFIX+'-cognito',UsernameAttributes=['email'],UserPoolTags=runner.config['tags'])['UserPool']
-    user=client.admin_create_user(UserPoolId=pool['Id'],Username='synthetic@example.invalid',MessageAction='SUPPRESS',ForceAliasCreation=False)['User']
+    with monkeypatch.context() as scoped:
+        if getattr(request,'param',4)==7:
+            from uuid import UUID
+            from moto.cognitoidp import models
+            scoped.setattr(models.random,'uuid4',lambda:UUID('01997e3a-0000-7000-8000-000000000001'))
+        user=client.admin_create_user(UserPoolId=pool['Id'],Username='synthetic@example.invalid',MessageAction='SUPPRESS',ForceAliasCreation=False)['User']
     subject=user['Username']
     env=ENV|{'QUALIFICATION_COGNITO_POOL_ID':pool['Id'],'QUALIFICATION_COGNITO_SUBJECT':subject}
     config=C.configuration(env,CONTEXT,event())
@@ -139,3 +144,22 @@ def test_reusing_deleted_identity_refuses_before_reset_of_completed_evidence(wor
         C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_delete_lost_ack')
     assert error.value.response['Error']['Code']=='UserNotFoundException'
     assert runner.snapshot()==before
+
+
+@pytest.mark.parametrize('world',[7],indirect=True)
+@pytest.mark.parametrize('case',C.CASES)
+def test_returned_uuid7_subject_through_all_producers_and_finalizer(world,case):
+    from uuid import UUID
+    runner,client,config,_=world
+    assert UUID(config['subject']).version==7
+    value=C.execute(config,CONTEXT,runner.d,runner.kms,client,case)
+    assert value['passed'] and value['actualIdentityDeleted']
+    assert runner.get('ledger','ACCOUNT#'+config['subject'],'ACCOUNT_DELETION')['status']=='COMPLETE'
+
+
+@pytest.mark.parametrize('subject',[' 01997e3a-0000-7000-8000-000000000001',
+    '01997E3A-0000-7000-8000-000000000001','01997e3a000070008000000000000001',
+    '{01997e3a-0000-7000-8000-000000000001}','not-a-uuid'])
+def test_noncanonical_uuid_subject_still_refused(world,subject):
+    with pytest.raises(Q.QualificationFailure):
+        C.configuration(world[3]|{'QUALIFICATION_COGNITO_SUBJECT':subject},CONTEXT,event())
