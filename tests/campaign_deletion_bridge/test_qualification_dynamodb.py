@@ -19,7 +19,8 @@ FUNCTION=PREFIX+'-runner'
 KEY=f'arn:aws:kms:{Q.REGION}:{Q.ACCOUNT}:key/12345678-1234-4234-8234-123456789abc'
 ENV={'QUALIFICATION_RUN_ID':RUN,'QUALIFICATION_SOURCE_SHA':'a'*40,'QUALIFICATION_KEY_ARN':KEY,
      'QUALIFICATION_FUNCTION_NAME':FUNCTION,'AWS_REGION':Q.REGION,
-     **{'QUALIFICATION_'+k.upper()+'_TABLE':PREFIX+'-'+k for k in ('pipeline','ledger','users')}}
+     **{'QUALIFICATION_'+k.upper()+'_TABLE':PREFIX+'-'+k for k in ('pipeline','ledger','users')},
+     **{'QUALIFICATION_'+k.upper().replace('-','_')+'_TABLE':PREFIX+'-'+k for k in Q.account_cleanup.EXTRA_TABLES}}
 CONTEXT=SimpleNamespace(function_name=FUNCTION,invoked_function_arn=f'arn:aws:lambda:{Q.REGION}:{Q.ACCOUNT}:function:{FUNCTION}',
                         get_remaining_time_in_millis=lambda:60000)
 def event(case):return {'schemaVersion':1,'operation':'qualify-campaign-completion','runId':RUN,'case':case}
@@ -30,7 +31,7 @@ def runner(monkeypatch):
     for k,v in ENV.items():monkeypatch.setenv(k,v)
     with mock_aws():
         d=boto3.client('dynamodb',region_name=Q.REGION)
-        config=Q.configuration(ENV,CONTEXT,event(Q.CASES[0]))
+        config=Q.configuration(ENV,CONTEXT,event(Q.account_cleanup.CASES[0]))
         for table in config['tables'].values():
             args=dict(TableName=table,BillingMode='PAY_PER_REQUEST',
                 KeySchema=[{'AttributeName':'PK','KeyType':'HASH'},{'AttributeName':'SK','KeyType':'RANGE'}],
@@ -118,3 +119,22 @@ def test_package_verification_detects_tampered_member(tmp_path,monkeypatch):
     Q.verify_package({'source':'a'*40})
     fake.write_text('modified')
     with pytest.raises(Q.QualificationFailure):Q.verify_package({'source':'a'*40})
+
+
+@pytest.mark.parametrize('kind',Q.account_cleanup.EXTRA_TABLES)
+def test_all_component_resources_require_exact_run_names(kind):
+    name='QUALIFICATION_'+kind.upper().replace('-','_')+'_TABLE'
+    for value in ('trustcheckradar-dev-customers', PREFIX+'-users', ''):
+        with pytest.raises(Q.QualificationFailure):
+            Q.configuration(ENV|{name:value},CONTEXT,event(Q.account_cleanup.CASES[0]))
+
+
+def test_all_component_resource_wrapper_refuses_foreign_table_before_sdk(runner):
+    resources=Q.account_cleanup.Resources(runner)
+    try:
+        with pytest.raises(ValueError,match='FIXTURE_RESOURCE_INVALID'):
+            resources.Table('trustcheckradar-dev-users')
+        with pytest.raises(ValueError,match='FIXTURE_RESOURCE_INVALID'):
+            resources.raw.transact_write_items(TransactItems=[{'Delete':{
+                'TableName':'trustcheckradar-dev-users','Key':Q.R.wire({'PK':'x','SK':'y'})}}])
+    finally:resources.close()

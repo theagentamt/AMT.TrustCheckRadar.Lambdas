@@ -70,6 +70,23 @@ def build(source, output):
             data=git('show',source+':src/'+name)
             require(data==path.read_bytes(),'Finalizer fixture source mismatch')
             compile(data,name,'exec');members[name]=data
+        # Additional producer code belongs only to the isolated all-component fixture.
+        # It never changes any production ZIP or grants identity/provider authority.
+        for directory in ('shared_check_authority','shared_play_lifecycle','shared_play_verification',
+                          'shared_purchase_ownership','shared_history','v1_play_handoff',
+                          'history_account_deletion_bridge','history_lifecycle','shared_recovery_contract'):
+            for path in sorted((ROOT/'src'/directory).glob('*.py')):
+                name=directory+'/'+path.name;data=git('show',source+':src/'+name)
+                require(data==path.read_bytes(),'Fixture dependency source mismatch')
+                require(name not in members or members[name]==data,'Fixture dependency collision')
+                compile(data,name,'exec');members[name]=data
+        for filename in ('errors.py','service.py','lifecycle.py'):
+            data=git('show',source+':src/account_data_api/'+filename)
+            require(data==(ROOT/'src/account_data_api'/filename).read_bytes(),'Account fixture source mismatch')
+            compile(data,filename,'exec');members['_qualification_account/'+filename]=data
+        fixture=git('show',source+':scripts/qualification/account_cleanup.py')
+        require(fixture==(ROOT/'scripts/qualification/account_cleanup.py').read_bytes(),'Account runner source mismatch')
+        compile(fixture,'account_cleanup.py','exec');members['account_cleanup.py']=fixture
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness

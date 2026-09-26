@@ -24,6 +24,8 @@ from shared_campaign_recovery.jobs import backfill_actions
 ACCOUNT = '107827791950'
 REGION = 'us-east-1'
 OP = '69a43d58-54d1-4edc-9941-8a37a5ab8d79'
+_account_spec=importlib.util.spec_from_file_location('account_cleanup',Path(__file__).with_name('account_cleanup.py'))
+account_cleanup=importlib.util.module_from_spec(_account_spec);_account_spec.loader.exec_module(account_cleanup)
 CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'old_users_current_ledger', 'old_ledger_current_pipeline', 'sealed_with_job',
          'old_pipeline_locator', 'delayed_producer', 'retired_prior_key', 'missing_prior_key',
@@ -37,7 +39,7 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'period_close_replay','period_legacy_refusal','period_stale_generation','period_foreign_key',
          'period_publisher_first_race','period_publisher_last_race','period_late_cluster',
          'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing',
-         'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer')
+         'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer') + account_cleanup.CASES
 
 
 class QualificationFailure(Exception):
@@ -57,7 +59,8 @@ def configuration(env, context, event):
     require(type(event['schemaVersion']) is int and event['schemaVersion'] == 1
             and event['operation'] == 'qualify-campaign-completion' and event['runId'] == run
             and event['case'] in CASES)
-    tables = {kind: env.get('QUALIFICATION_' + kind.upper() + '_TABLE') for kind in ('pipeline', 'ledger', 'users')}
+    kinds=('pipeline','ledger','users') + (account_cleanup.EXTRA_TABLES if event['case'] in account_cleanup.CASES else ())
+    tables = {kind: env.get('QUALIFICATION_' + kind.upper().replace('-','_') + '_TABLE') for kind in kinds}
     require(all(name == prefix + '-' + kind for kind, name in tables.items()))
     function = prefix + '-runner'
     require(env.get('QUALIFICATION_FUNCTION_NAME') == function and context.function_name == function)
@@ -476,6 +479,8 @@ class Runner:
             f"arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/{self.tables['ledger']}/stream/2026-09-24T00:00:00.000",
             'dynamodb':{'SequenceNumber':'1','NewImage':R.wire(self.cmd)}}]}
         try:
+            if case in account_cleanup.CASES:
+                account_cleanup.run(self,app,stream,case,require);return
             if case in ('handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer'):
                 self.publication_finalizer_case(app,stream,case);return
             if case=='handler_stream_disabled':app.config.CAMPAIGN_DELETION_STREAM_ENABLED=False
