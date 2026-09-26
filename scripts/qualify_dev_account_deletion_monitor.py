@@ -10,6 +10,8 @@ HOST='api-dev.andmorethings.net'; PATH='/v1/users/account-deletion'
 PLAN_FIELDS={'schemaVersion','runId','poolId','clientId','poolSettingsSha256','clientSettingsSha256','writerCodeSha256','writerRevisionId','apiCodeSha256','apiRevisionId'}
 JOURNAL_FIELDS={'schemaVersion','runId','poolId','clientId','email','operationId','startedAtEpoch','subject','stage'}
 STAGES={'INTENT','CREATED','PROFILE_READY','POST_ATTEMPTED','ACCEPTED'}
+RETRYABLE_HTTP_STATUSES={429,500,502,503,504}
+HTTP_TRANSPORT_ERRORS=(OSError,http.client.HTTPException)
 class Refused(RuntimeError): pass
 def need(value):
     if not value: raise Refused('QUALIFICATION_UNVERIFIED')
@@ -51,14 +53,19 @@ def http_call(method,token,body=None):
         payload=None if body is None else json.dumps(body,separators=(',',':'))
         conn.request(method,PATH,body=payload,headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
         response=conn.getresponse();raw=response.read(65537);need(len(raw)<=65536)
-        return response.status,json.loads(raw,object_pairs_hook=pairs)
+        try:body=json.loads(raw,object_pairs_hook=pairs)
+        except (json.JSONDecodeError,UnicodeDecodeError):
+            if response.status not in RETRYABLE_HTTP_STATUSES:raise
+            body=None
+        return response.status,body
     finally:conn.close()
 
 
 def monitor_revocation(cognito,http,token,*,operation_id,max_seconds=600,now=lambda:int(time.time()),monotonic=time.monotonic,sleep=time.sleep):
     """Observe only. Failure never converts the committed POST to a failure."""
-    report={'httpAccepted':True,'monitorCompleted':False,'polls':0,'applicationGetDenied':False,'cognitoGetUserRejected':False,'erasureVerified':False}
+    report={'httpAccepted':True,'monitorCompleted':False,'polls':0,'applicationGetDenied':False,'cognitoGetUserRejected':False,'erasureVerified':False,'httpRetryCounts':{str(code):0 for code in sorted(RETRYABLE_HTTP_STATUSES)},'transportFailures':0}
     try:
+        need(type(max_seconds) is int and 1<=max_seconds<=600)
         parts=token.split('.');need(len(parts)==3)
         claims=json.loads(base64.urlsafe_b64decode(parts[1]+'='*((-len(parts[1]))%4)))
         expiry=claims.get('exp');need(type(expiry) is int and now()<expiry)
@@ -66,13 +73,22 @@ def monitor_revocation(cognito,http,token,*,operation_id,max_seconds=600,now=lam
         while monotonic()-start<max_seconds and report['polls']<120 and now()<expiry-5:
             report['polls']+=1
             report['applicationGetDenied']=False;report['cognitoGetUserRejected']=False
-            status,body=http('GET',token)
+            report['httpStatus']=None;report['httpErrorCode']=None
+            try:status,body=http('GET',token)
+            except HTTP_TRANSPORT_ERRORS:
+                report['transportFailures']+=1
+                if now()>=expiry-5 or monotonic()-start>=max_seconds:
+                    report['category']='OBSERVATION_BUDGET_EXHAUSTED';return report
+                sleep(5);continue
             report['httpStatus']=status if type(status) is int and 100<=status<=599 else None
             code=body.get('error',{}).get('code') if isinstance(body,dict) and isinstance(body.get('error'),dict) else None
             allowed={'UNAUTHORIZED','REAUTHENTICATION_REQUIRED','FORBIDDEN','NOT_FOUND','CONFLICT','IDEMPOTENCY_CONFLICT','FEATURE_DISABLED','SERVER_UNAVAILABLE','INTERNAL_ERROR','INVALID_REQUEST'}
             report['httpErrorCode']=code if isinstance(code,str) and code in allowed else ('UNRECOGNIZED' if code is not None else None)
             if now()>=expiry-5 or monotonic()-start>=max_seconds:
                 report['category']='OBSERVATION_BUDGET_EXHAUSTED';return report
+            if type(status) is int and status in RETRYABLE_HTTP_STATUSES:
+                report['httpRetryCounts'][str(status)]+=1
+                sleep(5);continue
             if status==401 and isinstance(body,dict) and isinstance(body.get('error'),dict) and body['error'].get('code')=='UNAUTHORIZED':report['applicationGetDenied']=True
             elif not (status==200 and isinstance(body,dict) and body.get('schemaVersion')==1 and body.get('operation')=='ACCOUNT_DELETION' and body.get('status')=='REQUESTED' and body.get('operationId')==operation_id):report['category']='HTTP_OBSERVATION_UNAVAILABLE';return report
             try:cognito.get_user(AccessToken=token)
