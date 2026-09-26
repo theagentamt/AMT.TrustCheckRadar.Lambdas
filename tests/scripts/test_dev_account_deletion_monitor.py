@@ -42,3 +42,17 @@ def test_other_operation_pending_refused():
  c=Mock();http=Mock(return_value=(200,{'schemaVersion':1,'operation':'ACCOUNT_DELETION','status':'REQUESTED','operationId':'other'}))
  r=m.monitor_revocation(c,http,TOKEN,operation_id='owned',now=lambda:1000)
  assert r['httpAccepted'] and not r['monitorCompleted'];c.get_user.assert_not_called()
+
+def test_unavailable_http_records_only_status_and_allowlisted_error_code():
+ c=Mock();http=Mock(return_value=(500,{'error':{'code':'INTERNAL_ERROR','message':'SECRET_VALUE'},'raw':'PRIVATE'}))
+ result=m.monitor_revocation(c,http,TOKEN,operation_id='owned',now=lambda:1000)
+ assert result['httpAccepted'] and result['category']=='HTTP_OBSERVATION_UNAVAILABLE'
+ assert result['httpStatus']==500 and result['httpErrorCode']=='INTERNAL_ERROR'
+ assert 'SECRET_VALUE' not in json.dumps(result) and 'PRIVATE' not in json.dumps(result)
+ c.get_user.assert_not_called()
+
+def test_unknown_http_error_value_not_persisted():
+ c=Mock();http=Mock(return_value=(503,{'error':{'code':'PRIVATE_UNKNOWN'}}))
+ result=m.monitor_revocation(c,http,TOKEN,operation_id='owned',now=lambda:1000)
+ assert result['httpStatus']==503 and result['httpErrorCode']=='UNRECOGNIZED'
+ assert 'PRIVATE_UNKNOWN' not in json.dumps(result)

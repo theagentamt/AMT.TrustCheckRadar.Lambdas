@@ -67,6 +67,10 @@ def monitor_revocation(cognito,http,token,*,operation_id,max_seconds=600,now=lam
             report['polls']+=1
             report['applicationGetDenied']=False;report['cognitoGetUserRejected']=False
             status,body=http('GET',token)
+            report['httpStatus']=status if type(status) is int and 100<=status<=599 else None
+            code=body.get('error',{}).get('code') if isinstance(body,dict) and isinstance(body.get('error'),dict) else None
+            allowed={'UNAUTHORIZED','REAUTHENTICATION_REQUIRED','FORBIDDEN','NOT_FOUND','CONFLICT','IDEMPOTENCY_CONFLICT','FEATURE_DISABLED','SERVER_UNAVAILABLE','INTERNAL_ERROR','INVALID_REQUEST'}
+            report['httpErrorCode']=code if isinstance(code,str) and code in allowed else ('UNRECOGNIZED' if code is not None else None)
             if now()>=expiry-5 or monotonic()-start>=max_seconds:
                 report['category']='OBSERVATION_BUDGET_EXHAUSTED';return report
             if status==401 and isinstance(body,dict) and isinstance(body.get('error'),dict) and body['error'].get('code')=='UNAUTHORIZED':report['applicationGetDenied']=True

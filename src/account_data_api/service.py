@@ -158,8 +158,8 @@ class AccountDeletionService:
         return {
             "schemaVersion": 1, "operation": "ACCOUNT_DELETION",
             "operationId": command["operationId"], "status": command["status"],
-            "requestedAtEpoch": command["occurredAtEpoch"],
-            "deleteByEpoch": command["deleteByEpoch"],
+            "requestedAtEpoch": _exact_int(command["occurredAtEpoch"]),
+            "deleteByEpoch": _exact_int(command["deleteByEpoch"]),
             "completionEligible": completion_eligible,
             "components": components,
         }
