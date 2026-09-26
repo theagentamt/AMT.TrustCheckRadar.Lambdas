@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from uuid import UUID
 
 from errors import AppError
 
@@ -174,3 +175,22 @@ def required_components():
     return tuple(values)
 
 CAMPAIGN_RECOVERY_WRITES_ENABLED = os.environ.get("CAMPAIGN_RECOVERY_WRITES_ENABLED", "false") == "true"
+
+
+def require_http_subject(account_id):
+    """Restrict this Dev-only HTTP qualification; workers never use this gate."""
+    try:
+        raw = os.environ.get("ACCOUNT_DELETION_HTTP_SUBJECTS_JSON", "[]")
+        if APP_ENVIRONMENT != "dev" or len(raw.encode("utf-8")) > 512:
+            raise ValueError
+        subjects = json.loads(raw)
+        if (not isinstance(subjects, list) or len(subjects) > 10
+                or any(not isinstance(value, str) or str(UUID(value)) != value
+                       for value in subjects)
+                or len(set(subjects)) != len(subjects)
+                or account_id not in subjects):
+            raise ValueError
+    except (ValueError, TypeError, UnicodeError, RecursionError):
+        raise AppError(
+            "SERVER_UNAVAILABLE", "Account deletion is not available.", retryable=True
+        ) from None

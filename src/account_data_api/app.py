@@ -36,6 +36,7 @@ def lambda_handler(event, _context):
         config.validate_config()
         route = _route_key(event)
         account_id = _subject(event)
+        config.require_http_subject(account_id)
         service = _service()
         if route == "POST /v1/users/account-deletion":
             _assert_recent_reauthentication(event)
