@@ -223,8 +223,9 @@ class HistoryLifecycleService:
         next_version = checkpoint["stateVersion"] + 1
         self.control_table.update_item(
             Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"{kind}#{prefix}"},
-            UpdateExpression="SET hourEpoch = :hour, shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
-            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND shard = :previous_shard",
+            UpdateExpression="SET hourEpoch = :hour, #shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
+            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND #shard = :previous_shard",
+            ExpressionAttributeNames={"#shard": "shard"},
             ExpressionAttributeValues={
                 ":hour": next_hour, ":shard": next_shard, ":next_version": next_version,
                 ":now": now, ":previous_version": checkpoint["stateVersion"],
@@ -252,8 +253,9 @@ class HistoryLifecycleService:
         next_version = checkpoint["stateVersion"] + 1
         self.control_table.update_item(
             Key={"PK": f"LIFECYCLE#{self.settings.environment}", "SK": f"{kind}#{prefix}"},
-            UpdateExpression="SET hourEpoch = :hour, shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
-            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND shard = :previous_shard",
+            UpdateExpression="SET hourEpoch = :hour, #shard = :shard, stateVersion = :next_version, updatedAtEpoch = :now",
+            ConditionExpression="stateVersion = :previous_version AND hourEpoch = :previous_hour AND #shard = :previous_shard",
+            ExpressionAttributeNames={"#shard": "shard"},
             ExpressionAttributeValues={
                 ":hour": hour, ":shard": shard, ":next_version": next_version, ":now": now,
                 ":previous_version": checkpoint["stateVersion"],
