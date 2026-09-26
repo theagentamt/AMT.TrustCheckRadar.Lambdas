@@ -209,6 +209,8 @@ def test_metrics_are_content_free_json_native_even_with_dynamodb_decimals(world)
 
 
 def test_actual_enabled_scheduled_handler_uses_worker_and_fixed_metrics(world,monkeypatch,capsys):
+    from tests.campaign_period_fixtures import enable
+    enable(monkeypatch)
     import importlib
     for name,value in {'AWS_DEFAULT_REGION':'us-east-1','APP_ENVIRONMENT':'dev','PIPELINE_TABLE_NAME':'pipeline',
         'USERS_TABLE_NAME':'users','DELETION_LEDGER_TABLE_NAME':'ledger','CAMPAIGN_RECOVERY_ENABLED':'true',

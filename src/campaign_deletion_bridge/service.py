@@ -61,7 +61,7 @@ def _is_uuid4(value):
 
 def delete_account_contributions(command, *, table_name, retention_days, dynamodb, kms,
                                  now_epoch=None, max_steps=10, remaining_ms=None, deletion_ledger_table_name=None,
-                                 locator_manifest_sha256=None, locator_inventory_revision=0):
+                                 locator_manifest_sha256=None, locator_inventory_revision=0,intelligence_table=None):
     from cleanup_errors import CoverageUnavailable
     from shared_campaign_locators import period as period_fence
     period_fence.configuration()
@@ -121,7 +121,7 @@ def delete_account_contributions(command, *, table_name, retention_days, dynamod
         ensure(selected,table_name,command['environment'],partition,period_id,
                command['occurredAtEpoch'],retention_days)
         result = sweep(selected,table_name,command["environment"],partition,command["operationId"],now_epoch,
-                       max_steps=max_steps,remaining_ms=remaining_ms)
+                       max_steps=max_steps,remaining_ms=remaining_ms,intelligence_table=intelligence_table)
         for name in ("deleted","recomputedCandidates"):
             totals[name] += result[name]
         totals["locatorPassEnded"] = totals["locatorPassEnded"] and result["locatorPassEnded"]

@@ -233,3 +233,55 @@ def test_budget_drop_after_key_read_stops_before_mac_dispatch(enabled):
     before=w.snapshot()
     with pytest.raises(RuntimeError,match='RECONCILIATION_REQUIRED'):app.lambda_handler(event(),Falling())
     assert w.calls==[] and w.snapshot()==before
+
+
+def test_frozen_account_cleanup_receipt_unblocks_real_finalizer_proof(enabled,monkeypatch):
+    """Other-component receipts/inventory are explicitly synthetic assumptions."""
+    import boto3
+    from shared_campaign_locators import core
+    from shared_account_finalization.service import Finalizer,FinalizationError,REQUIRED_COMPONENTS
+    from tests.shared_account_finalization.test_finalizer import Cognito
+    w,app=enabled
+    monkeypatch.setattr(app.config,'INTELLIGENCE_TABLE_NAME','pipeline')
+    pk='CANDIDATE#11111111-1111-4111-8111-111111111111'
+    summary={'PK':pk,'SK':'SUMMARY','candidateId':pk.split('#')[1],'periodId':1500,'version':1,
+        'expiresAt':NOW+1000,'GSI3PK':'EXPIRY#dev','GSI3SK':NOW+1000,
+        'lifecycleState':'FROZEN','lifecycleOperationId':OP,'lifecycleStartedAtEpoch':NOW-100,
+        'lifecycleInventoryRevision':1}
+    contribution={'PK':pk,'SK':'CONTRIB#'+partition(1500).split('#')[2],
+        'GSI1PK':partition(1500),'GSI1SK':pk,'periodId':1500,'expiresAt':NOW+1000,
+        'submissionCount':1,'vectorApplied':True,'vector':[1],
+        'metadataSchemaVersion':1,'lexicalFingerprint':[],'signalIds':[],'indicatorIds':[]}
+    w.put(summary);w.put(contribution);w.put(core.locator_for_target(contribution,'dev'))
+    inventory={'PK':'INVENTORY#dev','SK':'ACCOUNT_DATA_INVENTORY','recordType':'ACCOUNT_DATA_INVENTORY',
+        'schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE',
+        'manifestSha256':'d'*64,'requiredComponents':list(REQUIRED_COMPONENTS),'usernameIsSubVerified':True,'approvedAtEpoch':NOW-1}
+    w.put(inventory,'ledger')
+    for component in REQUIRED_COMPONENTS:
+        if component in ('CAMPAIGN','IDENTITY'):continue
+        w.put({'PK':CMD['PK'],'SK':'ACCOUNT_DELETION#'+component,'schemaVersion':1,'recordVersion':1,
+            'environment':'dev','eventType':'account.deletion.component.completed','component':component,
+            'status':'COMPLETE','operationId':OP,'occurredAtEpoch':NOW+1,'requestOccurredAtEpoch':NOW,
+            'retainUntilEpoch':NOW+1+120*86400},'ledger')
+    cognito=Cognito();cognito.response={"Username":ACCOUNT,"UserAttributes":[{"Name":"sub","Value":ACCOUNT}]}
+    finalizer=Finalizer(ledger_table=boto3.resource('dynamodb',region_name='us-east-1').Table('ledger'),
+        ledger_table_name='ledger',client=w.d,cognito=cognito,user_pool_id='us-east-1_Synthetic',environment='dev',
+        now=lambda:NOW+1,enabled=True,manifest_sha256='d'*64,inventory_revision=1)
+    with pytest.raises(FinalizationError):finalizer.finalize(CMD)
+    assert cognito.gets==[] and cognito.deletes==[]
+    for _ in range(8):
+        try:
+            out=app.lambda_handler(event(),Context())
+            assert out['completed']==1
+            break
+        except RuntimeError as error:
+            assert str(error)=='CAMPAIGN_DELETION_RECONCILIATION_REQUIRED'
+            assert get(w,'ledger',CMD['PK'],'ACCOUNT_DELETION#CAMPAIGN') is None
+    else:pytest.fail('bounded retained-period cleanup did not complete')
+    assert get(w,'pipeline',pk,'SUMMARY') is None
+    assert get(w,'pipeline',pk,'DELETION_RECOMPUTE') is None
+    assert get(w,'ledger',CMD['PK'],'ACCOUNT_DELETION#CAMPAIGN')['status']=='COMPLETE'
+    assert get(w,'ledger',CMD['PK'],R.CONTROL_SK)['state']=='SEALED'
+    assert finalizer.finalize(CMD)=={'complete':True,'alreadyComplete':False}
+    assert get(w,'ledger',CMD['PK'],R.CONTROL_SK) is None
+    assert get(w,'ledger',CMD['PK'],'ACCOUNT_DELETION')['status']=='COMPLETE'

@@ -38,10 +38,10 @@ def integer(value, minimum=0):
     return int(value)
 
 
-def condition(table, pk, sk, version, field='version'):
+def condition(table, pk, sk, version, field='version', phase=None):
     return {'ConditionCheck': {'TableName': table, 'Key': key(pk, sk),
-        'ConditionExpression': '#v = :v AND attribute_not_exists(lifecycleState)', 'ExpressionAttributeNames': {'#v': field},
-        'ExpressionAttributeValues': wire({':v': version})}}
+        'ConditionExpression': '#v = :v AND '+('attribute_not_exists(lifecycleState)' if phase is None else 'lifecycleState = :phase'), 'ExpressionAttributeNames': {'#v': field},
+        'ExpressionAttributeValues': wire({':v': version}|({':phase':phase} if phase else {}))}}
 
 
 class CommandGuardedClient:
@@ -64,14 +64,39 @@ class CommandGuardedClient:
     def update_item(self, **kwargs):
         return self.transact_write_items(TransactItems=[{'Update':kwargs}])
 
-def recompute_page(ddb, table, pk, now):
+def recompute_page(ddb, table, pk, now, *, environment=None, intelligence_table=None, erased_locator=None):
     """Publish only after every page, using the original summary version as a fence."""
     summary = get(ddb, table, pk, 'SUMMARY')
     if summary is None:
+        saved=get(ddb,table,pk,'DELETION_RECOMPUTE')
+        if saved is not None:
+            require(environment in ('dev','uat','prod') and saved.get('GSI3PK')=='EXPIRY#'+environment)
+            validate_repair(saved,{'PK':pk,'expiresAt':saved.get('expiresAt'),'GSI3PK':'EXPIRY#'+environment},now)
+            from publication_recovery import exact,absent
+            ddb.transact_write_items(TransactItems=[absent(table,pk,'SUMMARY'),exact(table,saved,'Delete')])
         return True
-    require('lifecycleState' not in summary)
+    phase=summary.get('lifecycleState');proofs=[]
+    if phase is not None:
+        from publication_recovery import evidence,published_cleanup
+        observed,proof=evidence(ddb,table,intelligence_table,summary,environment,now)
+        if observed in ('PUBLISHED','SUPPRESSED'):
+            return published_cleanup(ddb,table,intelligence_table,summary,environment,now)
+        if observed=='FROZEN':
+            # The repair publication may have committed before its response or
+            # this tombstone's separate cursor advance was lost. Prove that the
+            # exact owned pair and shared repair are gone, never re-run a fresh
+            # publication or infer success from a frozen phase alone.
+            from shared_campaign_locators import validate_locator
+            from publication_recovery import exact,absent
+            locator=validate_locator(erased_locator,environment)
+            require(locator['targetKind']=='CONTRIBUTION' and locator['targetPK']==pk)
+            ddb.transact_write_items(TransactItems=[proof,exact(table,summary),
+                absent(table,pk,'DELETION_RECOMPUTE'),absent(table,locator['PK'],locator['SK']),
+                absent(table,pk,locator['targetSK'])])
+            return True
+        require(observed=='REPAIRING')
+        proofs=[proof]
     version, expiry = integer(summary.get('version'),1), integer(summary.get('expiresAt'),1)
-    require(expiry > now)
     saved = get(ddb,table,pk,'DELETION_RECOMPUTE')
     if saved is not None:
         validate_repair(saved, summary, now)
@@ -85,7 +110,7 @@ def recompute_page(ddb, table, pk, now):
             put['ConditionExpression']='attribute_not_exists(PK)'
         else:
             put.update(ConditionExpression='revision = :r',ExpressionAttributeValues=wire({':r':saved['revision']}))
-        ddb.transact_write_items(TransactItems=[condition(table,pk,'SUMMARY',version),{'Put':put}])
+        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase),{'Put':put}])
         return False
     cursor = saved['cursor']
     args = dict(TableName=table, KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',
@@ -121,24 +146,27 @@ def recompute_page(ddb, table, pk, now):
     if last:
         require(set(last) == {'PK','SK'} and last['PK'] == pk and type(last['SK']) is str and last['SK'].startswith('CONTRIB#'))
         state['cursor'] = last['SK']
-        ddb.transact_write_items(TransactItems=[condition(table,pk,'SUMMARY',version),{'Put':{
+        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase),{'Put':{
             'TableName':table,'Item':wire(state),'ConditionExpression':'revision = :r',
             'ExpressionAttributeValues':wire({':r':saved['revision']})}}])
         return False
     # A candidate with no usable vectors cannot have a trustworthy centroid.
     require(state['contributors'] == 0 or state['vectors'] > 0)
     if state['contributors'] == 0:
-        action = {'Delete':{'TableName':table,'Key':key(pk,'SUMMARY'),'ConditionExpression':'#v = :v AND attribute_not_exists(lifecycleState)',
-                           'ExpressionAttributeNames':{'#v':'version'},'ExpressionAttributeValues':wire({':v':version})}}
+        action = {'Delete':{'TableName':table,'Key':key(pk,'SUMMARY'),'ConditionExpression':'#v = :v AND '+('attribute_not_exists(lifecycleState)' if phase is None else 'lifecycleState = :phase'),
+                           'ExpressionAttributeNames':{'#v':'version'},'ExpressionAttributeValues':wire({':v':version}|({':phase':phase} if phase else {}))}}
     else:
         centroid = [(v / state['vectors']).quantize(Decimal('.0000001')) for v in state['sums']]
         action = {'Update':{'TableName':table,'Key':key(pk,'SUMMARY'),
             'UpdateExpression':'SET centroid = :centroid, contributorCount = :count, submissionCount = :submissions, #v = :next, metadataSchemaVersion = :mv, lexicalFingerprint = :lex, signalIds = :signals, indicatorIds = :indicators',
-            'ConditionExpression':'#v = :v AND attribute_not_exists(lifecycleState)','ExpressionAttributeNames':{'#v':'version'},
+            'ConditionExpression':'#v = :v AND '+('attribute_not_exists(lifecycleState)' if phase is None else 'lifecycleState = :phase'),'ExpressionAttributeNames':{'#v':'version'},
             'ExpressionAttributeValues':wire({':v':version,':next':version+1,':centroid':centroid,
                                                ':count':state['contributors'],':submissions':state['submissions'], ':mv':1,
-                                               ':lex':state['lexicalFingerprint'],':signals':state['signalIds'],':indicators':state['indicatorIds']})}}
-    ddb.transact_write_items(TransactItems=[action,{'Delete':{'TableName':table,'Key':key(pk,'DELETION_RECOMPUTE'),
+                                               ':lex':state['lexicalFingerprint'],':signals':state['signalIds'],':indicators':state['indicatorIds']}|({':phase':phase} if phase else {}))}}
+    if phase=='REPAIRING' and 'Update' in action:
+        action['Update']['UpdateExpression']+=', lifecycleState = :frozen'
+        action['Update']['ExpressionAttributeValues'][':frozen']={'S':'FROZEN'}
+    ddb.transact_write_items(TransactItems=[*proofs,action,{'Delete':{'TableName':table,'Key':key(pk,'DELETION_RECOMPUTE'),
         'ConditionExpression':'revision = :r','ExpressionAttributeValues':wire({':r':saved['revision']})}}])
     return True
 
@@ -149,6 +177,7 @@ def validate_repair(saved, summary, now):
     require(set(saved) == expected and saved['PK'] == summary['PK'] and saved['SK'] == 'DELETION_RECOMPUTE'
             and saved['expiresAt'] == summary['expiresAt'] and saved['GSI3PK'] == summary['GSI3PK']
             and saved['GSI3SK'] == summary['expiresAt'])
+    integer(saved['expiresAt'],1)
     for field in ('revision','summaryVersion','cutoffEpoch'):
         integer(saved[field],1)
     for field in ('contributors','submissions','vectors'):

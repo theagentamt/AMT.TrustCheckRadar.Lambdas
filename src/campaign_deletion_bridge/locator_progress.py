@@ -19,7 +19,7 @@ def _advance(ddb,table,tombstone,state,extra=()):
     ddb.transact_write_items(TransactItems=[*extra,action])
 
 
-def sweep(ddb,table,environment,partition,operation_id,now,*,max_steps=10,remaining_ms=None):
+def sweep(ddb,table,environment,partition,operation_id,now,*,max_steps=10,remaining_ms=None,intelligence_table=None):
     require(type(max_steps) is int and 1<=max_steps<=20)
     deleted=recomputed=0
     for _ in range(max_steps):
@@ -58,13 +58,26 @@ def sweep(ddb,table,environment,partition,operation_id,now,*,max_steps=10,remain
                 return {'deleted':deleted,'recomputedCandidates':recomputed,'locatorPassEnded':True}
             _advance(ddb,table,tomb,state|{'phase':'DELETE','locator':items[0],'nextCursor':cursor})
         elif phase=='DELETE':
-            actions=paired_delete_actions(table,locator)
+            from publication_recovery import absent
+            current=get(ddb,table,locator['PK'],locator['SK'])
+            if current is None:
+                # Another qualified publication cleanup may have consumed this
+                # pair after the durable DELETE cursor was saved.
+                actions=[absent(table,locator['PK'],locator['SK']),absent(table,locator['targetPK'],locator['targetSK'])]
+                if locator['targetKind']=='FEATURE':
+                    actions.extend(absent(table,locator['targetPK'],sk) for sk in ('DEDUPE','CLUSTERED'))
+            else:
+                require(current==locator)
+                actions=paired_delete_actions(table,locator)
             if locator['targetKind']=='CONTRIBUTION':
                 summary=get(ddb,table,locator['targetPK'],'SUMMARY')
                 if summary:
                     version=integer(summary.get('version'),1)
-                    require('lifecycleState' not in summary)
-                    actions.append({'Update':{'TableName':table,'Key':key(locator['targetPK'],'SUMMARY'),
+                    require(summary.get('periodId',locator['periodId'])==locator['periodId'])
+                    if 'lifecycleState' in summary:
+                        from publication_recovery import delete_contribution_guard
+                        actions.extend(delete_contribution_guard(ddb,table,intelligence_table,summary,environment,now))
+                    else:actions.append({'Update':{'TableName':table,'Key':key(locator['targetPK'],'SUMMARY'),
                         'UpdateExpression':'SET #v = :next','ConditionExpression':'#v = :v AND attribute_not_exists(lifecycleState)',
                         'ExpressionAttributeNames':{'#v':'version'},'ExpressionAttributeValues':wire({':v':version,':next':version+1})}})
                 new=state|{'phase':'RECOMPUTE'}
@@ -72,7 +85,7 @@ def sweep(ddb,table,environment,partition,operation_id,now,*,max_steps=10,remain
                 new={'operationId':operation_id,'phase':'SEEK','cursor':state['nextCursor']}
             _advance(ddb,table,tomb,new,actions)
             deleted+=1
-        elif recompute_page(ddb,table,locator['targetPK'],now):
+        elif recompute_page(ddb,table,locator['targetPK'],now,environment=environment,intelligence_table=intelligence_table,erased_locator=locator):
             _advance(ddb,table,tomb,{'operationId':operation_id,'phase':'SEEK','cursor':state['nextCursor']})
             recomputed+=1
     return {'deleted':deleted,'recomputedCandidates':recomputed,'locatorPassEnded':False}
