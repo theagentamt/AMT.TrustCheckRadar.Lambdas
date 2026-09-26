@@ -98,7 +98,7 @@ class Identity:
         self._check(kw); self.calls.append('delete'); self.present = False
 
 
-def run(r, campaign_app, stream, case, require):
+def run(r, campaign_app, stream, case, require, *, identity=None, pool='us-east-1_Synthetic', delete_ack_loss=False):
     from shared_account_finalization.service import Finalizer, FinalizationError, REQUIRED_COMPONENTS
     from shared_purchase_ownership import OwnershipStore
     from shared_purchase_ownership.service import owner_key, locator_item
@@ -116,7 +116,7 @@ def run(r, campaign_app, stream, case, require):
         ledger, users = table('ledger'), table('users')
         now, account, pk = r.now, r.subject, 'USER#' + r.subject
         sha = hashlib.sha256(account.encode()).hexdigest()
-        identity = Identity(account)
+        identity = identity if identity is not None else Identity(account)
         r.put('ledger', {'PK':'INVENTORY#dev','SK':'ACCOUNT_DATA_INVENTORY','recordType':'ACCOUNT_DATA_INVENTORY',
             'schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'d'*64,
             'requiredComponents':list(REQUIRED_COMPONENTS),'usernameIsSubVerified':True,'approvedAtEpoch':r.when-1})
@@ -162,7 +162,7 @@ def run(r, campaign_app, stream, case, require):
         r.put('entitlements',owner_key(owner_digest)|{'recordType':'PURCHASE_OWNERSHIP','schemaVersion':1,'revision':1,
             'accountId':account,'purchaseTokenHash':owner_digest,'platform':'google_play','productId':'synthetic-product','verifiedAtEpoch':r.when})
         finalizer=Finalizer(ledger_table=ledger,ledger_table_name=r.tables['ledger'],client=resources.raw,cognito=identity,
-            user_pool_id='us-east-1_Synthetic',environment='dev',now=lambda:int(time.time()),enabled=True,manifest_sha256='d'*64,inventory_revision=1)
+            user_pool_id=pool,environment='dev',now=lambda:int(time.time()),enabled=True,manifest_sha256='d'*64,inventory_revision=1)
         ownership=OwnershipStore(table=table('entitlements'),ledger=ledger,users_table_name=r.tables['users'],
             table_name=r.tables['entitlements'],ledger_table_name=r.tables['ledger'],client=resources.raw,environment='dev',now=lambda:now)
         lifecycle=lifecycle_module.Lifecycle(ledger=ledger,ledger_name=r.tables['ledger'],client=resources.raw,ownership=ownership,
@@ -185,14 +185,14 @@ def run(r, campaign_app, stream, case, require):
                 if not fired and name=='put_item' and kw.get('Item',{}).get('component')=='SESSION_REVOCATION':
                     fired.append(True);raise Interrupted('SYNTHETIC_ACK_LOSS')
             resources.after=lost_ack
-            try: service.ensure_session_revoked(r.cmd,user_pool_id='us-east-1_Synthetic',cognito=identity,ledger_table=ledger,now_epoch=now)
+            try: service.ensure_session_revoked(r.cmd,user_pool_id=pool,cognito=identity,ledger_table=ledger,now_epoch=now)
             except Interrupted:pass
             else:raise ValueError('EXPECTED_ACK_LOSS')
             require(fired==[True] and receipt('SESSION_REVOCATION') is not None)
             resources.after=lambda name,kw:None
-        require(service.ensure_session_revoked(r.cmd,user_pool_id='us-east-1_Synthetic',cognito=identity,ledger_table=ledger,now_epoch=now))
+        require(service.ensure_session_revoked(r.cmd,user_pool_id=pool,cognito=identity,ledger_table=ledger,now_epoch=now))
         before=receipt('SESSION_REVOCATION')
-        require(service.ensure_session_revoked(r.cmd,user_pool_id='us-east-1_Synthetic',cognito=identity,ledger_table=ledger,now_epoch=now+1))
+        require(service.ensure_session_revoked(r.cmd,user_pool_id=pool,cognito=identity,ledger_table=ledger,now_epoch=now+1))
         require(identity.calls==['signout'] and receipt('SESSION_REVOCATION')==before)
         first=service.delete_device_bindings(r.cmd,device_table=table('devices'),ledger_table=ledger,now_epoch=now)
         require(not first['complete'] and first['deleted']==100 and receipt('DEVICE_BINDINGS') is None)
@@ -328,9 +328,15 @@ def run(r, campaign_app, stream, case, require):
         upstream={c:receipt(c) for c in REQUIRED_COMPONENTS if c!='IDENTITY'}
         require(all(row is not None for row in upstream.values()))
         require(all(row['retainUntilEpoch']==row['occurredAtEpoch']+120*86400 for row in upstream.values()))
+        if delete_ack_loss:
+            try: finalizer.finalize(r.cmd)
+            except FinalizationError as exc: require(str(exc)=='FINALIZER_IDENTITY_DELETE_UNCONFIRMED')
+            else: raise ValueError('EXPECTED_IDENTITY_ACK_LOSS')
+            require(r.get('ledger',r.cmd['PK'],r.cmd['SK'])['status']=='REQUESTED' and receipt('IDENTITY') is None)
         require(finalizer.finalize(r.cmd)['complete'])
-        require(identity.calls==['signout','get','delete'])
-        require(finalizer.finalize(r.cmd)['alreadyComplete'] and identity.calls==['signout','get','delete'])
+        expected=['signout','get','delete'] + (['get'] if delete_ack_loss else [])
+        require(identity.calls==expected)
+        require(finalizer.finalize(r.cmd)['alreadyComplete'] and identity.calls==expected)
         require(authority.delete_batch(r.cmd)['alreadyComplete'] and token.delete_batch(r.cmd)['alreadyComplete'])
         require(start_history_deletion(r.cmd,**(history_args|{'now_epoch':int(time.time())}))['alreadyCompleted'])
         require(campaign_app.lambda_handler(stream,r.context)['completed']==0)

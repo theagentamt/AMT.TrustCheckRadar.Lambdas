@@ -78,7 +78,7 @@ def configuration(env, context, event):
 def verify_package(config):
     root = Path(__file__).resolve().parent
     manifest = json.loads((root / 'qualification-manifest.json').read_text())
-    require(manifest['sourceSha'] == config['source'] and manifest['handler'] == 'campaign_qualification.lambda_handler')
+    require(manifest['sourceSha'] == config['source'] and manifest['handler'] == config.get('handler','campaign_qualification.lambda_handler'))
     for name, digest in manifest['memberSha256'].items():
         require(not name.startswith('/') and '..' not in Path(name).parts)
         require(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest)
@@ -480,7 +480,7 @@ class Runner:
             'dynamodb':{'SequenceNumber':'1','NewImage':R.wire(self.cmd)}}]}
         try:
             if case in account_cleanup.CASES:
-                account_cleanup.run(self,app,stream,case,require);return
+                account_cleanup.run(self,app,stream,case,require,**getattr(self,'identity_options',{}));return
             if case in ('handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer'):
                 self.publication_finalizer_case(app,stream,case);return
             if case=='handler_stream_disabled':app.config.CAMPAIGN_DELETION_STREAM_ENABLED=False
