@@ -20,7 +20,7 @@ def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT)
 
 
-def build(source, output):
+def build(source, output, *, real_cognito=False):
     require(re.fullmatch('[0-9a-f]{40}', source) is not None, 'Exact source SHA required')
     require(git('rev-parse','HEAD').decode().strip()==source, 'Source must equal HEAD')
     require(not git('status','--porcelain').strip(), 'Clean tree required')
@@ -90,14 +90,19 @@ def build(source, output):
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness
-        manifest={'schemaVersion':1,'sourceSha':source,'handler':'campaign_qualification.lambda_handler',
+        if real_cognito:
+            identity=git('show',source+':scripts/qualification/cognito_qualification.py')
+            require(identity==(ROOT/'scripts/qualification/cognito_qualification.py').read_bytes(),'Identity runner source mismatch')
+            compile(identity,'cognito_qualification.py','exec');members['cognito_qualification.py']=identity
+        handler='cognito_qualification.lambda_handler' if real_cognito else 'campaign_qualification.lambda_handler'
+        manifest={'schemaVersion':1,'sourceSha':source,'handler':handler,
             'runtime':'python3.14','architecture':'arm64','productionZipSha256':prod_digest,
             'productionArchive':'campaign_deletion_bridge.zip','productionZipSizeBytes':len(payload),
             'productionHandler':'app.lambda_handler','productionArchives':production_archives,
             'syntheticOnly':True,'historicalCoverageApproved':False,
             'memberSha256':{name:hashlib.sha256(data).hexdigest() for name,data in sorted(members.items())}}
         members['qualification-manifest.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()
-        target=output/'campaign_completion_qualification.zip'
+        target=output/('cognito_account_deletion_qualification.zip' if real_cognito else 'campaign_completion_qualification.zip')
         with zipfile.ZipFile(target,'w',compression=zipfile.ZIP_DEFLATED) as archive:
             for name,data in sorted(members.items()):
                 info=zipfile.ZipInfo(name,date_time=(2020,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
@@ -112,5 +117,6 @@ def build(source, output):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-sha',required=True);parser.add_argument('--output-dir',required=True)
+    parser.add_argument('--real-cognito',action='store_true',help='Separate isolated disposable-pool handler; never changes production archives')
     args=parser.parse_args()
-    print(json.dumps(build(args.source_sha,args.output_dir),sort_keys=True))
+    print(json.dumps(build(args.source_sha,args.output_dir,real_cognito=args.real_cognito),sort_keys=True))
