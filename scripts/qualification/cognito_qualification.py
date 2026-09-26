@@ -19,7 +19,7 @@ def configuration(env, context, event):
     pool=env.get('QUALIFICATION_COGNITO_POOL_ID','')
     subject=env.get('QUALIFICATION_COGNITO_SUBJECT','')
     Q.require(re.fullmatch(Q.REGION+r'_[A-Za-z0-9]+',pool) is not None)
-    try: valid=str(UUID(subject))==subject and UUID(subject).version==4
+    try: valid=str(UUID(subject))==subject
     except (ValueError,TypeError,AttributeError):valid=False
     Q.require(valid)
     return config|{'pool':pool,'subject':subject,'handler':HANDLER}
