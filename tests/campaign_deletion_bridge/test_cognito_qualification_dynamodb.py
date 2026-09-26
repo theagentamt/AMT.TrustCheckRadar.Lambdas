@@ -129,3 +129,13 @@ def test_unknown_failure_is_content_free(monkeypatch,capsys):
     monkeypatch.setattr(C,'configuration',lambda *a:(_ for _ in ()).throw(RuntimeError('sensitive-subject')))
     value=C.lambda_handler({'secret':'sensitive-subject'},CONTEXT)
     assert value['passed'] is False and 'sensitive' not in str(value) and capsys.readouterr().out==''
+
+
+def test_reusing_deleted_identity_refuses_before_reset_of_completed_evidence(world):
+    runner,client,config,_=world
+    assert C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_complete')['passed']
+    before=runner.snapshot()
+    with pytest.raises(ClientError) as error:
+        C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_delete_lost_ack')
+    assert error.value.response['Error']['Code']=='UserNotFoundException'
+    assert runner.snapshot()==before

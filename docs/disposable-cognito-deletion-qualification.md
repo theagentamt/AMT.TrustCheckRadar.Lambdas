@@ -83,8 +83,11 @@ manifest. The four production campaign archives are unchanged source and do not
 contain either fixture identity adapter. Dependencies are application Python and
 the AWS Python3.14 runtime SDK, without host-native wheels.
 
-159 combined SDK/Moto cases passed: 28 identity/resource cases, 83 existing
-qualification cases and 48 shared-finalizer cases. Compile and diff checks passed.
+159 combined SDK/Moto cases passed at d290b8e: 28 identity/resource cases, 83
+existing qualification cases and 48 shared-finalizer cases. A final focused run
+passed all 29 identity/resource cases, adding refusal to reuse a deleted identity
+before resetting completed evidence; fixture source stayed unchanged. Compile
+and diff checks passed.
 The focused validation covers actual receipt composition with modeled Cognito,
 normal deletion, committed delete response loss/retry, wrong pool/subject/tags,
 preflight refusal without writes, fixed handler/event separation, per-call guard,
