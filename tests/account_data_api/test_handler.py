@@ -51,7 +51,7 @@ def event(method="POST", *, auth_age=30, body=None):
     return {
         "routeKey": f"{method} /v1/users/account-deletion",
         "requestContext": {"authorizer": {"jwt": {"claims": {
-            "sub": "account-1", "iss": config.COGNITO_ISSUER,
+            "sub": "01234567-89ab-4cde-8fab-0123456789ab", "iss": config.COGNITO_ISSUER,
             "client_id": config.COGNITO_APP_CLIENT_ID, "token_use": "access",
             "exp": str(current + 600), "scope": config.COGNITO_REQUIRED_SCOPE,
             "auth_time": str(current - auth_age), "iat": str(current - auth_age),
@@ -81,6 +81,7 @@ class AccountDataHandlerTests(unittest.TestCase):
         self.subject = Subject()
         self.patches = [
             mock.patch.object(app.config, "validate_config"),
+            mock.patch.dict(os.environ, {"ACCOUNT_DELETION_HTTP_SUBJECTS_JSON": json.dumps(["01234567-89ab-4cde-8fab-0123456789ab"])}),
             mock.patch.object(app, "_service", return_value=self.subject),
             mock.patch.object(app, "_attempt_post_fence_cleanup"),
         ]
@@ -100,7 +101,7 @@ class AccountDataHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 202)
         self.assertEqual(
             self.subject.requests,
-            [("account-1", "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4")],
+            [("01234567-89ab-4cde-8fab-0123456789ab", "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4")],
         )
         self.assertEqual(response["headers"]["Cache-Control"], "private, no-store")
 
@@ -156,7 +157,7 @@ class AccountDataHandlerTests(unittest.TestCase):
         self.assertEqual(self.subject.requests, [])
 
     def test_accepted_post_is_not_repolled_after_concurrent_identity_completion(self):
-        snapshot = self.subject.status("account-1")
+        snapshot = self.subject.status("01234567-89ab-4cde-8fab-0123456789ab")
         with mock.patch.object(self.subject,"request",return_value=snapshot), \
                 mock.patch.object(self.subject,"status",side_effect=RuntimeError("identity already removed")):
             response = app.lambda_handler(event(body=json.dumps({"schemaVersion":1,"action":"DELETE_ACCOUNT","operationId":"3fefbf1a-caf4-4e72-ab61-4fb36bf925b4"})),None)
@@ -283,3 +284,72 @@ class DurableCampaignConfigurationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HttpSubjectScopeTests(unittest.TestCase):
+    V4 = "01234567-89ab-4cde-8fab-0123456789ab"
+    V7 = "01993d31-cafe-7abc-8abc-0123456789ab"
+
+    def call(self, method, subject, raw, *, environment="dev"):
+        request = event(method=method, body=None if method == "GET" else json.dumps({
+            "schemaVersion": 1, "action": "DELETE_ACCOUNT",
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4"}))
+        request["requestContext"]["authorizer"]["jwt"]["claims"]["sub"] = subject
+        with mock.patch.dict(os.environ, {"ACCOUNT_DELETION_HTTP_SUBJECTS_JSON": raw}), \
+                mock.patch.object(config, "APP_ENVIRONMENT", environment), \
+                mock.patch.object(config, "validate_config"), \
+                mock.patch.object(app, "_service", return_value=Subject()) as service, \
+                mock.patch.object(app, "_attempt_post_fence_cleanup") as cleanup:
+            response = app.lambda_handler(request, None)
+            if response["statusCode"] == 503:
+                service.assert_not_called()
+                cleanup.assert_not_called()
+            return response
+
+    def test_selected_canonical_subject_versions_get_and_post(self):
+        for subject in (self.V4, self.V7):
+            for method, status in (("GET", 200), ("POST", 202)):
+                with self.subTest(subject=subject, method=method):
+                    self.assertEqual(self.call(method, subject, json.dumps([subject]))["statusCode"], status)
+
+    def test_empty_outside_malformed_configuration_is_fixed_unavailable(self):
+        values = ["[]", json.dumps([self.V7]), "null", "{}", "true", "[", "[1]",
+                  json.dumps([self.V4, self.V4]), json.dumps([self.V4.upper()]),
+                  json.dumps([self.V4.replace("-", "")]), json.dumps([" " + self.V4]),
+                  json.dumps(["{" + self.V4 + "}"]), json.dumps([None]),
+                  json.dumps([f"{n:08x}-89ab-4cde-8fab-0123456789ab" for n in range(11)]),
+                  " " * 513, json.dumps(["\ud800"])]
+        for raw in values:
+            for method in ("GET", "POST"):
+                with self.subTest(raw_index=values.index(raw), method=method):
+                    response = self.call(method, self.V4, raw)
+                    self.assertEqual(response["statusCode"], 503)
+                    error = json.loads(response["body"])["error"]
+                    self.assertEqual(error["code"], "SERVER_UNAVAILABLE")
+                    self.assertEqual(error["message"], "Account deletion is not available.")
+                    self.assertTrue(error["retryable"])
+                    self.assertNotIn(self.V4, response["body"])
+
+    def test_non_dev_is_closed_even_with_selected_subject(self):
+        for environment in ("", "uat", "prod"):
+            self.assertEqual(self.call("GET", self.V4, json.dumps([self.V4]), environment=environment)["statusCode"], 503)
+
+    def test_default_absent_list_and_workers_do_not_consult_http_scope(self):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(config, "APP_ENVIRONMENT", "dev"):
+            with self.assertRaises(config.AppError) as error:
+                config.require_http_subject(self.V4)
+            self.assertEqual(error.exception.code, "SERVER_UNAVAILABLE")
+            with mock.patch.object(config, "require_http_subject", side_effect=AssertionError("HTTP only")), \
+                    mock.patch.object(app, "_stream_handler", return_value={"batchItemFailures": []}) as stream, \
+                    mock.patch.object(app, "_reconciliation_handler", return_value={"processed": 0}) as scheduled:
+                self.assertEqual(app.lambda_handler({"Records": []}, None), {"batchItemFailures": []})
+                self.assertEqual(app.lambda_handler({"schemaVersion": 1, "operation": "reconcile-session-revocation"}, None), {"processed": 0})
+                stream.assert_called_once()
+                scheduled.assert_called_once()
+
+    def test_disabled_feature_precedes_subject_gate(self):
+        with mock.patch.object(config, "ACCOUNT_DELETION_ENABLED", False), \
+                mock.patch.object(config, "require_http_subject", side_effect=AssertionError("unreachable")), \
+                mock.patch.object(app, "_service", side_effect=AssertionError("unreachable")):
+            response = app.lambda_handler(event(method="GET"), None)
+            self.assertEqual(json.loads(response["body"])["error"]["code"], "FEATURE_DISABLED")
