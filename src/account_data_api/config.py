@@ -125,6 +125,7 @@ def validate_config():
         raise AppError("SERVER_UNAVAILABLE", "Account deletion is not configured.")
     if (
         not ACCOUNT_IDENTITY_FINALIZER_ENABLED
+        or not CAMPAIGN_RECOVERY_WRITES_ENABLED
         or ACCOUNT_DELETION_POLICY_STATUS != "approved"
         or ACCOUNT_DATA_INVENTORY_STATUS != "approved"
         or ACCOUNT_DELETION_COMPLETION_STATUS != "complete"

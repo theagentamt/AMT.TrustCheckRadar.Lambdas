@@ -199,5 +199,87 @@ class AccountDataHandlerTests(unittest.TestCase):
                 app.lambda_handler({"Records": []}, None)
 
 
+class DurableCampaignConfigurationTests(unittest.TestCase):
+    """Exercise the real runtime validator before any account or SDK work."""
+
+    def setUp(self):
+        approved = {
+            "ACCOUNT_DELETION_ENABLED": True,
+            "ACCOUNT_IDENTITY_FINALIZER_ENABLED": True,
+            "CAMPAIGN_RECOVERY_WRITES_ENABLED": True,
+            "APP_ENVIRONMENT": "dev",
+            "ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256": "a" * 64,
+            "ACCOUNT_DATA_INVENTORY_REVISION": 1,
+            "COGNITO_USER_POOL_ID": "synthetic-pool",
+            "COGNITO_USERNAME_IS_SUB": True,
+            "ACCOUNT_DELETION_COMPLETION_STATUS": "complete",
+        }
+        for name in (
+            "ENTITLEMENTS_TABLE_NAME", "USERS_TABLE_NAME", "DELETION_LEDGER_TABLE_NAME",
+            "DEVICE_BINDINGS_TABLE_NAME", "DEVICE_RECOVERY_CONTROL_TABLE_NAME",
+            "ANALYSIS_ABUSE_TABLE_NAME", "CAMPAIGN_OUTBOX_TABLE_NAME",
+        ):
+            approved[name] = "synthetic-table"
+        for name in (
+            "ACCOUNT_DELETION_POLICY_STATUS", "ACCOUNT_DATA_INVENTORY_STATUS",
+            "ANALYSIS_REQUEST_DEDUPE_POLICY_STATUS",
+            "ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS",
+            "ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS",
+            "CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS", "USER_PROFILE_DELETION_POLICY_STATUS",
+        ):
+            approved[name] = "approved"
+        components = [
+            "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY", "ANALYSIS_ABUSE",
+            "HISTORY", "CAMPAIGN", "CAMPAIGN_OUTBOX", "ENTITLEMENTS", "V1_AUTHORITY",
+            "PLAY_TOKENS", "USER_PROFILE", "IDENTITY",
+        ]
+        patches = [
+            mock.patch.multiple(config, **approved),
+            mock.patch.dict(os.environ, {"ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON": json.dumps(components)}),
+            mock.patch.object(app.boto3, "resource", side_effect=AssertionError("Unexpected SDK resource")),
+            mock.patch.object(app.boto3, "client", side_effect=AssertionError("Unexpected SDK client")),
+            mock.patch.object(app, "_service", side_effect=AssertionError("Unexpected account service")),
+        ]
+        self.guards = [patch.start() for patch in patches]
+        self.addCleanup(lambda: [patch.stop() for patch in reversed(patches)])
+
+    def assert_no_account_work(self):
+        for guard in self.guards[2:]:
+            guard.assert_not_called()
+
+    def test_fully_configured_runtime_accepts_recovery_writes_enabled(self):
+        config.validate_config()
+        self.assert_no_account_work()
+
+    def test_enabled_api_rejects_missing_recovery_before_account_work(self):
+        with mock.patch.object(config, "CAMPAIGN_RECOVERY_WRITES_ENABLED", False):
+            for method in ("POST", "GET"):
+                with self.subTest(method=method):
+                    response = app.lambda_handler(event(method), None)
+                    self.assertEqual(response["statusCode"], 503)
+                    self.assertEqual(json.loads(response["body"])["error"]["code"], "SERVER_UNAVAILABLE")
+        self.assert_no_account_work()
+
+    def test_stream_rejects_missing_recovery_without_acknowledging_batch(self):
+        with mock.patch.object(config, "CAMPAIGN_RECOVERY_WRITES_ENABLED", False):
+            with self.assertRaises(app.AppError) as captured:
+                app.lambda_handler({"Records": []}, None)
+        self.assertEqual(captured.exception.code, "SERVER_UNAVAILABLE")
+        self.assert_no_account_work()
+
+    def test_schedule_rejects_missing_recovery_for_retry(self):
+        with mock.patch.object(config, "CAMPAIGN_RECOVERY_WRITES_ENABLED", False):
+            with self.assertRaisesRegex(RuntimeError, "^Account deletion reconciliation failed$"):
+                app.lambda_handler({"schemaVersion": 1, "operation": "reconcile-session-revocation"}, None)
+        self.assert_no_account_work()
+
+    def test_disabled_runtime_keeps_feature_disabled_response(self):
+        with mock.patch.multiple(config, ACCOUNT_DELETION_ENABLED=False, CAMPAIGN_RECOVERY_WRITES_ENABLED=False):
+            response = app.lambda_handler(event(), None)
+        self.assertEqual(response["statusCode"], 503)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "FEATURE_DISABLED")
+        self.assert_no_account_work()
+
+
 if __name__ == "__main__":
     unittest.main()
