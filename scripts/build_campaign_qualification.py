@@ -63,6 +63,13 @@ def build(source, output):
                     else:
                         require(name not in members or members[name]==value,'Shared source mismatch')
                         members[name]=value
+        # Fixture-only finalizer uses injected Cognito; production campaign ZIPs
+        # do not gain identity permissions or a finalization handler.
+        for path in sorted((ROOT/'src/shared_account_finalization').glob('*.py')):
+            name='shared_account_finalization/'+path.name
+            data=git('show',source+':src/'+name)
+            require(data==path.read_bytes(),'Finalizer fixture source mismatch')
+            compile(data,name,'exec');members[name]=data
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness

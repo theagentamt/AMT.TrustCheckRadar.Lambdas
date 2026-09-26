@@ -1,6 +1,7 @@
 """Default-disabled, bounded aggregate publication and paired cleanup recovery."""
 from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY
 from shared_campaign_locators import period as period_fence
+from shared_campaign_locators.publication import verify_aggregate,phase as validate_phase
 import hashlib
 import json
 from decimal import Decimal
@@ -56,6 +57,7 @@ class Publication:
         return self.locators.serialize({'PK':pk,'SK':sk})
 
     def _get(self,table,pk,sk):
+        require(self.remaining()>=6000)
         raw=self.d.get_item(TableName=table,Key=self._key(pk,sk),ConsistentRead=True).get('Item')
         return self.locators.deserialize(raw) if raw else None
 
@@ -107,6 +109,9 @@ class Publication:
             self._transaction(inventory,[{'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(candidate['PK'],'DELETION_RECOMPUTE'),'ConditionExpression':'attribute_not_exists(PK)'}},{'Update':update}])
             return {'state':'FROZEN','deleted':0,'complete':False}
         require(candidate['lifecycleInventoryRevision']==inventory['revision'])
+        if phase=='REPAIRING':
+            # Owned deletion repair preserves the original publication clock.
+            return {'state':'REPAIRING','deleted':0,'complete':False}
         if phase=='FROZEN':
             return self._publish(candidate,inventory,now)
         require(phase in ('PUBLISHED','SUPPRESSED'))
@@ -127,7 +132,10 @@ class Publication:
         require(integer(candidate['periodId']) >= inventory['minimumPeriodId']
                 and now >= (candidate['periodId']+1)*PERIOD_SECONDS+RECOVERY_SECONDS)
         if 'lifecycleState' in candidate:
-            integer(candidate.get('lifecycleInventoryRevision','lifecycleAggregateDigest'),1)
+            from shared_campaign_locators.core import LocatorUnavailable
+            try:validate_phase(candidate,now)
+            except LocatorUnavailable:raise PublicationUnavailable() from None
+            integer(candidate.get('lifecycleInventoryRevision'),1)
             require(integer(candidate.get('lifecycleStartedAtEpoch'),1) <= now)
             try:
                 op=UUID(candidate.get('lifecycleOperationId'))
@@ -179,6 +187,19 @@ class Publication:
         update['ExpressionAttributeValues'].update(self.locators.serialize({':phase':phase,':digest':digest(immutable)}))
         actions=[{'Update':update}]
         if aggregate:
+            # Include every counted contributor. No partial/truncated publication
+            # is allowed when the full absence proof exceeds DDB's transaction.
+            partitions=[]
+            for row in eligible:
+                partition=row['GSI1PK']
+                require(partition not in partitions)
+                partitions.append(partition)
+                require(self.remaining()>=6000)
+                require(self._get(self.pipeline,partition,'TOMBSTONE') is None)
+                actions.append({'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(partition,'TOMBSTONE'),
+                    'ConditionExpression':'attribute_not_exists(PK)'}})
+            require(len(actions)+3<=100)
+        if aggregate:
             actions.append({'Put':{'TableName':self.intelligence,'Item':self.locators.serialize(aggregate),
                                   'ConditionExpression':'attribute_not_exists(PK) AND attribute_not_exists(SK)'}})
         else:
@@ -189,15 +210,9 @@ class Publication:
 
     def _published(self,candidate):
         aggregate=self._get(self.intelligence,'CAMPAIGN#'+candidate['candidateId'],'AGGREGATE')
-        require(aggregate is not None and aggregate.get('state') in ('PENDING_REVIEW','CONFIRMED','PUBLISHED','SUPPRESSED'))
-        integer(aggregate.get('version'),1)
-        # Only the review service's state/version and publication index are mutable.
-        if aggregate['state']=='PUBLISHED':
-            require(aggregate.get('GSI1PK')=='STATE#PUBLISHED' and aggregate.get('GSI1SK')==aggregate.get('periodWeek','')+'#CAMPAIGN#'+candidate['candidateId'])
-        else:
-            require('GSI1PK' not in aggregate and 'GSI1SK' not in aggregate)
-        immutable={k:v for k,v in aggregate.items() if k not in MUTABLE_AGGREGATE_FIELDS}
-        require(digest(immutable)==candidate.get('lifecycleAggregateDigest'))
+        from shared_campaign_locators.core import LocatorUnavailable
+        try:verify_aggregate(candidate,aggregate)
+        except LocatorUnavailable:raise PublicationUnavailable() from None
 
     def _cleanup(self,candidate,inventory):
         args={'TableName':self.pipeline,'KeyConditionExpression':'PK = :pk AND begins_with(SK, :prefix)',

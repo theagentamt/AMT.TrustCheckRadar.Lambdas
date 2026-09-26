@@ -65,7 +65,7 @@ def advance(ddb,table,tomb,state):
 
 def delete_retained_contributions(command,*,environment,aws_account_id,aws_region,table_name,
         deletion_ledger_table_name,retention_days,dynamodb,kms,locator_manifest_sha256,
-        locator_inventory_revision,now_epoch=None,max_periods=8,max_steps=10,remaining_ms=None):
+        locator_inventory_revision,now_epoch=None,max_periods=8,max_steps=10,remaining_ms=None,intelligence_table=None):
     """A cursor advance may precede a failed attempt; its locator state is never reset."""
     period_fence.configuration()
     command=deepcopy(command)
@@ -129,7 +129,7 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
         budget();target=ensure(selected_client,table_name,environment,partition,selected,command['occurredAtEpoch'],retention_days)
         require(target['createdAtEpoch']<=command['occurredAtEpoch'])
         budget();outcome=sweep(selected_client,table_name,environment,partition,command['operationId'],now,
-                               max_steps=max_steps,remaining_ms=remaining_ms)
+                               max_steps=max_steps,remaining_ms=remaining_ms,intelligence_table=intelligence_table)
         result.update(deleted=outcome['deleted'],recomputedCandidates=outcome['recomputedCandidates'],
                       selectedLocatorPassEnded=outcome['locatorPassEnded'],reason='COMPLETION_PROOF_UNQUALIFIED')
     except Exception:

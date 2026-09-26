@@ -1,0 +1,35 @@
+# Account deletion across campaign publication
+
+This source increment removes account-cleanup stalls at candidate publication boundaries. It does not approve a live inventory, enable any handler, retire a period key, extend retention, or certify historical erasure. Account completion still requires the separately pinned locator, recovery, and completion inventories and all their writer/restore/orphan invariants.
+
+## Behavior
+
+An owned contribution deletion against `FROZEN` atomically removes its exact target/locator pair, increments the candidate version, and changes the phase to `REPAIRING`. Publication cannot run while that phase is present. Bounded reconstruction uses the existing versioned repair checkpoint and metadata contract. Its final transaction restores `FROZEN` (or deletes an empty summary), deletes the checkpoint, and retains the original publication operation, start time, inventory revision, and transient deadline. A lost final repair acknowledgment is reconciled with a check-only transaction requiring the exact frozen summary, absent aggregate, absent repair checkpoint, and absence of the exact owned target/locator. Concurrent contributor repairs can therefore finish the shared recomputation without stranding another cursor.
+
+For `PUBLISHED` or `SUPPRESSED`, cleanup validates the existing immutable aggregate digest, then deletes at most ten exact transient contribution/locator pairs per call. The summary is deleted last under aggregate and repair-absence checks. Review-service state/version/index changes are allowed only by the existing aggregate contract. The anonymous aggregate is never rewritten, deleted, or given a new deadline. Missing or mismatched aggregate evidence fails closed. A saved DELETE cursor whose pair was already consumed must prove both target and locator absence (and feature sibling absence where applicable) transactionally before advancing.
+
+If SUMMARY has disappeared after an owned deletion left a repair checkpoint, the worker validates the complete checkpoint schema and deletes only that exact checkpoint under a SUMMARY-absence guard. Unknown checkpoints remain evidence requiring reconciliation. Logically expired but physically retained summaries can be recomputed or deleted without moving their original deadline; DynamoDB TTL is not relied on as erasure evidence.
+
+All these transactions remain inside the exact live command, recovery job/control, component-receipt absence, locator inventory and retained period guards. The real stream/scheduled wrapper checks its remaining budget before every SDK operation. Legacy direct service functions remain internal helpers, not independently qualified invocation surfaces.
+
+## Publication race and size bound
+
+A new aggregate transaction now checks tombstone absence for **every included contributor**. It is atomic with the frozen candidate version, period, inventory and aggregate Put. A withdrawal/deletion that wins first prevents publishing its contribution; publication that wins first is subsequently handled by the already-published cleanup path.
+
+The current single-transaction publication supports at most 96 included contributors (100 actions including summary, period, inventory and aggregate). Larger complete sets are refused without truncation or aggregate creation. This is an explicit publication availability limit, not an account-erasure blocker: account cleanup can remove and reconstruct the candidate without publishing an aggregate. No count or empty-index shortcut qualifies completion.
+
+## Runtime and infrastructure contract
+
+The deletion bridge now consumes the already-provisioned `INTELLIGENCE_TABLE_NAME` and needs only strong `dynamodb:GetItem` and check-only `dynamodb:ConditionCheckItem` on the exact intelligence table's `CAMPAIGN#*` keys, with `ReturnValues=NONE`. It gains no aggregate mutation permission. The lifecycle role additionally needs check-only `ConditionCheckItem` on pipeline `CONTRIB#*` tombstones (`ReturnValues=NONE`). Missing configuration blocks only the publication-recovery path; deployments intended for complete campaign cleanup must supply it. Existing pipeline transactional target/locator/checkpoint/summary grants and command/inventory/period guards remain required.
+
+Publish the coordinated four campaign packages from the reviewed source, and refresh `account_data_api` from that same source to carry the already-integrated recovery enqueue and SEALED-control finalizer checks. The account-data refresh introduces no additional source change in this increment. Existing producer/recovery/stream/completion/admission gates remain default false. All old writer invocations must be drained before claiming the new publication boundary; artifact presence alone does not establish writer coverage.
+
+## Qualification scope
+
+The SDK/Moto tests cover frozen reconstruction, committed aggregate preservation, tombstone and aggregate races, two concurrent contributor cursors, lost acknowledgments, locator disappearance, orphan repair validation, transaction-size refusal, and the actual stream handler producing a CAMPAIGN receipt that unblocks the shared finalizer. Other component receipts/inventory in that composed test are explicitly synthetic; Cognito is injected and no identity service call is made.
+
+The isolated AWS qualification runner adds `handler_frozen_cleanup_finalizer` and `handler_published_cleanup_finalizer` (48 total fixed cases). It uses only its three preflighted synthetic tables and fixture HMAC key, placing aggregate rows in the fixture pipeline table. The builder includes exact source bytes of `shared_account_finalization` only in the qualification ZIP. The finalizer uses an injected Cognito implementation; no new fixture IAM, production resource access, or live identity operation is needed. Actual AWS execution must be reported separately from local SDK results.
+
+Remaining live prerequisites include independent historical/restore and prior-period evidence, approved full inventories, coordinated artifact/IAM deployment and worker qualification for all twelve components, exact Cognito mapping, and staged API/finalizer activation. Whole-period sealing/key retirement is a separate lifecycle concern; it is not necessary to erase one account while all required HMAC keys remain enabled and the per-account proof is valid. This increment does not mark SECUR4ALL-207 complete.
+
+Local validation before source freeze: 420 SDK cases plus 9 subtests across bridge, shared recovery/locators and finalizer; 36 lifecycle cases; 14 account-data cases; 23 publisher cases plus 15 subtests; 15 cluster cases plus 13 subtests (one SDK-only module skipped in that ordinary run). After the final publication-inventory revision guard, 111 affected recovery/actual-handler/qualification SDK cases passed, including all 48 runner cases. Tests use Python 3.14 and Moto; SDK dependencies were installed in the isolated `/tmp/amt-live-deletion-venv`. No AWS invocation or live qualification was performed in these local runs.

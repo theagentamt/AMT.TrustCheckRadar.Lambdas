@@ -312,3 +312,46 @@ def test_actual_close_handler_uses_exact_event_and_runtime_identity(world,monkey
     monkeypatch.setenv('CAMPAIGN_PERIOD_ADMISSION_ENABLED','false')
     with pytest.raises(LocatorUnavailable):app.lambda_handler(event,context)
     assert get('pipeline',f'PERIOD#{PERIOD}','HMAC_KEY')==after
+
+
+def test_account_tombstone_blocks_entire_publication_without_partial_aggregate(world):
+    p,d,put,get,summary,_=world;p.process(ID)
+    contribution=core.deserialize(d.query(TableName='pipeline',KeyConditionExpression='PK=:p AND begins_with(SK,:s)',ExpressionAttributeValues=core.serialize({':p':summary['PK'],':s':'CONTRIB#'}))['Items'][0])
+    put('pipeline',{'PK':contribution['GSI1PK'],'SK':'TOMBSTONE'})
+    with pytest.raises(PublicationUnavailable):p.process(ID)
+    assert get('pipeline',summary['PK'],'SUMMARY')['lifecycleState']=='FROZEN'
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+
+
+def test_tombstone_created_after_reads_cancels_full_publication_transaction(world):
+    p,d,put,get,summary,_=world;p.process(ID)
+    original=p._transaction
+    def race(inventory,actions):
+        check=next(a['ConditionCheck'] for a in actions if a.get('ConditionCheck',{}).get('Key',{}).get('SK')=={'S':'TOMBSTONE'})
+        put('pipeline',core.deserialize(check['Key']))
+        return original(inventory,actions)
+    p._transaction=race
+    with pytest.raises(Exception):p.process(ID)
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+    assert get('pipeline',summary['PK'],'SUMMARY')['lifecycleState']=='FROZEN'
+
+
+def test_entire_included_set_must_fit_transaction_never_truncates_to_limit(world):
+    p,d,put,get,summary,_=world
+    original=core.deserialize(d.query(TableName='pipeline',KeyConditionExpression='PK=:p AND begins_with(SK,:s)',ExpressionAttributeValues=core.serialize({':p':summary['PK'],':s':'CONTRIB#'}))['Items'][0])
+    for n in range(12,97):
+        token=base64.urlsafe_b64encode(n.to_bytes(32,'big')).decode().rstrip('=')
+        row=original|{'SK':'CONTRIB#'+token,'GSI1PK':f'CONTRIB#{PERIOD}#{token}'}
+        put('pipeline',row);put('pipeline',core.locator_for_target(row,'dev'))
+    p.process(ID)
+    with pytest.raises(PublicationUnavailable):p.process(ID)
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+    assert len(d.query(TableName='pipeline',KeyConditionExpression='PK=:p AND begins_with(SK,:s)',ExpressionAttributeValues=core.serialize({':p':summary['PK'],':s':'CONTRIB#'}))['Items'])==97
+
+
+def test_repairing_phase_preserves_original_clock_and_never_publishes_partial_repair(world):
+    p,d,put,get,summary,_=world;p.process(ID)
+    frozen=get('pipeline',summary['PK'],'SUMMARY');put('pipeline',frozen|{'lifecycleState':'REPAIRING'})
+    assert p.process(ID)=={'state':'REPAIRING','deleted':0,'complete':False}
+    assert get('intelligence','CAMPAIGN#'+ID,'AGGREGATE') is None
+    assert get('pipeline',summary['PK'],'SUMMARY')['lifecycleStartedAtEpoch']==frozen['lifecycleStartedAtEpoch']

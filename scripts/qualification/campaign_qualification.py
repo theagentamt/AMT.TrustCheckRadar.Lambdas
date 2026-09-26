@@ -36,7 +36,8 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'handler_completion_disabled', 'handler_missing_completion_marker', 'handler_stale_cleanup_after_seal',
          'period_close_replay','period_legacy_refusal','period_stale_generation','period_foreign_key',
          'period_publisher_first_race','period_publisher_last_race','period_late_cluster',
-         'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing')
+         'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing',
+         'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer')
 
 
 class QualificationFailure(Exception):
@@ -460,6 +461,7 @@ class Runner:
         app=importlib.import_module('app')
         settings={'APP_ENVIRONMENT':'dev','CAMPAIGN_SCHEMA_VERSION':1,
             'PIPELINE_TABLE_NAME':self.tables['pipeline'],'USERS_TABLE_NAME':self.tables['users'],
+            'INTELLIGENCE_TABLE_NAME':self.tables['pipeline'],
             'DELETION_LEDGER_TABLE_NAME':self.tables['ledger'],'PARTICIPATION_ITEM_SK':'CAMPAIGN_PARTICIPATION',
             'PARTICIPATION_AUDIT_DAYS':400,'CONTRIBUTOR_RECOVERY_DAYS':7,'TRANSIENT_RETENTION_DAYS':21,
             'CAMPAIGN_DELETION_STREAM_ENABLED':True,'CAMPAIGN_COMPLETION_ENABLED':True,'CAMPAIGN_RECOVERY_ENABLED':True,
@@ -474,6 +476,8 @@ class Runner:
             f"arn:aws:dynamodb:{REGION}:{ACCOUNT}:table/{self.tables['ledger']}/stream/2026-09-24T00:00:00.000",
             'dynamodb':{'SequenceNumber':'1','NewImage':R.wire(self.cmd)}}]}
         try:
+            if case in ('handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer'):
+                self.publication_finalizer_case(app,stream,case);return
             if case=='handler_stream_disabled':app.config.CAMPAIGN_DELETION_STREAM_ENABLED=False
             if case=='handler_completion_disabled':app.config.CAMPAIGN_COMPLETION_ENABLED=False
             if case=='handler_missing_completion_marker':self.delete('ledger','INVENTORY#dev','CAMPAIGN_COMPLETION_INVENTORY')
@@ -524,6 +528,67 @@ class Runner:
         finally:
             for name,value in old.items():setattr(app.config,name,value)
             app.dynamodb,app.kms=clients
+
+    def publication_finalizer_case(self,app,stream,case):
+        # Real handler/receipt/finalizer DDB composition. Other component receipts
+        # are explicit synthetic assumptions; Cognito is injected (no identity API).
+        from shared_campaign_locators import core
+        from shared_campaign_locators.publication import digest
+        from shared_account_finalization.service import Finalizer,FinalizationError,REQUIRED_COMPONENTS
+        identifier='11111111-1111-4111-8111-111111111111';pk='CANDIDATE#'+identifier
+        published=case=='handler_published_cleanup_finalizer'
+        summary={'PK':pk,'SK':'SUMMARY','candidateId':identifier,'periodId':self.period,'version':1,
+            'expiresAt':self.now+1000,'GSI3PK':'EXPIRY#dev','GSI3SK':self.now+1000,
+            'lifecycleState':'PUBLISHED' if published else 'FROZEN','lifecycleOperationId':OP,
+            'lifecycleStartedAtEpoch':self.when-100,'lifecycleInventoryRevision':1}
+        aggregate=None
+        if published:
+            aggregate={'PK':'CAMPAIGN#'+identifier,'SK':'AGGREGATE','campaignId':identifier,'version':1,
+                'state':'PENDING_REVIEW','expiresAt':self.when-100+400*86400,'contributorCount':12}
+            summary['lifecycleAggregateDigest']=digest({k:v for k,v in aggregate.items() if k not in ('version','state')})
+            self.put('pipeline',aggregate)
+        contribution={'PK':pk,'SK':'CONTRIB#'+self.token,'GSI1PK':self.partition(self.period),'GSI1SK':pk,
+            'periodId':self.period,'expiresAt':self.now+1000,'submissionCount':1,'vectorApplied':True,'vector':[1],
+            'metadataSchemaVersion':1,'lexicalFingerprint':[],'signalIds':[],'indicatorIds':[]}
+        self.put('pipeline',summary);self.put('pipeline',contribution);self.put('pipeline',core.locator_for_target(contribution,'dev'))
+        self.put('ledger',{'PK':'INVENTORY#dev','SK':'ACCOUNT_DATA_INVENTORY','recordType':'ACCOUNT_DATA_INVENTORY',
+            'schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'d'*64,
+            'requiredComponents':list(REQUIRED_COMPONENTS),'usernameIsSubVerified':True,'approvedAtEpoch':self.when-1})
+        for component in REQUIRED_COMPONENTS:
+            if component in ('CAMPAIGN','IDENTITY'):continue
+            self.put('ledger',{'PK':self.cmd['PK'],'SK':'ACCOUNT_DELETION#'+component,'schemaVersion':1,'recordVersion':1,
+                'environment':'dev','eventType':'account.deletion.component.completed','component':component,'status':'COMPLETE',
+                'operationId':OP,'occurredAtEpoch':self.now,'requestOccurredAtEpoch':self.when,'retainUntilEpoch':self.now+120*86400})
+        parent=self;identity_calls=[]
+        class Ledger:
+            def get_item(self,**kw):
+                row=parent.get('ledger',kw['Key']['PK'],kw['Key']['SK'])
+                return {'Item':row} if row else {}
+        class Identity:
+            def admin_get_user(self,**kw):
+                identity_calls.append('get')
+                return {'Username':parent.subject,'UserAttributes':[{'Name':'sub','Value':parent.subject}]}
+            def admin_delete_user(self,**kw):identity_calls.append('delete')
+        finalizer=Finalizer(ledger_table=Ledger(),ledger_table_name=self.tables['ledger'],client=self.d,
+            cognito=Identity(),user_pool_id='us-east-1_Synthetic',environment='dev',now=lambda:int(time.time()),
+            enabled=True,manifest_sha256='d'*64,inventory_revision=1)
+        try:finalizer.finalize(self.cmd)
+        except FinalizationError:pass
+        else:raise QualificationFailure('MISSING_CAMPAIGN_PROOF_ACCEPTED')
+        require(not identity_calls)
+        for _ in range(6):
+            try:
+                require(app.lambda_handler(stream,self.context)['completed']==1);break
+            except RuntimeError as exc:
+                require(str(exc)=='CAMPAIGN_DELETION_RECONCILIATION_REQUIRED')
+                require(self.get('ledger',self.cmd['PK'],'ACCOUNT_DELETION#CAMPAIGN') is None)
+        else:raise QualificationFailure('BOUNDED_CLEANUP_UNFINISHED')
+        require(self.get('pipeline',pk,'SUMMARY') is None and self.get('pipeline',pk,'DELETION_RECOMPUTE') is None)
+        require(self.get('pipeline','CAMPAIGN#'+identifier,'AGGREGATE')==aggregate)
+        require(self.get('ledger',self.cmd['PK'],R.CONTROL_SK)['state']=='SEALED')
+        require(finalizer.finalize(self.cmd)=={'complete':True,'alreadyComplete':False})
+        require(identity_calls==['get','delete'] and self.get('ledger',self.cmd['PK'],R.CONTROL_SK) is None)
+        require(self.get('ledger',self.cmd['PK'],'ACCOUNT_DELETION')['status']=='COMPLETE')
 
     def race(self, case):
         parent=self; first=[True]; mutations=[0]

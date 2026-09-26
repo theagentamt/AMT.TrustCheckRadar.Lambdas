@@ -56,7 +56,8 @@ def process(command, *, dynamodb, kms, settings, aws_account_id, aws_region,
             retention_days=settings.TRANSIENT_RETENTION_DAYS,dynamodb=guarded,kms=CleanupKms(kms,remaining_ms),remaining_ms=remaining_ms,
             deletion_ledger_table_name=settings.DELETION_LEDGER_TABLE_NAME,
             locator_manifest_sha256=settings.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
-            locator_inventory_revision=settings.CAMPAIGN_LOCATOR_INVENTORY_REVISION,now_epoch=now())
+            locator_inventory_revision=settings.CAMPAIGN_LOCATOR_INVENTORY_REVISION,now_epoch=now(),
+            intelligence_table=getattr(settings,'INTELLIGENCE_TABLE_NAME',None))
     elif not enabled and receipt is None:
         # Suppression recognition remains strict; retained cleanup verifies the
         # exact terminal command and performs no mutation on this branch.
@@ -66,7 +67,8 @@ def process(command, *, dynamodb, kms, settings, aws_account_id, aws_region,
             retention_days=settings.TRANSIENT_RETENTION_DAYS,dynamodb=guarded,kms=CleanupKms(kms,remaining_ms),remaining_ms=remaining_ms,
             deletion_ledger_table_name=settings.DELETION_LEDGER_TABLE_NAME,
             locator_manifest_sha256=settings.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
-            locator_inventory_revision=settings.CAMPAIGN_LOCATOR_INVENTORY_REVISION,now_epoch=now())
+            locator_inventory_revision=settings.CAMPAIGN_LOCATOR_INVENTORY_REVISION,now_epoch=now(),
+            intelligence_table=getattr(settings,'INTELLIGENCE_TABLE_NAME',None))
     result={'deleted':progress['deleted'],'recomputedCandidates':progress['recomputedCandidates'],
             'completionStatus':'UNVERIFIED' if enabled else 'DISABLED'}
     if not enabled:
