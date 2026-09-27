@@ -26,6 +26,8 @@ REGION = 'us-east-1'
 OP = '69a43d58-54d1-4edc-9941-8a37a5ab8d79'
 _account_spec=importlib.util.spec_from_file_location('account_cleanup',Path(__file__).with_name('account_cleanup.py'))
 account_cleanup=importlib.util.module_from_spec(_account_spec);_account_spec.loader.exec_module(account_cleanup)
+_withdrawal_spec=importlib.util.spec_from_file_location('withdrawal_acceptance',Path(__file__).with_name('withdrawal_acceptance.py'))
+withdrawal_acceptance=importlib.util.module_from_spec(_withdrawal_spec);_withdrawal_spec.loader.exec_module(withdrawal_acceptance)
 CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'old_users_current_ledger', 'old_ledger_current_pipeline', 'sealed_with_job',
          'old_pipeline_locator', 'delayed_producer', 'retired_prior_key', 'missing_prior_key',
@@ -40,7 +42,7 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'period_publisher_first_race','period_publisher_last_race','period_late_cluster',
          'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing',
          'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer',
-         'orphan_handler_drain','orphan_handler_legacy_refusal','orphan_handler_live_refusal','orphan_handler_lost_ack') + account_cleanup.CASES
+         'orphan_handler_drain','orphan_handler_legacy_refusal','orphan_handler_live_refusal','orphan_handler_lost_ack') + account_cleanup.CASES + withdrawal_acceptance.CASES
 
 
 class QualificationFailure(Exception):
@@ -435,6 +437,8 @@ class Runner:
             except QualificationFailure: return
             raise QualificationFailure('EXPECTED_PREFLIGHT_REFUSAL')
         self.seed()
+        if case in withdrawal_acceptance.CASES:
+            withdrawal_acceptance.run(self,case,require);return
         if case.startswith('orphan_'):
             self.orphan_case(case);return
         if case.startswith('period_'):
