@@ -3,7 +3,10 @@ import hashlib
 import re
 import time
 
-from errors import AppError
+try:  # Package import for the private support adapter; flat Lambda import retained.
+    from .errors import AppError
+except ImportError:
+    from errors import AppError
 from shared_account_finalization.service import (
     validate_inventory, inventory_condition, serialize_operation, FinalizationError,
 )
