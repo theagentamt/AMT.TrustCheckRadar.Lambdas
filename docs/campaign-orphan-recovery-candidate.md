@@ -14,8 +14,8 @@ or rewritten. The source changes neither live gates nor infrastructure schedules
 The UUID is an example, not a real approved target. Invocation requires the
 existing candidate gate and exact period-admission generation/account/region,
 locator manifest and revision. The registry must be ENABLED/CLOSING and its
-recovery window ended. Missing/retired keys and foreign or stale generations fail
-closed. No new IAM is required beyond pipeline GetItem/strong Query, existing
+recovery window ended. Missing/retired registry evidence and foreign or stale generations fail
+closed. This operation does not read or qualify actual KMS key state. No new IAM is required beyond pipeline GetItem/strong Query, existing
 transactional Delete and exact PERIOD/INVENTORY/CANDIDATE/CONTRIB ConditionChecks.
 No ledger, users, intelligence-table or KMS call is added to this operation.
 
@@ -94,7 +94,9 @@ lifecycle handler against three dedicated fixture tables after the existing
 account/region/run-tag preflight. Fixture inventory, clocks and key metadata are
 synthetic; results do not qualify live inventories, deployed-role policy unions,
 real discovery or scheduling. Production archives contain no fixture handler.
-No AWS outcome is claimed until separately recorded.
+The four cases subsequently passed in isolated AWS at the exact source and archive
+pins recorded in [runtime evidence](evidence/campaign-orphan-recovery-2026-09-26/README.md).
+Those results do not extend the qualification boundaries above.
 
 This is an orphan prerequisite, not full SECUR4ALL-207 completion. The
 [runbook](campaign-lifecycle-runbook.md) records remaining Dev dependencies and
