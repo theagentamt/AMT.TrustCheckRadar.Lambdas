@@ -105,7 +105,7 @@ needs_shared_entitlements() {
 
 needs_shared_campaign_contracts() {
   case "$1" in
-    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|conversation_analysis) return 0 ;;
+    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|campaign_lifecycle|conversation_analysis|account_data_api|account_export_api) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -293,6 +293,11 @@ build_function() {
 
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
+  fi
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "account_export_api" || "$function_name" == "conversation_analysis" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
   fi
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_research_consent" "$build_dir/shared_research_consent"
