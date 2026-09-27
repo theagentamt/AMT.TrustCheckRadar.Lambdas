@@ -21,12 +21,27 @@ def lambda_handler(event, context):
     fields = {"environment", "schemaVersion", "operation"}
     expected = {
         "close_period": fields | {"periodId"},
+        "reconcile_periods": fields,
+        "reconcile_aggregates": fields,
         "recover_candidate": fields | {"candidateId"},
         "recover_expired_orphan": fields | {"candidateId","periodId"},
         "expire_locator": fields | {"locatorPK", "locatorSK"},
     }
     if operation not in expected or set(event) != expected[operation]:
         raise ValueError("Unsupported candidate operation")
+    if operation == 'reconcile_aggregates':
+        from shared_campaign_work.aggregates import tick
+        return tick(dynamodb,boto3.client('cloudwatch'),now=lambda:int(time.time()),remaining_ms=context.get_remaining_time_in_millis)
+    if operation == 'reconcile_periods':
+        from shared_campaign_work.scheduler import tick
+        worker=Publication(client=dynamodb,pipeline=config.PIPELINE_TABLE_NAME,intelligence=config.INTELLIGENCE_TABLE_NAME,
+            environment=config.APP_ENVIRONMENT,manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+            inventory_revision=int(config.CAMPAIGN_LOCATOR_INVENTORY_REVISION),now=lambda:int(time.time()),enabled=True,
+            remaining_ms=context.get_remaining_time_in_millis)
+        metrics=boto3.client('cloudwatch')
+        result=tick(dynamodb,boto3.client('kms'),metrics,now=lambda:int(time.time()),remaining_ms=context.get_remaining_time_in_millis,
+            recover_candidate=worker.process)
+        return result
     if operation == 'close_period':
         return period_fence.close(dynamodb,config.PIPELINE_TABLE_NAME,config.APP_ENVIRONMENT,
             event['periodId'],config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,

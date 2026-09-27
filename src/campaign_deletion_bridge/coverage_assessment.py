@@ -79,7 +79,8 @@ def _key_record(record, period, account, region):
     if record.get('status') == 'RETIRED':
         raise _Unverified('PERIOD_RETIREMENT_UNPROVEN')
     try:
-        valid = (set(record) == KEY_FIELDS | period_fence.ADMISSION_FIELDS and record['PK'] == f'PERIOD#{period}'
+        from shared_campaign_work import configuration as work_config
+        valid = (set(record) == KEY_FIELDS | period_fence.ADMISSION_FIELDS | (period_fence.WORK_FIELDS if work_config.enabled() else set()) and record['PK'] == f'PERIOD#{period}'
                  and record['SK'] == 'HMAC_KEY' and record['status'] == 'ENABLED'
                  and integer(record['periodId']) == period
                  and integer(record['retireAfterEpoch']) == (period + 1) * PERIOD_SECONDS + RECOVERY_SECONDS
@@ -140,7 +141,15 @@ def assess_account_coverage(command, *, environment, aws_account_id, aws_region,
         first = int(inventory['minimumPeriodId'])
         last = command['occurredAtEpoch'] // PERIOD_SECONDS
         _need(first <= last, 'PERIOD_RANGE_UNVERIFIED')
-        result['periodsExpected'] = last - first + 1
+        from shared_campaign_work import configuration as work_config
+        proof=None
+        if work_config.enabled():
+            from shared_campaign_work.proofs import Proofs
+            proof=Proofs(dynamodb,now=lambda:now_epoch,remaining_ms=remaining_ms or (lambda:30000))
+            _need(proof.marker['minimumPeriodId']<=first and proof.marker['approvedAtEpoch']<command['occurredAtEpoch']
+                  and proof.marker['locatorManifestSha256']==locator_manifest_sha256 and proof.marker['locatorInventoryRevision']==locator_inventory_revision,'INVENTORY_UNVERIFIED')
+            first=max(first,proof.minimum)
+        result['periodsExpected'] = max(0,last - first + 1)
         if result['periodsExpected'] > max_periods:
             raise _Unverified('PERIOD_BUDGET_EXCEEDED')
         for period in range(first, last + 1):
@@ -152,6 +161,9 @@ def assess_account_coverage(command, *, environment, aws_account_id, aws_region,
                 break
             result['periodsExamined'] += 1
             try:
+                if proof is not None and proof.sealed(period):
+                    result['observedEmptyPeriods']+=1
+                    continue
                 record = get(dynamodb, table_name, f'PERIOD#{period}', 'HMAC_KEY')
                 arn = _key_record(record, period, aws_account_id, aws_region)
                 period_fence.validate(record,period,locator_manifest_sha256,locator_inventory_revision,now_epoch)
@@ -216,6 +228,16 @@ def assess_account_coverage(command, *, environment, aws_account_id, aws_region,
                 result['unverifiedPeriods'] += 1
                 reasons.add('EVIDENCE_UNAVAILABLE')
         result['rangeExamined'] = result['periodsExamined'] == result['periodsExpected'] and not result['unverifiedPeriods']
+        if proof is not None:
+            from shared_campaign_work import configuration as work_config
+            for guard in proof.guards:
+                _need(remaining_ms is None or remaining_ms() >= 3000, 'TIME_BUDGET_EXCEEDED')
+                value=guard['ConditionCheck'];rowkey=work_config.plain(value['Key'])
+                observed=get(dynamodb,value['TableName'],rowkey['PK'],rowkey['SK'])
+                if 'ExpressionAttributeValues' in value:
+                    expected={value['ExpressionAttributeNames'][k.replace(':','#')]:v for k,v in work_config.plain(value['ExpressionAttributeValues']).items()}
+                    _need(observed is not None and all(observed.get(k)==v for k,v in expected.items()),'OBSERVATION_CHANGED')
+                else:_need(observed is None,'OBSERVATION_CHANGED')
         for table, pk, sk, observed in snapshots:
             _need(remaining_ms is None or remaining_ms() >= 3000, 'TIME_BUDGET_EXCEEDED')
             _need(get(dynamodb, table, pk, sk) == observed, 'OBSERVATION_CHANGED')

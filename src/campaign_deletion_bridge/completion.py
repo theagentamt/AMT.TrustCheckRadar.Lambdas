@@ -92,8 +92,18 @@ class Completion:
         need(replay or (not replay_only and receipt is None))
         guards=[R.condition(self.ledger,marker),R.condition(self.pipeline,locator),R.condition(self.ledger,recovery)]
         first,last=int(locator['minimumPeriodId']),int(command['occurredAtEpoch'])//PERIOD_SECONDS
-        need(0<=first<=last and last-first+1<=self.max_periods)
+        need(0<=first<=last)
+        from shared_campaign_work import configuration as work_config
+        proof=None
+        if work_config.enabled():
+            from shared_campaign_work.proofs import Proofs
+            proof=Proofs(self.ddb,now=self.now,remaining_ms=self.remaining_ms)
+            need(proof.marker['approvedAtEpoch']<command['occurredAtEpoch'] and proof.marker['minimumPeriodId']<=first
+                 and proof.marker['locatorManifestSha256']==self.locator_manifest and proof.marker['locatorInventoryRevision']==self.locator_revision)
+            first=max(first,proof.minimum)
+        need(0<=first and (first>last or last-first+1<=self.max_periods))
         for period in range(first,last+1):
+            if proof is not None and proof.sealed(period):continue
             record=self._get(self.pipeline,f'PERIOD#{period}','HMAC_KEY')
             period_fence.validate(record,period,self.locator_manifest,self.locator_revision,now)
             arn=_key_record(record,period,self.account,self.region)
@@ -106,6 +116,10 @@ class Completion:
                 KeyConditionExpression='PK = :pk',ExpressionAttributeValues=R.wire({':pk':partition}))
             need(type(page.get('Items')) is list and [R.plain(x) for x in page['Items']]==[tomb] and not page.get('LastEvaluatedKey'))
             guards.extend([R.condition(self.pipeline,record),R.condition(self.pipeline,tomb)])
+        if proof is not None:
+            for action in proof.guards:
+                value=action['ConditionCheck']
+                guards.append({'ConditionCheck':{k:(R.plain(v) if k in ('Key','ExpressionAttributeValues') else v) for k,v in value.items()}})
         if replay:
             guards.append(R.condition(self.ledger,stored))
             if terminal:

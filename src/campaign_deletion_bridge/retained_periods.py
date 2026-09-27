@@ -36,8 +36,10 @@ def validate_cursor(tomb):
 
 
 class RegistryGuardedClient:
-    def __init__(self,client,table,record):
+    def __init__(self,client,table,record,*,now=None,remaining_ms=lambda:30000):
         self.client=client
+        self.record=record
+        self.now=now or (lambda:int(time.time()));self.remaining=remaining_ms
         names={f'#k{i}':name for i,name in enumerate(record) if name not in ('PK','SK')}
         values={f':k{i}':record[name] for i,name in enumerate(record) if name not in ('PK','SK')}
         self.guard={'ConditionCheck':{'TableName':table,'Key':key(record['PK'],record['SK']),
@@ -47,7 +49,12 @@ class RegistryGuardedClient:
     def __getattr__(self,name):return getattr(self.client,name)
 
     def transact_write_items(self,**kwargs):
-        return self.client.transact_write_items(**(kwargs|{'TransactItems':[self.guard,*kwargs['TransactItems']]}))
+        from shared_campaign_work import configuration as work_config
+        client=self.client
+        if work_config.enabled():
+            from shared_campaign_work.transactions import TrackedClient
+            client=TrackedClient(client,registries=[self.record],now=self.now,remaining_ms=self.remaining)
+        return client.transact_write_items(**(kwargs|{'TransactItems':[self.guard,*kwargs['TransactItems']]}))
 
 
 def advance(ddb,table,tomb,state):
@@ -96,9 +103,26 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
     budget()
     inventory=load_inventory(dynamodb,table_name,environment,locator_manifest_sha256,locator_inventory_revision,now)
     first,last=int(inventory['minimumPeriodId']),command['occurredAtEpoch']//PERIOD_SECONDS
-    require(command['occurredAtEpoch']>inventory['approvedAtEpoch'] and first<=last and last-first+1<=max_periods)
-    result['periodsExpected']=last-first+1
+    require(command['occurredAtEpoch']>inventory['approvedAtEpoch'] and first<=last)
     guarded=InventoryGuardedClient(CommandGuardedClient(dynamodb,deletion_ledger_table_name,command),table_name,inventory)
+    from shared_campaign_work import configuration as work_config
+    proof=None
+    if work_config.enabled():
+        from shared_campaign_work.proofs import Proofs,GuardedClient as ProofGuard
+        proof=Proofs(dynamodb,now=lambda:now,remaining_ms=remaining_ms or (lambda:30000))
+        require(proof.marker['approvedAtEpoch']<command['occurredAtEpoch'] and proof.marker['minimumPeriodId']<=first
+                and proof.marker['locatorManifestSha256']==locator_manifest_sha256 and proof.marker['locatorInventoryRevision']==locator_inventory_revision)
+        first=max(first,proof.minimum)
+        require(first>last or last-first+1<=max_periods)
+        # A sealed request-period cannot recreate an HMAC cursor anchor. Strip
+        # only individually proven sealed suffix periods before deriving one.
+        while last>=first and proof.sealed(last):last-=1
+        guarded=ProofGuard(guarded,proof)
+        if first>last:
+            guarded.transact_write_items(TransactItems=[])
+            return result|{'selectedLocatorPassEnded':True,'reason':'SEALED_PERIOD_RANGE_OBSERVED'}
+    require(last-first+1<=max_periods)
+    result['periodsExpected']=last-first+1
     def derive(period):
         budget();record=get(dynamodb,table_name,f'PERIOD#{period}','HMAC_KEY')
         period_fence.validate(record,period,locator_manifest_sha256,locator_inventory_revision,now)
@@ -110,13 +134,14 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
         return record,partition
     # Without this exact request-period anchor the cursor cannot be safely addressed.
     anchor_record,anchor=derive(last)
-    anchor_client=RegistryGuardedClient(guarded,table_name,anchor_record)
+    anchor_client=RegistryGuardedClient(guarded,table_name,anchor_record,now=lambda:now,remaining_ms=remaining_ms or (lambda:30000))
     budget();tomb=ensure(anchor_client,table_name,environment,anchor,last,command['occurredAtEpoch'],retention_days)
     require(tomb['createdAtEpoch']<=command['occurredAtEpoch'])
     cursor=validate_cursor(tomb)
     if cursor:
-        require(cursor['inventoryRevision']==inventory['revision'] and cursor['minimumPeriodId']==first and cursor['maximumPeriodId']==last)
-        selected=int(cursor['nextPeriodId'])
+        require(cursor['inventoryRevision']==inventory['revision'] and cursor['minimumPeriodId']<=first and cursor['maximumPeriodId']==last
+                and (cursor['minimumPeriodId']==first or proof is not None))
+        selected=max(first,int(cursor['nextPeriodId']))
     else:selected=first
     next_period=first if selected==last else selected+1
     state={'schemaVersion':1,'operationId':command['operationId'],'inventoryRevision':inventory['revision'],
@@ -124,8 +149,11 @@ def delete_retained_contributions(command,*,environment,aws_account_id,aws_regio
     budget();advance(anchor_client,table_name,tomb,state)
     result['periodsAttempted']=1
     try:
+        if proof is not None and proof.sealed(selected):
+            guarded.transact_write_items(TransactItems=[])
+            return result|{'selectedLocatorPassEnded':True,'reason':'SEALED_PERIOD_OBSERVED'}
         selected_record,partition=(anchor_record,anchor) if selected==last else derive(selected)
-        selected_client=RegistryGuardedClient(guarded,table_name,selected_record)
+        selected_client=RegistryGuardedClient(guarded,table_name,selected_record,now=lambda:now,remaining_ms=remaining_ms or (lambda:30000))
         budget();target=ensure(selected_client,table_name,environment,partition,selected,command['occurredAtEpoch'],retention_days)
         require(target['createdAtEpoch']<=command['occurredAtEpoch'])
         budget();outcome=sweep(selected_client,table_name,environment,partition,command['operationId'],now,

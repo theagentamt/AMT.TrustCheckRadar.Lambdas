@@ -17,6 +17,7 @@ from uuid import UUID
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from shared_campaign_locators.core import deserialize, serialize, load_inventory, inventory_condition
 from shared_campaign_locators.period import PERIOD_SECONDS, RECOVERY_SECONDS
+from shared_campaign_work import configuration as W,records as WR
 
 ACCOUNT='107827791950'
 REGION='us-east-1'
@@ -66,15 +67,19 @@ def request(value):
 
 def row_for(value, changed_at):
     period=value['periodId'];integer(changed_at,1)
-    return {'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':value['keyArn'],'status':'ENABLED','periodId':period,
+    result={'PK':f'PERIOD#{period}','SK':'HMAC_KEY','keyArn':value['keyArn'],'status':'ENABLED','periodId':period,
         'retireAfterEpoch':(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS,'admissionSchemaVersion':1,
         'admissionGeneration':value['generation'],'admissionState':'OPEN','admissionRevision':1,
         'admissionManifestSha256':value['locatorManifestSha256'],
         'admissionInventoryRevision':value['locatorInventoryRevision'],'admissionChangedAtEpoch':changed_at}
+    if W.enabled():
+        pins=W.pins();require(pins['generation']==value['generation'])
+        result|={'admissionSchemaVersion':2,'workSchemaVersion':1,'workManifestSha256':pins['manifest'],'workInventoryRevision':pins['revision']}
+    return result
 
 
 def validate_plan(plan):
-    require(type(plan) is dict and set(plan)==PLAN_FIELDS and type(plan['schemaVersion']) is int
+    require(type(plan) is dict and set(plan)==PLAN_FIELDS|({'workInventory','workControl'} if W.enabled() else set()) and type(plan['schemaVersion']) is int
         and plan['schemaVersion']==1 and plan['operation']=='initialize-campaign-period'
         and plan['accountId']==ACCOUNT and plan['region']==REGION and plan['tableName']==TABLE)
     value=request(plan['request'])
@@ -86,7 +91,19 @@ def validate_plan(plan):
     # Booleans must never pass equality as integral row metadata.
     for field in ('periodId','retireAfterEpoch','admissionSchemaVersion','admissionRevision',
                   'admissionInventoryRevision','admissionChangedAtEpoch'):integer(plan['row'].get(field))
+    if W.enabled():
+        config=W.pins();W.validate_marker(plan['workInventory'],config,expected['admissionChangedAtEpoch'])
+        require(plan['workInventory']['approvedAtEpoch']<expected['admissionChangedAtEpoch'])
+        require(exact(plan['workControl'],control_for(value)))
     return value
+
+
+def control_for(value):
+    config=W.pins();period=value['periodId']
+    return WR.control_key(period)|{'recordType':'CAMPAIGN_PERIOD_WORK_CONTROL','schemaVersion':1,
+        'environment':'dev','generation':config['generation'],'periodId':period,'manifestSha256':config['manifest'],
+        'inventoryRevision':config['revision'],'revision':1,'nextOrdinal':1,'pendingCount':0,'passRevision':0,
+        'passCursor':0,'passHighWater':0,'lastProgressAtEpoch':0,'lastFullPassAtEpoch':0}
 
 
 class Initializer:
@@ -132,12 +149,30 @@ class Initializer:
         self.clock(value)
         return plain(deserialize(observed)) if observed else None
 
+    def work_inventory(self,value):
+        config=W.pins();require(config['resources']['pipeline']['tableName']==TABLE)
+        W.binding(self.ddb,config,lambda:30000)
+        raw=self.ddb.get_item(TableName=TABLE,Key=W.wire({'PK':'INVENTORY#dev','SK':'CAMPAIGN_PERIOD_WORK'}),ConsistentRead=True).get('Item')
+        marker=W.validate_marker(W.plain(raw) if raw else None,config,self.clock(value))
+        require(marker['locatorManifestSha256']==value['locatorManifestSha256'] and marker['locatorInventoryRevision']==value['locatorInventoryRevision'])
+        page=self.ddb.query(TableName=TABLE,KeyConditionExpression='PK=:pk',ExpressionAttributeValues=W.wire({':pk':WR.work_key(value['periodId'],1)['PK']}),ConsistentRead=True,Limit=1)
+        require(not page.get('Items') and not page.get('LastEvaluatedKey'))
+        return plain(marker)
+
+    def work_control(self,value):
+        raw=self.ddb.get_item(TableName=TABLE,Key=W.wire(WR.control_key(value['periodId'])),ConsistentRead=True).get('Item')
+        return plain(W.plain(raw)) if raw else None
+
     def plan(self,arguments):
         value=request(arguments);self.clock(value);self.identity();self.key(value)
         inventory=self.inventory(value)
         require(self.current(value) is None)  # Existing rows require their own exact reviewed plan.
-        return {'schemaVersion':1,'operation':'initialize-campaign-period','accountId':ACCOUNT,'region':REGION,
+        result={'schemaVersion':1,'operation':'initialize-campaign-period','accountId':ACCOUNT,'region':REGION,
             'tableName':TABLE,'request':value,'inventory':inventory,'row':row_for(value,self.clock(value))}
+        if W.enabled():
+            require(self.work_control(value) is None)
+            result|={'workInventory':self.work_inventory(value),'workControl':control_for(value)}
+        return result
 
     def apply(self,plan):
         value=validate_plan(plan)
@@ -153,8 +188,15 @@ class Initializer:
             from shared_campaign_locators.period import condition
             action=condition(TABLE,existing)
         self.clock(value)
+        actions=[inventory_condition(TABLE,plan['inventory']),action]
+        if W.enabled():
+            require(exact(self.work_inventory(value),plan['workInventory']))
+            control=self.work_control(value)
+            require((existing is None and control is None) or (existing is not None and exact(control,plan['workControl'])))
+            actions.extend([W.condition(TABLE,plan['workInventory']),W.condition(TABLE,control) if control else
+                {'Put':{'TableName':TABLE,'Item':W.wire(plan['workControl']),'ConditionExpression':'attribute_not_exists(PK) AND attribute_not_exists(SK)'}}])
         try:
-            self.ddb.transact_write_items(TransactItems=[inventory_condition(TABLE,plan['inventory']),action])
+            self.ddb.transact_write_items(TransactItems=actions)
         except Exception:
             # Uncertain commits are never repeated automatically. A caller may
             # retry this exact plan; current row alone cannot prove inventory CAS.
@@ -163,6 +205,8 @@ class Initializer:
         # period rollover yield unavailable, with no destructive compensation.
         require(exact(self.current(value),plan['row']))
         require(exact(self.inventory(value),plan['inventory']));self.key(value)
+        if W.enabled():
+            require(exact(self.work_inventory(value),plan['workInventory']) and exact(self.work_control(value),plan['workControl']))
         self.clock(value,plan['row']['admissionChangedAtEpoch'])
         return {'schemaVersion':1,'initialized':True,'alreadyPresent':existing is not None,
             'periodId':value['periodId'],'runtimeActivated':False,'historicalCoverageApproved':False}

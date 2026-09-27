@@ -36,8 +36,10 @@ PERSISTED_FEATURE_FIELDS = APP_FEATURE_FIELDS | {
 def process_message(body: str, *, environment: str, schema_version: int, table_name: str,
                     retention_days: int, max_submissions: int, dynamodb, now_epoch=None,
                     locator_manifest_sha256=None, locator_inventory_revision=0,
-                    users_table_name=None, deletion_ledger_table_name=None, outbox_table_name=None) -> str:
+                    users_table_name=None, deletion_ledger_table_name=None, outbox_table_name=None,remaining_ms=lambda:30000) -> str:
     period_fence.configuration()
+    from shared_campaign_work import configuration as work_config
+    if work_config.enabled():dynamodb=work_config.BudgetClient(dynamodb,remaining_ms)
     envelope = _envelope(body, environment, schema_version)
     event_id = envelope["statisticsEventId"]
     feature_raw = dynamodb.get_item(TableName=table_name,
@@ -53,7 +55,7 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         return "suppressed"
     period_record=period_fence.read(dynamodb,table_name,feature['periodId'],
         locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
-    dynamodb=period_fence.GuardedClient(dynamodb,table_name,period_record)
+    dynamodb=period_fence.GuardedClient(dynamodb,table_name,period_record,now=lambda:now_epoch,remaining_ms=remaining_ms)
     consent_guards = cluster_authority(feature, users=users_table_name, ledger=deletion_ledger_table_name,
         outbox=outbox_table_name, client=dynamodb, now_epoch=now_epoch)
     if consent_guards is None:
@@ -84,7 +86,8 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
     contribution_key = {"PK": {"S": f"CANDIDATE#{candidate_id}"},
                         "SK": {"S": f"CONTRIB#{feature['contributorToken']}"}}
     existing = dynamodb.get_item(TableName=table_name, Key=contribution_key, ConsistentRead=True).get("Item")
-    expires_at = now_epoch + retention_days * 86400
+    expires_at = period_fence.transient_deadline(feature["periodId"],now_epoch,
+        feature["expiresAt"],now_epoch + retention_days * 86400)
     if existing:
         existing_purpose = deserialize(existing)
         if existing_purpose.get("researchNoticeVersion") != CURRENT_NOTICE or existing_purpose.get("researchPolicyVersion") != CURRENT_POLICY:
@@ -92,7 +95,9 @@ def process_message(body: str, *, environment: str, schema_version: int, table_n
         validate_metadata(existing_purpose)
         if selected is None:
             raise RuntimeError("Campaign contribution has no current summary")
-        expires_at = min(expires_at, _required_number(existing, "expiresAt"))
+        # A repeat preserves the original owned contribution/locator deadline.
+        # Existing overhang is removed by qualified period drain, never relabeled.
+        expires_at = _required_number(existing, "expiresAt")
     expiration_index = _expiration_index(environment, expires_at)
     if existing:
         contribution_locator = get_owned_locator(dynamodb,table_name,locator_for_target(deserialize(existing),environment))

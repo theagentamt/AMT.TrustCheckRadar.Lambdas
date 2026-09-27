@@ -10,10 +10,11 @@ from shared_check_authority.inventory import verified_inventory
 
 
 class Reader:
-    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None):
+    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None, campaign_work_client=None):
         self.a, self.tables, self.cognito, self.pool = authority, tables, cognito, user_pool_id
         self.purchase_reader, self.kms = purchase_reader, kms
         self.play_token_table = play_token_table
+        self.campaign_work_client=campaign_work_client
 
     def auth(self, event):
         account = self.a._account(event)
@@ -33,6 +34,18 @@ class Reader:
     def _get(self, table, pk, sk):
         return self._table(table).get_item(Key={'PK':pk,'SK':sk}, ConsistentRead=True).get('Item')
 
+    def _work_context(self):
+        from shared_campaign_work import configuration as C
+        config=C.pins()
+        if self.campaign_work_client is None:
+            import boto3
+            self.campaign_work_client=boto3.client('dynamodb')
+        client=self.campaign_work_client
+        C.binding(client,config,lambda:30000)
+        raw=client.get_item(TableName=config['resources']['pipeline']['tableName'],
+            Key=C.wire({'PK':'INVENTORY#dev','SK':'CAMPAIGN_PERIOD_WORK'}),ConsistentRead=True).get('Item')
+        return config,C.validate_marker(C.plain(raw) if raw else None,config,self.a.now())
+
     def inventory(self, context):
         require(self.purchase_reader is not None,'SOURCE_UNAVAILABLE',503)
         purchase_inventory = self.purchase_reader.inventory()
@@ -48,6 +61,8 @@ class Reader:
         if current > 0 and self.a.now() - current * 14 * 86400 < 7 * 86400:
             periods.append(current - 1)
         campaign = {}
+        from shared_campaign_work import configuration as work_config
+        work=self._work_context() if work_config.enabled() else None
         for period in periods:
             row = self._get('pipeline', 'PERIOD#'+str(period), 'HMAC_KEY')
             require(row is not None and row.get('PK') == 'PERIOD#'+str(period) and row.get('SK') == 'HMAC_KEY'
@@ -56,10 +71,14 @@ class Reader:
                     and type(row.get('keyArn')) is str
                     and re.fullmatch(r'arn:aws:kms:us-east-1:107827791950:key/[a-f0-9-]{36}', row['keyArn']),
                     'SOURCE_UNAVAILABLE',503)
+            if work is not None:
+                from shared_campaign_locators import period as period_fence
+                period_fence.validate(row,period,work[1]['locatorManifestSha256'],int(work[1]['locatorInventoryRevision']),self.a.now())
             campaign[str(period)] = row['keyArn']
         return {'authorityRevision':int(inventory['revision']),
                 'keys':sorted(self.a.s.hmac_keys),'history':state,'campaign':campaign,
-                'purchaseRevision':int(purchase_inventory['revision'])}
+                'purchaseRevision':int(purchase_inventory['revision']),
+                **({'campaignWork':{'manifestSha256':work[0]['manifest'],'revision':work[0]['revision'],'resources':work[0]['resources']}} if work is not None else {})}
 
     def assert_inventory(self, context, inventory):
         require(self.inventory(context) == inventory, 'SOURCE_CHANGED', 409)
@@ -168,6 +187,10 @@ class Reader:
     def _observation(self, context, locator):
         account_hash = hashlib.sha256(context['account'].encode()).hexdigest()
         event = locator.get('statisticsEventId')
+        if locator.get('schemaVersion')==2:
+            from shared_campaign_work.outbox import validate_locator
+            validate_locator(locator,'dev',account_hash)
+            self._work_context()
         require(locator.get('recordType') == 'CAMPAIGN_OUTBOX_LOCATOR'
                 and locator.get('accountIdHash') == account_hash
                 and locator.get('environment') == 'dev' and type(event) is str

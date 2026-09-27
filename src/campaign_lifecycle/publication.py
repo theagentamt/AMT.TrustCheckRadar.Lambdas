@@ -71,7 +71,8 @@ class Publication:
 
     def _transaction(self,inventory,actions):
         require(self.remaining()>=6000)
-        self.d.transact_write_items(TransactItems=[period_fence.condition(self.pipeline,self.period_record),self.locators.inventory_condition(self.pipeline,inventory),*actions])
+        period_fence.GuardedClient(self.d,self.pipeline,self.period_record,now=self.now,remaining_ms=self.remaining).transact_write_items(
+            TransactItems=[self.locators.inventory_condition(self.pipeline,inventory),*actions])
 
     def _guard(self,candidate):
         return {'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(candidate['PK'],'SUMMARY'),**self._match(candidate)}}
@@ -138,7 +139,7 @@ class Publication:
                 and candidate.get('GSI3PK')=='EXPIRY#'+self.env)
         integer(candidate.get('version'),1);integer(candidate.get('expiresAt'),1)
         require(integer(candidate['periodId']) >= inventory['minimumPeriodId']
-                and now >= (candidate['periodId']+1)*PERIOD_SECONDS+RECOVERY_SECONDS)
+                and now >= (candidate['periodId']+1)*PERIOD_SECONDS)
         if 'lifecycleState' in candidate:
             from shared_campaign_locators.core import LocatorUnavailable
             try:validate_phase(candidate,now)
@@ -172,6 +173,15 @@ class Publication:
 
     def _publish(self,candidate,inventory,now):
         from service import thresholded_dimension_ids,count_band
+        from shared_campaign_work import configuration as work_config, records as work_records
+        counter=None
+        if work_config.enabled():
+            # Pin before all input/tombstone reads. Every qualified writer or
+            # cleanup changes this exact period counter, so no 100-action
+            # truncation of the included contributor set is necessary.
+            counter=self._get(self.pipeline,work_records.control_key(candidate['periodId'])['PK'],'STATE')
+            pins=work_config.pins()
+            work_records.validate_control(counter,self.env,pins['generation'],candidate['periodId'],pins['manifest'],pins['revision'],now)
         rows=self._contributions(candidate)
         eligible=[row for row in rows if integer(row.get('expiresAt'),1)>now]
         publish=candidate['expiresAt']>now and len(eligible)>=10
@@ -188,6 +198,10 @@ class Publication:
                 'contributorCountBand':count_band(len(eligible)),'submissionCountBand':count_band(submissions),
                 'riskBand':'high','summaryKey':'campaign.'+candidate['taxonomyBucket'],'trendDirection':'new',
                 'expiresAt':candidate['lifecycleStartedAtEpoch']+400*86400,'version':1,'environment':self.env}
+        from shared_campaign_work import configuration as work_config
+        if aggregate is not None and work_config.enabled():
+            from shared_campaign_work.aggregates import partition
+            aggregate['expiryPartition']=partition(self.env,candidate['candidateId'])
         phase='PUBLISHED' if publish else 'SUPPRESSED'
         immutable={} if aggregate is None else {k:v for k,v in aggregate.items() if k not in ('state','version')}
         update={'TableName':self.pipeline,'Key':self._key(candidate['PK'],'SUMMARY'),**self._match(candidate),
@@ -204,8 +218,10 @@ class Publication:
                 partitions.append(partition)
                 require(self.remaining()>=6000)
                 require(self._get(self.pipeline,partition,'TOMBSTONE') is None)
-                actions.append({'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(partition,'TOMBSTONE'),
-                    'ConditionExpression':'attribute_not_exists(PK)'}})
+                if counter is None:
+                    actions.append({'ConditionCheck':{'TableName':self.pipeline,'Key':self._key(partition,'TOMBSTONE'),
+                        'ConditionExpression':'attribute_not_exists(PK)'}})
+            if counter is not None:actions.append(work_config.condition(self.pipeline,counter))
             require(len(actions)+3<=100)
         if aggregate:
             actions.append({'Put':{'TableName':self.intelligence,'Item':self.locators.serialize(aggregate),

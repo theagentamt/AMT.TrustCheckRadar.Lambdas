@@ -120,6 +120,14 @@ class TrackedClient:
                 if matches[0]!=C.condition(pipeline,group['registry']):protect(matches[0],group['registry'])
             else:extra.append(registry_guard)
             before,state=group['before'],group['next'];R.need(before['revision']<R.MAX_ORDINAL)
+            # Publication can pin the counter before reading every contributor.
+            # Any intervening qualified tombstone/repair mutation changes this
+            # revision; fold only the identical proof into our one counter CAS.
+            control_matches=[a for a in actions if next(iter(a.values())).get('TableName')==pipeline
+                             and next(iter(a.values())).get('Key')==key(before)]
+            R.need(len(control_matches)<=1)
+            if control_matches:
+                R.need(control_matches[0]==C.condition(pipeline,before));actions.remove(control_matches[0])
             update={'TableName':pipeline,'Key':key(before),**C.exact(before),
                     'UpdateExpression':'SET revision=:revision, nextOrdinal=:next, pendingCount=:pending, lastProgressAtEpoch=:progress'}
             update['ExpressionAttributeValues'].update(C.wire({':revision':before['revision']+1,':next':state['nextOrdinal'],

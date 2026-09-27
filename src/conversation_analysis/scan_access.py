@@ -311,8 +311,25 @@ def commit_scan_and_request(
                 }
             }
         )
+    write_client=dynamodb_client
+    if should_publish:
+        from shared_campaign_work import configuration as work_config
+        if work_config.enabled():
+            from shared_campaign_work.transactions import TrackedClient
+            from shared_campaign_locators import period as period_fence
+            config=work_config.pins();pipeline=config['resources']['pipeline']['tableName']
+            work_config.binding(dynamodb_client,config,lambda:30000)
+            raw=dynamodb_client.get_item(TableName=pipeline,Key=work_config.wire({'PK':'INVENTORY#'+APP_ENVIRONMENT,'SK':'CAMPAIGN_PERIOD_WORK'}),ConsistentRead=True).get('Item')
+            marker=work_config.validate_marker(work_config.plain(raw) if raw else None,config,now_epoch)
+            registry=period_fence.read(dynamodb_client,pipeline,now_epoch//period_fence.PERIOD_SECONDS,
+                marker['locatorManifestSha256'],int(marker['locatorInventoryRevision']),now_epoch,states=('OPEN',))
+            # The authoritative locator retains its existing exact deadline but
+            # is explicitly erased with its event rather than independently TTL'd.
+            item=transaction[-1]['Put']['Item']
+            item['logicalExpiresAt']=item.pop('expiresAt');item['schemaVersion']={'N':'2'}
+            write_client=TrackedClient(dynamodb_client,registries=[registry],now=lambda:now_epoch)
     try:
-        dynamodb_client.transact_write_items(TransactItems=transaction)
+        write_client.transact_write_items(TransactItems=transaction)
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") == "TransactionCanceledException":
             assert_account_active(account_id)

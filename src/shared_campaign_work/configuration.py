@@ -2,7 +2,7 @@
 import os
 import re
 from uuid import UUID
-from boto3.dynamodb.types import TypeDeserializer,TypeSerializer
+from functools import lru_cache
 from .records import need,integer,identity
 
 WRITERS=['conversation_analysis','account_data_api','campaign_observation_publisher',
@@ -10,9 +10,14 @@ WRITERS=['conversation_analysis','account_data_api','campaign_observation_publis
 MARKER_FIELDS={'PK','SK','recordType','schemaVersion','environment','coverage','revision','manifestSha256',
                'approvedAtEpoch','admissionGeneration','locatorManifestSha256','locatorInventoryRevision',
                'minimumPeriodId','resources','writers','baseline','restoreInvalidation'}
-S=TypeSerializer();D=TypeDeserializer()
-def wire(row):return {k:S.serialize(v) for k,v in row.items()}
-def plain(row):return {k:D.deserialize(v) for k,v in row.items()}
+@lru_cache(maxsize=1)
+def _serializers():
+    # Disabled legacy paths do not need the modern SDK serialization contract.
+    from boto3.dynamodb.types import TypeDeserializer,TypeSerializer
+    return TypeSerializer(),TypeDeserializer()
+
+def wire(row):return {k:_serializers()[0].serialize(v) for k,v in row.items()}
+def plain(row):return {k:_serializers()[1].deserialize(v) for k,v in row.items()}
 
 
 def enabled():return os.environ.get('CAMPAIGN_PERIOD_WORK_ENABLED','false')=='true'
@@ -74,3 +79,15 @@ def exact(row):
 
 def condition(table,row):
     return {'ConditionCheck':{'TableName':table,'Key':wire({'PK':row['PK'],'SK':row['SK']}),**exact(row)}}
+
+
+class BudgetClient:
+    """Guard every SDK method used by a caller without changing its responses."""
+    def __init__(self,client,remaining_ms):self.client=client;self.remaining=remaining_ms
+    def __getattr__(self,name):
+        method=getattr(self.client,name)
+        if not callable(method):return method
+        def call(*args,**kwargs):
+            need(self.remaining()>=6000)
+            return method(*args,**kwargs)
+        return call

@@ -89,7 +89,7 @@ def recover(worker,candidate_id,period):
         target=exact(row,'Delete')['Delete']
         target['ConditionExpression']='attribute_not_exists(PK) OR ('+target['ConditionExpression']+')'
         pair[0]={'Delete':target}
-        budget();worker.d.transact_write_items(TransactItems=[*guards,checkpoint_guard,*pair])
+        budget();fence.GuardedClient(worker.d,worker.pipeline,registry,now=worker.now,remaining_ms=worker.remaining).transact_write_items(TransactItems=[*guards,checkpoint_guard,*pair])
         deleted+=1
     if locators:
         return {'expiredPairs':deleted,'checkpointDeleted':False,'candidateEmptyObserved':False,'scopeComplete':False,'retirementEligible':False}
@@ -97,5 +97,5 @@ def recover(worker,candidate_id,period):
     # CLOSING forbids all contribution creators; every action still checks the
     # current generation/inventory and absent SUMMARY in the same transaction.
     actions=[*guards,checkpoint_guard if checkpoint is None else exact(checkpoint,'Delete')]
-    budget();worker.d.transact_write_items(TransactItems=actions)
+    budget();fence.GuardedClient(worker.d,worker.pipeline,registry,now=worker.now,remaining_ms=worker.remaining).transact_write_items(TransactItems=actions)
     return {'expiredPairs':0,'checkpointDeleted':checkpoint is not None,'candidateEmptyObserved':True,'scopeComplete':False,'retirementEligible':False}
