@@ -52,6 +52,34 @@ false. Poison must block sealing until the fixture restores its exact known
 synthetic source; that restoration is not a production repair facility. Completed
 GSI discovery does not certify all-table physical erasure.
 
+## Computed seal through actual retirement and later cleanup
+
+The [additional composed result](composed-retirement.json) passed in 91.631 seconds
+at fixture-only source `81ae81a152eef30a903e23eff4d12da75b780c08`. Production source
+and the eight production archives remain unchanged at `9147d545`. The fixture
+change passed 14 focused SDK/Moto tests normally and under optimized Python,
+with an independent 14-test pass and exact-head review before AWS execution.
+
+This run closes the missing composition edge: six actual producer events create
+42 indexed targets; three early-deadline ticks and four drain ticks compute SEALED
+from actual paired erasure. The unchanged production retirement helper then
+performs exactly two KMS mutations (disable and seven-day scheduling) using fresh
+wall time. It preserves the computed seal, observes SCHEDULED, rejects a MAC probe,
+and replays retirement without another mutation or record change. Actual account
+and withdrawal cleanup both complete through the resulting retirement proof with
+zero later KMS calls, followed by unchanged completion/delayed replay. The separate
+seeded aggregate expiry check still removes only the expired aggregate.
+
+Execution is local Python 3.14 against a fresh five-table AWS fixture and a dedicated
+key, not a deployed Lambda or production-role test. The earlier producer/drain
+clocks, inventories and commands remain synthetic; transport is captured, TTL
+scheduling and general research admission are not qualified. The key is scheduled,
+not destroyed. No actual attached Dev period was retired by this fixture.
+The [cleanup report](composed-retirement-cleanup.json) and separate
+[independent readback](composed-retirement-independent-cleanup.json) confirm all
+five fixture tables absent. The dedicated key remains PendingDeletion for
+October 4, 2026 UTC (October 3 local); it has not been observed destroyed.
+
 ## Separate irreversible-key and withdrawal evidence
 
 Retirement reports [guards](retirement-guards.json) and
