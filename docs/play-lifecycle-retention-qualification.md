@@ -1,5 +1,10 @@
 # Play token retention and erasure qualification
 
+> Historical increment: the implementation/deployment gaps below describe its original
+> evidence date. For current retention and disclosure facts, including completed
+> Dev account/campaign/export work and remaining limits, see the
+> [September 27 backend attestation](backend-retention-attestation-2026-09-27.md). Historical tests and approvals are not rewritten.
+
 This increment adds synthetic integration evidence against release-V01 runtime source `39cce61623794a123e61d25f5248b0c081eccf4a`, starting from release merge `b2a84785`. Production code, immutable contracts, runtime artifacts, infrastructure and activation gates are unchanged. It requires no physical device.
 
 ## Performed qualification
