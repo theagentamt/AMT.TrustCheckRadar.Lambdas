@@ -1,5 +1,10 @@
 # Independent research consent and legacy access retirement candidate
 
+> Historical increment: the implementation/deployment gaps below describe its original
+> evidence date. For current retention and disclosure facts, including completed
+> Dev account/campaign/export work and remaining limits, see the
+> [September 27 backend attestation](backend-retention-attestation-2026-09-27.md). Historical tests and approvals are not rewritten.
+
 SECUR4ALL-217 / SECUR4ALL-241. Source and dry-run stage only; no deployment, item rewrite or erasure has been performed. The candidate changes consent separately from protected check access. Current paid, explicitly activated trial and complimentary authority records, periods, usage and receipt identities are not rewritten or synthesized from legacy counters.
 
 ## Consent and mobile behavior

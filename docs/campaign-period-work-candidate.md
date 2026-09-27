@@ -1,5 +1,10 @@
 # Authoritative period work and retirement candidate
 
+> Historical source/qualification increment: its pending activation/story statements
+> describe the original freeze. See the [September 27 backend attestation](backend-retention-attestation-2026-09-27.md)
+> and infrastructure Dev acceptance for the later installed and qualified state.
+> The protocol, source pins and scoped fixture evidence below are preserved.
+
 SECUR4ALL-207 remains in progress. This source establishes strict, default-disabled
 work accounting and proof-bound key retirement. It does not create production
 approval markers, initialize controls, enable research, or approve historical
