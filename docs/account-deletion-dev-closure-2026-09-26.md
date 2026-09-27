@@ -4,7 +4,7 @@ The [12-producer retry/support map](account-deletion-producer-retry-evidence.md)
 
 This increment adds isolated qualification code, failure/retry tests and the
 [POST/GET OpenAPI description](api/account-deletion-openapi.md). It changes no
-production Lambda, deployed gate, retention policy or account. UAT execution is
+production Lambda, deployed gate, retention policy or existing customer account. UAT execution is
 tracked separately in [SECUR4ALL-329](https://andmorethings.youtrack.cloud/issue/SECUR4ALL-329)
 (Backend V1-5 – Release qualification); this page does not claim UAT or release
 readiness. Root owns tracker updates and isolated AWS execution.
