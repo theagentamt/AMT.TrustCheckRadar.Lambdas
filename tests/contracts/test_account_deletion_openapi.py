@@ -95,7 +95,9 @@ def test_examples_are_exact_frozen_fixtures_and_fit_success_schemas():
         content = PATH[method]["responses"][status]["content"]["application/json"]
         assert content["schema"] == {"$ref": f"#/components/schemas/{name}"}
         for key, example in content["examples"].items():
-            assert example["value"] == FIXTURES[key]
+            if key in FIXTURES:
+                assert example["value"] == FIXTURES[key]
+                assert "Historical" in example["summary"]
             validator(name).validate(example["value"])
     with pytest.raises(ValidationError):
         validator("AccountDeletionAccepted").validate(FIXTURES["notRequested"])
@@ -221,3 +223,49 @@ def test_bearer_scheme_matches_source_verified_access_token_checks():
         assert error.value.code == "UNAUTHORIZED"
     for term in ("issuer", "client_id", "token_use=access", "exp", "aws.cognito.signin.user.admin", "sub"):
         assert term in security["description"]
+
+
+@pytest.mark.parametrize("status", ["500", "503"])
+def test_upstream_failures_have_gateway_alternative_without_loosening_lambda(status):
+    response = SPEC["components"]["responses"]["Http" + status]
+    options = response["content"]["application/json"]["schema"]["oneOf"]
+    assert options == [{"$ref": "#/components/schemas/ErrorEnvelope"},
+                       {"$ref": "#/components/schemas/GatewayError"}]
+    schema = {"oneOf": [SCHEMAS[o["$ref"].rsplit("/", 1)[1]] for o in options]}
+    gateway = {"message": "Service Unavailable"}
+    Draft202012Validator(schema).validate(gateway)
+    with pytest.raises(ValidationError):
+        validator("ErrorEnvelope").validate(gateway)
+    assert response["x-upstream-outcome-unconfirmed"] is True
+    for text in ("empty body", "non-JSON", "unconfirmed", "original operationId", "No error envelope"):
+        assert text in response["description"]
+
+
+def test_current_examples_match_required_runtime_components_without_mutating_history():
+    import os
+    from unittest.mock import patch
+    config = source_helpers(SOURCE / "config.py", ["required_components"], {
+        "json": json, "os": os, "re": re, "AppError": AppError,
+        "COMPONENT_PATTERN": re.compile(r"^[A-Z][A-Z0-9_]{0,63}$"),
+    })
+    for method, status in (("post", "202"), ("get", "200")):
+        examples = PATH[method]["responses"][status]["content"]["application/json"]["examples"]
+        for key, complete in (("currentAccepted", False), ("currentEligibleStillNotComplete", True)):
+            body = examples[key]["value"]
+            components = [row["component"] for row in body["components"]]
+            assert len(components) == len(set(components)) == 12
+            assert "PLAY_TOKENS" in components
+            with patch.dict(os.environ, {"ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON": json.dumps(components)}):
+                assert config["required_components"]() == tuple(components)
+            validator("AccountDeletionStatusResponse").validate(body)
+            assert body["completionEligible"] is complete
+            assert all(row["status"] == ("COMPLETE" if complete else "PENDING") for row in body["components"])
+            assert body["status"] == "REQUESTED"
+            assert body["deleteByEpoch"] == body["requestedAtEpoch"] + 86400
+        historical = examples["accepted"]["value"]
+        assert historical == FIXTURES["accepted"] and len(historical["components"]) == 11
+        assert "11-component" in examples["accepted"]["description"]
+        old_components = [row["component"] for row in historical["components"]]
+        with patch.dict(os.environ, {"ACCOUNT_DELETION_REQUIRED_COMPONENTS_JSON": json.dumps(old_components)}):
+            with pytest.raises(AppError):
+                config["required_components"]()

@@ -136,7 +136,9 @@
                       "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
                       "requestedAtEpoch": 1800000000,
                       "deleteByEpoch": 1800086400
-                    }
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
                   },
                   "eligibleStillNotComplete": {
                     "value": {
@@ -179,6 +181,134 @@
                         },
                         {
                           "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "currentAccepted": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  },
+                  "currentEligibleStillNotComplete": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
                           "status": "COMPLETE"
                         },
                         {
@@ -271,7 +401,8 @@
                       "status": "NOT_REQUESTED",
                       "completionEligible": false,
                       "components": []
-                    }
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory"
                   },
                   "accepted": {
                     "value": {
@@ -328,7 +459,9 @@
                       "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
                       "requestedAtEpoch": 1800000000,
                       "deleteByEpoch": 1800086400
-                    }
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
                   },
                   "eligibleStillNotComplete": {
                     "value": {
@@ -371,6 +504,134 @@
                         },
                         {
                           "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "currentAccepted": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  },
+                  "currentEligibleStillNotComplete": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
                           "status": "COMPLETE"
                         },
                         {
@@ -921,7 +1182,7 @@
         }
       },
       "Http500": {
-        "description": "Fixed internal failure. The deletion fence may already have committed; recover with the same operationId.",
+        "description": "Fixed internal failure. The deletion fence may already have committed; recover with the same operationId. Gateway or upstream failures can instead return a JSON message without an application code, an empty body, or a non-JSON body. No error envelope or content type is guaranteed for such failures. Treat these as an unconfirmed outcome, preserve the pending intent and original operationId, and recover explicitly; never infer deletion success or non-acceptance.",
         "headers": {
           "Cache-Control": {
             "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
@@ -944,13 +1205,21 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorEnvelope"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
             }
           }
-        }
+        },
+        "x-upstream-outcome-unconfirmed": true
       },
       "Http503": {
-        "description": "Feature disabled, incomplete configuration/inventory or restricted Dev subject scope. A later unavailable response does not negate an earlier accepted request.",
+        "description": "Feature disabled, incomplete configuration/inventory or restricted Dev subject scope. A later unavailable response does not negate an earlier accepted request. Gateway or upstream failures can instead return a JSON message without an application code, an empty body, or a non-JSON body. No error envelope or content type is guaranteed for such failures. Treat these as an unconfirmed outcome, preserve the pending intent and original operationId, and recover explicitly; never infer deletion success or non-acceptance.",
         "headers": {
           "Cache-Control": {
             "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
@@ -974,7 +1243,14 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ErrorEnvelope"
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
             },
             "examples": {
               "3": {
@@ -988,7 +1264,8 @@
               }
             }
           }
-        }
+        },
+        "x-upstream-outcome-unconfirmed": true
       }
     }
   },

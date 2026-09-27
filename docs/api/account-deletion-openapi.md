@@ -5,7 +5,11 @@
 request and status schemas are exact copies of the immutable
 [`1.0.0-candidate.1`](../../contracts/account-deletion/1.0.0-candidate.1/README.md)
 contract; its files and checksums are unchanged. OpenAPI adds HTTP/authentication,
-error and caching documentation, not a new wire version.
+error and caching documentation, not a new wire version. The frozen 11-component
+examples are labeled historical wire fixtures. Separate current examples include
+all 12 required components, including PLAY_TOKENS; tests check them against the
+current runtime configuration. Historical fixtures are not a current deployment
+inventory.
 
 POST accepts only schemaVersion, canonical UUIDv4 operationId and DELETE_ACCOUNT.
 The verified access-token subject supplies identity. Successful POST is 202;
@@ -21,6 +25,11 @@ and completion checks. These requirements remain explicit in the OpenAPI
 operation descriptions and the immutable contract README. Localized clients use
 fixed error codes and must not display arbitrary server text. Gateway-generated
 rejections can have a different envelope and headers from Lambda responses.
+HTTP 500/503 may contain a gateway JSON message without an application code, an
+empty body, or non-JSON content. No upstream envelope or content type is promised.
+Treat those as an unconfirmed outcome: preserve the pending intent and original
+operation ID, then recover explicitly. They prove neither deletion success nor
+that a request was not accepted. The Lambda envelope remains strict.
 
 ## Current deployment scope
 
