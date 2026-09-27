@@ -25,6 +25,7 @@ class Authority:
     def now(self):return NOW
     def _account(self,event):return CONTEXT['account']
     def _device(self,event,account):return CONTEXT['device'],CONTEXT['bindingVersion']
+    def _assert_account(self,account):assert account==CONTEXT['account']
     def _partition(self,account,kid):return 'V1#'+kid+'#owned'
 
 

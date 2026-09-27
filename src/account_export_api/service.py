@@ -101,9 +101,12 @@ class Export:
         size = len(encode(response))
         require(size <= MAX_PAGE_BYTES and token['totalBytes'] + size <= MAX_TOTAL_BYTES,
                 'EXPORT_LIMIT_EXCEEDED', 413)
+        self.reader.assert_inventory(context, token['inventory'])
+        # Inventory verification performs storage reads. Authorize after the
+        # final source access so a deletion/device change during that pass
+        # cannot release the already assembled page.
         after = self.reader.auth(event)
         require(after == context, 'ACCESS_CHANGED', 409)
-        self.reader.assert_inventory(context, token['inventory'])
         require(self.now() < token['expiresAtEpoch'], 'EXPORT_EXPIRED', 410)
         return response
 

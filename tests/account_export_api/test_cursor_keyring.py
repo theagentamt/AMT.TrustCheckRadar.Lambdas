@@ -52,6 +52,7 @@ def test_runtime_duplicate_secret_fields_are_server_unavailable_and_client_close
     from account_export_api import runtime
     from shared_check_authority import inventory
     env={'STAGE':'dev','ACCOUNT_EXPORT_ENABLED':'true',
+         'ACCOUNT_EXPORT_HTTP_SUBJECTS_JSON':'["01234567-89ab-7cde-8123-456789abcdef"]',
          'ACCOUNT_EXPORT_POLICY_VERSION':runtime.POLICY,'ACCOUNT_EXPORT_INVENTORY_STATUS':'verified_complete',
          'COGNITO_USERNAME_IS_SUB':'true','COGNITO_ISSUER':'https://synthetic.example',
          'COGNITO_APP_CLIENT_ID':'synthetic-client','COGNITO_REQUIRED_SCOPE':'aws.cognito.signin.user.admin',

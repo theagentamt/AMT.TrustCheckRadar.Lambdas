@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+from uuid import UUID
 from .cursor import Cursor, ExportError, require, unique_pairs
 from .reader import Reader
 from .service import Export
@@ -57,8 +58,23 @@ def parse_cursor_keyring(raw):
         raise ExportError('SERVICE_UNAVAILABLE', 503) from None
 
 
+def parse_http_subjects(raw):
+    """Explicit Dev operator scope; never derive subjects from a request."""
+    try:
+        require(type(raw) is str and len(raw.encode('utf-8'))<=1024)
+        values=json.loads(raw,object_pairs_hook=unique_pairs,
+                          parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+        require(type(values) is list and 1<=len(values)<=10)
+        require(all(type(value) is str and str(UUID(value))==value for value in values))
+        require(len(set(values))==len(values))
+        return tuple(values)
+    except Exception:
+        raise ExportError('SERVICE_UNAVAILABLE',503) from None
+
+
 def load():
     require(os.environ.get('STAGE') == 'dev' and os.environ.get('ACCOUNT_EXPORT_ENABLED') == 'true', 'SERVICE_NOT_ENABLED', 503)
+    http_subjects=parse_http_subjects(os.environ.get('ACCOUNT_EXPORT_HTTP_SUBJECTS_JSON'))
     require(os.environ.get('ACCOUNT_EXPORT_POLICY_VERSION') == POLICY
             and os.environ.get('ACCOUNT_EXPORT_INVENTORY_STATUS') == 'verified_complete'
             and os.environ.get('COGNITO_USERNAME_IS_SUB') == 'true', 'SERVICE_UNAVAILABLE', 503)
@@ -98,7 +114,8 @@ def load():
         require(not play_tokens or token_table and token_table!=tables['authority'],'SERVICE_UNAVAILABLE',503)
         reader = Reader(authority,tables,cognito,os.environ['COGNITO_USER_POOL_ID'],
                         purchase_reader=store,
-                        kms=boto3.client('kms',region_name='us-east-1',config=config),play_token_table=token_table)
+                        kms=boto3.client('kms',region_name='us-east-1',config=config),play_token_table=token_table,
+                        http_subjects=http_subjects)
         return Export(reader,cursor,play_verification=play_tokens)
     except ExportError:
         raise
