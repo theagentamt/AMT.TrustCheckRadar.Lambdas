@@ -5,9 +5,11 @@ import os
 from pathlib import Path
 from copy import deepcopy
 import time
+from datetime import datetime,timezone
 import pytest
 if os.environ.get('AMT_AUTHORITY_INTEGRATION')!='1':pytest.skip('Isolated SDK only',allow_module_level=True)
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 from shared_campaign_work import configuration as C
 ROOT=Path(__file__).resolve().parents[2]
@@ -55,7 +57,21 @@ def fixture(monkeypatch):
                 assert kwargs=={'KeyId':KEY};return {'Tags':[{'TagKey':k,'TagValue':v} for k,v in self.tags.items()]}
             def generate_mac(self,**kwargs):
                 assert kwargs['KeyId']==KEY and kwargs['MacAlgorithm']=='HMAC_SHA_256'
+                if self.metadata['KeyState']!='Enabled':
+                    raise ClientError({'Error':{'Code':'KMSInvalidStateException'}},'GenerateMac')
                 self.calls.append(kwargs);return {'KeyId':KEY,'MacAlgorithm':'HMAC_SHA_256','Mac':hashlib.sha256(kwargs['Message']).digest()}
+            def disable_key(self,**kwargs):
+                assert kwargs=={'KeyId':KEY}
+                registry=C.plain(d.get_item(TableName=PREFIX+'-pipeline',Key=C.wire({'PK':'PERIOD#'+self.tags['PeriodId'],'SK':'HMAC_KEY'}))['Item'])
+                assert registry['admissionState']=='SEALED' and registry['retirementState']=='INTENT'
+                work=d.query(TableName=PREFIX+'-pipeline',KeyConditionExpression='PK=:pk',
+                    ExpressionAttributeValues=C.wire({':pk':'PERIOD_WORK#'+self.tags['PeriodId']}),ConsistentRead=True)
+                assert work['Items']==[] and not work.get('LastEvaluatedKey')
+                self.metadata.update(KeyState='Disabled',Enabled=False)
+            def schedule_key_deletion(self,**kwargs):
+                assert kwargs=={'KeyId':KEY,'PendingWindowInDays':7} and self.metadata['KeyState']=='Disabled'
+                self.metadata.update(KeyState='PendingDeletion',DeletionDate=datetime.fromtimestamp(at+7*86400,timezone.utc))
+                return {'KeyId':KEY,'KeyState':'PendingDeletion','DeletionDate':self.metadata['DeletionDate']}
         yield Ddb(),Kms(),at
 
 
@@ -71,11 +87,27 @@ def test_composed_real_sdk_paths(fixture,case):
     result=execute(fixture,case)
     assert result['passed'] and result['accountAndWithdrawalComplete']
     assert result['earlyDeadlineTicks']>1 and result['drainTicks']>1
-    assert result['laterKmsCallCount']==0 and not result['retirementEnabled']
+    assert result['laterKmsCallCount']==0 and result['retirementEnabled']==(case=='retire_then_complete')
     assert result['injectedLostAcknowledgmentCount']==int(case=='lost_ack')
     assert result['poisonRefusedSeal']==(case=='poison_recovery')
     assert PREFIX not in str(result) and KEY not in str(result)
     assert dict(os.environ)==before
+    if case=='retire_then_complete':
+        assert result['retirementState']=='SCHEDULED' and result['retirementMutationCount']==2
+        assert result['retirementReplayUnchanged'] and result['retirementMacRejected'] and result['computedSealPreserved']
+        assert result['keyDestroyedObserved'] is False
+        assert fixture[1].metadata['KeyState']=='PendingDeletion' and len(fixture[1].calls)==6
+
+
+def test_failed_retirement_cannot_report_post_retirement_completion(fixture):
+    d,kms,_=fixture
+    kms.disable_key=lambda **kw: (_ for _ in ()).throw(RuntimeError('unavailable'))
+    with pytest.raises(Exception):execute(fixture,'retire_then_complete')
+    records=[C.plain(row) for row in d.scan(TableName=PREFIX+'-ledger')['Items']]
+    assert not any(row['SK']=='ACCOUNT_DELETION#CAMPAIGN' for row in records)
+    commands=[row for row in records if row['SK']=='ACCOUNT_DELETION' or row['SK'].startswith('CAMPAIGN_WITHDRAWAL#')]
+    assert len(commands)==2 and all(row['status'] in ('REQUESTED','PENDING') for row in commands)
+    assert kms.metadata['KeyState']=='Enabled'
 
 
 def test_existing_rows_never_reset(fixture):

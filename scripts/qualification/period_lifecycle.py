@@ -28,7 +28,7 @@ from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY
 
 ACCOUNT='107827791950'
 REGION='us-east-1'
-CASES=('complete_replay','poison_recovery','lost_ack')
+CASES=('complete_replay','poison_recovery','lost_ack','retire_then_complete')
 FAMILIES=('pipeline','outbox','users','ledger','intelligence')
 
 
@@ -154,7 +154,8 @@ def run(client,kms,*,run_id,tables,key_arn,case,now=time.time,remaining_ms=lambd
         'locatorSchemaVersion':1,'minimumPeriodId':period,'priorPeriodsErased':True,'writers':LOCATOR_WRITERS}
     preserved={'PK':'UNRELATED#qualification','SK':'KEEP','value':'untouched'}
     for row in (marker,registry,control,locator,preserved):put('pipeline',row)
-    metric_calls=[];sent=[];mac_calls=[];later_mac=[]
+    metric_calls=[];sent=[];mac_calls=[];later_mac=[];retirement_mutations=[]
+    retirement_result=None;retirement_replay=False;retirement_mac_rejected=False
     class ProducerKms:
         def generate_mac(self,**kw):
             need(kw.get('KeyId')==key_arn and kw.get('MacAlgorithm')=='HMAC_SHA_256')
@@ -274,6 +275,42 @@ def run(client,kms,*,run_id,tables,key_arn,case,now=time.time,remaining_ms=lambd
         sealed=get('pipeline',registry['PK'],'HMAC_KEY')
         tick(d,NoKms(),Metrics(),now=lambda:clock[0],remaining_ms=remaining_ms)
         need(get('pipeline',registry['PK'],'HMAC_KEY')==sealed and sealed['status']=='ENABLED')
+        if case=='retire_then_complete':
+            # Real provider scheduling timestamps must use current wall time,
+            # not the earlier synthetic deadline used to exercise the drain.
+            from shared_campaign_work import retirement as K
+            from botocore.exceptions import ClientError
+            real_retirement_now=now()
+            need(type(real_retirement_now) in (int,float) and real_retirement_now>=clock[0])
+            real_retirement_now=int(real_retirement_now);clock[0]=real_retirement_now
+            class RetirementKms:
+                def __getattr__(self,name):
+                    need(name in ('describe_key','list_resource_tags','disable_key','schedule_key_deletion'))
+                    def invoke(**kw):
+                        need(kw==({'KeyId':key_arn,'PendingWindowInDays':7} if name=='schedule_key_deletion' else {'KeyId':key_arn}))
+                        if name in ('disable_key','schedule_key_deletion'):retirement_mutations.append(name)
+                        return call(getattr(kms,name),**kw)
+                    return invoke
+            with pins({'CAMPAIGN_PERIOD_RETIREMENT_ENABLED':'true'}):
+                retirement_result=K.retire(d,RetirementKms(),period,now=lambda:int(now()),remaining_ms=remaining_ms)
+                need(retirement_result=={'state':'SCHEDULED','keyDestroyedObserved':False,'changed':True})
+                retired=get('pipeline',registry['PK'],'HMAC_KEY')
+                K.validate_retired(retired,C.pins(),marker,int(now()))
+                need(all(retired[field]==sealed[field] for field in K.BASE_FIELDS-{'status'}))
+                before_retirement_replay=snapshot()
+                replay=K.retire(d,RetirementKms(),period,now=lambda:int(now()),remaining_ms=remaining_ms)
+                need(replay=={'state':'SCHEDULED','keyDestroyedObserved':False,'changed':False}
+                     and snapshot()==before_retirement_replay)
+                retirement_replay=True
+            need(retirement_mutations==['disable_key','schedule_key_deletion'])
+            try:
+                call(kms.generate_mac,KeyId=key_arn,MacAlgorithm='HMAC_SHA_256',Message=b'isolated-retirement-negative-probe')
+            except ClientError as exc:
+                need(exc.response.get('Error',{}).get('Code') in ('KMSInvalidStateException','DisabledException'))
+                retirement_mac_rejected=True
+            need(retirement_mac_rejected)
+            clock[0]=int(now())
+            need(clock[0]>=real_retirement_now)
         def candidate():return completion.Completion(dynamodb=d,kms=NoKms(),pipeline_table=tables['pipeline'],ledger_table=tables['ledger'],
             users_table=tables['users'],environment='dev',aws_account_id=ACCOUNT,aws_region=REGION,manifest_sha256='c'*64,inventory_revision=1,
             locator_manifest_sha256='a'*64,locator_inventory_revision=1,recovery_manifest_sha256='b'*64,recovery_inventory_revision=1,
@@ -316,6 +353,9 @@ def run(client,kms,*,run_id,tables,key_arn,case,now=time.time,remaining_ms=lambd
     return {'schemaVersion':1,'case':case,'passed':True,'syntheticClock':True,'syntheticInventoriesAndCommands':True,
         'productionActivation':False,'capturedTransportOnly':True,'ttlTimingQualified':False,'producerEvents':6,
         'indexedTargets':len(works),'earlyDeadlineTicks':early_ticks,'drainTicks':drain_ticks,'sealed':True,
-        'accountAndWithdrawalComplete':True,'laterKmsCallCount':len(later_mac),'retirementEnabled':False,
+        'accountAndWithdrawalComplete':True,'laterKmsCallCount':len(later_mac),'retirementEnabled':case=='retire_then_complete',
         'syntheticAggregateExpired':True,'futureAggregatePreserved':True,'aggregateDiscoveryCompletenessClaim':False,
-        'poisonRefusedSeal':poison_blocked,'injectedLostAcknowledgmentCount':int(lost[0]),'completionReplayUnchanged':True}
+        'poisonRefusedSeal':poison_blocked,'injectedLostAcknowledgmentCount':int(lost[0]),'completionReplayUnchanged':True,
+        **({'retirementState':retirement_result['state'],'retirementMutationCount':len(retirement_mutations),
+            'retirementReplayUnchanged':retirement_replay,'retirementMacRejected':retirement_mac_rejected,
+            'computedSealPreserved':True,'keyDestroyedObserved':False} if retirement_result is not None else {})}
