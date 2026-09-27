@@ -159,3 +159,49 @@ jsonschema, so the existing OpenAPI test environment ran conversation-analysis.
 The new publication fixture privately scopes its lifecycle service alias so it
 also passes in the combined shared-work suite. These are local results; deployed
 runtime, cloud IAM and actual key transitions have separately pinned evidence.
+
+
+## Operator sequence and delivery evidence
+
+The [frozen artifact and AWS qualification record](evidence/campaign-period-lifecycle-2026-09-27/README.md)
+separates local SDK/Moto, local archive checks, actual AWS SDK operations and
+actual disposable Lambda execution. It preserves the source pin used by each.
+
+1. Close and drain every relevant writer/cleaner/reviewer before the bootstrap
+   snapshot. Bind each actual installed artifact and effective role, including
+   retired writers whose explicit write deny remains in force. The new analysis
+   archive is prepared compatibility only; it need not replace the retired
+   installed code to preserve an independently verified no-write boundary.
+2. Strongly classify the complete attached pipeline/outbox/intelligence resources
+   using the reviewed operator. Bind exact TableIds, all original target clocks,
+   enabled registries and the immutable locator approval. Refuse unknown or
+   in-flight records. An empty query, a new account or source compatibility alone
+   cannot substitute for this inventory review.
+3. Review the immutable bootstrap plan/manifest and source proof separately.
+   Execute only the exact conditional bootstrap transaction. After an ambiguous
+   result, use exact readback rather than retrying a different plan or recreating
+   controls. Preserve the earlier global work minimum where it covers an enabled
+   period still inside its recovery window; do not manufacture an early seal.
+4. Install the reviewed compatible artifacts and resource/IAM pins together while
+   work/lifecycle/retirement remain closed. Recheck code hashes, table identities,
+   generation, approval revisions, actual role boundaries, review/export source
+   compatibility and the two separate schedule targets.
+5. Activate only the independently reviewed Dev scope. The period event is
+   `{"schemaVersion":1,"environment":"dev","operation":"reconcile_periods"}`;
+   the independent aggregate event replaces the operation with
+   `reconcile_aggregates`. Retirement has its own gate and may proceed only from
+   genuine current SEALED proof after the fixed recovery deadline. Ordinary
+   writer admission and research delivery are not implied by cleanup activation.
+6. Record actual worker results and emitted heartbeat, failure, unverified,
+   overdue, backlog and freshness metrics. A success heartbeat is not a seal or
+   erasure receipt. Investigate poison/missing-period/budget failures using fixed
+   categories; never clear an authoritative count or discard evidence to silence
+   an alarm. Provision future periods through the reviewed create-only operator
+   with independently supplied keys before they are needed.
+7. Verify fixture cleanup and key state independently. Treat PendingDeletion as
+   scheduled removal; actual destruction requires later qualified NotFound
+   observation. Capture exact release integration/deployment references and keep
+   SECUR4ALL-330 release execution and SECUR4ALL-245 restore work distinct.
+
+This sequence documents required evidence; it does not supply approval, enable a
+flag, execute an operator or authorize a general research rollout.

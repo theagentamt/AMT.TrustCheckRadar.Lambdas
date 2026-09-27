@@ -1,0 +1,64 @@
+{
+  "architecture": "arm64",
+  "artifacts": {
+    "account_data_api": {
+      "codeSha256": "wUFODgRz1RaJPvbcCHq1WdFDFr/VGHFeMlly0xVKLtg=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/account_data_api.zip",
+      "sha256": "c1414e0e0473d516893ef6dc087ab559d14316bfd518715e325972d3154a2ed8",
+      "sizeBytes": 86132
+    },
+    "account_export_api": {
+      "codeSha256": "jj/+DRKkVdn4TqQb5nGPMGwwdZj4TbvU/OE3zX6kkec=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/account_export_api.zip",
+      "sha256": "8e3ffe0d12a455d9f84ea41be6718f306c307598f84dbbd4fce137cd7ea491e7",
+      "sizeBytes": 5123010
+    },
+    "campaign_cluster_aggregator": {
+      "codeSha256": "4tfrCzvCKOqxXmhLAflwhU6ZGylAgWqBLX65WuuE4Lk=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/campaign_cluster_aggregator.zip",
+      "sha256": "e2d7eb0b3bc228eab15e684b01f970854e991b2940816a812d7eb95aeb84e0b9",
+      "sizeBytes": 46982
+    },
+    "campaign_deletion_bridge": {
+      "codeSha256": "xpT6GPKfYVvC2Ha9f/6LGPjp+ETQQo+qBHxIkJjVZ4w=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/campaign_deletion_bridge.zip",
+      "sha256": "c694fa18f29f615bc2d876bd7ffe8b18f8e9f844d0428faa047c489098d5678c",
+      "sizeBytes": 73021
+    },
+    "campaign_lifecycle": {
+      "codeSha256": "vGWg97T/vr5NpkwZVn+o2iXugAd1tJIhaVmnTUExO2I=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/campaign_lifecycle.zip",
+      "sha256": "bc65a0f7b4ffbebe4da64c19567fa8da25ee800775b492216959a74d41313b62",
+      "sizeBytes": 52934
+    },
+    "campaign_observation_publisher": {
+      "codeSha256": "VsfS81kkmG8J5fL7ENve5Ep9+woeL28lkXsMNlXe0JI=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/campaign_observation_publisher.zip",
+      "sha256": "56c7d2f35924986f09e5f2fb10dbdee44a7dfb0a1e2f6f25917b0c3655ded092",
+      "sizeBytes": 47782
+    },
+    "campaign_review": {
+      "codeSha256": "Wa9bTRhpH4HyRtrwp+eyLb+lumOsXpFKEgOnRl5EBkc=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/campaign_review.zip",
+      "sha256": "59af5b4d18691f81f246daf0a7e7b22dbfa5ba63ac5e914a1203a7465e440647",
+      "sizeBytes": 3583
+    },
+    "conversation_analysis": {
+      "codeSha256": "GKub2ADdM59qcXFwf3e0Jdpa4xBfj5Thi9XUCkj3K8E=",
+      "handler": "app.lambda_handler",
+      "path": "/tmp/amt-sec207-integrated-artifacts/conversation_analysis.zip",
+      "sha256": "18ab9bd800dd339f6a7171707f77b425da5ae3105f8f94e18bd5d40a48f72bc1",
+      "sizeBytes": 78544
+    }
+  },
+  "runtime": "python3.14",
+  "schemaVersion": 1,
+  "sourceCommit": "9147d545b719e54c1f967e35042bc502d79bc0f1"
+}

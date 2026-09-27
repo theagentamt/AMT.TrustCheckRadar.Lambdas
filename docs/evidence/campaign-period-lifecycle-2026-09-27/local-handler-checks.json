@@ -1,0 +1,48 @@
+{
+  "allPassed": true,
+  "artifacts": {
+    "account_data_api": {
+      "resultType": "response",
+      "sdkCalls": 0,
+      "statusCode": 503
+    },
+    "account_export_api": {
+      "resultType": "response",
+      "sdkCalls": 0,
+      "statusCode": 503
+    },
+    "campaign_cluster_aggregator": {
+      "exceptionType": "LocatorUnavailable",
+      "resultType": "exception",
+      "sdkCalls": 0
+    },
+    "campaign_deletion_bridge": {
+      "exceptionType": "RuntimeError",
+      "resultType": "exception",
+      "sdkCalls": 0
+    },
+    "campaign_lifecycle": {
+      "exceptionType": "RuntimeError",
+      "resultType": "exception",
+      "sdkCalls": 0
+    },
+    "campaign_observation_publisher": {
+      "exceptionType": "LocatorUnavailable",
+      "resultType": "exception",
+      "sdkCalls": 0
+    },
+    "campaign_review": {
+      "resultType": "response",
+      "sdkCalls": 0,
+      "statusCode": 403
+    },
+    "conversation_analysis": {
+      "resultType": "response",
+      "sdkCalls": 0,
+      "statusCode": 500
+    }
+  },
+  "schemaVersion": 1,
+  "scope": "Local closed/missing-auth handler paths only; export uses host cryptography for import, no native-Linux runtime claim.",
+  "sourceCommit": "9147d545b719e54c1f967e35042bc502d79bc0f1"
+}

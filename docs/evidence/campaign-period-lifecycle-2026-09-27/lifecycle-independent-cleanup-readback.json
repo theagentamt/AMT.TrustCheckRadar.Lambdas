@@ -1,0 +1,45 @@
+{
+  "observedAtUtc": "2026-09-27T04:31:20.277406+00:00",
+  "independentReadback": true,
+  "fixtures": [
+    {
+      "runId": "a50e8d619b20",
+      "tablesAbsent": {
+        "intelligence": true,
+        "ledger": true,
+        "outbox": true,
+        "pipeline": true,
+        "users": true
+      },
+      "keyDestroyed": false,
+      "keyState": "PendingDeletion",
+      "keyDeletionDate": "2026-10-04T04:26:50.294000+00:00"
+    },
+    {
+      "runId": "b94f310e62ad",
+      "tablesAbsent": {
+        "intelligence": true,
+        "ledger": true,
+        "outbox": true,
+        "pipeline": true,
+        "users": true
+      },
+      "keyDestroyed": false,
+      "keyState": "PendingDeletion",
+      "keyDeletionDate": "2026-10-04T04:26:53.794000+00:00"
+    },
+    {
+      "runId": "c682be59d017",
+      "tablesAbsent": {
+        "intelligence": true,
+        "ledger": true,
+        "outbox": true,
+        "pipeline": true,
+        "users": true
+      },
+      "keyDestroyed": false,
+      "keyState": "PendingDeletion",
+      "keyDeletionDate": "2026-10-04T04:26:58.336000+00:00"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "runId": "c682be59d017",
+  "keyDeletionDate": "2026-10-03T23:26:58.336000-05:00",
+  "keyDestroyed": false,
+  "keyState": "PendingDeletion",
+  "observedAtUtc": "2026-09-27T04:27:32.675745+00:00",
+  "tablesAbsent": {
+    "intelligence": true,
+    "ledger": true,
+    "outbox": true,
+    "pipeline": true,
+    "users": true
+  }
+}
