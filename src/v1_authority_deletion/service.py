@@ -59,6 +59,10 @@ class DeletionWorker:
         last_pass=saved['lastFullPassAtEpoch'] if saved else None
         if integral(started) is None or started>now or (last_pass is not None and (integral(last_pass) is None or last_pass>now)):
             raise AuthorityError('DELETION_CURSOR_INVALID')
+        # DynamoDB resource numbers are Decimal. Preserve validated clocks while
+        # keeping scheduled responses and content-free metrics JSON integers.
+        started=int(started)
+        last_pass=int(last_pass) if last_pass is not None else None
         if cursor is not None and (not isinstance(cursor,dict) or set(cursor)!={'PK','SK'} or any(not isinstance(v,str) for v in cursor.values())):raise AuthorityError('DELETION_CURSOR_INVALID')
         counts={'examined':0,'completed':0,'pending':0,'failed':0,'deleted':0,'overdue':0,'skipped':0,'pages':0,'fullPassCompleted':0,'fullPassAgeSeconds':now-(last_pass if last_pass is not None else started)}
         stop=False
