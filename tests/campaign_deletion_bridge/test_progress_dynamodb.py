@@ -64,7 +64,7 @@ def feature(put,n):
 
 
 def candidate(put,count=61):
-    put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'SUMMARY','version':1,'expiresAt':NOW+1000,'GSI3PK':'EXPIRY#dev',
+    put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'SUMMARY','periodId':10,'version':1,'expiresAt':NOW+1000,'GSI3PK':'EXPIRY#dev',
          'GSI3SK':NOW+1000,'centroid':[Decimal('.9')],'contributorCount':999,'submissionCount':999})
     put({'PK':'CANDIDATE#11111111-1111-4111-8111-111111111111','SK':'CONTRIB#'+TOKEN,'GSI1PK':PART,'GSI1SK':'CANDIDATE#11111111-1111-4111-8111-111111111111',
          'metadataSchemaVersion':1,'lexicalFingerprint':['ffffffffffffffff'],'signalIds':['deleted_signal'],'indicatorIds':['deleted_indicator'],

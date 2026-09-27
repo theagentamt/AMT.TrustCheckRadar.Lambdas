@@ -9,6 +9,7 @@ MAX_STEPS = 10
 
 from cleanup_errors import CoverageUnavailable
 from shared_campaign_contracts.metadata import validate_metadata, merge_metadata, empty_metadata
+from shared_campaign_contracts import repair as repair_contract
 
 
 def wire(value):
@@ -38,7 +39,18 @@ def integer(value, minimum=0):
     return int(value)
 
 
-def condition(table, pk, sk, version, field='version', phase=None):
+def _exact(row):
+    fields=[(k,v) for k,v in row.items() if k not in ('PK','SK')]
+    return {'ConditionExpression':' AND '.join(f'#f{i} = :f{i}' for i in range(len(fields))),
+            'ExpressionAttributeNames':{f'#f{i}':k for i,(k,_) in enumerate(fields)},
+            'ExpressionAttributeValues':wire({f':f{i}':v for i,(_,v) in enumerate(fields)})}
+
+
+def condition(table, pk, sk, version, field='version', phase=None, observed=None):
+    if observed is not None:
+        operation={'TableName':table,'Key':key(pk,sk),**_exact(observed)}
+        if phase is None:operation['ConditionExpression']+=' AND attribute_not_exists(lifecycleState)'
+        return {'ConditionCheck':operation}
     return {'ConditionCheck': {'TableName': table, 'Key': key(pk, sk),
         'ConditionExpression': '#v = :v AND '+('attribute_not_exists(lifecycleState)' if phase is None else 'lifecycleState = :phase'), 'ExpressionAttributeNames': {'#v': field},
         'ExpressionAttributeValues': wire({':v': version}|({':phase':phase} if phase else {}))}}
@@ -71,7 +83,11 @@ def recompute_page(ddb, table, pk, now, *, environment=None, intelligence_table=
         saved=get(ddb,table,pk,'DELETION_RECOMPUTE')
         if saved is not None:
             require(environment in ('dev','uat','prod') and saved.get('GSI3PK')=='EXPIRY#'+environment)
-            validate_repair(saved,{'PK':pk,'expiresAt':saved.get('expiresAt'),'GSI3PK':'EXPIRY#'+environment},now)
+            from shared_campaign_locators import validate_locator
+            locator=validate_locator(erased_locator,environment)
+            require(locator['targetKind']=='CONTRIBUTION' and locator['targetPK']==pk)
+            try:repair_contract.validate_orphan(saved,pk,locator['periodId'],environment,now)
+            except ValueError:raise CoverageUnavailable() from None
             from publication_recovery import exact,absent
             ddb.transact_write_items(TransactItems=[absent(table,pk,'SUMMARY'),exact(table,saved,'Delete')])
         return True
@@ -103,14 +119,14 @@ def recompute_page(ddb, table, pk, now, *, environment=None, intelligence_table=
     if saved is None or saved.get('summaryVersion') != version:
         state = {'PK':pk,'SK':'DELETION_RECOMPUTE','revision':1 if saved is None else integer(saved.get('revision'),1)+1,
                  'summaryVersion':version,'cursor':None,'contributors':0,'submissions':0,'vectors':0,'sums':[],
-                 'metadataSchemaVersion':1, **empty_metadata(),
+                 'metadataSchemaVersion':1,'repairSchemaVersion':2,'periodId':integer(summary.get('periodId')), **empty_metadata(),
                  'cutoffEpoch':now,'expiresAt':expiry,'GSI3PK':summary['GSI3PK'],'GSI3SK':expiry}
         put = {'TableName':table,'Item':wire(state)}
         if saved is None:
             put['ConditionExpression']='attribute_not_exists(PK)'
         else:
-            put.update(ConditionExpression='revision = :r',ExpressionAttributeValues=wire({':r':saved['revision']}))
-        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase),{'Put':put}])
+            put.update(_exact(saved))
+        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase,observed=summary),{'Put':put}])
         return False
     cursor = saved['cursor']
     args = dict(TableName=table, KeyConditionExpression='PK = :pk AND begins_with(SK, :prefix)',
@@ -146,9 +162,8 @@ def recompute_page(ddb, table, pk, now, *, environment=None, intelligence_table=
     if last:
         require(set(last) == {'PK','SK'} and last['PK'] == pk and type(last['SK']) is str and last['SK'].startswith('CONTRIB#'))
         state['cursor'] = last['SK']
-        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase),{'Put':{
-            'TableName':table,'Item':wire(state),'ConditionExpression':'revision = :r',
-            'ExpressionAttributeValues':wire({':r':saved['revision']})}}])
+        ddb.transact_write_items(TransactItems=[*proofs,condition(table,pk,'SUMMARY',version,phase=phase,observed=summary),{'Put':{
+            'TableName':table,'Item':wire(state),**_exact(saved)}}])
         return False
     # A candidate with no usable vectors cannot have a trustworthy centroid.
     require(state['contributors'] == 0 or state['vectors'] > 0)
@@ -166,30 +181,14 @@ def recompute_page(ddb, table, pk, now, *, environment=None, intelligence_table=
     if phase=='REPAIRING' and 'Update' in action:
         action['Update']['UpdateExpression']+=', lifecycleState = :frozen'
         action['Update']['ExpressionAttributeValues'][':frozen']={'S':'FROZEN'}
-    ddb.transact_write_items(TransactItems=[*proofs,action,{'Delete':{'TableName':table,'Key':key(pk,'DELETION_RECOMPUTE'),
-        'ConditionExpression':'revision = :r','ExpressionAttributeValues':wire({':r':saved['revision']})}}])
+    operation=next(iter(action.values())); exact=_exact(summary)
+    operation['ConditionExpression']='('+operation['ConditionExpression']+') AND ('+exact['ConditionExpression']+')'
+    operation['ExpressionAttributeNames'].update(exact['ExpressionAttributeNames'])
+    operation['ExpressionAttributeValues'].update(exact['ExpressionAttributeValues'])
+    ddb.transact_write_items(TransactItems=[*proofs,action,{'Delete':{'TableName':table,'Key':key(pk,'DELETION_RECOMPUTE'),**_exact(saved)}}])
     return True
 
 
 def validate_repair(saved, summary, now):
-    expected = {'PK','SK','revision','summaryVersion','cursor','contributors','submissions','vectors','sums',
-                'cutoffEpoch','expiresAt','GSI3PK','GSI3SK','metadataSchemaVersion',*empty_metadata()}
-    require(set(saved) == expected and saved['PK'] == summary['PK'] and saved['SK'] == 'DELETION_RECOMPUTE'
-            and saved['expiresAt'] == summary['expiresAt'] and saved['GSI3PK'] == summary['GSI3PK']
-            and saved['GSI3SK'] == summary['expiresAt'])
-    integer(saved['expiresAt'],1)
-    for field in ('revision','summaryVersion','cutoffEpoch'):
-        integer(saved[field],1)
-    for field in ('contributors','submissions','vectors'):
-        integer(saved[field])
-    require(saved['vectors'] <= saved['contributors'] <= saved['submissions'] <= 3*saved['contributors'])
-    require(saved['cutoffEpoch'] <= now and type(saved['sums']) is list and len(saved['sums']) <= 384)
-    require(all(type(v) in (int,Decimal) and Decimal(v).is_finite() for v in saved['sums']))
-    require((saved['vectors'] == 0) == (len(saved['sums']) == 0))
-    cursor = saved['cursor']
-    require(cursor is None or (type(cursor) is str and cursor.startswith('CONTRIB#') and len(cursor) <= 2048))
-    try:
-        metadata = validate_metadata(saved)
-    except ValueError:
-        raise CoverageUnavailable() from None
-    require(all(saved[k] == v for k,v in metadata.items()))
+    try:repair_contract.validate(saved,summary,now)
+    except (ValueError,KeyError,TypeError):raise CoverageUnavailable() from None

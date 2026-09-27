@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "case": "orphan_handler_lost_ack",
+  "sourceSha": "68198f448f378508783925526a59cc3454137c6a",
+  "zipSha256": "15b13d8a53d2a989dfb72ce4784d8fca991d63415237052a77f7503c7728346d",
+  "runId": "77ebd3a205a1",
+  "observedAtUtc": "2026-09-27T02:57:04.401882+00:00",
+  "runtime": "python3.14",
+  "architectures": [
+    "arm64"
+  ],
+  "runtimeVersionArn": "arn:aws:lambda:us-east-1::runtime:ab559f26fdef82cfdfbb2942d07b46f84b45b52d0d760d3d623001ab0218052e",
+  "invocationAttempted": true,
+  "passed": true,
+  "fixtureOnly": true,
+  "productionActivation": false,
+  "nativeBackupRestore": false,
+  "productionRoleQualified": false,
+  "elapsedSeconds": 1.712
+}
