@@ -1,5 +1,5 @@
 """Real SDK + Moto traversal, isolated from legacy test modules' global SDK stubs."""
-import os,sys,hashlib,base64
+import os,sys,hashlib,base64,json
 from pathlib import Path
 from types import SimpleNamespace
 import pytest
@@ -152,3 +152,74 @@ def test_deletion_between_play_metadata_read_and_response_rejects_page(play_expo
     with pytest.raises(AuthorityError,match='ACCOUNT_UNAVAILABLE'):
         while current['nextCursor']:
             current=service.page(event,{'action':'CONTINUE_EXPORT','cursor':current['nextCursor']})
+
+
+@pytest.mark.parametrize('change,status,code',[
+    ('deletion',403,'ACCOUNT_UNAVAILABLE'),('profile',403,'ACCOUNT_UNAVAILABLE'),
+    ('device',403,'ACTIVE_DEVICE_REQUIRED'),('binding_version',409,'ACCESS_CHANGED'),
+    ('reauthentication',401,'REAUTHENTICATION_REQUIRED'),('jwt_expiry',401,'AUTHENTICATION_REQUIRED'),
+    ('export_expiry',410,'EXPORT_EXPIRED'),
+])
+def test_final_inventory_race_cannot_release_actual_http_page(world,monkeypatch,change,status,code):
+    from account_export_api import app
+    service,event,resource=world
+    original=service.reader.assert_inventory;calls=[];clock=[NOW]
+    service.now=lambda:clock[0];service.reader.a.now=service.now
+    def inventory(context,expected):
+        original(context,expected);calls.append(1)
+        if len(calls)!=2:return
+        if change=='deletion':
+            resource.Table('deletion').put_item(Item={'PK':'ACCOUNT#account-a','SK':'ACCOUNT_DELETION','status':'REQUESTED'})
+        elif change=='profile':
+            resource.Table('users').update_item(Key={'PK':'USER#account-a','SK':'PROFILE'},
+                UpdateExpression='SET #s=:s',ExpressionAttributeNames={'#s':'status'},ExpressionAttributeValues={':s':'DELETION_REQUESTED'})
+        elif change in ('device','binding_version'):
+            resource.Table('devices').update_item(Key={'PK':'USER#account-a','SK':'ACTIVE_BINDING'},
+                UpdateExpression='SET '+('bindingFingerprint=:v' if change=='device' else 'stateVersion=:v'),
+                ExpressionAttributeValues={':v':'other-device' if change=='device' else 2})
+        else:
+            claims=event['requestContext']['authorizer']['jwt']['claims']
+            if change=='reauthentication':claims['auth_time']=str(NOW-301)
+            elif change=='jwt_expiry':claims['exp']=str(NOW)
+            else:
+                clock[0]=NOW+900
+                claims['auth_time']=claims['iat']=str(clock[0])
+    monkeypatch.setattr(service.reader,'assert_inventory',inventory)
+    monkeypatch.setattr(app,'load',lambda:service)
+    request=event|{'version':'2.0','routeKey':'POST /v1/users/account-export',
+                  'body':json.dumps({'schemaVersion':1,'action':'START_EXPORT'})}
+    response=app.lambda_handler(request,None)
+    assert len(calls)==2 and response['statusCode']==status
+    assert json.loads(response['body'])=={'schemaVersion':1,'error':{'code':code,'retryable':False}}
+    assert 'synthetic@example.invalid' not in response['body'] and 'nextCursor' not in response['body']
+
+
+def test_deletion_accepted_during_device_read_blocks_before_inventory(world,monkeypatch):
+    service,event,resource=world;original=service.reader.a._device
+    def device(*args):
+        result=original(*args)
+        resource.Table('deletion').put_item(Item={'PK':'ACCOUNT#account-a','SK':'ACCOUNT_DELETION','status':'REQUESTED'})
+        return result
+    monkeypatch.setattr(service.reader.a,'_device',device)
+    monkeypatch.setattr(service.reader,'inventory',lambda *_:pytest.fail('No source traversal after accepted deletion'))
+    with pytest.raises(AuthorityError,match='ACCOUNT_UNAVAILABLE'):
+        service.page(event,{'action':'START_EXPORT'})
+
+
+def test_outside_http_scope_refuses_before_owned_storage_reads(world,monkeypatch):
+    service,event,_=world
+    service.reader.http_subjects=('01234567-89ab-7cde-8123-456789abcdef',)
+    monkeypatch.setattr(service.reader.a,'_account',lambda *_:pytest.fail('No account lookup outside scope'))
+    with pytest.raises(ExportError) as caught:service.page(event,{'action':'START_EXPORT'})
+    assert caught.value.status==503 and caught.value.code=='SERVICE_NOT_ENABLED'
+
+
+def test_scope_removal_invalidates_continuation_before_storage(world,monkeypatch):
+    service,event,_=world
+    # Reader-level fixture identifiers; runtime's canonical UUID parser is tested separately.
+    service.reader.http_subjects=('account-a',)
+    page=service.page(event,{'action':'START_EXPORT'})
+    service.reader.http_subjects=('01234567-89ab-7cde-8123-456789abcdef',)
+    monkeypatch.setattr(service.reader.a,'_account',lambda *_:pytest.fail('No storage after scope removal'))
+    with pytest.raises(ExportError,match='SERVICE_NOT_ENABLED'):
+        service.page(event,{'action':'CONTINUE_EXPORT','cursor':page['nextCursor']})

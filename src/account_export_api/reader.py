@@ -10,15 +10,27 @@ from shared_check_authority.inventory import verified_inventory
 
 
 class Reader:
-    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None, campaign_work_client=None):
+    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None, campaign_work_client=None, http_subjects=None):
         self.a, self.tables, self.cognito, self.pool = authority, tables, cognito, user_pool_id
         self.purchase_reader, self.kms = purchase_reader, kms
         self.play_token_table = play_token_table
         self.campaign_work_client=campaign_work_client
+        self.http_subjects=http_subjects
 
     def auth(self, event):
+        if self.http_subjects is not None:
+            from shared_history.security import jwt_subject
+            from shared_history import HistoryError
+            from shared_check_authority.core import AuthorityError
+            try:subject=jwt_subject(event,self.a.s,now=self.a.now)
+            except (HistoryError,TypeError,ValueError,AttributeError):
+                raise AuthorityError('AUTHENTICATION_REQUIRED') from None
+            require(subject in self.http_subjects,'SERVICE_NOT_ENABLED',503)
         account = self.a._account(event)
         device, version = self.a._device(event, account)
+        # Account deletion can be accepted while the device rows are read.
+        # Keep the account fence as the last owned storage authorization read.
+        self.a._assert_account(account)
         claims = event['requestContext']['authorizer']['jwt']['claims']
         def epoch(value):
             return int(value) if type(value) is str and value.isdigit() else value
