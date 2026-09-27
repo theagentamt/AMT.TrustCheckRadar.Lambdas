@@ -11,6 +11,7 @@ SKIP_DEPENDENCIES=false
 CONTRACT_VERSION="1.0.0"
 
 FUNCTIONS=(
+  support_account_deletion
   account_data_api
   account_export_api
   age_attestation
@@ -175,6 +176,9 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
+  if [[ "$function_name" == "support_account_deletion" && -z "$PYTHON_VERSION" ]]; then
+    python_version="3.14"
+  fi
   if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
@@ -186,6 +190,14 @@ build_function() {
   rm -rf "$build_dir"
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
+
+  if [[ "$function_name" == "support_account_deletion" ]]; then
+    mkdir -p "$build_dir/support_account_deletion" "$build_dir/account_data_api"
+    cp -R "$source_dir"/. "$build_dir/support_account_deletion/"
+    printf 'from support_account_deletion.app import lambda_handler\n' > "$build_dir/app.py"
+    cp "$ROOT_DIR/src/account_data_api/__init__.py" "$ROOT_DIR/src/account_data_api/service.py" "$ROOT_DIR/src/account_data_api/errors.py" "$build_dir/account_data_api/"
+    cp -R "$ROOT_DIR/src/shared_account_finalization" "$ROOT_DIR/src/shared_campaign_recovery" "$build_dir/"
+  fi
 
   if [[ "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" ]]; then
     mkdir -p "$build_dir/$function_name"
