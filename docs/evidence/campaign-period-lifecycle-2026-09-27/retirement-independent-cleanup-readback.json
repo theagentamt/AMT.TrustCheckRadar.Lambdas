@@ -1,0 +1,26 @@
+{
+  "observedAtUtc": "2026-09-27T03:58:43.790243+00:00",
+  "independentReadback": true,
+  "fixtures": [
+    {
+      "runId": "71c0f568e042",
+      "tablesAbsent": {
+        "outbox": true,
+        "pipeline": true
+      },
+      "keyDestroyed": false,
+      "keyState": "PendingDeletion",
+      "keyDeletionDate": "2026-10-04T03:51:15.881000+00:00"
+    },
+    {
+      "runId": "ac928be430d1",
+      "tablesAbsent": {
+        "outbox": true,
+        "pipeline": true
+      },
+      "keyDestroyed": false,
+      "keyState": "PendingDeletion",
+      "keyDeletionDate": "2026-10-04T03:55:56.048000+00:00"
+    }
+  ]
+}

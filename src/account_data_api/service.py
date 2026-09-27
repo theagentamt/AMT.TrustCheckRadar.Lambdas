@@ -579,6 +579,7 @@ def delete_analysis_abuse_control(
 def delete_campaign_outbox(
     command, *, outbox_table, ledger_table, page_size=100, now_epoch=None,
     locator_coverage_status="pending",
+    work_client=None,
     account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
 ):
     """Delete account-linked outbox content through exact same-table locators."""
@@ -628,6 +629,16 @@ def delete_campaign_outbox(
         event = outbox_table.get_item(
             Key=event_key, ConsistentRead=True
         ).get("Item")
+        from shared_campaign_work import configuration as work_config
+        if work_config.enabled():
+            from shared_campaign_work.outbox import paired_delete
+            if work_client is None:
+                import boto3
+                work_client=boto3.client('dynamodb')
+            paired_delete(work_client,outbox_table=outbox_table.name,ledger_table=ledger_table.name,
+                          command=command,locator=locator,event=event,now=int(time.time()) if now_epoch is None else now_epoch)
+            deleted+=1+int(event is not None)
+            continue
         if event:
             if (
                 event.get("PK") != event_key["PK"]
@@ -1174,6 +1185,10 @@ def _validate_analysis_abuse_key(item, partition):
 def _validate_outbox_locator(
     item, *, partition, account_hash, environment,
 ):
+    if isinstance(item,dict) and item.get('schemaVersion')==2:
+        from shared_campaign_work.outbox import validate_locator
+        validate_locator(item,environment,account_hash)
+        return item['statisticsEventId']
     event_id = item.get("statisticsEventId") if isinstance(item, dict) else None
     event_expires = _exact_int(item.get("eventExpiresAt")) if isinstance(item, dict) else None
     expires = _exact_int(item.get("expiresAt")) if isinstance(item, dict) else None

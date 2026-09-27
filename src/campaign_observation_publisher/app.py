@@ -51,6 +51,7 @@ def lambda_handler(event, _context):
             sqs_client=sqs_client,
             locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
             locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION,
+            remaining_ms=getattr(_context,"get_remaining_time_in_millis",lambda:30000),
         )
         results[result] = results.get(result, 0) + 1
         _metric(result)

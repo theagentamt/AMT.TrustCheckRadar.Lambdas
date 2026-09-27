@@ -78,6 +78,10 @@ def parse_stream_record(record: dict, *, environment: str, schema_version: int) 
 
 
 def _validate_locator(item: dict, *, environment: str, schema_version: int) -> None:
+    if item.get('schemaVersion')==2:
+        from shared_campaign_work.outbox import validate_locator
+        validate_locator(item,environment)
+        return
     if set(item) != LOCATOR_FIELDS:
         raise ContractError("Outbox locator fields are invalid")
     event_id = item.get("statisticsEventId")

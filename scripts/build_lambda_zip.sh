@@ -105,7 +105,7 @@ needs_shared_entitlements() {
 
 needs_shared_campaign_contracts() {
   case "$1" in
-    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|conversation_analysis) return 0 ;;
+    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|campaign_lifecycle|conversation_analysis|account_data_api|account_export_api) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -175,7 +175,7 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -293,6 +293,11 @@ build_function() {
 
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
+  fi
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "account_export_api" || "$function_name" == "conversation_analysis" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
   fi
   if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_lifecycle" ]]; then
     cp -R "$ROOT_DIR/src/shared_research_consent" "$build_dir/shared_research_consent"

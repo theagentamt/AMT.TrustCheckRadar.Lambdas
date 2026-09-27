@@ -92,6 +92,15 @@ def build(source, output, *, real_cognito=False):
             data=git('show',source+':'+origin)
             require(data==(ROOT/origin).read_bytes(),'Privacy fixture source mismatch')
             compile(data,target,'exec');members[target]=data
+        for filename in ('config.py','errors.py','service.py'):
+            origin='src/campaign_participation/'+filename
+            data=git('show',source+':'+origin)
+            require(data==(ROOT/origin).read_bytes(),'Withdrawal producer source mismatch')
+            compile(data,filename,'exec');members['_qualification_workers/campaign_participation/'+filename]=data
+        origin='scripts/qualification/withdrawal_acceptance.py'
+        data=git('show',source+':'+origin)
+        require(data==(ROOT/origin).read_bytes(),'Withdrawal fixture source mismatch')
+        compile(data,'withdrawal_acceptance.py','exec');members['withdrawal_acceptance.py']=data
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness

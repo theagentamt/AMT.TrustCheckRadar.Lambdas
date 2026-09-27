@@ -32,9 +32,14 @@ def publish_observation(
     kms_client,
     sqs_client,
     now_epoch: int | None = None,
-    locator_manifest_sha256=None, locator_inventory_revision=0,
+    locator_manifest_sha256=None, locator_inventory_revision=0, remaining_ms=lambda:30000,
 ) -> str:
     period_fence.configuration()
+    from shared_campaign_work import configuration as work_config
+    if work_config.enabled():
+        dynamodb_client=work_config.BudgetClient(dynamodb_client,remaining_ms)
+        kms_client=work_config.BudgetClient(kms_client,remaining_ms)
+        sqs_client=work_config.BudgetClient(sqs_client,remaining_ms)
     if not item["campaignConsentGranted"]:
         return "consent-suppressed"
 
@@ -57,7 +62,7 @@ def publish_observation(
         hmac_key_id = hmac_key_resolver(period_id)
     if hmac_key_id != period_record['keyArn']:
         raise RuntimeError('Campaign period key is unavailable')
-    dynamodb_client=period_fence.GuardedClient(dynamodb_client,pipeline_table_name,period_record)
+    dynamodb_client=period_fence.GuardedClient(dynamodb_client,pipeline_table_name,period_record,now=lambda:now_epoch,remaining_ms=remaining_ms)
     event_id = item["statisticsEventId"]
     key = {"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "DEDUPE"}}
     existing = dynamodb_client.get_item(
@@ -76,8 +81,8 @@ def publish_observation(
         raise RuntimeError('Campaign locator period is not covered')
     contributor_token = derive_contributor_token(item["accountId"], key_id=hmac_key_id, kms_client=kms_client)
     if not existing:
-        transient_expiry = min(
-            item["expiresAt"] + 18 * 24 * 60 * 60,
+        transient_expiry = period_fence.transient_deadline(
+            period_id, now_epoch, item["expiresAt"] + 18 * 24 * 60 * 60,
             now_epoch + transient_retention_days * 24 * 60 * 60,
         )
         expiration_index = {

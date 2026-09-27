@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "runId": "d7b4ea876599",
+  "observedAtUtc": "2026-09-27T04:55:33.696338+00:00",
+  "tablesAbsent": {
+    "intelligence": true,
+    "ledger": true,
+    "outbox": true,
+    "pipeline": true,
+    "users": true
+  },
+  "keyState": "PendingDeletion",
+  "keyDeletionDate": "2026-10-03T23:53:45.573000-05:00",
+  "keyDestroyed": false
+}

@@ -30,6 +30,11 @@ def ensure(ddb,table,environment,partition,period,requested,retention_days):
         # recover pending repair and preserve its original logical deadline.
         return validate(existing,environment,partition)
     deadline=requested+retention_days*86400
+    from shared_campaign_work import configuration as work_config
+    if work_config.enabled():
+        from shared_campaign_locators import period as period_fence
+        deadline=min(deadline,(period+1)*period_fence.PERIOD_SECONDS+period_fence.RECOVERY_SECONDS)
+        require(requested<deadline)
     value={'PK':partition,'SK':'TOMBSTONE','recordType':'CAMPAIGN_DELETION_TOMBSTONE',
         'schemaVersion':2,'environment':environment,'periodId':period,'createdAtEpoch':requested,
         'deletionDeadlineEpoch':deadline,'GSI3PK':'EXPIRY#'+environment,'GSI3SK':deadline}
