@@ -234,3 +234,36 @@ def test_broken_binding_pair_preserves_account_rows_and_blocks_erasure_receipt(t
  with pytest.raises(AuthorityError):bridge.delete_batch(command)
  assert table.scan()['Items']==before
  assert a._get('deletion',{'PK':command['PK'],'SK':'ACCOUNT_DELETION#PLAY_TOKENS'}) is None
+
+
+@pytest.mark.parametrize('stage',['delete','receipt'])
+def test_token_deletion_lost_committed_ack_retries_original_operation(tokens,monkeypatch,stage):
+ a,e,_,_,_,clock=tokens;pk=a._partition(ACCOUNT,'k1')
+ row=put_token(a,pk,'lost-ack',clock[0]+1000,clock[0])
+ _,command,_=setup(tokens)
+ bridge=TokenDeletion(a.ddb,authority_table='authority',ledger_table='deletion',environment='dev',keyring=a.s.hmac_keys,receipt_retention_seconds=120*86400,now=a.now,token_table='play-tokens')
+ original=bridge.client.transact_write_items;fired=[]
+ def lost(**kw):
+  actions=kw['TransactItems']
+  target=(any(x.get('Delete',{}).get('TableName')=='play-tokens' for x in actions) if stage=='delete' else
+          any(x.get('Put',{}).get('Item',{}).get('component')=='PLAY_TOKENS' for x in actions))
+  value=original(**kw)
+  if target and not fired:
+   fired.append(True);raise TimeoutError('synthetic lost committed acknowledgment')
+  return value
+ monkeypatch.setattr(bridge.client,'transact_write_items',lost)
+ for _ in range(3):
+  try:bridge.delete_batch(command)
+  except AuthorityError as exc:
+   assert exc.code=='DELETION_TRANSACTION_UNCERTAIN';break
+ else:pytest.fail('Lost acknowledgment was not exercised')
+ assert fired==[True]
+ key={'PK':command['PK'],'SK':'ACCOUNT_DELETION#PLAY_TOKENS'}
+ committed=a._get('deletion',key)
+ clock[0]+=15
+ assert bridge.delete_batch(command)['complete']
+ receipt=a._get('deletion',key)
+ if committed is not None:assert receipt==committed
+ assert receipt['retainUntilEpoch']==receipt['occurredAtEpoch']+120*86400
+ assert a._get('play-tokens',{'PK':pk,'SK':row['SK']}) is None
+ assert a._get('deletion',{'PK':command['PK'],'SK':command['SK']})==command

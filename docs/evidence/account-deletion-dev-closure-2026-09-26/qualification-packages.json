@@ -1,0 +1,71 @@
+{
+  "fixtureOnly": true,
+  "packages": [
+    {
+      "architecture": "arm64",
+      "archive": "campaign_completion_qualification.zip",
+      "handler": "campaign_qualification.lambda_handler",
+      "productionArchives": {
+        "campaign_cluster_aggregator": {
+          "handler": "app.lambda_handler",
+          "sha256": "1dbb96d3034c622838ebcd76039297e377e2018b6ffa3685dd337d5ae0e9fb15",
+          "sizeBytes": 18457
+        },
+        "campaign_deletion_bridge": {
+          "handler": "app.lambda_handler",
+          "sha256": "c37c1af984fade1c07e6a6a17dd074abf25da696f32ba530eca008e3722690c9",
+          "sizeBytes": 43525
+        },
+        "campaign_lifecycle": {
+          "handler": "app.lambda_handler",
+          "sha256": "3aab80f54a82ba6454782dab924b029d4b509bf6a7c810601ee74ef63953b31f",
+          "sizeBytes": 18677
+        },
+        "campaign_observation_publisher": {
+          "handler": "app.lambda_handler",
+          "sha256": "2fa50cdab8a7f9417f453d37669f659844d801d65e1f5cd5caa0bde5e01ed8ae",
+          "sizeBytes": 19290
+        }
+      },
+      "qualificationZipSha256": "33dee4bd22506720e43126d7de254c78cd067c5ff3aea4fe7f5415b2bbf0f72f",
+      "qualificationZipSizeBytes": 219144,
+      "runtime": "python3.14",
+      "sourceMemberCount": 97,
+      "sourceSha": "de60324aac7616d05207ad46351c936fc61841eb"
+    },
+    {
+      "architecture": "arm64",
+      "archive": "cognito_account_deletion_qualification.zip",
+      "handler": "cognito_qualification.lambda_handler",
+      "productionArchives": {
+        "campaign_cluster_aggregator": {
+          "handler": "app.lambda_handler",
+          "sha256": "1dbb96d3034c622838ebcd76039297e377e2018b6ffa3685dd337d5ae0e9fb15",
+          "sizeBytes": 18457
+        },
+        "campaign_deletion_bridge": {
+          "handler": "app.lambda_handler",
+          "sha256": "c37c1af984fade1c07e6a6a17dd074abf25da696f32ba530eca008e3722690c9",
+          "sizeBytes": 43525
+        },
+        "campaign_lifecycle": {
+          "handler": "app.lambda_handler",
+          "sha256": "3aab80f54a82ba6454782dab924b029d4b509bf6a7c810601ee74ef63953b31f",
+          "sizeBytes": 18677
+        },
+        "campaign_observation_publisher": {
+          "handler": "app.lambda_handler",
+          "sha256": "2fa50cdab8a7f9417f453d37669f659844d801d65e1f5cd5caa0bde5e01ed8ae",
+          "sizeBytes": 19290
+        }
+      },
+      "qualificationZipSha256": "20de7bd11e481642960822a37c9fa6915bb5fa603e703a764b5aebd01da2287e",
+      "qualificationZipSizeBytes": 221679,
+      "runtime": "python3.14",
+      "sourceMemberCount": 98,
+      "sourceSha": "de60324aac7616d05207ad46351c936fc61841eb"
+    }
+  ],
+  "productionSourceChanged": false,
+  "schemaVersion": 1
+}

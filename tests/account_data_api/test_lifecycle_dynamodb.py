@@ -80,3 +80,24 @@ def test_completed_fixed_fence_skips_stale_stream_and_denies_authenticated_poll(
     assert error.value.code=='UNAUTHORIZED'
     with pytest.raises(AppError) as error:service.request('account-a',command['operationId'])
     assert error.value.code=='UNAUTHORIZED'
+
+
+def test_entitlements_receipt_committed_ack_loss_reconciles_without_new_deadline(world,monkeypatch):
+    lifecycle,ledger,table,command,_=world
+    table.put_item(Item={'PK':'USER#account-a','SK':'ENTITLEMENT','subscriptionStatus':'expired'})
+    assert not lifecycle.entitlements(command)['complete']
+    original=lifecycle.client.transact_write_items;fired=[]
+    def lost(**kw):
+        value=original(**kw)
+        if not fired and any(x.get('Put',{}).get('Item',{}).get('component',{}).get('S')=='ENTITLEMENTS' for x in kw['TransactItems']):
+            fired.append(True);raise TimeoutError('synthetic lost committed acknowledgment')
+        return value
+    monkeypatch.setattr(lifecycle.client,'transact_write_items',lost)
+    assert lifecycle.entitlements(command)['complete'] and fired==[True]
+    key={'PK':command['PK'],'SK':'ACCOUNT_DELETION#ENTITLEMENTS'}
+    receipt=ledger.get_item(Key=key,ConsistentRead=True)['Item']
+    lifecycle.now=lambda:NOW+15
+    assert lifecycle.entitlements(command)['complete']
+    assert ledger.get_item(Key=key,ConsistentRead=True)['Item']==receipt
+    assert receipt['retainUntilEpoch']==NOW+120*86400
+    assert ledger.get_item(Key={'PK':command['PK'],'SK':command['SK']})['Item']==command

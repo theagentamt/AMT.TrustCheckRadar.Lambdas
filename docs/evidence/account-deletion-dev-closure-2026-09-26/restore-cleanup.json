@@ -1,0 +1,23 @@
+{
+  "runId": "3a0696f2c5e4",
+  "functionAbsent": true,
+  "roleAbsent": true,
+  "tablesAbsent": {
+    "abuse": true,
+    "authority": true,
+    "devices": true,
+    "entitlements": true,
+    "history-content": true,
+    "history-control": true,
+    "ledger": true,
+    "outbox": true,
+    "pipeline": true,
+    "recovery": true,
+    "tokens": true,
+    "users": true
+  },
+  "keyState": "PendingDeletion",
+  "keyDeletionDate": "2026-10-03T21:15:58.023000-05:00",
+  "keyDestroyed": false,
+  "readOnly": true
+}
