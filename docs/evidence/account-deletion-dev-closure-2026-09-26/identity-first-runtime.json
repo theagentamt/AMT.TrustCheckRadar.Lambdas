@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "case": "identity_complete",
+  "sourceSha": "de60324aac7616d05207ad46351c936fc61841eb",
+  "zipSha256": "20de7bd11e481642960822a37c9fa6915bb5fa603e703a764b5aebd01da2287e",
+  "runId": "d6990db77925",
+  "observedAtUtc": "2026-09-27T02:17:44.769629+00:00",
+  "runtime": "python3.14",
+  "architectures": [
+    "arm64"
+  ],
+  "runtimeVersionArn": "arn:aws:lambda:us-east-1::runtime:ab559f26fdef82cfdfbb2942d07b46f84b45b52d0d760d3d623001ab0218052e",
+  "invocationAttempted": true,
+  "passed": true,
+  "fixtureOnly": true,
+  "productionActivation": false,
+  "nativeBackupRestore": false,
+  "independentIdentityAbsent": true,
+  "elapsedSeconds": 12.317,
+  "actualIdentityDeleted": true
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "case": "handler_all_components_restore_quarantine",
+  "sourceSha": "de60324aac7616d05207ad46351c936fc61841eb",
+  "zipSha256": "33dee4bd22506720e43126d7de254c78cd067c5ff3aea4fe7f5415b2bbf0f72f",
+  "runId": "3a0696f2c5e4",
+  "observedAtUtc": "2026-09-27T02:15:04.656397+00:00",
+  "runtime": "python3.14",
+  "architectures": [
+    "arm64"
+  ],
+  "runtimeVersionArn": "arn:aws:lambda:us-east-1::runtime:ab559f26fdef82cfdfbb2942d07b46f84b45b52d0d760d3d623001ab0218052e",
+  "invocationAttempted": true,
+  "passed": true,
+  "fixtureOnly": true,
+  "productionActivation": false,
+  "nativeBackupRestore": false,
+  "elapsedSeconds": 13.238
+}

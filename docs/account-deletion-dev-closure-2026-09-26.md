@@ -1,5 +1,7 @@
 # SECUR4ALL-200 retained Dev acceptance
 
+The [12-producer retry/support map](account-deletion-producer-retry-evidence.md) records the component-specific recovery boundaries.
+
 This increment adds isolated qualification code, failure/retry tests and the
 [POST/GET OpenAPI description](api/account-deletion-openapi.md). It changes no
 production Lambda, deployed gate, retention policy or account. UAT execution is
@@ -93,3 +95,39 @@ fixture HMAC key deletion under the existing procedure. Never use production or
 existing customer identities. Record actual source/archive/runtime, outcomes,
 residual quarantine scope and cleanup evidence before Dev closure. No AWS result
 is claimed here until that evidence is linked.
+
+
+## Targeted AWS evidence
+
+The [restore runtime report](evidence/account-deletion-dev-closure-2026-09-26/restore-runtime.json)
+records the new composed case passing on actual Python 3.14/ARM64 in 13.238 seconds,
+with source `de60324aac7616d05207ad46351c936fc61841eb`. The
+[package summary](evidence/account-deletion-dev-closure-2026-09-26/qualification-packages.json)
+pins both independent source-verified fixture archives. No native backup restore
+or production activation is asserted. The [first identity stage](evidence/account-deletion-dev-closure-2026-09-26/identity-first-runtime.json)
+passed in 12.317 seconds with independent Cognito absence. The
+[same-email stage](evidence/account-deletion-dev-closure-2026-09-26/reregistration-runtime.json)
+passed in 3.001 seconds: actual new identity, new-subject isolation, original
+suppression preserved, no automatic grant, seven used paid checks preserved, and
+no store restoration call. Both used the separately verified identity archive at
+the same source, not a production function update.
+
+The root-owned stage2 operator initially rejected an incorrectly formatted
+expected Lambda ARN before creating any new identity. Its reviewed correction
+uses the actual `:function:` ARN separator; eleven boundary tests passed normally
+and under optimized Python before the same-email stage was executed. This was an
+operator preflight failure, not a failed cleanup or Lambda acceptance case.
+
+[Restore fixture cleanup](evidence/account-deletion-dev-closure-2026-09-26/restore-cleanup.json)
+independently confirms all twelve tables, function and role are absent. The test
+HMAC key is PendingDeletion, not physically destroyed. [Identity fixture cleanup](evidence/account-deletion-dev-closure-2026-09-26/identity-cleanup.json)
+confirms its twelve tables, function, role, disposable pool and both fixture
+identities are absent. Its key is also PendingDeletion until October 3, 2026,
+not destroyed. No production/customer resource was part of either fixture.
+
+These targeted AWS results close the new isolated Dev restore-suppression and
+same-email acceptance cases. They do not replace the previously recorded actual
+scoped Dev HTTP deletions or broaden admission. The source, evidence and support
+map still require final PR review, push, verified release integration and the
+root-owned tracker update before SECUR4ALL-200 closure. UAT remains open in SECUR4ALL-329;
+restored-environment reopening remains SECUR4ALL-245.

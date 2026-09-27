@@ -1,0 +1,24 @@
+{
+  "runId": "d6990db77925",
+  "functionAbsent": true,
+  "roleAbsent": true,
+  "tablesAbsent": {
+    "abuse": true,
+    "authority": true,
+    "devices": true,
+    "entitlements": true,
+    "history-content": true,
+    "history-control": true,
+    "ledger": true,
+    "outbox": true,
+    "pipeline": true,
+    "recovery": true,
+    "tokens": true,
+    "users": true
+  },
+  "poolAndFixtureIdentitiesAbsent": true,
+  "keyState": "PendingDeletion",
+  "keyDeletionDate": "2026-10-03T21:23:30.769000-05:00",
+  "keyDestroyed": false,
+  "readOnly": true
+}
