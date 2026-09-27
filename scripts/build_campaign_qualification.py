@@ -87,6 +87,11 @@ def build(source, output, *, real_cognito=False):
         fixture=git('show',source+':scripts/qualification/account_cleanup.py')
         require(fixture==(ROOT/'scripts/qualification/account_cleanup.py').read_bytes(),'Account runner source mismatch')
         compile(fixture,'account_cleanup.py','exec');members['account_cleanup.py']=fixture
+        for target,origin in (('privacy_requalification.py','scripts/qualification/privacy_requalification.py'),
+                              ('_qualification_profile.py','src/post_confirmation/app.py')):
+            data=git('show',source+':'+origin)
+            require(data==(ROOT/origin).read_bytes(),'Privacy fixture source mismatch')
+            compile(data,target,'exec');members[target]=data
         harness=git('show',source+':scripts/qualification/campaign_qualification.py')
         require(harness==(ROOT/'scripts/qualification/campaign_qualification.py').read_bytes(), 'Runner source mismatch')
         members['campaign_qualification.py']=harness

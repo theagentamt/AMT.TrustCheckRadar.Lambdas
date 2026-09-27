@@ -29,14 +29,14 @@ def world(runner, request, monkeypatch):
             from uuid import UUID
             from moto.cognitoidp import models
             scoped.setattr(models.random,'uuid4',lambda:UUID('01997e3a-0000-7000-8000-000000000001'))
-        user=client.admin_create_user(UserPoolId=pool['Id'],Username='synthetic@example.invalid',MessageAction='SUPPRESS',ForceAliasCreation=False)['User']
+        user=client.admin_create_user(UserPoolId=pool['Id'],Username='fixture-'+ENV['QUALIFICATION_RUN_ID']+'@example.invalid',MessageAction='SUPPRESS',ForceAliasCreation=False)['User']
     subject=user['Username']
     env=ENV|{'QUALIFICATION_COGNITO_POOL_ID':pool['Id'],'QUALIFICATION_COGNITO_SUBJECT':subject}
     config=C.configuration(env,CONTEXT,event())
     return runner,client,config,env
 
 
-@pytest.mark.parametrize('case',C.CASES)
+@pytest.mark.parametrize('case',C.CASES[:2])
 def test_real_sdk_all_receipts_then_identity_delete_and_retry(world,case):
     runner,client,config,_=world
     result=C.execute(config,CONTEXT,runner.d,runner.kms,client,case)
@@ -147,7 +147,7 @@ def test_reusing_deleted_identity_refuses_before_reset_of_completed_evidence(wor
 
 
 @pytest.mark.parametrize('world',[7],indirect=True)
-@pytest.mark.parametrize('case',C.CASES)
+@pytest.mark.parametrize('case',C.CASES[:2])
 def test_returned_uuid7_subject_through_all_producers_and_finalizer(world,case):
     from uuid import UUID
     runner,client,config,_=world
@@ -163,3 +163,77 @@ def test_returned_uuid7_subject_through_all_producers_and_finalizer(world,case):
 def test_noncanonical_uuid_subject_still_refused(world,subject):
     with pytest.raises(Q.QualificationFailure):
         C.configuration(world[3]|{'QUALIFICATION_COGNITO_SUBJECT':subject},CONTEXT,event())
+
+
+def reregister_world(world):
+    runner,client,config,env=world
+    assert C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_complete')['passed']
+    email='fixture-'+config['run']+'@example.invalid'
+    new=client.admin_create_user(UserPoolId=config['pool'],Username=email,MessageAction='SUPPRESS',ForceAliasCreation=False)['User']['Username']
+    assert new!=config['subject']
+    updated=env|{'QUALIFICATION_COGNITO_SUBJECT':new,'QUALIFICATION_PREVIOUS_COGNITO_SUBJECT':config['subject']}
+    return C.configuration(updated,CONTEXT,event('identity_reregister_same_email')),updated
+
+
+def test_same_email_new_subject_real_profile_no_relink_preserves_paid_usage(world):
+    runner,client,_,_=world
+    config,_=reregister_world(world)
+    value=C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_reregister_same_email')
+    assert value['passed'] and value['actualSameEmailRecreated'] and not value['actualIdentityDeleted']
+    assert value['newSubjectIsolated'] and value['retainedPaidUsedChecks']==7
+    assert not value['automaticGrantCreated'] and not value['explicitStoreRestorePerformed']
+    assert runner.get('users','USER#'+config['subject'],'PROFILE')['status']=='PENDING_AGE_GATE'
+    assert client.admin_get_user(UserPoolId=config['pool'],Username=config['subject'])['Enabled']
+
+
+@pytest.mark.parametrize('change',['missing_receipt','surviving_job','missing_terminal','old_present','wrong_email'])
+def test_reregistration_refuses_incomplete_or_misbound_proof_before_profile(world,change,monkeypatch):
+    runner,client,_,_=world
+    config,_=reregister_world(world)
+    pk='ACCOUNT#'+config['previous']
+    if change=='missing_receipt':runner.delete('ledger',pk,'ACCOUNT_DELETION#PLAY_TOKENS')
+    elif change=='surviving_job':runner.put('ledger',{'PK':pk,'SK':'CAMPAIGN_RECOVERY#old','synthetic':True})
+    elif change=='missing_terminal':runner.delete('ledger',pk,'ACCOUNT_DELETION')
+    else:
+        real=client.admin_get_user
+        def altered(**kw):
+            if change=='old_present' and kw['Username']==config['previous']:return {'Username':config['previous']}
+            result=real(**kw)
+            if change=='wrong_email':result['UserAttributes']=[a if a['Name']!='email' else {'Name':'email','Value':'different@example.invalid'} for a in result['UserAttributes']]
+            return result
+        monkeypatch.setattr(client,'admin_get_user',altered)
+    before=runner.snapshot()
+    with pytest.raises(Exception):C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_reregister_same_email')
+    assert runner.snapshot()==before and runner.get('users','USER#'+config['subject'],'PROFILE') is None
+
+
+@pytest.mark.parametrize('previous',['','NOT-UUID','AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'])
+def test_reregister_requires_canonical_distinct_previous_subject(world,previous):
+    with pytest.raises(Q.QualificationFailure):
+        C.configuration(world[3]|{'QUALIFICATION_PREVIOUS_COGNITO_SUBJECT':previous},CONTEXT,event('identity_reregister_same_email'))
+
+
+def test_stage_two_cannot_reset_via_stage_one_case(world):
+    _,env=reregister_world(world)
+    with pytest.raises(Q.QualificationFailure):C.configuration(env,CONTEXT,event('identity_complete'))
+
+
+def test_reregister_retry_cannot_overwrite_existing_new_profile(world):
+    runner,client,_,_=world
+    config,_=reregister_world(world)
+    assert C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_reregister_same_email')['passed']
+    before=runner.snapshot()
+    with pytest.raises(Q.QualificationFailure):C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_reregister_same_email')
+    assert runner.snapshot()==before
+
+
+def test_reregister_new_uuid7_subject_is_supported(world,monkeypatch):
+    from uuid import UUID
+    from moto.cognitoidp import models
+    runner,client,config,env=world
+    assert C.execute(config,CONTEXT,runner.d,runner.kms,client,'identity_complete')['passed']
+    with monkeypatch.context() as scoped:
+        scoped.setattr(models.random,'uuid4',lambda:UUID('01997e3a-0000-7000-8000-000000000002'))
+        new=client.admin_create_user(UserPoolId=config['pool'],Username='fixture-'+config['run']+'@example.invalid',MessageAction='SUPPRESS')['User']['Username']
+    updated=C.configuration(env|{'QUALIFICATION_COGNITO_SUBJECT':new,'QUALIFICATION_PREVIOUS_COGNITO_SUBJECT':config['subject']},CONTEXT,event('identity_reregister_same_email'))
+    assert C.execute(updated,CONTEXT,runner.d,runner.kms,client,'identity_reregister_same_email')['passed']

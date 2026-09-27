@@ -8,7 +8,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 import campaign_qualification as Q
 
-CASES = ('identity_complete', 'identity_delete_lost_ack')
+CASES = ('identity_complete', 'identity_delete_lost_ack', 'identity_reregister_same_email')
 HANDLER = 'cognito_qualification.lambda_handler'
 
 
@@ -22,7 +22,13 @@ def configuration(env, context, event):
     try: valid=str(UUID(subject))==subject
     except (ValueError,TypeError,AttributeError):valid=False
     Q.require(valid)
-    return config|{'pool':pool,'subject':subject,'handler':HANDLER}
+    previous=env.get('QUALIFICATION_PREVIOUS_COGNITO_SUBJECT','')
+    if event['case']=='identity_reregister_same_email':
+        try: valid=str(UUID(previous))==previous and previous!=subject
+        except (ValueError,TypeError,AttributeError):valid=False
+        Q.require(valid)
+    else:Q.require(not previous)
+    return config|{'pool':pool,'subject':subject,'previous':previous,'handler':HANDLER}
 
 
 class Identity:
@@ -64,6 +70,7 @@ class Identity:
         Q.require(user.get('Username')==c['subject'] and user.get('Enabled') is True
             and user.get('UserStatus') in ('CONFIRMED','FORCE_CHANGE_PASSWORD') and isinstance(attrs,list) and len(attrs)<=100
             and [a.get('Value') for a in attrs if isinstance(a,dict) and a.get('Name')=='sub']==[c['subject']])
+        Q.require([a.get('Value') for a in attrs if isinstance(a,dict) and a.get('Name')=='email']==['fixture-'+c['run']+'@example.invalid'])
 
     def verify_absent(self):
         try:self.call(self.client.admin_get_user,UserPoolId=self.config['pool'],Username=self.config['subject'])
@@ -79,6 +86,17 @@ def execute(config, context, ddb, kms, cognito, case):
     identity=Identity(config,cognito,runner.call,lose_delete=case=='identity_delete_lost_ack')
     # Identity and every storage resource are checked before fixture reset/seed.
     runner.preflight();identity.preflight()
+    if case=='identity_reregister_same_email':
+        previous=Identity(config|{'subject':config['previous']},cognito,runner.call)
+        previous.verify_absent()
+        resources=Q.account_cleanup.Resources(runner)
+        try:
+            facts=Q.account_cleanup.privacy.reregister(runner,resources,config['previous'],
+                'fixture-'+config['run']+'@example.invalid',Q.require)
+        finally:resources.close()
+        return {'schemaVersion':1,'case':case,'passed':True,'sourceSha':config['source'],
+            'syntheticOnly':True,'actualIdentityDeleted':False,'actualSameEmailRecreated':True,
+            'historicalCoverageApproved':False,'productionActivation':False,**facts}
     runner.identity_options={'identity':identity,'pool':config['pool'],'delete_ack_loss':case=='identity_delete_lost_ack'}
     runner.run('handler_all_components')
     identity.verify_absent()

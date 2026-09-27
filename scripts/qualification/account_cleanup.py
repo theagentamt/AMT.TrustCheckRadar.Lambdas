@@ -1,6 +1,7 @@
 """Contained all-component fixture; no production import or customer identity API."""
 import base64
 import hashlib
+from copy import deepcopy
 import importlib.util
 import sys
 import time
@@ -10,10 +11,14 @@ from types import SimpleNamespace
 import boto3
 from botocore.config import Config
 
+_privacy_spec=importlib.util.spec_from_file_location('privacy_requalification',Path(__file__).with_name('privacy_requalification.py'))
+privacy=importlib.util.module_from_spec(_privacy_spec);_privacy_spec.loader.exec_module(privacy)
+
 EXTRA_TABLES = ('devices', 'recovery', 'abuse', 'outbox', 'entitlements',
                 'history-control', 'history-content', 'authority', 'tokens')
 CASES = ('handler_all_components', 'handler_all_components_lost_ack',
-         'handler_all_components_unknown_recovery', 'handler_all_components_history_retry')
+         'handler_all_components_unknown_recovery', 'handler_all_components_history_retry',
+         'handler_all_components_restore_quarantine')
 
 
 def _account_modules():
@@ -111,6 +116,11 @@ def run(r, campaign_app, stream, case, require, *, identity=None, pool='us-east-
     from history_lifecycle.service import HistoryLifecycleService
     service, lifecycle_module = _account_modules()
     resources = Resources(r)
+    seeds=[];original_put=r.put
+    def capture(kind,row):
+        original_put(kind,row)
+        seeds.append((kind,deepcopy(row)))
+    if case.endswith('restore_quarantine'):r.put=capture
     try:
         table = lambda kind: resources.Table(r.tables[kind])
         ledger, users = table('ledger'), table('users')
@@ -342,5 +352,9 @@ def run(r, campaign_app, stream, case, require, *, identity=None, pool='us-east-
         require(campaign_app.lambda_handler(stream,r.context)['completed']==0)
         require({c:receipt(c) for c in upstream}==upstream)
         for kind,row in sentinels.items():require(r.get(kind,row['PK'],row['SK'])==row)
+        if case.endswith('restore_quarantine'):
+            r.put=original_put
+            privacy.restore_quarantine(r,resources,seeds,require,campaign_app,stream)
     finally:
+        r.put=original_put
         resources.close()
