@@ -14,7 +14,7 @@ class CleanupGuard:
         if control is not None:self.guards.append(R.condition(ledger,control))
 
     def __getattr__(self,name):
-        if name not in ('get_item','query','transact_write_items'):raise AttributeError(name)
+        if name not in ('get_item','query','describe_table','transact_write_items'):raise AttributeError(name)
         def invoke(**kwargs):
             R.need(self.remaining()>=6000)
             if name=='transact_write_items':
