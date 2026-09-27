@@ -39,7 +39,8 @@ CASES = ('account_complete_replay', 'withdrawal_complete_replay', 'lost_ack',
          'period_close_replay','period_legacy_refusal','period_stale_generation','period_foreign_key',
          'period_publisher_first_race','period_publisher_last_race','period_late_cluster',
          'period_cluster_new_race','period_cluster_repeat_race','period_cluster_capped_race','period_cleanup_closing',
-         'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer') + account_cleanup.CASES
+         'handler_frozen_cleanup_finalizer','handler_published_cleanup_finalizer',
+         'orphan_handler_drain','orphan_handler_legacy_refusal','orphan_handler_live_refusal','orphan_handler_lost_ack') + account_cleanup.CASES
 
 
 class QualificationFailure(Exception):
@@ -241,6 +242,78 @@ class Runner:
                 if old is None:sys.modules.pop(dependency,None)
                 else:sys.modules[dependency]=old
 
+    def orphan_case(self,case):
+        # Actual lifecycle handler, exact fixture tables and real DDB transactions;
+        # synthetic inventory/clock/key metadata do not approve any live inventory.
+        from shared_campaign_contracts.metadata import empty_metadata
+        from shared_research_consent import CURRENT_NOTICE,CURRENT_POLICY
+        from shared_campaign_locators import core,period as P
+        from types import SimpleNamespace
+        period=self.period-1;when=max(self.now,(period+1)*PERIOD_SECONDS+RECOVERY_SECONDS)
+        P.close(self.d,self.tables['pipeline'],'dev',period,'a'*64,1,when,self.context.get_remaining_time_in_millis)
+        candidate='CANDIDATE#'+OP
+        rows=[]
+        for index in range(12):
+            token=base64.urlsafe_b64encode(index.to_bytes(32,'big')).decode().rstrip('=')
+            row={'PK':candidate,'SK':'CONTRIB#'+token,'GSI1PK':f'CONTRIB#{period}#{token}',
+                'GSI1SK':candidate,'periodId':period,'expiresAt':when-1,'GSI3PK':'EXPIRY#dev','GSI3SK':when-1,
+                'submissionCount':1,'vectorApplied':True,'vector':[1],'languageId':'en',
+                'researchNoticeVersion':CURRENT_NOTICE,'researchPolicyVersion':CURRENT_POLICY,
+                'metadataSchemaVersion':1,**empty_metadata()}
+            rows.append(row);self.put('pipeline',row);self.put('pipeline',core.locator_for_target(row,'dev'))
+        checkpoint={'PK':candidate,'SK':'DELETION_RECOMPUTE','revision':1,'summaryVersion':1,'cursor':None,
+            'contributors':0,'submissions':0,'vectors':0,'sums':[],'cutoffEpoch':when-100,
+            'expiresAt':when-1,'GSI3PK':'EXPIRY#dev','GSI3SK':when-1,'metadataSchemaVersion':1,
+            'repairSchemaVersion':2,'periodId':period,**empty_metadata()}
+        if case=='orphan_handler_legacy_refusal':
+            checkpoint.pop('repairSchemaVersion');checkpoint.pop('periodId')
+        if case=='orphan_handler_live_refusal':self.put('pipeline',rows[-1]|{'expiresAt':when+1,'GSI3SK':when+1})
+        self.put('pipeline',checkpoint)
+        names=('config','publication','orphan');previous={name:sys.modules.get(name) for name in names}
+        try:
+            for name in names:sys.modules[name]=self.worker_module('campaign_lifecycle',name)
+            app=self.worker_module('campaign_lifecycle','app');app.dynamodb=self.d
+            app.time=SimpleNamespace(time=lambda:when)
+            for name,value in {'APP_ENVIRONMENT':'dev','PIPELINE_TABLE_NAME':self.tables['pipeline'],
+                'INTELLIGENCE_TABLE_NAME':self.tables['pipeline'],'EXPIRATION_INDEX_NAME':'ExpirationIndex',
+                'CAMPAIGN_LIFECYCLE_CANDIDATE_ENABLED':True,
+                'CAMPAIGN_LOCATOR_MANIFEST_SHA256':'a'*64,'CAMPAIGN_LOCATOR_INVENTORY_REVISION':'1'}.items():
+                setattr(app.config,name,value)
+            event={'schemaVersion':1,'environment':'dev','operation':'recover_expired_orphan','candidateId':OP,'periodId':period}
+            before=self.snapshot()
+            if case.endswith('_refusal'):
+                try:app.lambda_handler(event,self.context)
+                except (ValueError,core.LocatorUnavailable):require(self.snapshot()==before);return
+                raise QualificationFailure('EXPECTED_REFUSAL')
+            if case=='orphan_handler_lost_ack':
+                parent=self
+                class Lost:
+                    def __getattr__(self,name):return getattr(parent.d,name)
+                    def transact_write_items(self,**kwargs):
+                        parent.call(parent.d.transact_write_items,**kwargs);raise RuntimeError('synthetic lost acknowledgment')
+                app.dynamodb=Lost()
+                try:app.lambda_handler(event,self.context)
+                except RuntimeError:pass
+                else:raise QualificationFailure('EXPECTED_LOST_ACK')
+                app.dynamodb=self.d
+            result=None
+            for _ in range(3):
+                result=app.lambda_handler(event,self.context)
+                require(not result['scopeComplete'] and not result['retirementEligible'])
+                if result['candidateEmptyObserved']:break
+            require(result['candidateEmptyObserved'] and self.get('pipeline',candidate,'DELETION_RECOMPUTE') is None)
+            for row in rows:
+                require(self.get('pipeline',row['PK'],row['SK']) is None)
+                locator=core.locator_for_target(row,'dev');require(self.get('pipeline',locator['PK'],locator['SK']) is None)
+            after=self.snapshot()
+            require(after['ledger']==before['ledger'] and after['users']==before['users'])
+            preserved=[row for row in before['pipeline'] if row['PK']!=candidate and row.get('recordType')!='CAMPAIGN_CONTRIBUTOR_LOCATOR']
+            require(after['pipeline']==preserved)
+        finally:
+            for name,value in previous.items():
+                if value is None:sys.modules.pop(name,None)
+                else:sys.modules[name]=value
+
     def period_case(self, case):
         from shared_campaign_locators import period as P
         pk=f'PERIOD#{self.period-1}'
@@ -344,7 +417,7 @@ class Runner:
         # In-memory synthetic runtime pins only after the outer resource preflight.
         pins={'CAMPAIGN_PERIOD_ADMISSION_ENABLED':'true',
               'CAMPAIGN_PERIOD_ADMISSION_GENERATION':OP,
-              'CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID':ACCOUNT,'AWS_REGION':REGION}
+              'CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID':ACCOUNT,'AWS_REGION':REGION,'AWS_DEFAULT_REGION':REGION}
         previous={name:os.environ.get(name) for name in pins}
         os.environ.update(pins)
         try:return self._run(case)
@@ -362,6 +435,8 @@ class Runner:
             except QualificationFailure: return
             raise QualificationFailure('EXPECTED_PREFLIGHT_REFUSAL')
         self.seed()
+        if case.startswith('orphan_'):
+            self.orphan_case(case);return
         if case.startswith('period_'):
             self.period_case(case);return
         if case.startswith('handler_'):

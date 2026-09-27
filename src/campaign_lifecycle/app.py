@@ -22,6 +22,7 @@ def lambda_handler(event, context):
     expected = {
         "close_period": fields | {"periodId"},
         "recover_candidate": fields | {"candidateId"},
+        "recover_expired_orphan": fields | {"candidateId","periodId"},
         "expire_locator": fields | {"locatorPK", "locatorSK"},
     }
     if operation not in expected or set(event) != expected[operation]:
@@ -36,7 +37,9 @@ def lambda_handler(event, context):
         inventory_revision=int(config.CAMPAIGN_LOCATOR_INVENTORY_REVISION),
         now=lambda: int(time.time()), enabled=True,
         remaining_ms=context.get_remaining_time_in_millis)
-    if operation == "recover_candidate":
+    if operation == "recover_expired_orphan":
+        result = worker.recover_expired_orphan(event["candidateId"],event["periodId"])
+    elif operation == "recover_candidate":
         result = worker.process(event["candidateId"])
     else:
         result = worker.expire_locator(event["locatorPK"], event["locatorSK"])

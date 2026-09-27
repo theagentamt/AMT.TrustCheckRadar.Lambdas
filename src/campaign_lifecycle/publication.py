@@ -53,6 +53,14 @@ class Publication:
         # Dependency import is deferred until enabled invocation, not constructor.
         self.locators = None
 
+    def require_enabled(self):
+        require(self.enabled)
+        period_fence.configuration()
+
+    def recover_expired_orphan(self,candidate_id,period):
+        from orphan import recover
+        return recover(self,candidate_id,period)
+
     def _key(self,pk,sk):
         return self.locators.serialize({'PK':pk,'SK':sk})
 

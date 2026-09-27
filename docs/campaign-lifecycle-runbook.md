@@ -1,73 +1,70 @@
-# Campaign Lifecycle Lambda Runbook
+# Campaign lifecycle candidate runbook
 
-This runbook covers the Lambda-owned lifecycle and erasure behavior. It never
-requires operators to inspect content, account IDs, contributor tokens, vectors,
-or raw queue records. Infrastructure-owned alarms, schedules, IAM, backups, DLQs,
-and table indexes must be verified in the environment repository and deployed
-UAT evidence.
+The current candidate handler accepts only `close_period`, `recover_candidate`,
+`expire_locator`, and `recover_expired_orphan`. Each event has schemaVersion 1 and
+an exact environment. Candidate and period-admission gates, generation and locator
+inventory pins must validate before work. The historical `manage_keys`,
+`finalize_periods` and `expire_transient` service functions are **unreachable from
+this handler**. Existing infrastructure schedule definitions for those historical
+payloads must remain disabled; this source does not install a scheduler.
 
-## Scheduled operations
+`close_period` takes `periodId`, conditionally transitions the exact current
+admission generation from OPEN to CLOSING, and preserves the key and retention
+clocks. New producer transactions require OPEN; bounded cleanup can use CLOSING.
+Closure alone proves neither period erasure nor eligibility to retire a key.
 
-`manage_keys` runs with `schemaVersion=1` and the exact environment. It creates
-the current 14-day period HMAC key and retires an enabled key after its seven-day
-recovery window. A successful result contains only created, retired, and unchanged
-counts. Retry the same invocation after a transient AWS failure; all writes are
-conditional and key retirement is state-checked.
+`recover_candidate` takes a canonical UUIDv4 `candidateId`. It freezes eligible
+candidate input, publishes or suppresses under exact source/aggregate guards, then
+removes owned locator/target pairs in bounded steps. Published anonymous aggregates
+keep their existing retention. Threshold and transaction-size limits fail closed;
+a partial step is not whole-period completion.
 
-`finalize_periods` runs after recovery. It re-reads every candidate and its current
-contributions, suppresses cohorts below ten, emits only a thresholded aggregate,
-and deletes transient candidate/contribution records. Language, tactic, and
-channel values are included only when at least ten distinct contribution records
-contain that value. A failed conditional aggregate write must be investigated by
-state/version, not by retrieving feature content. Retry is safe after determining
-whether the aggregate already exists.
+`expire_locator` takes exact `locatorPK` and `locatorSK`. It deletes only the
+validated expired owned target/locator pair (including guarded FEATURE siblings).
+A CONTRIBUTION requires absent SUMMARY and repair checkpoint. Missing locator
+identity is unresolved; expiration-index absence is never erasure proof.
 
-`expire_transient` queries the environment-bound sparse `ExpirationIndex` and
-explicitly deletes up to 500 expired pipeline records per hourly run in DynamoDB
-write batches. If DynamoDB returns any unprocessed write, the operation fails so
-the scheduler retries and the lifecycle error alarm remains actionable. The
-`expiresAt` TTL remains defense in depth, not the primary deletion mechanism.
+`recover_expired_orphan` takes canonical UUIDv4 `candidateId` and integer `periodId`.
+It handles the narrower missing-SUMMARY case with expired, strictly typed
+contributions and an optional version-2 repair checkpoint. See
+[candidate orphan recovery](campaign-orphan-recovery-candidate.md) for bounds,
+compatibility, exact outcomes and qualification commands. There is currently no
+inventory-backed orphan-candidate discovery or scheduled caller.
 
 ## Withdrawal and account deletion
 
-The deletion bridge accepts only exact environment-bound deletion commands. It
-derives active/recovery-period tokens with KMS, writes a tombstone before deleting
-indexed features and contributions, removes each feature's unindexed `DEDUPE` and
-`CLUSTERED` siblings, and recomputes affected candidates from survivors. A queued
-clustering event sees the tombstone and cannot recreate the contribution.
+The deletion bridge consumes exact owned durable commands and their qualified
+inventory pins. It establishes account/contributor fences, traverses retained
+periods, removes paired features/contributions, and reconstructs surviving
+candidate metadata. It preserves publication and original retention clocks.
+Its separately gated completion transaction consumes the exact recovery job and
+writes the component receipt only with the reviewed completion proof. Account
+finalization still requires every component; a campaign result is not account
+erasure. Matching terminal replay does not manufacture fresh completion evidence.
 
-A campaign withdrawal remains `withdrawal_pending` until deletion succeeds. Only
-then does one transaction mark participation `withdrawn`, append the 400-day
-privacy-safe completion receipt, and mark the deletion-ledger command complete.
-Retry a failed stream batch normally. A matching completed command is a no-op and
-does not loop.
+A queued producer cannot bypass the account/contributor tombstone or the period
+admission fence. Missing or retired keys remain unresolved until a separately
+qualified period-erasure proof exists. Never reconstruct a retired token, create
+an approval marker from empty indexes, or reset an original operation to retry it.
 
-## Privacy-safe diagnosis and repair
+## Remaining Dev lifecycle work
 
-- Use Lambda error count, age-of-oldest-event, DLQ depth, and the low-cardinality
-  result counters. Never copy queue bodies, feature records, tokens, or identities
-  into tickets or chat.
-- For a stuck withdrawal, use the protected ledger's operation/state metadata and
-  deadline only. Re-drive the original event through the approved DLQ workflow;
-  do not construct a replacement command manually.
-- For a candidate version conflict, allow SQS redelivery. Candidate creation is
-  serialized by the per-period/category creation-control version, so the retry
-  re-queries the winner before creating another candidate.
-- For a period-key failure, confirm key registry state and KMS state through the
-  approved break-glass role. Never export key material or attempt to regenerate a
-  retired token.
-- Escalate any withdrawal approaching 24 hours or any transient record beyond its
-  policy bound as a privacy incident.
+SECUR4ALL-207 remains In Progress. Whole-period authoritative all-family drain,
+SEALED proof, compatibility of later account deletion with retired periods, safe
+KMS retirement, poison/discovery fairness and scheduled deadline enforcement are
+not implemented by this orphan increment. Current contribution expiry is based
+on creation time plus 21 days; late-period rows can outlive period end plus the
+seven-day recovery window. That existing mismatch must be resolved under the
+approved policy before retirement; this change shortens or extends no deadline.
+TTL remains defense in depth, never the completion mechanism.
 
-## Verification
+Use fixed error/result categories and numeric counters for diagnosis. Do not put
+accounts, contributor tokens, candidate contents, vectors or raw queue bodies in
+logs or tickets. On failed conditional work, preserve evidence and retry the same
+reviewed identity after establishing the current state; do not force deletion or
+infer success from a successful Lambda invocation.
 
-Local Lambda evidence:
-
-```bash
-python3 -m pytest -q tests/campaign_lifecycle tests/campaign_deletion_bridge tests/campaign_cluster_aggregator
-make campaign-evidence
-```
-
-Environment completion additionally requires backup/restore non-resurrection
-tests, DLQ re-drive tests, alarm delivery, and an authenticated UAT withdrawal
-through completion. Those checks are not simulated or claimed by this repository.
+Later assembled UAT acceptance is tracked in
+[SECUR4ALL-330](https://andmorethings.youtrack.cloud/issue/SECUR4ALL-330), dependent
+on retained Dev work in SECUR4ALL-207. It does not waive these unfinished Dev
+requirements or authorize activation.

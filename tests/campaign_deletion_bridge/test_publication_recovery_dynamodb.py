@@ -190,3 +190,12 @@ def test_publication_from_different_inventory_revision_is_not_adopted(world):
     run(d,max_steps=2,intelligence_table='intelligence')
     with pytest.raises(Exception):run(d,max_steps=1,intelligence_table='intelligence')
     assert progress.get(d,'pipeline',PK,'CONTRIB#'+TOKEN) is not None
+
+
+def test_legacy_orphan_checkpoint_cannot_infer_period_from_erased_locator(world):
+    d,put=world;candidate(put,2);run(d,max_steps=4)
+    saved=progress.get(d,'pipeline',PK,'DELETION_RECOMPUTE')
+    saved.pop('repairSchemaVersion');saved.pop('periodId');put(saved)
+    d.delete_item(TableName='pipeline',Key=progress.key(PK,'SUMMARY'))
+    with pytest.raises(progress.CoverageUnavailable):run(d,max_steps=1)
+    assert progress.get(d,'pipeline',PK,'DELETION_RECOMPUTE')==saved

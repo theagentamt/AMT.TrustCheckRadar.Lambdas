@@ -128,3 +128,38 @@ def test_lost_final_ack_replay_preserves_reconstructed_values_and_deadline(world
     finish(d)
     after=row(d,'SUMMARY')
     assert {k:v for k,v in after.items() if k!='version'}=={k:v for k,v in before.items() if k!='version'}
+
+
+def test_v2_checkpoint_copies_authoritative_period_and_exact_clock(world):
+    d,put=world;candidate(put,1);summary=row(d,'SUMMARY')
+    assert not recompute(d)
+    saved=row(d,'DELETION_RECOMPUTE')
+    assert saved['repairSchemaVersion']==2 and saved['periodId']==summary['periodId']
+    assert saved['expiresAt']==summary['expiresAt'] and saved['cutoffEpoch']==NOW
+
+
+def test_legacy_reconstructable_checkpoint_remains_compatible_with_exact_summary(world):
+    d,put=world;candidate(put,1);assert not recompute(d)
+    saved=row(d,'DELETION_RECOMPUTE');saved.pop('repairSchemaVersion');saved.pop('periodId');put(saved)
+    finish(d)
+    assert row(d,'SUMMARY')['expiresAt']==saved['expiresAt'] and row(d,'DELETION_RECOMPUTE') is None
+
+
+def test_period_change_without_version_bump_cannot_copy_checkpoint_identity(world):
+    d,put=world;candidate(put,1);summary=row(d,'SUMMARY')
+    class Race:
+        def __getattr__(self,name):return getattr(d,name)
+        def transact_write_items(self,**kw):
+            put(summary|{'periodId':11});return d.transact_write_items(**kw)
+    with pytest.raises(Exception):progress.recompute_page(Race(),'pipeline',PK,NOW)
+    assert row(d,'DELETION_RECOMPUTE') is None
+
+
+def test_checkpoint_change_without_revision_bump_cannot_publish(world):
+    d,put=world;candidate(put,1);assert not recompute(d);saved=row(d,'DELETION_RECOMPUTE');summary=row(d,'SUMMARY')
+    class Race:
+        def __getattr__(self,name):return getattr(d,name)
+        def transact_write_items(self,**kw):
+            put(saved|{'cutoffEpoch':saved['cutoffEpoch']-1});return d.transact_write_items(**kw)
+    with pytest.raises(Exception):progress.recompute_page(Race(),'pipeline',PK,NOW)
+    assert row(d,'SUMMARY')==summary and row(d,'DELETION_RECOMPUTE')['cutoffEpoch']==saved['cutoffEpoch']-1
