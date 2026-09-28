@@ -152,7 +152,8 @@ def execute(event, context, *, config=None, clients=None, now=lambda: int(time.t
     attrs = user.get('UserAttributes', [])
     need(type(attrs) is list and len({a['Name'] for a in attrs}) == len(attrs))
     attributes = {a['Name']: a['Value'] for a in attrs}
-    need(user.get('Username') == record['subject'] and attributes.get('sub') == record['subject'])
+    need(user.get('Username') == record['subject'] and attributes.get('sub') == record['subject']
+         and attributes.get('email_verified') == 'true')
     for name in ('email', 'given_name', 'family_name', 'phone_number'):
         need(attributes.get(name) == profile.get(name))
     # Cognito attributes are not ownership proof. The independent signer supplies
