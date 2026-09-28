@@ -188,3 +188,5 @@ Validation for this increment: 73 support tests passed normally and with Python
 existing admission cases and 37 verifier/first-admission integration cases,
 including separate file-fsync and directory-fsync failures. No actual mailbox,
 AWS role, cloud key, email delivery or customer request was used.
+
+The separate [support operator CLI](support-deletion-operator.md) submits an existing signed capability once under the operator role and observes the original operation under the verifier role. Its receipt-backed completion report does not replace mailbox review or support-case retention controls.
