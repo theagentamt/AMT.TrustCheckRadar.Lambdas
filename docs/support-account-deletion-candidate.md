@@ -1,5 +1,10 @@
 # SECUR4ALL-333: disabled verified-support deletion admission candidate
 
+Follow-up: [supervised shared-inbox verifier](support-deletion-human-verifier.md)
+records the subsequently approved email-confirmation, same-case 30-day retention
+and same-owner/separate-role choices. The original candidate boundary below is
+historical; these choices do not imply deployed signer access or mailbox retention.
+
 This is engineering preparation for SECUR4ALL-92's owner-approved verified-email
 fallback. It is not an operational fallback yet. The code cannot determine that an
 email sender owns an account, mint a verification record, or select the missing

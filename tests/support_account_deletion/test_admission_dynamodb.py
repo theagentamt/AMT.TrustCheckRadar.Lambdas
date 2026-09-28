@@ -122,7 +122,7 @@ class Fixture:
         self.calls.append('admin_get_user')
         assert kw == {'UserPoolId': self.c['cognitoPoolId'], 'Username': SUBJECT}
         return {'Username': SUBJECT, 'UserAttributes': [{'Name': k, 'Value': self.profile[k]}
-                for k in ('sub', 'email', 'given_name', 'family_name')]}
+                for k in ('sub', 'email', 'given_name', 'family_name')] + [{'Name': 'email_verified', 'Value': 'true'}]}
 
     def run(self, event=None):
         return R.execute(event or self.event(), self.context, config=self.c,
