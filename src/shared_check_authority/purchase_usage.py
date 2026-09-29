@@ -251,7 +251,7 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                 continue
             if row.get('periodSK') != period['SK'] and row.get('purchaseUsageKey') != pointer:
                 continue
-            optional = {'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'}
+            optional = {'urlTransportVersion', 'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'}
             if (not _PENDING_FIELDS <= set(row) or set(row) - _PENDING_FIELDS - optional
                     or row.get('PK') != partition or row.get('periodSK') != period['SK']
                     or row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY
@@ -277,8 +277,10 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
             if (client is not None and (not isinstance(client, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', client))
                     or scope in ('full_url', 'origin_only') and ('messageTransportVersion' in row or 'recoveryTransportVersion' in row)
                     or scope == 'sanitized_message' and (client is None or 'recoveryTransportVersion' in row
-                        or row.get('messageTransportVersion', '1.0.0-message-candidate.2') != '1.0.0-message-candidate.2')
+                        or row.get('messageTransportVersion', '1.0.0-message-candidate.2') not in ('1.0.0-message-candidate.2','1.0.0-message-candidate.3'))
                     or scope == 'recovery_clarification' and (client is None or 'messageTransportVersion' in row)):
+                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+            if 'urlTransportVersion' in row and (scope not in ('full_url','origin_only') or row['urlTransportVersion']!='1.0.0-candidate.2'):
                 raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
             if scope == 'recovery_clarification':
                 from shared_recovery_contract.constants import VERSION

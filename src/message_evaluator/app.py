@@ -34,8 +34,9 @@ def lambda_handler(event,context):
     # Candidate.1 keeps its original gate; candidate.2 requires its own approved
     # policy selector. Neither client content nor a model can select that policy.
     from shared_message_contract import validation_v2 as v2
+    is_v3=type(event) is dict and event.get('schemaVersion')==3 and event.get('policyVersion')==v2.POLICY
     is_v2=type(event) is dict and event.get('schemaVersion')==2 and event.get('policyVersion')==v2.POLICY
-    if is_v2:
+    if is_v2 or is_v3:
         enabled=(os.environ.get('STAGE')=='dev' and os.environ.get('MESSAGE_EVALUATOR_ENABLED')=='true'
                  and os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY
                  and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
@@ -43,14 +44,16 @@ def lambda_handler(event,context):
     if not enabled:return {'enabled':False}
     try:
         require(type(event) is dict and set(event)=={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'})
-        require(type(event['schemaVersion']) is int and event['schemaVersion']==(2 if is_v2 else 1) and event['policyVersion']==(v2.POLICY if is_v2 else POLICY))
+        require(type(event['schemaVersion']) is int and event['schemaVersion']==(3 if is_v3 else (2 if is_v2 else 1)) and event['policyVersion']==(v2.POLICY if is_v2 or is_v3 else POLICY))
         require(type(event['checkId']) is str and re.fullmatch('[A-Za-z0-9_-]{1,64}',event['checkId']))
         require(type(event['executionBudgetMs']) is int and 1<=event['executionBudgetMs']<=18000)
         require(context is not None and callable(getattr(context,'get_remaining_time_in_millis',None)))
         budget=min(event['executionBudgetMs'],context.get_remaining_time_in_millis()-1000)
         require(budget>0)
-        if is_v2:
+        if is_v2 or is_v3:
             from .policy_v2 import evaluate as evaluate_ai
+            if is_v3:
+                from .policy_v3 import evaluate as evaluate_ai
             from .ai_provider import assess
             return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,ai=assess)
         proposer = None

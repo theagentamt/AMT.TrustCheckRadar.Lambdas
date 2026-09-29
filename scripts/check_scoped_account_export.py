@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 from uuid import UUID
 
 ROOT=Path(__file__).resolve().parents[1]
-CONTRACT=ROOT/'contracts/account-export/1.0.0-candidate.3'
+CONTRACT=ROOT/'contracts/account-export/1.0.0-candidate.4'
 MAX_BYTES=65536
 ERROR_CODES={'SERVICE_NOT_ENABLED','SERVICE_UNAVAILABLE','SOURCE_UNAVAILABLE','SOURCE_CHANGED',
  'AUTHENTICATION_REQUIRED','REAUTHENTICATION_REQUIRED','ACCOUNT_UNAVAILABLE','ACTIVE_DEVICE_REQUIRED',

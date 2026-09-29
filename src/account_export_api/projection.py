@@ -93,13 +93,22 @@ def receipt(row, now):
         elif row.get('projectionScope') == 'sanitized_message':
             from shared_message_contract import VERSION as V1, validate_summary as v1
             from shared_message_contract.validation_v2 import VERSION as V2, validate_summary as v2
+            from shared_message_contract.validation_v3 import VERSION as V3, validate_summary as v3
             version = row.get('messageTransportVersion', V1)
-            require(version in (V1,V2), 'SOURCE_UNAVAILABLE', 503)
-            (v2 if version == V2 else v1)(summary, row.get('clientCheckId'), outcome)
+            require(version in (V1,V2,V3), 'SOURCE_UNAVAILABLE', 503)
+            (v3 if version==V3 else (v2 if version == V2 else v1))(summary, row.get('clientCheckId'), outcome)
+            if version==V3:
+                from shared_lookup_freshness import epoch
+                require(all(e['observedAt'] is None or epoch(e['observedAt'])<=assessed for e in summary['evidence']),'SOURCE_UNAVAILABLE',503)
         else:
             from shared_check_authority.summary import validate_summary
             require(row.get('projectionScope') in ('full_url','origin_only'), 'SOURCE_UNAVAILABLE', 503)
+            version=row.get('urlTransportVersion','1.0.0-candidate.1')
+            require(version in ('1.0.0-candidate.1','1.0.0-candidate.2') and summary.get('schemaVersion')==(2 if version=='1.0.0-candidate.2' else 1), 'SOURCE_UNAVAILABLE',503)
             validate_summary(summary, row.get('clientCheckId'), outcome)
+            if summary.get('lookupObservedAt') is not None:
+                from shared_lookup_freshness import epoch
+                require(epoch(summary['lookupObservedAt'])<=assessed,'SOURCE_UNAVAILABLE',503)
         summary = {k:v for k,v in summary.items() if k != 'checkId'}
     result = {'state':'SETTLED','processingOutcome':outcome,'chargedChecks':charged,
               'assessmentEpoch':assessed,'expiresAt':expiry,'resultSummary':summary}

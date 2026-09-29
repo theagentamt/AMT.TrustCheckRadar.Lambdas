@@ -22,7 +22,7 @@ def credentials():
 def pages():
     scope=json.loads((M.CONTRACT/'manifest.json').read_text());result=[]
     for i,family in enumerate(scope['included']):
-        result.append({'schemaVersion':1,'exportTransportVersion':'1.0.0-account-export-candidate.3',
+        result.append({'schemaVersion':1,'exportTransportVersion':'1.0.0-account-export-candidate.4',
             'operation':'ACCOUNT_EXPORT','operationId':'12345678-1234-4234-8234-123456789abc',
             'status':'COMPLETE' if i==19 else 'IN_PROGRESS','startedAtEpoch':NOW,'expiresAtEpoch':NOW+900,
             'observedAtEpoch':NOW,'pageNumber':i,'family':family,'items':[],

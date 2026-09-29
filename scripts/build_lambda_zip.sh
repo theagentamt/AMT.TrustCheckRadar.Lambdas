@@ -221,6 +221,8 @@ build_function() {
   fi
   if [[ "$function_name" == "url_consumer" ]]; then
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/public_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/public_contract_v2"
+    cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.2" "$build_dir/transport_contract_v2"
     cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.1" "$build_dir/transport_contract"
   fi
 
@@ -231,6 +233,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     if [[ "$function_name" == "message_evaluator" ]]; then
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_evaluator/ai_contract"
     fi
@@ -238,10 +241,11 @@ build_function() {
       cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
       cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
       mkdir -p "$build_dir/message_evaluator" "$build_dir/url_consumer"
-      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
+      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/policy_v3.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
       cp "$ROOT_DIR/src/url_consumer/service.py" "$build_dir/url_consumer/"
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.1" "$build_dir/message_consumer/contract"
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_consumer/contract_v2"
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.3" "$build_dir/message_consumer/contract_v3"
     fi
   fi
 
@@ -254,6 +258,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     if [[ "$function_name" == "recovery_consumer" ]]; then
       cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
       cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
@@ -273,6 +278,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
   fi
   if [[ "$function_name" == "account_export_api" ]]; then
@@ -284,6 +290,10 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp -R "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
   fi
+  if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
+    cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
+  fi
+
   # Every shared-authority consumer can recover a recovery lease without the
   # model/parser/bundle modules. Keep this lightweight dependency in old workers.
   if [[ -d "$build_dir/shared_check_authority" && ! -d "$build_dir/shared_recovery_contract" ]]; then

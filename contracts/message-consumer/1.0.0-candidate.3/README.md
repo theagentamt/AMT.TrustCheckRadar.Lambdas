@@ -1,0 +1,9 @@
+# Message transport candidate.3
+
+Version `1.0.0-message-candidate.3`, summary schema3, preserves candidate.2's approved AI/rule policy and adds seven-field Google evidence: source, outcome, targetScope, observedAt, validUntil, threatTypes, freshness. No new AI model qualification or data transmission is approved. Existing AI gates apply.
+
+`validation_v3.validate_summary` first validates exact provider metadata, then evaluates the original candidate.2 policy against only current/observation_only evidence. Historical expired/unverified evidence cannot supply the current Google assessment basis. Replay dynamically expires current matches, preserves independent qualified rules and AI findings, and retains original evidence clocks. The original persisted receipt/charge never changes. A message Google match remains partial/uncharged under existing approved rules. New transport allows conservative aged presentation without inferring a refund from processingOutcome; accounting continues to describe original settlement.
+
+No outcome assessment timestamp is invented: backend validates original observation against settlement; public clients can additionally bound observations by envelope access.observedAt. Export contains original receipt assessmentEpoch. No-match is observation_only with null validUntil, never a reusable safety promise. Legacy candidate1/2 reconciliation removes unverifiable Google current basis; if an old charged result cannot represent the conservative projection, outcome is unavailable rather than violating its immutable schema. Original usage remains observable.
+
+Preparation binds exact transport/policy version into original HMAC. New/old proofs cannot reinterpret one another. Actual Google calls, cache obligations, automatic rechecks and activation are not qualified by local fixtures. All prior candidate files remain immutable.

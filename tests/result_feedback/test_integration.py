@@ -197,3 +197,22 @@ def test_inactive_device_and_rate_limit_cannot_write(world):
     world[0].s=replace(world[0].s,attempts_per_window=1)
     status,reply=service.handle(http(e,r));assert status==429 and reply['retryable'] is True
     assert 'feedback' not in world[3]('CHECK#'+r['result']['operationProof'])
+
+@pytest.mark.parametrize('kind',['url','message'])
+def test_modern_expired_original_result_accepts_feedback_without_charging_or_recheck(world,kind):
+    a,e,_,row,change,clock=world
+    if kind=='url':
+        from test_lookup_freshness import modern
+        payload=PAYLOAD|{'urlTransportVersion':'1.0.0-candidate.2'};transport='1.0.0-candidate.2';summary=modern('owned',clock[0],True)
+    else:
+        from message_evaluator.policy_v2 import result
+        from test_transactions import ACCOUNT
+        payload={'entryPoint':'message','language':'en','target':{'scope':'sanitized_message','sourceType':'pasted_text','sanitizedText':'Please review the request.','speakerRole':'other','entities':[],'reviewedLinks':[],'withheldLinks':False},'messageTransportVersion':'1.0.0-message-candidate.3'};transport='1.0.0-message-candidate.3'
+        summary=result('owned',evidence=[{'source':'google_web_risk_lookup','outcome':'match','targetScope':'observed_http_chain'}]);summary['schemaVersion']=3
+        summary['evidence'][0].update(observedAt='2027-01-15T08:00:00Z',validUntil='2027-01-15T08:00:20Z',threatTypes=['MALWARE'],freshness='current')
+    proof=a.prepare(e,payload,'owned',client_check_id='owned');admission=a.admit(e,payload,proof,client_check_id='owned')
+    settled=a.settle(WORKER,proof,admission['executionToken'],summary['processingOutcome'],result_summary=summary)
+    before=deepcopy(row('CHECK#'+proof));period=deepcopy(row('PERIOD#p1'));clock[0]+=20
+    body={'feedbackTransportVersion':VERSION,'feedbackId':'modern-opinion','result':{'checkId':'owned','operationProof':proof,'receiptId':settled['receiptId'],'assessmentTransportVersion':transport},'category':'unclear'}
+    status,reply=Feedback(a).handle(http(e,body));assert status==200 and reply['status']=='accepted',reply
+    after=row('CHECK#'+proof);after.pop('feedback');assert after==before and row('PERIOD#p1')==period

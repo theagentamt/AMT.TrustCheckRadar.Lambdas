@@ -1,0 +1,199 @@
+{
+  "transportVersion": "1.0.0-message-candidate.3",
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "current",
+      "httpStatus": 200,
+      "response": {
+        "transportVersion": "1.0.0-message-candidate.3",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 3,
+          "kind": "message_assessment",
+          "checkId": "client-1",
+          "policyVersion": "message-ai-2026-09-21-v1",
+          "verdict": "high_risk",
+          "processingOutcome": "partial",
+          "coverage": "limited",
+          "limitationCodes": [
+            "INSUFFICIENT_EVIDENCE"
+          ],
+          "ruleIds": [],
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "match",
+              "targetScope": "observed_http_chain",
+              "observedAt": "2027-01-15T08:00:00Z",
+              "validUntil": "2027-01-15T08:00:20Z",
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "freshness": "current"
+            }
+          ],
+          "nextAction": "avoid_link",
+          "messageKey": "message.partial_known_threat",
+          "assessmentBasis": [
+            "google_web_risk_lookup",
+            "ai_assessment"
+          ],
+          "aiAssessmentStatus": "warning",
+          "aiReasonCodes": [
+            "AI_PRETEXT"
+          ]
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "expired_ai_preserved",
+      "httpStatus": 200,
+      "response": {
+        "transportVersion": "1.0.0-message-candidate.3",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "kind": "message_assessment",
+          "checkId": "client-1",
+          "verdict": "suspicious",
+          "processingOutcome": "partial",
+          "limitationCodes": [
+            "WITHHELD_LINKS"
+          ],
+          "ruleIds": [],
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "match",
+              "targetScope": "observed_http_chain",
+              "observedAt": "2027-01-15T08:00:00Z",
+              "validUntil": "2027-01-15T08:00:20Z",
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "freshness": "expired"
+            }
+          ],
+          "nextAction": "verify_independently",
+          "messageKey": "message.ai_warning",
+          "schemaVersion": 3,
+          "policyVersion": "message-ai-2026-09-21-v1",
+          "assessmentBasis": [
+            "ai_assessment"
+          ],
+          "aiAssessmentStatus": "warning",
+          "aiReasonCodes": [
+            "AI_PRETEXT"
+          ],
+          "coverage": "limited"
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    },
+    {
+      "name": "observation_only",
+      "httpStatus": 200,
+      "response": {
+        "transportVersion": "1.0.0-message-candidate.3",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "settled",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "kind": "message_assessment",
+          "checkId": "client-1",
+          "verdict": "suspicious",
+          "processingOutcome": "complete",
+          "limitationCodes": [],
+          "ruleIds": [],
+          "evidence": [
+            {
+              "source": "google_web_risk_lookup",
+              "outcome": "no_match",
+              "targetScope": "full_submitted_url",
+              "observedAt": "2027-01-15T08:00:00Z",
+              "validUntil": null,
+              "threatTypes": [],
+              "freshness": "observation_only"
+            }
+          ],
+          "nextAction": "verify_independently",
+          "messageKey": "message.ai_warning",
+          "schemaVersion": 3,
+          "policyVersion": "message-ai-2026-09-21-v1",
+          "assessmentBasis": [
+            "google_web_risk_lookup",
+            "ai_assessment"
+          ],
+          "aiAssessmentStatus": "warning",
+          "aiReasonCodes": [
+            "AI_PRETEXT"
+          ],
+          "coverage": "supported_checks_complete"
+        },
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
+    }
+  ]
+}

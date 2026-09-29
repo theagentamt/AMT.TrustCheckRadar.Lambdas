@@ -130,7 +130,7 @@ def test_candidate_three_traverses_actual_paginated_metadata_without_credentials
     selected=[p for p in pages if p['family']=='play_verification']
     assert len(selected)==2 and sum(len(p['items']) for p in selected)==27
     assert current['status']=='COMPLETE'
-    assert all(p['exportTransportVersion']=='1.0.0-account-export-candidate.3' for p in pages)
+    assert all(p['exportTransportVersion']=='1.0.0-account-export-candidate.4' for p in pages)
     assert {p['family'] for p in pages}==set(current['scope']['included'])
     assert 'purchase_credentials' in current['scope']['excluded']
     public=repr([p['items'] for p in selected])

@@ -40,7 +40,8 @@ class Dependencies:
         self.provider_call_count += 1
         result = self.results[len(self.urls) - 1]
         if isinstance(result, Exception): raise result
-        return result
+        from shared_lookup_freshness import observed, wall_clock
+        return {"threatTypes":result,"observedAt":observed(wall_clock()),"validUntil":"2099-01-01T00:00:00Z" if result else None}
 
 
 def test_complete_no_match_is_limited_to_supported_checks():
@@ -152,8 +153,8 @@ def test_provider_parser_rejects_unknown_or_evaluate_shapes(payload):
 
 
 def test_lookup_shapes_match_official_examples():
-    assert parse_lookup({}) == []
-    assert parse_lookup({'threat': {'threatTypes': ['MALWARE'], 'expireTime': '2030-01-01T00:00:00.123456789Z'}}) == ['MALWARE']
+    assert parse_lookup({})['threatTypes'] == []
+    assert parse_lookup({'threat': {'threatTypes': ['MALWARE'], 'expireTime': '2030-01-01T00:00:00.123456789Z'}})['threatTypes'] == ['MALWARE']
 
 
 @pytest.mark.parametrize('code,reason', [(301, 'PROVIDER_UNAVAILABLE'), (401, 'PROVIDER_AUTHORIZATION_FAILED'), (403, 'PROVIDER_AUTHORIZATION_FAILED'), (429, 'PROVIDER_RATE_LIMITED'), (500, 'PROVIDER_UNAVAILABLE')])
@@ -164,7 +165,7 @@ def test_http_failures_or_redirects_cannot_parse_as_empty_success(code, reason):
 def test_http_body_caps_and_duplicate_keys():
     for body in [b' ' * 4097, b'{"threat":{},"threat":{}}', b'not json', b'']:
         with pytest.raises(Unavailable): decode_http(b'HTTP/1.1 200 OK\r\n\r\n' + body)
-    assert decode_http(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}') == []
+    assert decode_http(b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}')['threatTypes'] == []
 
 
 def test_private_handler_logs_allowlist_only(monkeypatch, capsys):
