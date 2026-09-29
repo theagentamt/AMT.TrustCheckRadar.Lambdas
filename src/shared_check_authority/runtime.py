@@ -1,6 +1,7 @@
 """Explicit disabled-by-default Dev configuration shared by V1 handlers."""
 import os
 import time
+from shared_lookup_freshness import wall_clock
 from .core import Authority, AuthorityError, Settings
 
 
@@ -31,6 +32,6 @@ def load_authority():
         settings.validate()
         if settings.receipt_retention_seconds != 7*86400 or settings.counter_retention_seconds != 7*86400:
             raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')
-        return Authority(settings,resource,now=lambda:int(time.time()))
+        return Authority(settings,resource,now=lambda:int(time.time()),freshness_now=wall_clock)
     except AuthorityError: raise
     except Exception: raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE') from None

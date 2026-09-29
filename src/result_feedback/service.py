@@ -3,7 +3,7 @@ import json
 from datetime import datetime,timezone
 from decimal import Decimal
 from shared_check_authority.core import AuthorityError,OWNER_POLICY,integral
-from shared_message_contract.runtime import unique_pairs,url_mapper
+from shared_message_contract.runtime import unique_pairs,url_mapper,fresh_url_mapper
 from .validation import *
 
 
@@ -38,11 +38,12 @@ class Feedback:
             if scope=='sanitized_message':
                 from shared_message_contract import VERSION as V1,validate_summary as validate_v1
                 from shared_message_contract.validation_v2 import VERSION as V2,validate_summary as validate_v2
-                require(version in (V1,V2) and row.get('messageTransportVersion',V1)==version and 'recoveryTransportVersion' not in row,'RESULT_UNAVAILABLE')
-                (validate_v2 if version==V2 else validate_v1)(summary,ref['checkId'],row['processingOutcome'])
+                from shared_message_contract.validation_v3 import VERSION as V3,validate_summary as validate_v3
+                require(version in (V1,V2,V3) and row.get('messageTransportVersion',V1)==version and 'recoveryTransportVersion' not in row,'RESULT_UNAVAILABLE')
+                (validate_v3 if version==V3 else (validate_v2 if version==V2 else validate_v1))(summary,ref['checkId'],row['processingOutcome'])
             else:
                 from shared_check_authority.summary import validate_summary
-                require(scope in ('full_url','origin_only') and version=='1.0.0-candidate.1'
+                require(scope in ('full_url','origin_only') and version in ('1.0.0-candidate.1','1.0.0-candidate.2') and row.get('urlTransportVersion','1.0.0-candidate.1')==version
                     and 'messageTransportVersion' not in row and 'recoveryTransportVersion' not in row,'RESULT_UNAVAILABLE')
                 validate_summary(summary,ref['checkId'],row['processingOutcome'])
                 # Reuse actual public URL rendering semantics, with a deliberately
@@ -54,8 +55,11 @@ class Feedback:
                     'resetsAt':None,'unlimited':False,'observedAt':stamp(self.a.now())}
                 accounting={'state':'charged' if charged else 'not_charged','chargedChecks':charged,
                     'receiptId':row['receiptId'],'requiresReconciliation':False}
-                mapped=url_mapper().map_private(summary,expected_check_id=ref['checkId'],request_scope=scope,
-                    assessed_at=stamp(assessed),access=access,accounting=accounting,same_check_replay_authorized=False)
+                mapper=fresh_url_mapper() if version=='1.0.0-candidate.2' else url_mapper()
+                require(summary['schemaVersion']==(2 if version=='1.0.0-candidate.2' else 1),'RESULT_UNAVAILABLE')
+                extra={'now':self.a.freshness_now()} if version=='1.0.0-candidate.2' else {}
+                mapped=mapper.map_private(summary,expected_check_id=ref['checkId'],request_scope=scope,
+                    assessed_at=stamp(assessed),access=access,accounting=accounting,same_check_replay_authorized=False,**extra)
                 require(mapped['kind']=='assessment_result' and mapped['processingOutcome'] in ELIGIBLE,'RESULT_UNAVAILABLE')
             return key,row
         except Exception:raise FeedbackError('RESULT_UNAVAILABLE') from None
@@ -75,7 +79,7 @@ class Feedback:
             'ConditionExpression':'recordType = :type AND #state = :settled AND checkId = :proof AND clientCheckId = :client AND receiptId = :receipt AND payloadHmac = :digest AND policyVersion = :policy AND projectionScope = :scope AND processingOutcome = :outcome AND resultSummary = :summary AND retentionDeadlineEpoch = :expiry AND expiresAt = :expiry AND expiresAt > :now',
             'ExpressionAttributeNames':{'#state':'state','#feedback':'feedback'},
             'ExpressionAttributeValues':{':type':'V1_CHECK_RECEIPT',':settled':'SETTLED',':proof':row['checkId'],':client':row['clientCheckId'],':receipt':row['receiptId'],':digest':row['payloadHmac'],':policy':OWNER_POLICY,':scope':row['projectionScope'],':outcome':row['processingOutcome'],':summary':row['resultSummary'],':expiry':row['retentionDeadlineEpoch'],':now':self.a.now()}}
-        for field in ('messageTransportVersion','recoveryTransportVersion','chargedChecks','assessmentEpoch','basis','GSI1PK','GSI1SK'):
+        for field in ('urlTransportVersion','messageTransportVersion','recoveryTransportVersion','chargedChecks','assessmentEpoch','basis','GSI1PK','GSI1SK'):
             if field in row:
                 condition['ConditionExpression']+=' AND '+field+' = :'+field
                 condition['ExpressionAttributeValues'][':'+field]=row[field]

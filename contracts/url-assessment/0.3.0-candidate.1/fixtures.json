@@ -1,0 +1,240 @@
+{
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "current",
+      "result": {
+        "contractVersion": "0.3.0-candidate.1",
+        "checkId": "client-1",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2027-01-15T08:00:00Z",
+        "verdict": "high_risk",
+        "processingOutcome": "complete",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "KNOWN_THREAT_MATCH"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain",
+            "threatTypes": [
+              "MALWARE"
+            ],
+            "observedAt": "2027-01-15T08:00:00Z",
+            "validUntil": "2027-01-15T08:00:20.123456789Z",
+            "freshness": "current"
+          }
+        ],
+        "reasonCodes": [
+          "KNOWN_THREAT_MATCH"
+        ],
+        "transportWarnings": [],
+        "nextAction": "avoid_link",
+        "messageKey": "url.known_threat",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "expired",
+      "result": {
+        "contractVersion": "0.3.0-candidate.1",
+        "checkId": "client-1",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2027-01-15T08:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "PROVIDER_EVIDENCE_EXPIRED"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain",
+            "threatTypes": [
+              "MALWARE"
+            ],
+            "observedAt": "2027-01-15T08:00:00Z",
+            "validUntil": "2027-01-15T08:00:20.123456789Z",
+            "freshness": "expired"
+          }
+        ],
+        "reasonCodes": [
+          "PROVIDER_EVIDENCE_EXPIRED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.evidence_expired",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "unverified",
+      "result": {
+        "contractVersion": "0.3.0-candidate.1",
+        "checkId": "client-1",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2027-01-15T08:00:00Z",
+        "verdict": "unknown",
+        "processingOutcome": "partial",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "PROVIDER_EVIDENCE_UNVERIFIED"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "match",
+            "targetScope": "observed_http_chain",
+            "threatTypes": [],
+            "observedAt": null,
+            "validUntil": null,
+            "freshness": "unverified"
+          }
+        ],
+        "reasonCodes": [
+          "PROVIDER_EVIDENCE_UNVERIFIED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "use_built_in_help",
+        "messageKey": "url.evidence_unverified",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    },
+    {
+      "name": "no_match",
+      "result": {
+        "contractVersion": "0.3.0-candidate.1",
+        "checkId": "client-1",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 199,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "9d24fa30d29e7517af26120a421bee02",
+          "requiresReconciliation": false
+        },
+        "kind": "assessment_result",
+        "assessedAt": "2027-01-15T08:00:00Z",
+        "verdict": "no_known_threat_detected",
+        "processingOutcome": "complete",
+        "uncertainty": {
+          "coverage": "supported_checks_complete",
+          "limitations": [
+            "NO_LIST_MATCH",
+            "BROWSER_NAVIGATION_NOT_EVALUATED"
+          ]
+        },
+        "evidence": [
+          {
+            "source": "google_web_risk_lookup",
+            "outcome": "no_match",
+            "targetScope": "full_submitted_url",
+            "threatTypes": [],
+            "observedAt": "2027-01-15T08:00:00Z",
+            "validUntil": null,
+            "freshness": "observation_only"
+          },
+          {
+            "source": "http_redirect_resolver",
+            "outcome": "completed",
+            "targetScope": "observed_http_chain"
+          }
+        ],
+        "reasonCodes": [
+          "NO_LIST_MATCH",
+          "BROWSER_NAVIGATION_NOT_EVALUATED"
+        ],
+        "transportWarnings": [],
+        "nextAction": "verify_independently",
+        "messageKey": "url.no_known_threat",
+        "retry": {
+          "disposition": "do_not_retry",
+          "afterSeconds": null,
+          "automaticRetryAllowed": false
+        }
+      }
+    }
+  ]
+}

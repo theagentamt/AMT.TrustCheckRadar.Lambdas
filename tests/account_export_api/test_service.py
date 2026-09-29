@@ -130,3 +130,16 @@ def test_unknown_summary_fields_or_invalid_feedback_never_escape():
 
 def test_logically_expired_rows_are_not_exported():
     assert projection.project({'expiresAt':1800000000,'email':'expired'},'profile',1800000000) is None
+
+@pytest.mark.parametrize('modern,play',[(False,False),(False,True),(True,False),(True,True)])
+def test_new_receipt_requires_explicit_compatible_export_contract(world,modern,play):
+    service,reader,clock=world
+    reader.entries=[('receipts',)]
+    reader.items=[{'resultSummary':{'schemaVersion':2 if modern else 1,'scope':'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP'}}]
+    selected=Export(reader,service.cursor,service.now,play_verification=play)
+    if modern and not play:
+        with pytest.raises(ExportError,match='SOURCE_UNAVAILABLE'):start(selected)
+    else:
+        value=start(selected)
+        assert value['exportTransportVersion']==('1.0.0-account-export-candidate.4' if play else '1.0.0-account-export-candidate.2')
+        assert value['items']==reader.items

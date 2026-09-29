@@ -51,8 +51,8 @@ def parse(event):
 class Export:
     def __init__(self, reader, cursor, now=lambda: int(time.time()), *, play_verification=False):
         self.reader, self.cursor, self.now = reader, cursor, now
-        self.version = '1.0.0-account-export-candidate.3' if play_verification else VERSION
-        self.scope = {**SCOPE,'version':'v1-user-visible-2026-09-23','included':SCOPE['included']+['play_verification'],'excluded':SCOPE['excluded']+['purchase_credentials']} if play_verification else SCOPE
+        self.version = '1.0.0-account-export-candidate.4' if play_verification else VERSION
+        self.scope = {**SCOPE,'version':'v1-user-visible-2026-09-28','included':SCOPE['included']+['play_verification'],'excluded':SCOPE['excluded']+['purchase_credentials']} if play_verification else SCOPE
         self.manifest_version = self.scope['version']
 
     def page(self, event, body):
@@ -84,6 +84,11 @@ class Export:
                     'startedAtEpoch': token['startedAtEpoch'], 'expiresAtEpoch': token['expiresAtEpoch'],
                     'observedAtEpoch': self.now(), 'pageNumber': token['pageNumber'],
                     'family': family, 'items': items, 'nextCursor': None, 'scope': self.scope}
+        if self.version == VERSION and family == 'receipts':
+            # Immutable older transport cannot silently carry newly versioned summaries.
+            require(not any(type(item.get('resultSummary')) is dict and
+                    ((item['resultSummary'].get('scope') == 'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP' and item['resultSummary'].get('schemaVersion') == 2)
+                     or item['resultSummary'].get('schemaVersion') == 3) for item in items), 'SOURCE_UNAVAILABLE', 503)
         # Include the next capability in the wire byte budget. Fixed point is
         # bounded because decimal byte counters can change token length slightly.
         if not complete:

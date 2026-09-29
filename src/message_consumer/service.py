@@ -9,6 +9,8 @@ from shared_check_authority.core import AuthorityError, TrustedWorkerContext
 from shared_message_contract import VERSION, POLICY, validate_summary
 from shared_message_contract.privacy import validate_runtime_intent as validate_intent
 from shared_message_contract import validation_v2 as v2
+from shared_message_contract import validation_v3 as v3
+from message_evaluator.policy_v3 import result as limited_result_v3
 from message_evaluator.policy_v2 import result as limited_result_v2
 from shared_message_contract.validation import MessageError
 from shared_message_contract.runtime import unique_pairs, url_mapper
@@ -21,9 +23,9 @@ PROOF=re.compile(r'v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}')
 
 
 def schema_path(name,version=VERSION):
-    if version not in (VERSION,v2.VERSION):raise ValueError('CONTRACT_UNSUPPORTED')
-    suffix='1.0.0-candidate.2' if version==v2.VERSION else '1.0.0-candidate.1'
-    path=Path(__file__).parent/('contract_v2' if version==v2.VERSION else 'contract')/name
+    if version not in (VERSION,v2.VERSION,v3.VERSION):raise ValueError('CONTRACT_UNSUPPORTED')
+    suffix='1.0.0-candidate.3' if version==v3.VERSION else ('1.0.0-candidate.2' if version==v2.VERSION else '1.0.0-candidate.1')
+    path=Path(__file__).parent/('contract_v3' if version==v3.VERSION else ('contract_v2' if version==v2.VERSION else 'contract'))/name
     if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/message-consumer'/suffix/name
     return path
 
@@ -31,9 +33,9 @@ def schema_path(name,version=VERSION):
 def validate_envelope(body):
     Draft202012Validator(json.loads(schema_path('response.schema.json',body['transportVersion']).read_text()),format_checker=FormatChecker()).validate(body)
     if body['outcome'] is not None:
-        (v2.validate_summary if body['transportVersion']==v2.VERSION else validate_summary)(body['outcome'],body['checkId'])
+        (v3.validate_summary if body['transportVersion']==v3.VERSION else (v2.validate_summary if body['transportVersion']==v2.VERSION else validate_summary))(body['outcome'],body['checkId'])
         if body['state']!='settled':raise ValueError()
-        if body['accounting']['chargedChecks']==1 and body['outcome']['processingOutcome']!='complete':raise ValueError()
+        # Usage describes original settlement; replay freshness may be partial now.
     return body
 
 
@@ -63,7 +65,12 @@ class Consumer:
         outcome=None
         if row and row.get('resultSummary'):
             if row.get('messageTransportVersion',VERSION)!=self.version:raise AuthorityError('CHECK_ID_CONFLICT')
-            outcome=(v2.validate_summary if self.version==v2.VERSION else validate_summary)(plain(row['resultSummary']),client)
+            outcome=(v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary))(plain(row['resultSummary']),client)
+            if self.version==v3.VERSION:outcome=v3.present(outcome,self.a.freshness_now())
+            elif any(e['outcome']=='match' for e in outcome['evidence']):
+                from shared_message_contract.legacy_freshness import historical
+                outcome=historical(outcome)
+                if accounting["chargedChecks"]==1 and outcome["processingOutcome"]!="complete":outcome=None
         if row and row.get('state')=='SETTLED' and outcome is None and error is None:error='SERVICE_UNAVAILABLE'
         return validate_envelope({'transportVersion':self.version,'checkId':client,'operationProof':proof,'state':state,
             'access':access,'accounting':accounting,'outcome':outcome,'errorCode':error,
@@ -82,7 +89,7 @@ class Consumer:
             if type(raw) is not str or len(raw.encode('utf-8'))>32768:raise AuthorityError('INPUT_REJECTED')
             try:body=json.loads(raw,object_pairs_hook=unique_pairs)
             except Exception:raise AuthorityError('INPUT_REJECTED') from None
-            if type(body) is not dict or body.get('transportVersion') not in (VERSION,v2.VERSION):raise AuthorityError('CONTRACT_UNSUPPORTED')
+            if type(body) is not dict or body.get('transportVersion') not in (VERSION,v2.VERSION,v3.VERSION):raise AuthorityError('CONTRACT_UNSUPPORTED')
             self.version=body['transportVersion']
             client=body.get('checkId');proof=body.get('operationProof')
             if type(client) is not str or not CHECK.fullmatch(client):raise AuthorityError('INPUT_REJECTED')
@@ -97,13 +104,13 @@ class Consumer:
                         if e.code!='OPERATION_PENDING':raise
                 state={'ADMITTED':'pending','SETTLED':'settled','UNKNOWN':'unknown','NOT_STARTED':'rejected'}[row['state']]
                 return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row,error='OPERATION_EXPIRED' if state=='rejected' else None)
-            if self.version==v2.VERSION and not self.allow_ai:raise AuthorityError('SERVICE_NOT_ENABLED')
+            if self.version in (v2.VERSION,v3.VERSION) and not self.allow_ai:raise AuthorityError('SERVICE_NOT_ENABLED')
             required={'transportVersion','checkId','entryPoint','language','target'}
             prepare=route.endswith('/prepare')
             if set(body)!=(required if prepare else required|{'operationProof'}):raise AuthorityError('INPUT_REJECTED')
             intent={k:body[k] for k in ('entryPoint','language','target')}
             validate_intent(intent)
-            bound_intent=intent|{'messageTransportVersion':self.version} if self.version==v2.VERSION else intent
+            bound_intent=intent|{'messageTransportVersion':self.version} if self.version in (v2.VERSION,v3.VERSION) else intent
             self.refresh(event)
             if prepare:
                 proof=self.a.prepare(event,bound_intent,client,client_check_id=client,count_attempt=False)
@@ -119,21 +126,26 @@ class Consumer:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
             outcome=None;window=None
-            limited=limited_result_v2 if self.version==v2.VERSION else limited_result
-            validator=v2.validate_summary if self.version==v2.VERSION else validate_summary
+            limited=limited_result_v3 if self.version==v3.VERSION else (limited_result_v2 if self.version==v2.VERSION else limited_result)
+            validator=v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
                 window=self.budget.reserve() if budget_ms>=1000 else None
                 if window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
                 else:
-                    raw_result=self.provider({'schemaVersion':2 if self.version==v2.VERSION else 1,'checkId':client,'policyVersion':v2.POLICY if self.version==v2.VERSION else POLICY,'intent':intent,'executionBudgetMs':budget_ms})
+                    raw_result=self.provider({'schemaVersion':3 if self.version==v3.VERSION else (2 if self.version==v2.VERSION else 1),'checkId':client,'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,'intent':intent,'executionBudgetMs':budget_ms})
                     outcome=validator(raw_result,client)
             except Exception:
                 outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])
+            if self.version==v3.VERSION:outcome=v3.present(outcome,self.a.freshness_now())
             if window is not None and set(outcome['limitationCodes'])&{'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
                 except Exception:pass  # Attempt cap remains consumed even if failure accounting is unavailable.
-            row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],result_summary=outcome)
+            try:row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],result_summary=outcome)
+            except AuthorityError as error:
+                if error.code!='PROVIDER_EVIDENCE_EXPIRED' or self.version!=v3.VERSION:raise
+                outcome=v3.present(outcome,self.a.freshness_now())
+                row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],result_summary=outcome)
             return 200,self.envelope(event,client,proof,'settled',row=row)
         except (AuthorityError,MessageError) as error:
             code=error.code

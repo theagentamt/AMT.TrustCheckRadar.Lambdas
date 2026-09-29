@@ -1,6 +1,7 @@
 """Private Dev assessment; never an entitlement or consumer API implementation."""
 import re
 import time
+from shared_lookup_freshness import evidence as validate_evidence, epoch, current, wall_clock
 from urllib.parse import urlsplit
 
 from url_redirect_resolver.resolver import ResolutionStop, parse_target
@@ -28,7 +29,7 @@ class Budget:
 
 
 def base_result(check_id=None):
-    return {'schemaVersion': 1, 'checkId': check_id, 'verdict': 'unknown',
+    return {'schemaVersion': 2, 'lookupObservedAt': None, 'lookupValidUntil': None, 'checkId': check_id, 'verdict': 'unknown',
             'processingOutcome': 'invalid_input', 'coverage': 'not_assessed',
             'reasonCodes': ['INVALID_REQUEST'], 'transportWarnings': [],
             'threatTypes': [], 'lookupCount': 0, 'providerCallCount': 0, 'observedHopCount': 0,
@@ -93,7 +94,7 @@ def validate_resolution(value, check_id, initial):
     return value
 
 
-def assess(event, dependencies, budget):
+def assess(event, dependencies, budget, *, now=wall_clock):
     result = base_result()
     try:
         target = validate_request(event)
@@ -119,8 +120,15 @@ def assess(event, dependencies, budget):
         for url in urls:
             budget.remaining()
             result['lookupCount'] += 1  # attempted provider checks, never a charge count
-            threats = dependencies.lookup(url, budget)
+            observation = validate_evidence(dependencies.lookup(url, budget))
+            threats = observation['threatTypes']
+            if result['lookupObservedAt'] is None or epoch(observation['observedAt']) < epoch(result['lookupObservedAt']):
+                result['lookupObservedAt'] = observation['observedAt']
             if threats:
+                if not current(observation['observedAt'], observation['validUntil'], now()):
+                    raise Unavailable('PROVIDER_RESPONSE_INVALID')
+                result['lookupObservedAt'] = observation['observedAt']
+                result['lookupValidUntil'] = observation['validUntil']
                 result.update(verdict='high_risk', threatTypes=sorted(set(result['threatTypes']) | set(threats)), reasonCodes=['KNOWN_THREAT_MATCH'])
                 # Match is sufficient for avoidance. Don't contact more providers.
                 return result
