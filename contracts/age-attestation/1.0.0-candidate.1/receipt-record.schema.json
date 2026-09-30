@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andmorethings.com/contracts/age-attestation/1.0.0-candidate.1/receipt-record.schema.json",
+  "title": "Age attestation idempotency receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["PK", "SK", "recordType", "schemaVersion", "operationId", "requestHash", "result", "createdAtEpoch", "expiresAt"],
+  "properties": {
+    "PK": {"type": "string", "pattern": "^USER#.+"},
+    "SK": {"type": "string", "pattern": "^AGE_ATTESTATION#[0-9a-f-]{36}$"},
+    "recordType": {"const": "AGE_ATTESTATION_RECEIPT"},
+    "schemaVersion": {"const": 1},
+    "operationId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "requestHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "result": {
+      "allOf": [
+        {"$ref": "success.schema.json"},
+        {"properties": {"replayed": {"const": false}}}
+      ]
+    },
+    "createdAtEpoch": {"type": "integer", "minimum": 0},
+    "expiresAt": {"type": "integer", "minimum": 0}
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+  "attestationStatus": "ACKNOWLEDGED",
+  "eligibleForSignup": true,
+  "denialReasons": [],
+  "attestedAt": "2026-09-29T12:00:00+00:00",
+  "agePolicyVersion": "v1.0",
+  "replayed": false
+}

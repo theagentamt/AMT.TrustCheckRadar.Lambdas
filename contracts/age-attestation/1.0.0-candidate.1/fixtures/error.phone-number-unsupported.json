@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "error": {
+    "code": "PHONE_NUMBER_UNSUPPORTED",
+    "message": "The stored phone number is not supported for account eligibility.",
+    "retryable": false
+  },
+  "requestId": "fixture-request-id"
+}

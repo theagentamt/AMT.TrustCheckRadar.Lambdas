@@ -1,0 +1,13 @@
+{
+  "contract": "age-attestation",
+  "version": "1.0.0-candidate.1",
+  "schemaVersion": 1,
+  "agePolicyVersion": "v1.0",
+  "requestSchema": "request.schema.json",
+  "successSchema": "success.schema.json",
+  "errorSchema": "error-response.schema.json",
+  "receiptSchema": "receipt-record.schema.json",
+  "phonePolicy": "phone-policy.json",
+  "receiptRetentionSeconds": 604800,
+  "fixtures": "fixtures/manifest.json"
+}

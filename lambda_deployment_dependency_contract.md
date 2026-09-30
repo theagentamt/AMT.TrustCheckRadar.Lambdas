@@ -218,6 +218,22 @@ can be aligned without weakening the privacy boundary.
 
 - Lambda path: `src/age_attestation/app.py`
 - Handler: `app.lambda_handler`
+- Contract: `contracts/age-attestation/1.0.0-candidate.1`; authenticated HTTP
+  API v2 `POST /v1/users/age-attestation` using a Cognito access token.
+- Requires `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`, and
+  `AGE_ATTESTATION_USER_POOL_ID`. Optional
+  `AGE_ATTESTATION_ALLOWED_REGION_CODES` defaults to `US,PR,VI,GU,AS,MP`.
+- Cognito `AdminGetUser` must return the same `sub` and a stored phone number with
+  libphonenumber metadata in an allowed region and supported fixed/mobile/VoIP
+  category. V1 treats the phone as self-provided eligibility data and does not
+  trust `phone_number_verified` or establish identity, number control, ownership,
+  a seat, or recovery authority. The package pins `phonenumbers==9.0.40`.
+- The users table stores seven-day receipts at
+  `USER#<sub>/AGE_ATTESTATION#<operationId>` and needs `GetItem` plus
+  transactional `PutItem`, `UpdateItem`, and `ConditionCheckItem`. The deletion
+  ledger needs transactional `ConditionCheckItem` on the fixed account fence.
+- Missing profiles fail with `PROFILE_NOT_FOUND`; this handler never creates
+  legacy profiles. Prelaunch/Dev accounts require a reviewed reconciliation.
 - Runtime expectation: Python 3.13 compatible
 - Invocation modes:
   - API/event invocation for age attestation updates
