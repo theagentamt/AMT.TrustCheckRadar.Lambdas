@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "error": {
+    "code": "PHONE_NOT_VERIFIED",
+    "message": "A verified phone number is required for account eligibility.",
+    "retryable": false
+  },
+  "requestId": "fixture-request-id"
+}

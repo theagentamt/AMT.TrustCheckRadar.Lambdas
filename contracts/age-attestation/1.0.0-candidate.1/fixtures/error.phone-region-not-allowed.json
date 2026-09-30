@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "error": {
+    "code": "PHONE_REGION_NOT_ALLOWED",
+    "message": "The verified phone number is outside the supported account regions.",
+    "retryable": false
+  },
+  "requestId": "fixture-request-id"
+}
