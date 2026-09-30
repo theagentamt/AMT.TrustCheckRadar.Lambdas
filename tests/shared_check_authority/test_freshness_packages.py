@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 ROOT=Path(__file__).resolve().parents[2]
 
-@pytest.mark.parametrize('function',['url_assessment','url_consumer','message_evaluator','message_consumer','account_export_api','v1_entitlements','result_feedback'])
+@pytest.mark.parametrize('function',['url_assessment','url_consumer','message_evaluator','message_consumer','account_export_api','v1_entitlements','v1_play_handoff','result_feedback'])
 def test_affected_source_archive_isolated_import_and_contract_readers(tmp_path,function):
     subprocess.run(['bash',str(ROOT/'scripts/build_lambda_zip.sh'),'--function',function,'--skip-dependencies','--output-dir',str(tmp_path)],check=True,capture_output=True)
     dest=tmp_path/function;dest.mkdir()
