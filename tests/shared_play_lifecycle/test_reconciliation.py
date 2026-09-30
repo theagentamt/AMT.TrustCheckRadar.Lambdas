@@ -48,6 +48,83 @@ def test_grace_preserves_funded_period_usage_and_real_snapshot(lifecycle):
  assert stored['expiresAt']==usage['expiresAt'] and p['purchaseToken'] not in str(stored)
 
 
+def test_active_deferral_extends_access_without_replenishing_allowance(lifecycle):
+ h,w,p,r=lifecycle;a,e,_,row,_,clock=w
+ proof=a.prepare(e,PAYLOAD,'before-deferral');admission=a.admit(e,PAYLOAD,proof)
+ a.settle(WORKER,proof,admission['executionToken'],'complete')
+ old=row('PERIOD#'+row('ACCESS')['periodId']);old_usage=a._get('authority',old['purchaseUsageKey'])
+ h.client.head['lineItems'][0]['expiryTime']='2026-10-08T00:00:00Z'
+ result=r.refresh(p['purchaseToken'],'notification-deferred')
+ assert result['state']=='committed'
+ period=row(old['SK']);usage=a._get('authority',period['purchaseUsageKey'])
+ assert period['startEpoch']==old['startEpoch'] and period['endEpoch']==old['endEpoch']
+ assert period['accessUntilEpoch']==1791417600 and period['usedChecks']==1 and period['reservedChecks']==0
+ assert period['limit']==200 and usage['usedChecks']==old_usage['usedChecks']==1
+ assert usage['reservedChecks']==old_usage['reservedChecks']==0 and usage['accessUntilEpoch']==1791417600
+ snapshot=access_snapshot(h.writer,e)
+ assert snapshot['access']['basis']=='paid' and snapshot['allowance']['remaining']==199
+ assert snapshot['allowance']['periodEndsAtEpoch']==1791417600
+
+
+def test_cancel_keeps_remaining_access_until_fresh_expired_proof_revokes_it(lifecycle):
+ from datetime import datetime,timezone
+ h,w,p,r=lifecycle;a,e,_,row,_,clock=w
+ proof=a.prepare(e,PAYLOAD,'before-cancel');admission=a.admit(e,PAYLOAD,proof)
+ a.settle(WORKER,proof,admission['executionToken'],'complete')
+ period_sk='PERIOD#'+row('ACCESS')['periodId']
+ h.client.head['subscriptionState']='SUBSCRIPTION_STATE_CANCELED'
+ h.client.head['lineItems'][0]['autoRenewingPlan']['autoRenewEnabled']=False
+ canceled=r.refresh(p['purchaseToken'],'notification-canceled')
+ assert canceled['state']=='committed' and row('ACCESS')['state']=='ACTIVE'
+ assert row(period_sk)['usedChecks']==1 and access_snapshot(h.writer,e)['allowance']['remaining']==199
+
+ clock[0]=1790812801
+ e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+90)
+ h.client.head['subscriptionState']='SUBSCRIPTION_STATE_EXPIRED'
+ h.client.head['lineItems'][0]['expiryTime']=datetime.fromtimestamp(1790812800,timezone.utc).isoformat().replace('+00:00','Z')
+ expired=r.refresh(p['purchaseToken'],'notification-expired')
+ assert expired['state']=='committed' and row('ACCESS')['state']=='INACTIVE'
+ assert access_snapshot(h.writer,e)['access']['basis']=='none'
+
+
+def test_revocation_or_refund_refresh_uses_fresh_expired_state_not_notice_order(lifecycle):
+ from datetime import datetime,timezone
+ h,w,p,r=lifecycle;a,e,_,row,_,clock=w
+ proof=a.prepare(e,PAYLOAD,'before-revocation');admission=a.admit(e,PAYLOAD,proof)
+ a.settle(WORKER,proof,admission['executionToken'],'complete')
+ old=row('ACCESS');period=row('PERIOD#'+old['periodId'])
+ h.client.head['subscriptionState']='SUBSCRIPTION_STATE_EXPIRED'
+ h.client.head['lineItems'][0]['expiryTime']=datetime.fromtimestamp(clock[0]-1,timezone.utc).isoformat().replace('+00:00','Z')
+ result=r.refresh(p['purchaseToken'],'voided-refund-or-revocation')
+ assert result['state']=='committed' and row('ACCESS')['state']=='INACTIVE'
+ assert row('ACCESS')['sources']['paid']['sourceRevision']==old['sources']['paid']['sourceRevision']+1
+ # A refund/revocation does not invent a replacement period or replenish use.
+ current=row(period['SK'])
+ assert current['usedChecks']==period['usedChecks']==1 and current['reservedChecks']==0
+
+
+def test_late_older_notification_refreshes_current_renewal_without_rolling_back(lifecycle):
+ h,w,p,r=lifecycle;a,e,_,row,_,clock=w
+ old=row('PERIOD#'+row('ACCESS')['periodId'])
+ clock[0]=1790899200;e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+90)
+ h.client.head['lineItems'][0].update(expiryTime='2026-11-01T00:00:00Z',latestSuccessfulOrderId='GPA.1234-1234-1234-12345..3')
+ h.client.ordered['orderId']='GPA.1234-1234-1234-12345..3'
+ h.client.ordered['lineItems'][0]['subscriptionDetails'].update(servicePeriodStartTime='2026-10-01T00:00:00Z',servicePeriodEndTime='2026-11-01T00:00:00Z')
+ r.refresh(p['purchaseToken'],'newer-renewal-notification')
+ current=row('PERIOD#'+row('ACCESS')['periodId'])
+ proof=a.prepare(e,PAYLOAD,'new-period-complete');admission=a.admit(e,PAYLOAD,proof)
+ a.settle(WORKER,proof,admission['executionToken'],'complete')
+ revision=row('ACCESS')['sources']['paid']['sourceRevision']
+
+ # Notification timestamps/types never drive authority. A delayed older hint
+ # fetches the same current provider head and preserves its funded counters.
+ r.refresh(p['purchaseToken'],'older-notification-delivered-late')
+ latest=row('ACCESS');same_period=row('PERIOD#'+latest['periodId'])
+ assert latest['periodId']==current['SK'].removeprefix('PERIOD#') and latest['periodId']!=old['SK'].removeprefix('PERIOD#')
+ assert latest['sources']['paid']['sourceRevision']==revision+1
+ assert same_period['usedChecks']==1 and same_period['reservedChecks']==0 and same_period['limit']==200
+
+
 def test_duplicate_notification_reverifies_ack_without_granting_again(lifecycle):
  h,w,p,r=lifecycle;a,e,_,row,_,_=w
  r.refresh(p['purchaseToken'],'notification-one');before=row('ACCESS');calls=h.client.calls
