@@ -223,9 +223,11 @@ can be aligned without weakening the privacy boundary.
 - Requires `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`, and
   `AGE_ATTESTATION_USER_POOL_ID`. Optional
   `AGE_ATTESTATION_ALLOWED_REGION_CODES` defaults to `US,PR,VI,GU,AS,MP`.
-- Cognito `AdminGetUser` must return the same `sub`, a verified phone number,
-  and libphonenumber metadata in an allowed region and supported fixed/mobile/
-  VoIP category. The package pins `phonenumbers==9.0.40`.
+- Cognito `AdminGetUser` must return the same `sub` and a stored phone number with
+  libphonenumber metadata in an allowed region and supported fixed/mobile/VoIP
+  category. V1 treats the phone as self-provided eligibility data and does not
+  trust `phone_number_verified` or establish identity, number control, ownership,
+  a seat, or recovery authority. The package pins `phonenumbers==9.0.40`.
 - The users table stores seven-day receipts at
   `USER#<sub>/AGE_ATTESTATION#<operationId>` and needs `GetItem` plus
   transactional `PutItem`, `UpdateItem`, and `ConditionCheckItem`. The deletion

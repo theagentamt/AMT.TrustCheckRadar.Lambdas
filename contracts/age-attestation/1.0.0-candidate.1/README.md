@@ -11,13 +11,19 @@ API v2 event, `token_use=access`, and `sub`. Body subjects, ID-token custom
 attributes and caller-selected policy versions are never authority.
 
 Before accepting an operation, the Lambda uses Cognito `AdminGetUser` for the
-authenticated subject. The returned `sub` must match, `phone_number_verified`
-must be `true`, and libphonenumber metadata must classify the number as fixed,
-mobile, fixed-or-mobile, or VoIP in an allowed account region. The default
+authenticated subject. The returned `sub` must match, and libphonenumber metadata
+must classify the stored phone number as fixed, mobile, fixed-or-mobile, or VoIP
+in an allowed account region. The default
 regions are `US,PR,VI,GU,AS,MP`. Deployments may narrow or deliberately extend
 that list through `AGE_ATTESTATION_ALLOWED_REGION_CODES`; prefix-only `+1`
 classification is prohibited. Toll-free, premium, shared-cost, personal, pager,
 voicemail, UAN, unknown and non-geographic categories are rejected.
+
+The phone number is self-provided eligibility data. V1 does not require or trust
+`phone_number_verified`, verify control of the number, verify identity, establish
+account ownership, allocate a seat, or authorize account recovery. Those powers
+must come from their own reviewed authority and cannot be inferred from a successful
+age-attestation response.
 
 Successful operations update only an existing matching `ACTIVE` or
 `PENDING_AGE_GATE` profile while the fixed account-deletion fence is absent. A
@@ -54,7 +60,7 @@ authoritative; `RATE_LIMITED` also supplies `Retry-After`.
 |---:|---|
 | 400 | `INVALID_REQUEST` |
 | 401 | `AUTHENTICATION_REQUIRED` |
-| 403 | `PHONE_NOT_VERIFIED`, `PHONE_REGION_NOT_ALLOWED`, `PHONE_NUMBER_UNSUPPORTED` |
+| 403 | `PHONE_REGION_NOT_ALLOWED`, `PHONE_NUMBER_UNSUPPORTED` |
 | 404 | `PROFILE_NOT_FOUND` |
 | 409 | `ACCOUNT_STATE_CONFLICT`, `IDEMPOTENCY_CONFLICT` |
 | 429 | `RATE_LIMITED` |

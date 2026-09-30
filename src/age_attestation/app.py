@@ -77,14 +77,14 @@ class LibPhoneNumberMetadata:
         except phonenumbers.NumberParseException as err:
             raise AppError(
                 "PHONE_NUMBER_UNSUPPORTED",
-                "The verified phone number is not supported for account eligibility.",
+                "The stored phone number is not supported for account eligibility.",
                 403,
                 retryable=False,
             ) from err
         if not phonenumbers.is_valid_number(parsed):
             raise AppError(
                 "PHONE_NUMBER_UNSUPPORTED",
-                "The verified phone number is not supported for account eligibility.",
+                "The stored phone number is not supported for account eligibility.",
                 403,
                 retryable=False,
             )
@@ -99,7 +99,7 @@ class LibPhoneNumberMetadata:
         if not isinstance(region_code, str) or number_type not in allowed_types:
             raise AppError(
                 "PHONE_NUMBER_UNSUPPORTED",
-                "The verified phone number is not supported for account eligibility.",
+                "The stored phone number is not supported for account eligibility.",
                 403,
                 retryable=False,
             )
@@ -245,18 +245,11 @@ def _require_cognito_eligibility(subject: str):
 
     if attributes.get("sub") != subject:
         raise _authentication_required()
-    if attributes.get("phone_number_verified", "").strip().lower() != "true":
-        raise AppError(
-            "PHONE_NOT_VERIFIED",
-            "A verified phone number is required for account eligibility.",
-            403,
-            retryable=False,
-        )
     phone_number = attributes.get("phone_number")
     if not isinstance(phone_number, str) or not phone_number.strip():
         raise AppError(
-            "PHONE_NOT_VERIFIED",
-            "A verified phone number is required for account eligibility.",
+            "PHONE_NUMBER_UNSUPPORTED",
+            "The stored phone number is not supported for account eligibility.",
             403,
             retryable=False,
         )
@@ -264,7 +257,7 @@ def _require_cognito_eligibility(subject: str):
     if region_code not in ALLOWED_REGION_CODES:
         raise AppError(
             "PHONE_REGION_NOT_ALLOWED",
-            "The verified phone number is outside the supported account regions.",
+            "The stored phone number is outside the supported account regions.",
             403,
             retryable=False,
         )

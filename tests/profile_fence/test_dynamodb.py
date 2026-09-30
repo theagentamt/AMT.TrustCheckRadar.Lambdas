@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class Cognito:
     def admin_get_user(self, **kwargs):
-        return {"UserAttributes":[{"Name":"sub","Value":SUB},{"Name":"phone_number","Value":"+12025550123"},{"Name":"phone_number_verified","Value":"true"}]}
+        return {"UserAttributes":[{"Name":"sub","Value":SUB},{"Name":"phone_number","Value":"+12025550123"},{"Name":"phone_number_verified","Value":"false"}]}
 class PhoneMetadata:
     def classify(self, value): return "US", "FIXED_LINE_OR_MOBILE"
 

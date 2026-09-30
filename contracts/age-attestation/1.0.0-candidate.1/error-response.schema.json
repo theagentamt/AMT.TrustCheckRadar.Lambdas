@@ -17,7 +17,6 @@
           "enum": [
             "INVALID_REQUEST",
             "AUTHENTICATION_REQUIRED",
-            "PHONE_NOT_VERIFIED",
             "PHONE_REGION_NOT_ALLOWED",
             "PHONE_NUMBER_UNSUPPORTED",
             "PROFILE_NOT_FOUND",

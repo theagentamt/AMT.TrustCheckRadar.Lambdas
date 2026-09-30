@@ -60,7 +60,6 @@ class _Cognito:
             "UserAttributes": [
                 {"Name": "sub", "Value": "account-1"},
                 {"Name": "phone_number", "Value": "+12025550123"},
-                {"Name": "phone_number_verified", "Value": "true"},
             ]
         }
         self.error = None
@@ -222,11 +221,10 @@ class AgeAttestationContractTests(unittest.TestCase):
             response = app.lambda_handler(value, None)
             self.assertEqual(response["statusCode"], 400)
 
-    def test_phone_verification_subject_and_region_are_authoritative(self):
+    def test_stored_phone_subject_and_region_are_authoritative(self):
         app, cognito = _load_app()
         cases = [
-            ({"phone_number_verified": "false"}, "US", "PHONE_NOT_VERIFIED"),
-            ({"phone_number": None}, "US", "PHONE_NOT_VERIFIED"),
+            ({"phone_number": None}, "US", "PHONE_NUMBER_UNSUPPORTED"),
             ({"sub": "other"}, "US", "AUTHENTICATION_REQUIRED"),
             ({}, "BS", "PHONE_REGION_NOT_ALLOWED"),
         ]
@@ -243,6 +241,16 @@ class AgeAttestationContractTests(unittest.TestCase):
             app.phone_metadata = _PhoneMetadata(region=region)
             response = app.lambda_handler(_event(), None)
             self.assertEqual(_body(response)["error"]["code"], code)
+
+    def test_phone_verification_attribute_is_not_eligibility_authority(self):
+        app, cognito = _load_app()
+        cognito.response["UserAttributes"].append(
+            {"Name": "phone_number_verified", "Value": "false"}
+        )
+        result = app._success_body(OPERATION_ID, "2026-09-29T12:00:00+00:00", replayed=False)
+        with mock.patch.object(app, "_process_attestation", return_value=result):
+            response = app.lambda_handler(_event(), None)
+        self.assertEqual(response["statusCode"], 200)
 
     def test_cognito_throttle_returns_typed_retryable_error(self):
         app, cognito = _load_app()
