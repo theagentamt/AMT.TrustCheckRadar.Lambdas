@@ -1,5 +1,11 @@
 # Backend retention and disclosure attestation — 27 September 2026
 
+> Historical point-in-time evidence. See the
+> [30 September backend/provider attestation](backend-provider-attestation-2026-09-30.md)
+> for the current `release-V01` source baseline, live Dev gate readback and updated
+> provider boundaries. This document's 33-log-group count and activation summary
+> must not be presented as current without that successor.
+
 This is the Lambda owner's source/evidence attestation for ATCR-95, based on
 `release-V01` commit `a1eafcecaead9cd1fe7bdaecc6a76e5ce6ac1e4a`. It changes no
 collection, retention policy, consent, runtime flag, data or deployment. Earlier

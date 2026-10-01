@@ -3,7 +3,8 @@
 > Historical increment: the implementation/deployment gaps below describe its original
 > evidence date. For current retention and disclosure facts, including completed
 > Dev account/campaign/export work and remaining limits, see the
-> [September 27 backend attestation](backend-retention-attestation-2026-09-27.md). Historical tests and approvals are not rewritten.
+> [September 30 backend/provider attestation](backend-provider-attestation-2026-09-30.md).
+> Historical tests and approvals are not rewritten.
 
 Status: **source inventory complete for the Lambda repository; policy approval and
 runtime activation remain pending**
