@@ -94,6 +94,9 @@ CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS = os.environ.get(
 USER_PROFILE_DELETION_POLICY_STATUS = os.environ.get(
     "USER_PROFILE_DELETION_POLICY_STATUS", "pending"
 )
+DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS = os.environ.get(
+    "DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS", "pending"
+)
 HISTORY_DEDUP_RETENTION_DAYS = int(
     os.environ.get("HISTORY_DEDUP_RETENTION_DAYS", "120")
 )
@@ -148,6 +151,7 @@ def validate_config():
         or ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS != "approved"
         or CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS != "approved"
         or USER_PROFILE_DELETION_POLICY_STATUS != "approved"
+        or DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS != "approved"
         or HISTORY_DEDUP_RETENTION_DAYS != 120
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-deletion policy is not approved.")

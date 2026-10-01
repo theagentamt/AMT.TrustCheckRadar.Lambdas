@@ -96,6 +96,15 @@ def test_default_disabled_bootstrap_performs_no_aws(monkeypatch):
     with pytest.raises(ExportError,match='SERVICE_NOT_ENABLED'):runtime.load()
 
 
+def test_demographic_export_families_are_default_closed_and_explicit(monkeypatch):
+    r=reader();monkeypatch.setattr(r,'assert_inventory',lambda *args:None)
+    inventory={'keys':[],'history':None,'campaign':{}}
+    assert not any(entry[0].startswith('demographic_') for entry in r.plan(CONTEXT,inventory))
+    r.demographic_research=True
+    assert [entry[0] for entry in r.plan(CONTEXT,inventory) if entry[0].startswith('demographic_')]==[
+        'demographic_profile','demographic_operation','demographic_consent']
+
+
 def test_handled_system_failure_is_metric_without_private_exception(monkeypatch,caplog):
     monkeypatch.setattr(app,'load',lambda:(_ for _ in ()).throw(RuntimeError('private-account-token')))
     with caplog.at_level('INFO'):

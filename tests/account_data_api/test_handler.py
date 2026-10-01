@@ -227,6 +227,7 @@ class DurableCampaignConfigurationTests(unittest.TestCase):
             "ANALYSIS_LEGACY_REQUEST_RETENTION_POLICY_STATUS",
             "ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS",
             "CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS", "USER_PROFILE_DELETION_POLICY_STATUS",
+            "DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS",
         ):
             approved[name] = "approved"
         components = [

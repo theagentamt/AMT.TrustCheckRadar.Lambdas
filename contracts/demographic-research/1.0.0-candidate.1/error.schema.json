@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "error"
+  ],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "FEATURE_DISABLED",
+            "ENROLLMENT_UNAVAILABLE",
+            "UNAUTHORIZED",
+            "INVALID_REQUEST",
+            "AGE_VERIFICATION_REQUIRED",
+            "ACCOUNT_DELETION_IN_PROGRESS",
+            "CONFLICT",
+            "SERVER_UNAVAILABLE",
+            "NOT_FOUND"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

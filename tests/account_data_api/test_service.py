@@ -46,7 +46,7 @@ class Table:
         self.puts.append(Item)
         self.items[key] = dict(Item)
 
-    def delete_item(self, Key):
+    def delete_item(self, Key, **_kwargs):
         self.items.pop((Key["PK"], Key["SK"]), None)
 
 
@@ -531,7 +531,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ledger.items[(receipt["PK"], receipt["SK"])] = receipt
         result = service.delete_user_profile_state(
             deletion, users_table=users, ledger_table=ledger,
-            policy_status="approved", now_epoch=200,
+            policy_status="approved", demographic_research_policy_status="approved", now_epoch=200,
         )
 
         self.assertTrue(result["complete"])
@@ -544,6 +544,45 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ("ACCOUNT#account-1", "ACCOUNT_DELETION#USER_PROFILE"),
             ledger.items,
         )
+
+    def test_user_profile_cleanup_erases_demographic_values_and_preserves_value_free_audit(self):
+        deletion = command()
+        partition = "USER#account-1"
+        epoch = "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+        operation = "47debb73-444b-4bb1-9889-fb56885b7922"
+        profile = {"PK":partition,"SK":"PROFILE","sub":"account-1","status":"DELETION_REQUESTED",
+                   "deletionOperationId":deletion["operationId"],"deletionRequestedAtEpoch":100}
+        demographic = {"PK":partition,"SK":"DEMOGRAPHIC_RESEARCH","ageBand":"25_34","stateCode":"IL"}
+        receipt = {"PK":partition,"SK":f"DEMOGRAPHIC_OPERATION#{operation}","ageBand":"25_34","stateCode":"IL"}
+        audit = {"PK":partition,"SK":f"DEMOGRAPHIC_CONSENT#{epoch}#90#{operation}","schemaVersion":1,
+                 "recordVersion":1,"eventType":"demographic.research.update","purpose":"optional-demographic-protection-research",
+                 "purposeVersion":"consumer-protection-research-v1",
+                 "noticeVersion":"demographic-research-2026-09-30-v1","policyVersion":"optional-demographic-research-v1",
+                 "consentEpochId":epoch,"operationId":operation,"resultingState":"enrolled","stateVersion":2,
+                 "occurredAtEpoch":90,"expiresAt":90+400*86400,"valueCleanupDeadlineEpoch":90+86400,
+                 "valueCleanupCompletedAtEpoch":90}
+        authority = {"PK":"ACCOUNT#account-1","SK":"DEMOGRAPHIC_RESEARCH_AUTHORITY","schemaVersion":1,
+                     "recordVersion":1,"purpose":"optional-demographic-protection-research",
+                     "purposeVersion":"consumer-protection-research-v1",
+                     "noticeVersion":"demographic-research-2026-09-30-v1","policyVersion":"optional-demographic-research-v1",
+                     "state":"enrolled","stateVersion":2,"consentEpochId":epoch,"lastOperationId":operation,
+                     "validUntilEpoch":1000,"updatedAtEpoch":90,"expiresAt":1000}
+        users = OutboxTable([{"Items":[profile,demographic,receipt,audit]}],
+                            {(x["PK"],x["SK"]):x for x in (profile,demographic,receipt,audit)})
+        ledger = Table({(authority["PK"],authority["SK"]):authority})
+        for component in service.USER_PROFILE_PREREQUISITES:
+            proof=service._component_receipt(deletion,component,150);ledger.items[(proof["PK"],proof["SK"])]=proof
+        result=service.delete_user_profile_state(deletion,users_table=users,ledger_table=ledger,policy_status="approved",
+                                                 demographic_research_policy_status="approved",now_epoch=200)
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["deleted"],4)
+        self.assertEqual(users.items[(partition,audit["SK"])],audit)
+        self.assertNotIn((authority["PK"],authority["SK"]),ledger.items)
+
+    def test_demographic_audit_rejects_linkable_values(self):
+        item={"PK":"USER#account-1","SK":"DEMOGRAPHIC_CONSENT#bad","ageBand":"25_34"}
+        with self.assertRaisesRegex(ValueError,"Demographic consent audit"):
+            service._validate_demographic_audit(item,"USER#account-1")
 
     def test_v1_component_is_additional_to_legacy_entitlements(self):
         deletion = command()

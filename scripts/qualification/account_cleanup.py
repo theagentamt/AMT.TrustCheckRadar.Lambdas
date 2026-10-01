@@ -333,7 +333,7 @@ def run(r, campaign_app, stream, case, require, *, identity=None, pool='us-east-
         require(r.get('pipeline',candidate_pk,'SUMMARY') is None)
         require(r.get('ledger',r.cmd['PK'],'CAMPAIGN_RECOVERY_CONTROL')['state']=='SEALED')
         blocked()
-        drain(lambda:service.delete_user_profile_state(r.cmd,users_table=users,ledger_table=ledger,policy_status='approved',now_epoch=now))
+        drain(lambda:service.delete_user_profile_state(r.cmd,users_table=users,ledger_table=ledger,policy_status='approved',demographic_research_policy_status='approved',now_epoch=now))
         require(r.get('users',pk,'PROFILE') is None and r.get('users',pk,consent['SK'])==consent)
         upstream={c:receipt(c) for c in REQUIRED_COMPONENTS if c!='IDENTITY'}
         require(all(row is not None for row in upstream.values()))

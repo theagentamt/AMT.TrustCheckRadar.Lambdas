@@ -582,6 +582,10 @@ Required environment:
 - `USER_PROFILE_DELETION_POLICY_STATUS=pending` by default. Even when approved,
   the worker refuses to query/delete profile state until exact receipts exist for
   session, device, recovery, History, analysis, campaign, outbox, and entitlements.
+- `DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS=pending` by default. It must be
+  approved before `USER_PROFILE` may erase demographic current/operation and
+  value-free authority records. Validated value-free consent audits remain only
+  through their original 400-day expiry.
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -623,6 +627,60 @@ full-pass completion, and full-pass age, plus analysis/outbox/profile
 policy-blocked counts; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
+
+---
+
+## Optional Demographic Research Profile (Phase A; no active route)
+
+- Lambda path: `src/demographic_research/`; artifact:
+  `demographic_research.zip`; handler: `app.lambda_handler`; Python 3.14/ARM64.
+- Authenticated HTTP API v2 routes are `GET` and `PUT`
+  `/v1/users/demographic-research-profile`.
+- Purpose is exactly `optional-demographic-protection-research`, purpose version
+  `consumer-protection-research-v1`, notice
+  `demographic-research-2026-09-30-v1`, and policy
+  `optional-demographic-research-v1`.
+- `DEMOGRAPHIC_RESEARCH_SERVICE_ENABLED=false`,
+  `DEMOGRAPHIC_RESEARCH_ENROLLMENT_ENABLED=false`, and
+  `DEMOGRAPHIC_RESEARCH_HTTP_SUBJECTS_JSON=[]` are independent gates. The service
+  gate and exact-subject allowlist run before body parsing and before the
+  AWS-backed service module is imported. When service is enabled but enrollment
+  remains disabled, GET and withdrawal remain available while enroll/update
+  return `ENROLLMENT_UNAVAILABLE`.
+- Required configuration is `DEMOGRAPHIC_RESEARCH_ENVIRONMENT=dev|uat|prod`,
+  `DEMOGRAPHIC_RESEARCH_USERS_TABLE_NAME`, and
+  `DEMOGRAPHIC_RESEARCH_DELETION_LEDGER_TABLE_NAME`.
+- Current state is `USER#<sub>/DEMOGRAPHIC_RESEARCH`; consent and selected values
+  expire after 400 days and require reconsent. Seven-day idempotency state is
+  `DEMOGRAPHIC_OPERATION#<operationId>`. The 400-day consent audit at
+  `DEMOGRAPHIC_CONSENT#<epoch>#<occurredAtEpoch>#<operationId>` is value-free.
+  `ACCOUNT#<sub>/DEMOGRAPHIC_RESEARCH_AUTHORITY` is also value-free and rejects a
+  restored/stale users-table record unless state/version/epoch/last operation and
+  validity match current authority.
+- Every read checks the fixed account-deletion fence first and exact active,
+  age-verified PROFILE second. Every mutation repeats both as transaction
+  conditions. Correction and withdrawal atomically replace/remove current values
+  and delete the prior value-bearing operation receipt; their value-free audit
+  records the 24-hour deadline and immediate completion.
+- IAM requires users and deletion-ledger `GetItem`; transaction-only users
+  `PutItem`/`DeleteItem`/`ConditionCheckItem` and deletion-ledger
+  `PutItem`/`ConditionCheckItem`. No Query, Scan, campaign, entitlement, device,
+  provider, or commercial-data access is part of this Lambda.
+- Metrics use `TrustCheckRadar/DemographicResearch` with bounded `Environment`
+  and `Operation` dimensions. Demographic choices, sub, request body, and
+  operation ID are prohibited from log and metric content.
+- Export candidate.5 is separately gated by
+  `DEMOGRAPHIC_RESEARCH_EXPORT_CONTRACT_ENABLED=false` and adds only
+  demographic current, operation, and value-free consent families. Account
+  deletion is separately gated by
+  `DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS=pending` under USER_PROFILE.
+- DynamoDB PITR can retain historical blocks for 35 days. Restores are
+  quarantined and cannot serve demographic data until current deletion fences,
+  current demographic authority, and account-data inventory are reapplied and
+  requalified. A jointly restored ledger is not current authority.
+- This source/package does not activate a route, concurrency, export, deletion,
+  data collection, campaign enrichment, or commercial use. Scoped Dev and later
+  release E2E remain separate acceptance work.
 
 Activation remains blocked by the unverified complete inventory, final identity
 deletion, any additional inventory components, overall

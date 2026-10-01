@@ -160,6 +160,9 @@ def _attempt_post_fence_cleanup(account_id):
             ledger_table=ledger,
             page_size=100,
             policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+            demographic_research_policy_status=(
+                config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
+            ),
             account_receipt_retention_days=(
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
@@ -250,6 +253,9 @@ def _stream_handler(event):
                     command, users_table=users_table, ledger_table=ledger,
                     page_size=100,
                     policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+                    demographic_research_policy_status=(
+                        config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
+                    ),
                     account_receipt_retention_days=(
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
@@ -313,6 +319,9 @@ def _reconciliation_handler(context=None):
             ),
             user_profile_deletion_policy_status=(
                 config.USER_PROFILE_DELETION_POLICY_STATUS
+            ),
+            demographic_research_deletion_policy_status=(
+                config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
             ),
             analysis_request_retention_seconds=(
                 config.ANALYSIS_REQUEST_ID_TTL_SECONDS

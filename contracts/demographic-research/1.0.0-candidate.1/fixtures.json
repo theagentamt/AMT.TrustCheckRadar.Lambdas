@@ -1,0 +1,50 @@
+{
+  "enrollRequest": {
+    "schemaVersion": 1,
+    "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+    "expectedStateVersion": 0,
+    "action": "enroll",
+    "noticeVersion": "demographic-research-2026-09-30-v1",
+    "ageBand": "25_34",
+    "stateCode": "IL"
+  },
+  "withdrawRequest": {
+    "schemaVersion": 1,
+    "operationId": "d8af79ad-a4c7-4280-bfe6-f490be17dff3",
+    "expectedStateVersion": 1,
+    "action": "withdraw",
+    "noticeVersion": "demographic-research-2026-09-30-v1"
+  },
+  "enrolledResponse": {
+    "schemaVersion": 1,
+    "purpose": "optional-demographic-protection-research",
+    "purposeVersion": "consumer-protection-research-v1",
+    "noticeVersion": "demographic-research-2026-09-30-v1",
+    "policyVersion": "optional-demographic-research-v1",
+    "state": "enrolled",
+    "stateVersion": 1,
+    "ageBand": "25_34",
+    "stateCode": "IL",
+    "validUntilEpoch": 1834560000,
+    "updatedAtEpoch": 1800000000,
+    "capabilities": {
+      "enrollmentEnabled": false,
+      "updateEnabled": true,
+      "withdrawalEnabled": true
+    },
+    "operation": {
+      "operationId": "47debb73-444b-4bb1-9889-fb56885b7922",
+      "status": "applied",
+      "action": "enroll",
+      "resultingState": "enrolled",
+      "stateVersion": 1
+    }
+  },
+  "disabledError": {
+    "error": {
+      "code": "FEATURE_DISABLED",
+      "message": "Demographic research is not available.",
+      "retryable": true
+    }
+  }
+}

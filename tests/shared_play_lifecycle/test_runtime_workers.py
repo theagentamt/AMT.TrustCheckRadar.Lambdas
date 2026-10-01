@@ -197,7 +197,7 @@ def test_real_token_receipt_is_required_before_synthetic_identity_finalization(t
  from account_data_api.service import delete_user_profile_state
  users=a.ddb.Table('users')
  users.update_item(Key={'PK':'USER#'+ACCOUNT,'SK':'PROFILE'},UpdateExpression='SET deletionOperationId=:op, deletionRequestedAtEpoch=:at',ExpressionAttributeValues={':op':command['operationId'],':at':now})
- profile_kwargs=dict(users_table=users,ledger_table=ledger,policy_status='approved',now_epoch=now)
+ profile_kwargs=dict(users_table=users,ledger_table=ledger,policy_status='approved',demographic_research_policy_status='approved',now_epoch=now)
  blocked=delete_user_profile_state(command,**profile_kwargs)
  assert blocked['missingComponents']==['PLAY_TOKENS'] and not blocked['complete']
  assert a._get('users',{'PK':'USER#'+ACCOUNT,'SK':'PROFILE'}) is not None
