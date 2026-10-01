@@ -18,8 +18,9 @@ on:
         options:
           - main_ci
           - research_candidate
+          - message_candidate
       source_sha:
-        description: Exact release-V01 commit for research_candidate (must equal dispatch ref)
+        description: Exact release-V01 commit for a reviewed Dev candidate (must equal dispatch ref)
         required: false
         type: string
       environment:
@@ -353,4 +354,103 @@ jobs:
             echo 'Nine immutable ZIPs published; exact S3 versions and checksums are in research-candidate-publication.'
             echo 'No runtime, alias, route, IAM, data, migration gate or consumer changed. Deployment and availability qualification remain separate.'
             echo 'Python 3.14 source compile/import checks do not qualify native ARM64 extension execution.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
+  message-candidate:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/release-V01' &&
+      inputs.mode == 'message_candidate' && inputs.environment == 'dev'
+    # The packages contain the ARM64 rpds native extension; execute the package
+    # smoke on the same OS/architecture family used by Lambda.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    environment: dev
+    env:
+      ARTIFACT_BUCKET: ${{ vars.ARTIFACT_BUCKET }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - name: Validate exact release and Dev target
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ && "$SOURCE_SHA" == "$GITHUB_SHA" ]]
+          [[ -z "$SOURCE_RUN_ID" ]]
+          [[ "$ARTIFACT_BUCKET" == 'trustcheckradar-dev-107827791950-artifacts' ]]
+          [[ "$AWS_REGION" == 'us-east-1' ]]
+          [[ "$AWS_ROLE_ARN" == 'arn:aws:iam::107827791950:role/trustcheckradar-dev-lambda-publisher' ]]
+      - name: Check out exact reviewed release
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Install local validation dependencies
+        run: python -m pip install --requirement requirements-dev.txt 'moto[dynamodb]==5.2.3'
+      - name: Run governed-message source gates
+        env:
+          AMT_AUTHORITY_INTEGRATION: '1'
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          python -m pytest -q tests/message_consumer tests/message_evaluator tests/shared_check_authority tests/scripts/test_publish_message_candidate.py
+          python -m compileall -q src/message_consumer src/message_evaluator src/shared_message_contract src/shared_check_authority scripts/publish_message_candidate.py
+      - name: Build exactly two full-dependency Python 3.14 ARM64 packages
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir dist
+          for function in message_consumer message_evaluator; do
+            bash scripts/build_lambda_zip.sh --function "$function" --python-version 3.14 --arch arm64 --output-dir dist
+          done
+          python - <<'PYTHON'
+          from hashlib import sha256
+          from pathlib import Path
+          dist = Path('dist')
+          (dist / 'SHA256SUMS').write_text(''.join(
+              sha256(path.read_bytes()).hexdigest() + '  ' + path.name + '\n'
+              for path in sorted(dist.glob('*.zip'))))
+          PYTHON
+          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/message-candidate-build.json
+      - name: Preserve candidate build evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: message-candidate-packages
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS
+            dist/message-candidate-build.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Configure scoped short-lived publisher credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: message-candidate-${{ github.run_id }}
+      - name: Verify account and publish immutable Dev objects
+        run: |
+          set -euo pipefail
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == '107827791950' ]]
+          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/message-candidate-publication.json
+      - name: Preserve exact S3 versions and checksums
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: message-candidate-publication
+          path: dist/message-candidate-publication.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Record publication boundary
+        run: |
+          {
+            echo '## Governed-message Dev candidate artifacts published'
+            echo "Source commit: $SOURCE_SHA"
+            echo 'Two immutable ZIPs published; exact S3 versions and checksums are in message-candidate-publication.'
+            echo 'No runtime, alias, route, IAM, data, secret or activation setting changed.'
           } >> "$GITHUB_STEP_SUMMARY"

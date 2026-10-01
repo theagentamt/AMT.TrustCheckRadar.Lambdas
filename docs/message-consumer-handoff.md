@@ -92,3 +92,18 @@ Both message artifacts built with full Python 3.14 ARM64 dependency wheels; sour
 compile and shellcheck pass. Existing URL contract directories have no diff against
 the coherent approved prerequisite 2f277a1. This is local/emulator/package evidence,
 not evidence of AWS activation or paid-store lifecycle verification.
+
+## Reviewed Dev artifact publication
+
+The `Publish Lambda release` workflow has a manual `message_candidate` mode for
+`release-V01`. It accepts only the exact dispatch commit, Dev account and reviewed
+artifact bucket; builds exactly `message_consumer.zip` and
+`message_evaluator.zip` for Python 3.14 ARM64; runs the governed-message,
+authority and publication tests; and imports the final packages on a Linux ARM64
+runner. Publication uses conditional S3 writes under the exact source SHA and
+records object versions, checksums and sizes. It cannot update Lambda, API
+Gateway, IAM, DynamoDB, secrets or any activation flag.
+
+Disabled responses preserve every supported transport version, including
+candidate.3, so a provisioned closed route remains contract-decodable before any
+rules or AI gate is enabled.
