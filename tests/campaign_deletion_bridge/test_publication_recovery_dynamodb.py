@@ -1,6 +1,8 @@
 """Real SDK transactions: owned deletion through frozen/published candidate recovery."""
-from .test_progress_dynamodb import world, candidate, run, NOW, TOKEN, PART, OP
+import os
 import pytest
+if os.environ.get('AMT_AUTHORITY_INTEGRATION')!='1':pytest.skip('Isolated SDK only',allow_module_level=True)
+from .test_progress_dynamodb import world, candidate, run, NOW, TOKEN, PART, OP
 import progress
 from shared_campaign_locators import core
 from shared_campaign_locators.publication import digest

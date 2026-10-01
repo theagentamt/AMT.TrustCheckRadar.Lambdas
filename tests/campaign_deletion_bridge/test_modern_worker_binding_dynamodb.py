@@ -1,5 +1,7 @@
 """Real worker composition with modern work binding (synthetic resource IDs only)."""
+import os
 import pytest
+if os.environ.get('AMT_AUTHORITY_INTEGRATION')!='1':pytest.skip('Isolated SDK only',allow_module_level=True)
 from tests.shared_campaign_work.test_completion_compatibility_dynamodb import modern,qualified,world
 from tests.campaign_deletion_bridge.test_worker_completion_dynamodb import enabled,Context,event,add_index
 from tests.campaign_deletion_bridge.test_completion_dynamodb import CMD,NOW,OP,get,partition

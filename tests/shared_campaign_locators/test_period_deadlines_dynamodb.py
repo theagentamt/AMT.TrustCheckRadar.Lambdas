@@ -1,8 +1,10 @@
 """New producer deadlines fit the existing period/recovery and data maxima."""
+import os
 import json
 from decimal import Decimal
 from types import SimpleNamespace
 import pytest
+if os.environ.get('AMT_AUTHORITY_INTEGRATION')!='1':pytest.skip('Isolated SDK only',allow_module_level=True)
 from tests.shared_campaign_locators.test_dynamodb import (
     world,publisher,cluster,observation,EVENT,PERIOD,PINS,TOKEN,get,wire)
 from shared_campaign_locators import period as P
