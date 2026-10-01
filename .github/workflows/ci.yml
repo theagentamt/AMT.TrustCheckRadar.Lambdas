@@ -36,6 +36,7 @@ jobs:
         # explicitly gated integration-only suites.
         env:
           AWS_EC2_METADATA_DISABLED: "true"
+          PYTHONPATH: src
         run: |
           while IFS= read -r suite; do
             status=0
