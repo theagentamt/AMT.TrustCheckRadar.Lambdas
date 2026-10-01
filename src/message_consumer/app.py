@@ -6,6 +6,7 @@ from .service import Consumer, unavailable_envelope
 from .budget import ProviderBudget
 from shared_message_contract import POLICY, APPROVAL_SHA, VERSION
 from shared_message_contract import validation_v2 as v2
+from shared_message_contract import validation_v3 as v3
 from shared_message_contract.runtime import unique_pairs
 
 
@@ -35,7 +36,9 @@ def requested_version(event):
         raw=event.get('body') if type(event) is dict else None
         if type(raw) is not str or len(raw.encode())>32768:return VERSION
         value=json.loads(raw,object_pairs_hook=unique_pairs)
-        return v2.VERSION if type(value) is dict and value.get('transportVersion')==v2.VERSION else VERSION
+        if type(value) is not dict:return VERSION
+        requested=value.get('transportVersion')
+        return requested if requested in (v2.VERSION,v3.VERSION) else VERSION
     except Exception:return VERSION
 
 

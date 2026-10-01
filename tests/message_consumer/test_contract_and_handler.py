@@ -9,6 +9,8 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'src'))
 from message_consumer import app
 from message_consumer.service import validate_envelope
+from shared_message_contract import validation_v2 as v2
+from shared_message_contract import validation_v3 as v3
 CONTRACT=ROOT/'contracts/message-consumer/1.0.0-candidate.1'
 
 def test_published_contract_integrity_and_full_transport_fixtures():
@@ -28,6 +30,24 @@ def test_disabled_public_handler_has_unknown_charge_and_no_content_log(monkeypat
     assert raw['statusCode']==503 and body['errorCode']=='SERVICE_NOT_ENABLED'
     assert body['accounting']['chargedChecks'] is None and body['outcome'] is None
     assert not capsys.readouterr().out
+
+
+@pytest.mark.parametrize("version", [v2.VERSION, v3.VERSION])
+def test_disabled_public_handler_preserves_supported_transport_version(monkeypatch,version):
+    monkeypatch.delenv('MESSAGE_CONSUMER_ENABLED',raising=False)
+    raw=app.lambda_handler({'body':json.dumps({'transportVersion':version})},None)
+    body=json.loads(raw['body'])
+    assert raw['statusCode']==503
+    assert body['transportVersion']==version
+    assert body['errorCode']=='SERVICE_NOT_ENABLED'
+
+
+@pytest.mark.parametrize("body", [None, "not json", json.dumps({'transportVersion':'future'})])
+def test_disabled_public_handler_uses_base_version_for_unrecognized_request(monkeypatch,body):
+    monkeypatch.delenv('MESSAGE_CONSUMER_ENABLED',raising=False)
+    event={} if body is None else {'body':body}
+    raw=app.lambda_handler(event,None)
+    assert json.loads(raw['body'])['transportVersion']==app.VERSION
 
 def test_actual_built_archives_import_in_isolation(tmp_path):
     import zipfile
