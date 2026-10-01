@@ -328,9 +328,9 @@ def test_real_campaign_seal_then_profile_cleanup_then_identity_consumes_control(
         'schemaVersion':1,'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'d'*64,
         'requiredComponents':list(REQUIRED_COMPONENTS),'usernameIsSubVerified':True,'approvedAtEpoch':NOW-10},'ledger')
     profile=get(w,'users','USER#'+ACCOUNT,'PROFILE');w.put(profile|{'deletionRequestedAtEpoch':NOW},'users')
-    assert delete_user_profile_state(CMD,users_table=users,ledger_table=ledger,policy_status='approved',now_epoch=NOW+1)['complete'] is False
+    assert delete_user_profile_state(CMD,users_table=users,ledger_table=ledger,policy_status='approved',demographic_research_policy_status='approved',now_epoch=NOW+1)['complete'] is False
     result(w)
-    assert delete_user_profile_state(CMD,users_table=users,ledger_table=ledger,policy_status='approved',now_epoch=NOW+1)['complete'] is True
+    assert delete_user_profile_state(CMD,users_table=users,ledger_table=ledger,policy_status='approved',demographic_research_policy_status='approved',now_epoch=NOW+1)['complete'] is True
     assert get(w,'users',profile['PK'],profile['SK']) is None
     class Identity:
         calls=0

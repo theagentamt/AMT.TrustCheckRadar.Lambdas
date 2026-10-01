@@ -49,10 +49,14 @@ def parse(event):
 
 
 class Export:
-    def __init__(self, reader, cursor, now=lambda: int(time.time()), *, play_verification=False):
+    def __init__(self, reader, cursor, now=lambda: int(time.time()), *, play_verification=False, demographic_research=False):
         self.reader, self.cursor, self.now = reader, cursor, now
-        self.version = '1.0.0-account-export-candidate.4' if play_verification else VERSION
-        self.scope = {**SCOPE,'version':'v1-user-visible-2026-09-28','included':SCOPE['included']+['play_verification'],'excluded':SCOPE['excluded']+['purchase_credentials']} if play_verification else SCOPE
+        self.version = ('1.0.0-account-export-candidate.5' if demographic_research else
+                        ('1.0.0-account-export-candidate.4' if play_verification else VERSION))
+        self.scope = {**SCOPE,'version':'v1-user-visible-2026-09-30',
+                      'included':SCOPE['included']+(['play_verification'] if play_verification else [])+
+                          (['demographic_profile','demographic_operation','demographic_consent'] if demographic_research else []),
+                      'excluded':SCOPE['excluded']+(['purchase_credentials'] if play_verification else [])} if (play_verification or demographic_research) else SCOPE
         self.manifest_version = self.scope['version']
 
     def page(self, event, body):

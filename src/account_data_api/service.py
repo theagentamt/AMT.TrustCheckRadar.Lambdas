@@ -47,6 +47,16 @@ CONSENT_COMPLETION_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "eventType", "occurredAt",
     "consentEpochId", "operationId", "resultingState", "expiresAt",
 }
+DEMOGRAPHIC_AUDIT_BASE_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "eventType", "purpose", "purposeVersion",
+    "noticeVersion", "policyVersion", "consentEpochId", "operationId",
+    "resultingState", "stateVersion", "occurredAtEpoch", "expiresAt",
+}
+DEMOGRAPHIC_AUTHORITY_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "purpose", "purposeVersion", "noticeVersion",
+    "policyVersion", "state", "stateVersion", "consentEpochId", "lastOperationId",
+    "updatedAtEpoch", "expiresAt",
+}
 PAYLOAD_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
@@ -720,7 +730,8 @@ def delete_campaign_outbox(
 
 def delete_user_profile_state(
     command, *, users_table, ledger_table, page_size=100,
-    policy_status="pending", prerequisite_components=USER_PROFILE_PREREQUISITES,
+    policy_status="pending", demographic_research_policy_status="pending",
+    prerequisite_components=USER_PROFILE_PREREQUISITES,
     now_epoch=None,
     account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
 ):
@@ -729,6 +740,7 @@ def delete_user_profile_state(
     if (
         page_size != 100
         or policy_status not in {"pending", "approved"}
+        or demographic_research_policy_status not in {"pending", "approved"}
         or tuple(prerequisite_components) != USER_PROFILE_PREREQUISITES
         or account_receipt_retention_days != 120
     ):
@@ -766,6 +778,11 @@ def delete_user_profile_state(
             "deleted": 0, "complete": False, "alreadyComplete": False,
             "policyBlocked": "USER_PROFILE_PREREQUISITES",
             "missingComponents": missing,
+        }
+    if demographic_research_policy_status != "approved":
+        return {
+            "deleted": 0, "complete": False, "alreadyComplete": False,
+            "policyBlocked": "DEMOGRAPHIC_RESEARCH_DELETION",
         }
     progress = ledger_table.get_item(
         Key=progress_key, ConsistentRead=True
@@ -815,6 +832,11 @@ def delete_user_profile_state(
             deleted += 1
         elif sk.startswith("CAMPAIGN_CONSENT#"):
             _validate_consent_audit(item, partition)
+        elif sk == "DEMOGRAPHIC_RESEARCH" or sk.startswith("DEMOGRAPHIC_OPERATION#"):
+            users_table.delete_item(Key=key)
+            deleted += 1
+        elif sk.startswith("DEMOGRAPHIC_CONSENT#"):
+            _validate_demographic_audit(item, partition)
         else:
             raise ValueError("Unknown users-table item family during profile deletion")
     continuation = page.get("LastEvaluatedKey")
@@ -832,6 +854,9 @@ def delete_user_profile_state(
             "updatedAtEpoch": now,
         })
         return {"deleted": deleted, "complete": False, "alreadyComplete": False}
+    deleted += _delete_demographic_authority(
+        ledger_table, command["accountId"]
+    )
     receipt = _component_receipt(
         command, "USER_PROFILE", now,
         retention_days=account_receipt_retention_days,
@@ -868,6 +893,7 @@ def reconcile_session_revocations(
     analysis_consumption_deletion_policy_status="pending",
     campaign_outbox_locator_coverage_status="pending",
     user_profile_deletion_policy_status="pending",
+    demographic_research_deletion_policy_status="pending",
     now=lambda: int(time.time()), remaining_millis=lambda: 30000,
     max_commands=10, minimum_remaining_millis=10000,
     verify_command=None, delete_entitlements=None, finalize_account=None,
@@ -1016,6 +1042,9 @@ def reconcile_session_revocations(
                 profile_result = delete_user_profile_state(
                     command, users_table=users_table, ledger_table=ledger_table,
                     page_size=100, policy_status=user_profile_deletion_policy_status,
+                    demographic_research_policy_status=(
+                        demographic_research_deletion_policy_status
+                    ),
                     now_epoch=now(),
                 )
                 totals["userProfileRecordsDeleted"] += profile_result["deleted"]
@@ -1244,6 +1273,65 @@ def _validate_consent_audit(item, partition):
         or not _is_uuid4(item.get("operationId"))
     ):
         raise ValueError("Consent audit is invalid")
+
+
+def _validate_demographic_audit(item, partition):
+    fields = set(item)
+    action = str(item.get("eventType", "")).removeprefix("demographic.research.")
+    expected = set(DEMOGRAPHIC_AUDIT_BASE_FIELDS)
+    if action in {"update", "withdraw"}:
+        expected |= {"valueCleanupDeadlineEpoch", "valueCleanupCompletedAtEpoch"}
+    occurred = _exact_int(item.get("occurredAtEpoch"))
+    expires = _exact_int(item.get("expiresAt"))
+    deadline = _exact_int(item.get("valueCleanupDeadlineEpoch"))
+    completed = _exact_int(item.get("valueCleanupCompletedAtEpoch"))
+    if (
+        fields != expected or item.get("PK") != partition
+        or action not in {"enroll", "update", "withdraw"}
+        or item.get("purpose") != "optional-demographic-protection-research"
+        or item.get("purposeVersion") != "consumer-protection-research-v1"
+        or item.get("noticeVersion") != "demographic-research-2026-09-30-v1"
+        or item.get("policyVersion") != "optional-demographic-research-v1"
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or occurred is None or expires != occurred + 400 * 86400
+        or not _is_uuid4(item.get("consentEpochId"))
+        or not _is_uuid4(item.get("operationId"))
+        or (action in {"update", "withdraw"}
+            and (deadline != occurred + 24 * 3600 or completed != occurred))
+        or any(name in item for name in ("ageBand", "stateCode"))
+    ):
+        raise ValueError("Demographic consent audit is invalid")
+
+
+def _delete_demographic_authority(ledger_table, account_id):
+    key = {"PK": f"ACCOUNT#{account_id}", "SK": "DEMOGRAPHIC_RESEARCH_AUTHORITY"}
+    item = ledger_table.get_item(Key=key, ConsistentRead=True).get("Item")
+    if not item:
+        return 0
+    expected = set(DEMOGRAPHIC_AUTHORITY_FIELDS)
+    if item.get("state") == "enrolled":
+        expected.add("validUntilEpoch")
+    if (
+        set(item) != expected or item.get("PK") != key["PK"] or item.get("SK") != key["SK"]
+        or item.get("purpose") != "optional-demographic-protection-research"
+        or item.get("purposeVersion") != "consumer-protection-research-v1"
+        or item.get("noticeVersion") != "demographic-research-2026-09-30-v1"
+        or item.get("policyVersion") != "optional-demographic-research-v1"
+        or item.get("state") not in {"enrolled", "withdrawn"}
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or _exact_int(item.get("stateVersion")) is None
+        or not _is_uuid4(item.get("consentEpochId"))
+        or not _is_uuid4(item.get("lastOperationId"))
+        or any(name in item for name in ("ageBand", "stateCode"))
+    ):
+        raise ValueError("Demographic authority is invalid")
+    ledger_table.delete_item(
+        Key=key, ConditionExpression="stateVersion = :version AND lastOperationId = :operation",
+        ExpressionAttributeValues={":version": item["stateVersion"], ":operation": item["lastOperationId"]},
+    )
+    return 1
 
 
 def _minimal_analysis_request(

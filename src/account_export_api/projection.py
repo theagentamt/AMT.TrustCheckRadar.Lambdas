@@ -19,8 +19,11 @@ FIELDS = {
     'recognition': ('qualifyingChecks','awardedBadgeIds'),
     'participation': ('state','noticeVersion','policyVersion','effectiveFrom','effectiveUntil','withdrawalRequestedAt','deletionDeadlineAt'),
     'consent': ('eventType','occurredAt','noticeVersion','policyVersion','resultingState','effectiveMonthlyScanLimit'),
+    'demographic_profile': ('state','purpose','purposeVersion','noticeVersion','policyVersion','stateVersion','ageBand','stateCode','validUntilEpoch','updatedAtEpoch','withdrawnAtEpoch','valueCleanupDeadlineEpoch','valueCleanupCompletedAtEpoch'),
+    'demographic_operation': ('operationId','action','expectedStateVersion','requestNoticeVersion','resultingState','stateVersion','occurredAtEpoch','expiresAt','ageBand','stateCode'),
+    'demographic_consent': ('eventType','purpose','purposeVersion','noticeVersion','policyVersion','resultingState','stateVersion','occurredAtEpoch','expiresAt','valueCleanupDeadlineEpoch','valueCleanupCompletedAtEpoch'),
 }
-INTEGER_FIELDS = {'completedAtEpoch','monthlyScanLimit','remainingMonthlyScans','remainingCredits','usedCount','validFromEpoch','validUntilEpoch','activatedAtEpoch','startEpoch','endEpoch','limit','usedChecks','reservedChecks','qualifyingChecks','effectiveMonthlyScanLimit','observedAtEpoch','expiresAt','submissionCount'}
+INTEGER_FIELDS = {'completedAtEpoch','monthlyScanLimit','remainingMonthlyScans','remainingCredits','usedCount','validFromEpoch','validUntilEpoch','activatedAtEpoch','startEpoch','endEpoch','limit','usedChecks','reservedChecks','qualifyingChecks','effectiveMonthlyScanLimit','observedAtEpoch','expiresAt','submissionCount','stateVersion','expectedStateVersion','occurredAtEpoch','updatedAtEpoch','withdrawnAtEpoch','valueCleanupDeadlineEpoch','valueCleanupCompletedAtEpoch'}
 BOOLEAN_FIELDS = {'ageVerified','isAccessGranted'}
 
 

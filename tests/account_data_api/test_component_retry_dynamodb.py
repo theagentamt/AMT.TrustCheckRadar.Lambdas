@@ -39,7 +39,7 @@ def test_receipt_committed_response_lost_retry_preserves_original_deadline(runne
             if component=='DEVICE_RECOVERY':return service.delete_device_recovery_control(r.cmd,recovery_table=table('recovery'),**common)
             if component=='ANALYSIS_ABUSE':return service.delete_analysis_abuse_control(r.cmd,abuse_table=table('abuse'),request_dedupe_policy_status='approved',legacy_request_retention_policy_status='approved',consumption_deletion_policy_status='approved',**common)
             if component=='CAMPAIGN_OUTBOX':return service.delete_campaign_outbox(r.cmd,outbox_table=table('outbox'),locator_coverage_status='approved',**common)
-            return service.delete_user_profile_state(r.cmd,users_table=table('users'),policy_status='approved',**common)
+            return service.delete_user_profile_state(r.cmd,users_table=table('users'),policy_status='approved',demographic_research_policy_status='approved',**common)
         fired=[]
         def after(name,kw):
             if not fired and name=='put_item' and kw.get('Item',{}).get('component')==component:

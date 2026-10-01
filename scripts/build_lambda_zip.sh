@@ -22,6 +22,7 @@ FUNCTIONS=(
   campaign_participation
   campaign_review
   campaign_trends
+  demographic_research
   conversation_analysis
   message_consumer
   message_evaluator
@@ -179,7 +180,7 @@ build_function() {
   if [[ "$function_name" == "support_account_deletion" && -z "$PYTHON_VERSION" ]]; then
     python_version="3.14"
   fi
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "demographic_research" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 

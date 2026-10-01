@@ -10,12 +10,13 @@ from shared_check_authority.inventory import verified_inventory
 
 
 class Reader:
-    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None, campaign_work_client=None, http_subjects=None):
+    def __init__(self, authority, tables, cognito, user_pool_id, purchase_reader=None, kms=None, play_token_table=None, campaign_work_client=None, http_subjects=None, demographic_research=False):
         self.a, self.tables, self.cognito, self.pool = authority, tables, cognito, user_pool_id
         self.purchase_reader, self.kms = purchase_reader, kms
         self.play_token_table = play_token_table
         self.campaign_work_client=campaign_work_client
         self.http_subjects=http_subjects
+        self.demographic_research=demographic_research
 
     def auth(self, event):
         if self.http_subjects is not None:
@@ -120,6 +121,10 @@ class Reader:
             plan.append(('research_contributions','pipeline',period,arn,False))
         plan += [('participation','users',pk,'CAMPAIGN_PARTICIPATION',True),
                  ('consent','users',pk,'CAMPAIGN_CONSENT#',False)]
+        if self.demographic_research:
+            plan += [('demographic_profile','users',pk,'DEMOGRAPHIC_RESEARCH',True),
+                     ('demographic_operation','users',pk,'DEMOGRAPHIC_OPERATION#',False),
+                     ('demographic_consent','users',pk,'DEMOGRAPHIC_CONSENT#',False)]
         if self.play_token_table is not None:
             for kid in inventory['keys']:
                 plan.append(('play_verification',None,self.a._partition(context['account'],kid),None,False))

@@ -131,6 +131,24 @@ def test_unknown_summary_fields_or_invalid_feedback_never_escape():
 def test_logically_expired_rows_are_not_exported():
     assert projection.project({'expiresAt':1800000000,'email':'expired'},'profile',1800000000) is None
 
+
+def test_candidate5_projects_only_approved_demographic_fields(world):
+    service,reader,_=world
+    selected=Export(reader,service.cursor,service.now,play_verification=True,demographic_research=True)
+    value=start(selected)
+    assert value['exportTransportVersion']=='1.0.0-account-export-candidate.5'
+    assert value['scope']['included'][-3:]==['demographic_profile','demographic_operation','demographic_consent']
+    row={'state':'enrolled','purpose':'optional-demographic-protection-research','purposeVersion':'consumer-protection-research-v1','ageBand':'25_34','stateCode':'IL',
+         'stateVersion':1,'validUntilEpoch':1800000100,'updatedAtEpoch':1800000000,'consentEpochId':'secret'}
+    assert projection.project(row,'demographic_profile',1800000000)=={
+        'state':'enrolled','purpose':'optional-demographic-protection-research','purposeVersion':'consumer-protection-research-v1','ageBand':'25_34','stateCode':'IL',
+        'stateVersion':1,'validUntilEpoch':1800000100,'updatedAtEpoch':1800000000}
+    audit={'eventType':'demographic.research.update','purpose':'optional-demographic-protection-research','purposeVersion':'consumer-protection-research-v1',
+           'stateVersion':2,'occurredAtEpoch':1800000000,'expiresAt':1800000100,
+           'valueCleanupDeadlineEpoch':1800000001,'valueCleanupCompletedAtEpoch':1800000000,
+           'ageBand':'private'}
+    assert 'ageBand' not in projection.project(audit,'demographic_consent',1800000000)
+
 @pytest.mark.parametrize('modern,play',[(False,False),(False,True),(True,False),(True,True)])
 def test_new_receipt_requires_explicit_compatible_export_contract(world,modern,play):
     service,reader,clock=world

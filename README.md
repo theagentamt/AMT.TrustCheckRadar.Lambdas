@@ -14,6 +14,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_lifecycle.zip` | EventBridge Scheduler | Finalizes thresholded periods and creates/retires period HMAC keys. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Revalidates app-provided features, pseudonymizes the contributor, and enqueues opaque clustering work. |
 | `campaign_participation.zip` | `GET`/`PUT /v1/users/campaign-participation` | Manages optional server-authoritative participation, quota, receipts, and withdrawal commands. |
+| `demographic_research.zip` | `GET`/`PUT /v1/users/demographic-research-profile` | Default-disabled optional age-band/state research profile with independent consent, export, correction, withdrawal, and deletion controls. |
 | `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
 | `conversation_analysis.zip` | Retired `POST /analysis` | Replays owned historical results only; it cannot start a new analysis or provider request. |

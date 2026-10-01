@@ -112,11 +112,13 @@ def load():
         play_tokens=os.environ.get('ACCOUNT_EXPORT_PLAY_TOKENS_ENABLED')=='true'
         token_table=os.environ['PLAY_TOKEN_TABLE_NAME'] if play_tokens else None
         require(not play_tokens or token_table and token_table!=tables['authority'],'SERVICE_UNAVAILABLE',503)
+        demographics=os.environ.get('DEMOGRAPHIC_RESEARCH_EXPORT_CONTRACT_ENABLED')=='true'
+        require(not demographics or play_tokens,'SERVICE_UNAVAILABLE',503)
         reader = Reader(authority,tables,cognito,os.environ['COGNITO_USER_POOL_ID'],
                         purchase_reader=store,
                         kms=boto3.client('kms',region_name='us-east-1',config=config),play_token_table=token_table,
-                        http_subjects=http_subjects)
-        return Export(reader,cursor,play_verification=play_tokens)
+                        http_subjects=http_subjects,demographic_research=demographics)
+        return Export(reader,cursor,play_verification=play_tokens,demographic_research=demographics)
     except ExportError:
         raise
     except Exception:
