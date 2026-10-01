@@ -144,7 +144,16 @@ def publish(dist, bucket, source_sha, region, call=aws):
         checksum = artifact["sourceCodeHash"]
         sha = artifact["sha256"]
         try:
-            existing = call(region, "head-object", "--bucket", bucket, "--key", key)
+            existing = call(
+                region,
+                "head-object",
+                "--bucket",
+                bucket,
+                "--key",
+                key,
+                "--checksum-mode",
+                "ENABLED",
+            )
             if (
                 existing.get("ChecksumSHA256") != checksum
                 or existing.get("Metadata", {}).get("sha256") != sha
@@ -171,7 +180,16 @@ def publish(dist, bucket, source_sha, region, call=aws):
                 "--if-none-match",
                 "*",
             )
-        verified = call(region, "head-object", "--bucket", bucket, "--key", key)
+        verified = call(
+            region,
+            "head-object",
+            "--bucket",
+            bucket,
+            "--key",
+            key,
+            "--checksum-mode",
+            "ENABLED",
+        )
         version = verified.get("VersionId")
         if version in (None, "null"):
             raise ValueError("Versioned artifact required")

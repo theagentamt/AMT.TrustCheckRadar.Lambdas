@@ -75,6 +75,8 @@ def test_two_versioned_puts_are_conditional_and_never_deploy(packages):
         assert args[args.index("--key") + 1].startswith("releases/" + SHA + "/")
         if operation == "put-object":
             assert args[args.index("--if-none-match") + 1] == "*"
+        else:
+            assert args[args.index("--checksum-mode") + 1] == "ENABLED"
     assert all(row["versionId"] == "v1" for row in result["artifacts"])
 
 
