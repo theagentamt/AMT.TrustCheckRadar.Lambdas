@@ -16,7 +16,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_participation.zip` | `GET`/`PUT /v1/users/campaign-participation` | Manages optional server-authoritative participation, quota, receipts, and withdrawal commands. |
 | `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
-| `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
+| `conversation_analysis.zip` | Retired `POST /analysis` | Replays owned historical results only; it cannot start a new analysis or provider request. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
 | `device_recovery.zip` | `POST /device-recovery`; disabled candidate `POST /v1/users/device-recovery` | Performs the IAM operator flow and separately gated consumer recovery. |
 | `device-recovery-contracts-1.0.0.zip` | Versioned contract artifact | Publishes the disabled consumer-recovery request, original-operation response, error, receipt, and fixture contract. |
@@ -33,7 +33,7 @@ this repository owns function code, tests, and immutable deployment packages.
 | `play_lifecycle_worker.zip` | EventBridge schedule | Reconciles retained Play proof and pending acknowledgments. |
 | `play_token_deletion.zip` | Account-deletion ledger stream + reconciliation schedule | Erases retained Play tokens and completes the matching deletion component. |
 | `url_redirect_resolver.zip` | Private IAM invocation | Observes bounded public HTTP redirects; no reputation verdict. See [contract](docs/url-redirect-resolver.md). |
-| `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
+| `web_risk_communication.zip` | Retired `POST /web-risk-communication` | Returns `410 LEGACY_ENDPOINT_RETIRED`; it does not parse a URL or contact Google. |
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
 Handlers use `app.lambda_handler`. Runtime and architecture are selected per
@@ -123,3 +123,6 @@ variables, AWS role contract, and promotion flow.
 
 The `events/` directory contains sanitized examples for handler debugging. It does
 not contain credentials or production identifiers.
+
+The current Lambda source, provider and retention boundary for ATCR-95 is recorded
+in the [30 September 2026 backend/provider attestation](docs/backend-provider-attestation-2026-09-30.md).
