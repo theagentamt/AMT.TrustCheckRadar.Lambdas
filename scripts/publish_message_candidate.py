@@ -14,6 +14,7 @@ import platform
 import re
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 
@@ -104,27 +105,32 @@ def smoke(dist):
         raise ValueError("Offline package import requires Linux ARM64 Python 3.14")
     for function in FUNCTIONS:
         path = Path(dist).resolve() / (function + ".zip")
-        with zipfile.ZipFile(path) as archive:
-            for name in archive.namelist():
-                if name.endswith(".py"):
-                    compile(archive.read(name), name, "exec")
-        env = dict(
-            os.environ,
-            AWS_ACCESS_KEY_ID="synthetic",
-            AWS_SECRET_ACCESS_KEY="synthetic",
-            AWS_EC2_METADATA_DISABLED="true",
-            AWS_DEFAULT_REGION=REGION,
-            STAGE="dev",
-            MESSAGE_CONSUMER_ENABLED="false",
-            MESSAGE_EVALUATOR_ENABLED="false",
-        )
-        code = (
-            "import json,sys; sys.path.insert(0,sys.argv[1]); import app; "
-            "result=app.lambda_handler({},None); "
-            "assert (result.get('enabled') is False) if 'enabled' in result else "
-            "(result.get('statusCode')==503 and json.loads(result['body'])['errorCode']=='SERVICE_NOT_ENABLED')"
-        )
-        subprocess.run([sys.executable, "-c", code, str(path)], env=env, check=True)
+        with tempfile.TemporaryDirectory(prefix=function + "-") as directory:
+            with zipfile.ZipFile(path) as archive:
+                for name in archive.namelist():
+                    if name.endswith(".py"):
+                        compile(archive.read(name), name, "exec")
+                # Lambda expands deployment ZIPs into /var/task. Native extension
+                # modules cannot be imported directly through Python's zipimport.
+                archive.extractall(directory)
+            env = dict(
+                os.environ,
+                AWS_ACCESS_KEY_ID="synthetic",
+                AWS_SECRET_ACCESS_KEY="synthetic",
+                AWS_EC2_METADATA_DISABLED="true",
+                AWS_DEFAULT_REGION=REGION,
+                PYTHONDONTWRITEBYTECODE="1",
+                STAGE="dev",
+                MESSAGE_CONSUMER_ENABLED="false",
+                MESSAGE_EVALUATOR_ENABLED="false",
+            )
+            code = (
+                "import json,sys; sys.path.insert(0,sys.argv[1]); import app; "
+                "result=app.lambda_handler({},None); "
+                "assert (result.get('enabled') is False) if 'enabled' in result else "
+                "(result.get('statusCode')==503 and json.loads(result['body'])['errorCode']=='SERVICE_NOT_ENABLED')"
+            )
+            subprocess.run([sys.executable, "-c", code, directory], env=env, check=True)
         print(function + ": offline compile/import and disabled-handler smoke passed")
 
 
