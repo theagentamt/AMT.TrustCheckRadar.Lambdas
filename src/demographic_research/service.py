@@ -50,6 +50,10 @@ def update_profile(account_id, payload, *, now_epoch=None):
     current = _current(account_id)
     authority = _authority(account_id)
     _assert_authority(current, authority)
+    if current.get("lastOperationId") == payload["operationId"]:
+        # The seven-day receipt may already be gone, but the current profile
+        # still reserves its operation ID for the full current-state lifetime.
+        raise AppError("CONFLICT", "operationId was already used for another request.")
     version = int(current.get("stateVersion", 0))
     if payload["expectedStateVersion"] != version or version >= MAX_VERSION:
         raise AppError("CONFLICT", "The demographic profile changed after this choice was reviewed.", retryable=True)
@@ -116,8 +120,7 @@ def update_profile(account_id, payload, *, now_epoch=None):
     old_operation = current.get("lastOperationId")
     if old_operation:
         transaction.append({"Delete": {"TableName": config.USERS_TABLE_NAME,
-                                        "Key": wire({"PK": f"USER#{account_id}", "SK": OPERATION_PREFIX + old_operation}),
-                                        "ConditionExpression": "attribute_exists(PK) AND attribute_exists(SK)"}})
+                                        "Key": wire({"PK": f"USER#{account_id}", "SK": OPERATION_PREFIX + old_operation})}})
     try:
         client.transact_write_items(TransactItems=transaction)
     except ClientError as err:

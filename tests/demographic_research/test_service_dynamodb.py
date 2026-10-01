@@ -108,6 +108,27 @@ def test_expired_profile_can_still_be_withdrawn_when_enrollment_is_closed(world,
     assert withdrawn["state"]=="withdrawn" and withdrawn["capabilities"]["withdrawalEnabled"] is False
 
 
+def test_correction_and_withdrawal_survive_ttl_removal_of_prior_receipt(world):
+    resource, config, _, service = world
+    users=resource.Table("users")
+    first=request(config,"enroll",0)
+    service.update_profile(ACCOUNT,first,now_epoch=NOW)
+    users.delete_item(Key={"PK":f"USER#{ACCOUNT}","SK":"DEMOGRAPHIC_OPERATION#"+first["operationId"]})
+    reused=request(config,"update",1,age="45_54",state="WI",operation=first["operationId"])
+    with pytest.raises(service.AppError) as conflict:
+        service.update_profile(ACCOUNT,reused,now_epoch=NOW+8*86400)
+    assert conflict.value.code=="CONFLICT"
+
+    correction=request(config,"update",1,age="45_54",state="WI")
+    updated=service.update_profile(ACCOUNT,correction,now_epoch=NOW+8*86400)
+    assert updated["state"]=="enrolled" and updated["ageBand"]=="45_54"
+    users.delete_item(Key={"PK":f"USER#{ACCOUNT}","SK":"DEMOGRAPHIC_OPERATION#"+correction["operationId"]})
+
+    withdrawal=request(config,"withdraw",2)
+    withdrawn=service.update_profile(ACCOUNT,withdrawal,now_epoch=NOW+16*86400)
+    assert withdrawn["state"]=="withdrawn" and withdrawn["stateVersion"]==3
+
+
 def test_deletion_fence_and_restored_copy_authority_fail_closed(world):
     resource, config, _, service = world
     service.update_profile(ACCOUNT, request(config, "enroll", 0), now_epoch=NOW)
