@@ -91,6 +91,24 @@ def test_package_import_smoke_rejects_a_different_runtime_platform(packages, mon
         module.smoke(packages)
 
 
+def test_package_smoke_imports_from_lambda_style_extracted_directory(packages, monkeypatch):
+    calls = []
+    monkeypatch.setattr(module.sys, "version_info", (3, 14))
+    monkeypatch.setattr(module.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(module.platform, "machine", lambda: "aarch64")
+
+    def run(args, *, env, check):
+        directory = Path(args[-1])
+        assert check is True and directory.is_dir()
+        assert directory.suffix != ".zip" and (directory / "app.py").is_file()
+        assert env["PYTHONDONTWRITEBYTECODE"] == "1"
+        calls.append(directory.name)
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+    module.smoke(packages)
+    assert len(calls) == 2
+
+
 def test_concurrent_current_version_change_fails_closed(packages):
     call, calls = cloud(packages, replace=True)
     with pytest.raises(ValueError, match="verification"):
