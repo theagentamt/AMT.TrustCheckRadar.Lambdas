@@ -1,0 +1,23 @@
+{
+  "sourceSha": "c4b1cae34b9a90a9803022302a6ad7f2d8a13e38",
+  "verified": true,
+  "runtimeUpdated": false,
+  "artifacts": [
+    {
+      "function": "post_confirmation",
+      "versionId": "Q3mNvjrnCsqfPOZUCO9LB22jTH5nuWHi",
+      "sha256": "962801e6256b812301e6405fbd8bde33beb8cb34d7dab173375b1efd4bf26e88",
+      "bytes": 1397,
+      "exactLocalBytes": true,
+      "committedSourceBytes": true
+    },
+    {
+      "function": "age_attestation",
+      "versionId": "oC3vBJfvil2SDUji4XbWM3fjUlmrfEXV",
+      "sha256": "e1f70b37c6073ce64d818de24ede20ce589c6d730776fd53a05fff3565337818",
+      "bytes": 2984,
+      "exactLocalBytes": true,
+      "committedSourceBytes": true
+    }
+  ]
+}

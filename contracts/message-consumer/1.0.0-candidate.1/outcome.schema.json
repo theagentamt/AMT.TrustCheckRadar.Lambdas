@@ -1,0 +1,814 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "checkId",
+    "policyVersion",
+    "verdict",
+    "processingOutcome",
+    "coverage",
+    "limitationCodes",
+    "ruleIds",
+    "evidence",
+    "nextAction",
+    "messageKey"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "kind": {
+      "const": "message_assessment"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "policyVersion": {
+      "const": "message-rules-2026-09-20-v1"
+    },
+    "verdict": {
+      "enum": [
+        "high_risk",
+        "no_known_threat_detected",
+        "suspicious",
+        "unknown"
+      ]
+    },
+    "processingOutcome": {
+      "enum": [
+        "blocked",
+        "complete",
+        "inconclusive",
+        "partial",
+        "unavailable",
+        "unsupported"
+      ]
+    },
+    "coverage": {
+      "enum": [
+        "limited",
+        "not_assessed",
+        "supported_checks_complete"
+      ]
+    },
+    "limitationCodes": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "BUDGET_LIMIT",
+          "HOSTILE_INPUT_STOP",
+          "INSUFFICIENT_EVIDENCE",
+          "PROVIDER_RESPONSE_INVALID",
+          "PROVIDER_UNAVAILABLE",
+          "UNKNOWN_SPEAKER",
+          "UNSUPPORTED_CONTENT",
+          "WITHHELD_LINKS"
+        ]
+      }
+    },
+    "ruleIds": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "BENIGN_FIXED_TEXT",
+          "DEMAND_GIFT_CARD_PAYMENT",
+          "PAYMENT_WITH_SECRECY_PRESSURE",
+          "REQUEST_SECRET_DISCLOSURE"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "outcome",
+          "targetScope"
+        ],
+        "properties": {
+          "source": {
+            "const": "google_web_risk_lookup"
+          },
+          "outcome": {
+            "enum": [
+              "match",
+              "no_match"
+            ]
+          },
+          "targetScope": {
+            "enum": [
+              "full_submitted_url",
+              "observed_http_chain",
+              "origin_only",
+              "redirect_hop"
+            ]
+          }
+        }
+      }
+    },
+    "nextAction": {
+      "enum": [
+        "avoid_link",
+        "pause_and_verify",
+        "review_input",
+        "use_built_in_help",
+        "verify_independently"
+      ]
+    },
+    "messageKey": {
+      "enum": [
+        "message.high_risk_request",
+        "message.hostile_stop",
+        "message.inconclusive",
+        "message.no_supported_finding",
+        "message.partial_known_threat",
+        "message.provider_unavailable",
+        "message.suspicious_request"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "maxItems": 0
+          },
+          "coverage": {
+            "const": "supported_checks_complete"
+          },
+          "verdict": {
+            "not": {
+              "const": "unknown"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "not": {
+              "const": "complete"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "minItems": 1
+          },
+          "coverage": {
+            "enum": [
+              "limited",
+              "not_assessed"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "contains": {
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          },
+          "processingOutcome": {
+            "const": "partial"
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          },
+          "messageKey": {
+            "const": "message.partial_known_threat"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.high_risk_request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          },
+          "nextAction": {
+            "const": "pause_and_verify"
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete",
+              "partial"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.suspicious_request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "suspicious"
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete",
+              "partial"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.no_supported_finding"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "no_known_threat_detected"
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.inconclusive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "processingOutcome": {
+            "enum": [
+              "inconclusive"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.provider_unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          },
+          "processingOutcome": {
+            "enum": [
+              "unavailable"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.hostile_stop"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "processingOutcome": {
+            "enum": [
+              "blocked"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.partial_known_threat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          },
+          "processingOutcome": {
+            "enum": [
+              "partial"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "ruleIds": {
+            "contains": {
+              "enum": [
+                "DEMAND_GIFT_CARD_PAYMENT",
+                "REQUEST_SECRET_DISCLOSURE"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "messageKey": {
+            "const": "message.high_risk_request"
+          },
+          "verdict": {
+            "const": "high_risk"
+          },
+          "nextAction": {
+            "const": "pause_and_verify"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "ruleIds": {
+            "contains": {
+              "const": "PAYMENT_WITH_SECRECY_PRESSURE"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "messageKey": {
+            "const": "message.suspicious_request"
+          },
+          "verdict": {
+            "const": "suspicious"
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "ruleIds": {
+            "contains": {
+              "const": "BENIGN_FIXED_TEXT"
+            }
+          },
+          "limitationCodes": {
+            "maxItems": 0
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "messageKey": {
+            "const": "message.no_supported_finding"
+          },
+          "verdict": {
+            "const": "no_known_threat_detected"
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.high_risk_request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ruleIds": {
+            "contains": {
+              "enum": [
+                "DEMAND_GIFT_CARD_PAYMENT",
+                "REQUEST_SECRET_DISCLOSURE"
+              ]
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.suspicious_request"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ruleIds": {
+            "contains": {
+              "const": "PAYMENT_WITH_SECRECY_PRESSURE"
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.no_supported_finding"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ruleIds": {
+            "contains": {
+              "const": "BENIGN_FIXED_TEXT"
+            }
+          },
+          "limitationCodes": {
+            "maxItems": 0
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.partial_known_threat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "contains": {
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "ruleIds": {
+            "not": {
+              "contains": {
+                "enum": [
+                  "DEMAND_GIFT_CARD_PAYMENT",
+                  "REQUEST_SECRET_DISCLOSURE",
+                  "PAYMENT_WITH_SECRECY_PRESSURE"
+                ]
+              }
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "HOSTILE_INPUT_STOP"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "blocked"
+          },
+          "messageKey": {
+            "const": "message.hostile_stop"
+          },
+          "nextAction": {
+            "const": "review_input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          },
+          "limitationCodes": {
+            "contains": {
+              "enum": [
+                "PROVIDER_UNAVAILABLE",
+                "PROVIDER_RESPONSE_INVALID",
+                "BUDGET_LIMIT"
+              ]
+            },
+            "not": {
+              "contains": {
+                "const": "HOSTILE_INPUT_STOP"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          },
+          "messageKey": {
+            "const": "message.provider_unavailable"
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.hostile_stop"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "contains": {
+              "const": "HOSTILE_INPUT_STOP"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.provider_unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "contains": {
+              "enum": [
+                "PROVIDER_UNAVAILABLE",
+                "PROVIDER_RESPONSE_INVALID",
+                "BUDGET_LIMIT"
+              ]
+            },
+            "not": {
+              "contains": {
+                "const": "HOSTILE_INPUT_STOP"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "message.inconclusive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "not": {
+              "contains": {
+                "enum": [
+                  "HOSTILE_INPUT_STOP",
+                  "PROVIDER_UNAVAILABLE",
+                  "PROVIDER_RESPONSE_INVALID",
+                  "BUDGET_LIMIT"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

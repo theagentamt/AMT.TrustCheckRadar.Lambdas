@@ -1,0 +1,10 @@
+{
+  "function": "campaign_deletion_bridge",
+  "python": "3.14",
+  "architecture": "arm64",
+  "sha256": "89eb20c143f7b22ebd8d16ff006243baf1ad328085d81ec16b62274027b670e4",
+  "sizeBytes": 34527,
+  "distinctPythonSourceMembersVerified": 20,
+  "dependencies": "No extra requirements for this function; AWS runtime SDK not bundled.",
+  "scope": "Local source-byte and compilation validation; no AWS import, upload, runtime update or activation."
+}

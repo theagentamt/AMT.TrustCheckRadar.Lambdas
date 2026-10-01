@@ -1,0 +1,589 @@
+{
+  "version": "1.0.0-recovery-candidate.1",
+  "semanticQualification": "not_claimed",
+  "cases": [
+    {
+      "id": "complete_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "complete",
+          "reasonCode": null,
+          "exposureIds": [
+            "clicked_link"
+          ],
+          "actionIds": [
+            "link_stop",
+            "device_secure",
+            "link_verify",
+            "device_support"
+          ],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "complete",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "complete_usage_only_lost_response",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "charged",
+          "chargedChecks": 1,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "complete",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "not_retained",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "inconclusive_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "inconclusive",
+          "reasonCode": "INSUFFICIENT_EVIDENCE",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "inconclusive",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "partial_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "partial",
+          "reasonCode": "INCOMPLETE_RESPONSE",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "partial",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "failed_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "failed",
+          "reasonCode": "PROVIDER_UNAVAILABLE",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "failed",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "blocked_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "blocked",
+          "reasonCode": "HOSTILE_INPUT_STOP",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "blocked",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "unsupported_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "unsupported",
+          "reasonCode": "UNSUPPORTED_CONTENT",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "unsupported",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "invalid_input_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "invalid_input",
+          "reasonCode": "INPUT_REJECTED",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "invalid_input",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "unavailable_fresh",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "settled",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_charged",
+          "chargedChecks": 0,
+          "receiptId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "requiresReconciliation": false
+        },
+        "outcome": {
+          "schemaVersion": 1,
+          "kind": "recovery_clarification",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "unavailable",
+          "reasonCode": "BUDGET_LIMIT",
+          "exposureIds": [],
+          "actionIds": [],
+          "applyRequiresConfirmation": true
+        },
+        "usage": {
+          "schemaVersion": 1,
+          "kind": "recovery_usage",
+          "checkId": "fixture-recovery",
+          "policyVersion": "recovery-clarification-2026-09-21-v1",
+          "playbookVersion": "recovery-playbook-1.0",
+          "processingOutcome": "unavailable",
+          "contentDisposition": "not_retained"
+        },
+        "resultAvailability": "available",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "pending",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "pending",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "pending",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "usage": null,
+        "resultAvailability": "pending",
+        "errorCode": null,
+        "retryAfterSeconds": 2,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "prepared",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "prepared",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "usage": null,
+        "resultAvailability": "none",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "unknown",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "unknown",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "unknown",
+          "chargedChecks": null,
+          "receiptId": null,
+          "requiresReconciliation": true
+        },
+        "outcome": null,
+        "usage": null,
+        "resultAvailability": "none",
+        "errorCode": null,
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    },
+    {
+      "id": "rejected",
+      "response": {
+        "transportVersion": "1.0.0-recovery-candidate.1",
+        "checkId": "fixture-recovery",
+        "operationProof": "v1_k1_6b49d200_1234567890abcdef_1234567890abcdef12345678",
+        "state": "rejected",
+        "access": {
+          "state": "temporarily_unavailable",
+          "basis": "unknown",
+          "externalChecksAllowed": false,
+          "builtInChecksAllowed": false,
+          "reconciliationAllowed": false,
+          "remainingChecks": null,
+          "resetsAt": null,
+          "unlimited": false,
+          "observedAt": "2026-09-21T00:00:00Z"
+        },
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "usage": null,
+        "resultAvailability": "none",
+        "errorCode": "OPERATION_EXPIRED",
+        "retryAfterSeconds": null,
+        "expiresAt": 1800610000
+      }
+    }
+  ]
+}

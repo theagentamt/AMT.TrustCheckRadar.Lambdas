@@ -1,0 +1,1227 @@
+{
+  "allSourceBytesMatch": true,
+  "artifacts": {
+    "account_data_api": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+          "sourcePath": "src/account_data_api/__init__.py"
+        },
+        "app.py": {
+          "sha256": "905e191730bea29cf6e2d7f86b7389bc1244dd554ae16bfa1107078e36a541e3",
+          "sourcePath": "src/account_data_api/app.py"
+        },
+        "config.py": {
+          "sha256": "65a1a5632b9af0eb9fd032c504f272b415e5f43a16749cb135c5ad99a47a7609",
+          "sourcePath": "src/account_data_api/config.py"
+        },
+        "errors.py": {
+          "sha256": "e910c0d43decb7b8ce3808bc53e45918315a6790c2d420306fbbd60a21dba5a2",
+          "sourcePath": "src/account_data_api/errors.py"
+        },
+        "lifecycle.py": {
+          "sha256": "89a5ea1b5ec876feebb19fa34a65e1cb278e10244d45b471110c4df56de86fc6",
+          "sourcePath": "src/account_data_api/lifecycle.py"
+        },
+        "service.py": {
+          "sha256": "d4f2efbda6f6159926df63a7e79f4053eeff280054f07fb524ffe6c3b69130d2",
+          "sourcePath": "src/account_data_api/service.py"
+        },
+        "shared_account_finalization/__init__.py": {
+          "sha256": "d25e0e244b689d9208a0975670ed5aa4caa2cfad706a0932bf8cbcf0688fb2b5",
+          "sourcePath": "src/shared_account_finalization/__init__.py"
+        },
+        "shared_account_finalization/history_receipts.py": {
+          "sha256": "e1486edc95747c3fb384518d86181697827d27a502f68f581a2de9db64bfb95a",
+          "sourcePath": "src/shared_account_finalization/history_receipts.py"
+        },
+        "shared_account_finalization/service.py": {
+          "sha256": "110a65ed3338018ab9590aa302535e1e92b5605a5dcce7e316cb088f8a8f8e3c",
+          "sourcePath": "src/shared_account_finalization/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_recovery/__init__.py": {
+          "sha256": "9fda4a47941d5bc4c4a6231301893a4b434934371728c4b833b95916141c73b3",
+          "sourcePath": "src/shared_campaign_recovery/__init__.py"
+        },
+        "shared_campaign_recovery/jobs.py": {
+          "sha256": "2cdb530ab118cf475debfd3701789ed99de0d81a1942d568fb9df2adffacd0c4",
+          "sourcePath": "src/shared_campaign_recovery/jobs.py"
+        },
+        "shared_campaign_recovery/records.py": {
+          "sha256": "cd8c2788a198257626749e43881d98b0f17d08230cfd37d3f371774b06bdc84c",
+          "sourcePath": "src/shared_campaign_recovery/records.py"
+        },
+        "shared_campaign_recovery/worker.py": {
+          "sha256": "52bd271de3efc241f842dfa7104e053bf900ff535e2fa48cf5cf7ded31fdf9fd",
+          "sourcePath": "src/shared_campaign_recovery/worker.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_history/__init__.py": {
+          "sha256": "d15d75b47d976c581e0a9367d71134f34f1945bcb7da27231e7ef99ef0a6a7be",
+          "sourcePath": "src/shared_history/__init__.py"
+        },
+        "shared_history/config.py": {
+          "sha256": "fce97a98c3cb5332e6904cf80165f2d229e85c58983d375fc19fdf9dfae295dd",
+          "sourcePath": "src/shared_history/config.py"
+        },
+        "shared_history/contracts.py": {
+          "sha256": "da093661729195de48705f7e280c355aa1fcf0b55ff315eade7a7c6c80f06133",
+          "sourcePath": "src/shared_history/contracts.py"
+        },
+        "shared_history/errors.py": {
+          "sha256": "1a8afc8c4967d818240362b631c74463c9056020fe2b654913868416f4fc26de",
+          "sourcePath": "src/shared_history/errors.py"
+        },
+        "shared_history/security.py": {
+          "sha256": "71d562ee364c7a91bba0a10694316cfb1f70a552861554f19bed0a613492c5d8",
+          "sourcePath": "src/shared_history/security.py"
+        },
+        "shared_purchase_ownership/__init__.py": {
+          "sha256": "5feeb3a6507c6504c2968977b20c1a6435c48817a31ea7ce4723cb9a58a26c93",
+          "sourcePath": "src/shared_purchase_ownership/__init__.py"
+        },
+        "shared_purchase_ownership/service.py": {
+          "sha256": "584b03633278ee7a775831b290a1c6f65819efc7f519ee452f9149cbc4f5b2c5",
+          "sourcePath": "src/shared_purchase_ownership/service.py"
+        },
+        "validation.py": {
+          "sha256": "714eced612ceec057f453fb269dab8911d9255e9d40822d0a691b8eb52c183ea",
+          "sourcePath": "src/account_data_api/validation.py"
+        }
+      },
+      "sourceMembersCompared": 41
+    },
+    "account_export_api": {
+      "dependencies": [
+        {
+          "name": "cffi",
+          "version": "2.1.1"
+        },
+        {
+          "name": "cryptography",
+          "version": "50.0.1"
+        },
+        {
+          "name": "pycparser",
+          "version": "3.0"
+        }
+      ],
+      "nativeLibraries": [
+        {
+          "elfClass": 64,
+          "machine": "AArch64",
+          "path": "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+          "sha256": "6e9697ce5e25a80a7e83c5768f56acafab73ac2b9103d638e7daae7a6ae94d8a"
+        },
+        {
+          "elfClass": 64,
+          "machine": "AArch64",
+          "path": "cryptography/hazmat/bindings/_rust.abi3.so",
+          "sha256": "8105ca8bca02ffe8d9aa1a3341fed676a3e0c90eff1d7fac6148c97a39dc15b7"
+        }
+      ],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "9ff7b60d83638d5dca80ae15c8a007043c08ae24b6178b747e13090b194a00f3",
+          "sourcePath": "src/account_export_api/__init__.py"
+        },
+        "account_export_api/__init__.py": {
+          "sha256": "9ff7b60d83638d5dca80ae15c8a007043c08ae24b6178b747e13090b194a00f3",
+          "sourcePath": "src/account_export_api/__init__.py"
+        },
+        "account_export_api/app.py": {
+          "sha256": "5c11bfc53b4c75d08f6a80a8efcece2e0d830163ee764757e2852cc70c33b053",
+          "sourcePath": "src/account_export_api/app.py"
+        },
+        "account_export_api/cursor.py": {
+          "sha256": "99852c80dbb9858960fe0fcd68c8a1ebe93cc3f642672a0e49629f0e524ce03e",
+          "sourcePath": "src/account_export_api/cursor.py"
+        },
+        "account_export_api/projection.py": {
+          "sha256": "d1e7152ecc01ff9041740fa97c7f5e09e2834f4b35f3c1b0d0d0ae8a22fb65c0",
+          "sourcePath": "src/account_export_api/projection.py"
+        },
+        "account_export_api/reader.py": {
+          "sha256": "71cbaf1c5642c6b2579ea91e0318e1cba9d7165d67ee95a46781b4c6c59e1d19",
+          "sourcePath": "src/account_export_api/reader.py"
+        },
+        "account_export_api/runtime.py": {
+          "sha256": "886653797aab87b507ebe7c01da7f4f847b5a74839a3cad9792c20bf8710c64f",
+          "sourcePath": "src/account_export_api/runtime.py"
+        },
+        "account_export_api/service.py": {
+          "sha256": "7863bea51499a5d67e5b9a49a64b5a89303431f1a2e229a3ed1b88121ad0b18b",
+          "sourcePath": "src/account_export_api/service.py"
+        },
+        "app.py": {
+          "generatedWrapper": true,
+          "sha256": "472246c41f1346a13d3f22571fdd27b606774267565d9f938d0ab798cc0839a1"
+        },
+        "cursor.py": {
+          "sha256": "99852c80dbb9858960fe0fcd68c8a1ebe93cc3f642672a0e49629f0e524ce03e",
+          "sourcePath": "src/account_export_api/cursor.py"
+        },
+        "projection.py": {
+          "sha256": "d1e7152ecc01ff9041740fa97c7f5e09e2834f4b35f3c1b0d0d0ae8a22fb65c0",
+          "sourcePath": "src/account_export_api/projection.py"
+        },
+        "reader.py": {
+          "sha256": "71cbaf1c5642c6b2579ea91e0318e1cba9d7165d67ee95a46781b4c6c59e1d19",
+          "sourcePath": "src/account_export_api/reader.py"
+        },
+        "runtime.py": {
+          "sha256": "886653797aab87b507ebe7c01da7f4f847b5a74839a3cad9792c20bf8710c64f",
+          "sourcePath": "src/account_export_api/runtime.py"
+        },
+        "service.py": {
+          "sha256": "7863bea51499a5d67e5b9a49a64b5a89303431f1a2e229a3ed1b88121ad0b18b",
+          "sourcePath": "src/account_export_api/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_check_authority/__init__.py": {
+          "sha256": "fd5b220d5ea78eb36abba0e1bd228511528eec350eb21e5dd94176ce76ec89e1",
+          "sourcePath": "src/shared_check_authority/__init__.py"
+        },
+        "shared_check_authority/core.py": {
+          "sha256": "b6eeb885cbd4fb70958512e3f22736953f2f519cda2c2d3a01fa59164d4e8330",
+          "sourcePath": "src/shared_check_authority/core.py"
+        },
+        "shared_check_authority/deletion.py": {
+          "sha256": "3fa17b5c55383a6db97c8e3c4ebb1ffb36ea67e9c5cc4cde46afe05c549b3d4d",
+          "sourcePath": "src/shared_check_authority/deletion.py"
+        },
+        "shared_check_authority/engineering.py": {
+          "sha256": "5fbda62f5d38b9048be6bf86c6daa682d9f573f788d0e54cf451a702c5043e7b",
+          "sourcePath": "src/shared_check_authority/engineering.py"
+        },
+        "shared_check_authority/entitlements.py": {
+          "sha256": "ea4f401085830bf7a1f24238dc5e1faa0b45067174034b9d30ea172c7d1cca32",
+          "sourcePath": "src/shared_check_authority/entitlements.py"
+        },
+        "shared_check_authority/expiry.py": {
+          "sha256": "5bb4add8d112948b8aa64cbda7a6d9cb9eb515b68e36b4d561f653f5a4c7f58c",
+          "sourcePath": "src/shared_check_authority/expiry.py"
+        },
+        "shared_check_authority/inventory.py": {
+          "sha256": "ae99bb5ea6ec8f8ea165ef557df0eb5d1bbf1faea1c285e27cdcafe2879e7f2d",
+          "sourcePath": "src/shared_check_authority/inventory.py"
+        },
+        "shared_check_authority/purchase_usage.py": {
+          "sha256": "26048f0226cb1132615ed80c24a1989785af3dc0c02f18de1e73a2091ea33837",
+          "sourcePath": "src/shared_check_authority/purchase_usage.py"
+        },
+        "shared_check_authority/recovery.py": {
+          "sha256": "4fbca309d675a6e722a950766c82c96e703f54421d5716da57b6e7c3b7733404",
+          "sourcePath": "src/shared_check_authority/recovery.py"
+        },
+        "shared_check_authority/runtime.py": {
+          "sha256": "2c6c949156000490cc33788409626e19aecdb74a0effb868584f42af234b34f6",
+          "sourcePath": "src/shared_check_authority/runtime.py"
+        },
+        "shared_check_authority/summary.py": {
+          "sha256": "f4b5b1f4cfa3ca7a0714dabdd97f4512e787babcd299a077358f9d31593de4d2",
+          "sourcePath": "src/shared_check_authority/summary.py"
+        },
+        "shared_history/__init__.py": {
+          "sha256": "d15d75b47d976c581e0a9367d71134f34f1945bcb7da27231e7ef99ef0a6a7be",
+          "sourcePath": "src/shared_history/__init__.py"
+        },
+        "shared_history/config.py": {
+          "sha256": "fce97a98c3cb5332e6904cf80165f2d229e85c58983d375fc19fdf9dfae295dd",
+          "sourcePath": "src/shared_history/config.py"
+        },
+        "shared_history/contracts.py": {
+          "sha256": "da093661729195de48705f7e280c355aa1fcf0b55ff315eade7a7c6c80f06133",
+          "sourcePath": "src/shared_history/contracts.py"
+        },
+        "shared_history/errors.py": {
+          "sha256": "1a8afc8c4967d818240362b631c74463c9056020fe2b654913868416f4fc26de",
+          "sourcePath": "src/shared_history/errors.py"
+        },
+        "shared_history/security.py": {
+          "sha256": "71d562ee364c7a91bba0a10694316cfb1f70a552861554f19bed0a613492c5d8",
+          "sourcePath": "src/shared_history/security.py"
+        },
+        "shared_message_contract/__init__.py": {
+          "sha256": "ad17f967d7fad861ea1a1ba065d1f480ab8cd2c8634db2093cc3196339dc869a",
+          "sourcePath": "src/shared_message_contract/__init__.py"
+        },
+        "shared_message_contract/privacy.py": {
+          "sha256": "6ab9584e0891d3955c92831a714f7744abe4bfd167a93eef403ad726de30113f",
+          "sourcePath": "src/shared_message_contract/privacy.py"
+        },
+        "shared_message_contract/runtime.py": {
+          "sha256": "d4d134017f57777fce5949521a9a371dea002910414a5535f1e4e9f52ad140ca",
+          "sourcePath": "src/shared_message_contract/runtime.py"
+        },
+        "shared_message_contract/validation.py": {
+          "sha256": "076656fb053f5c3e992cbc1fdad59120046914382b0b56cbb5cd40ac8464d72f",
+          "sourcePath": "src/shared_message_contract/validation.py"
+        },
+        "shared_message_contract/validation_v2.py": {
+          "sha256": "99e58bf2a895a067200d080c980a5dbce47e6f7a416446116c2ebfcccd634204",
+          "sourcePath": "src/shared_message_contract/validation_v2.py"
+        },
+        "shared_play_lifecycle/__init__.py": {
+          "sha256": "c014ded6dadb6b58b114a7d55f3284783ae35eb48f6b24e9695d22a7a17fed34",
+          "sourcePath": "src/shared_play_lifecycle/__init__.py"
+        },
+        "shared_play_lifecycle/acknowledgment.py": {
+          "sha256": "68dc2eebc877c8c29504ed86d5a92a919c9f0f10f13bb92b71de99ce3084a227",
+          "sourcePath": "src/shared_play_lifecycle/acknowledgment.py"
+        },
+        "shared_play_lifecycle/bindings.py": {
+          "sha256": "290bc4c9f5be44cb55f14be38056440267bba8650a58a5111618b3972d4f0231",
+          "sourcePath": "src/shared_play_lifecycle/bindings.py"
+        },
+        "shared_play_lifecycle/checkpoint.py": {
+          "sha256": "6f25aecbd26791d7a75f95897fbad2cc9e13b3aaecfbad3beda92d9c3582c9c8",
+          "sourcePath": "src/shared_play_lifecycle/checkpoint.py"
+        },
+        "shared_play_lifecycle/deletion.py": {
+          "sha256": "98ce58d9c5f41f9b2685ce0ba2d0aa15f52cdfc64b24aaff536b127e571323ce",
+          "sourcePath": "src/shared_play_lifecycle/deletion.py"
+        },
+        "shared_play_lifecycle/export.py": {
+          "sha256": "97fc13a7b95d12b125e59a3953a563fa9e423c9d29107136808918934e665f58",
+          "sourcePath": "src/shared_play_lifecycle/export.py"
+        },
+        "shared_play_lifecycle/notification.py": {
+          "sha256": "bfa92c2f198cecdcbdfa76452fbc4e0e4aa1699da613adb2fc3d2784dfba6238",
+          "sourcePath": "src/shared_play_lifecycle/notification.py"
+        },
+        "shared_play_lifecycle/preparation.py": {
+          "sha256": "a04edd2020ce81b189594b428d14683291b8b656387581449c56e1f59ac5944a",
+          "sourcePath": "src/shared_play_lifecycle/preparation.py"
+        },
+        "shared_play_lifecycle/reconciliation.py": {
+          "sha256": "1ed5679ca4e788623c7330eeab865fa5c1039f03a1ba430854061bbacac1dcc2",
+          "sourcePath": "src/shared_play_lifecycle/reconciliation.py"
+        },
+        "shared_play_lifecycle/runtime.py": {
+          "sha256": "b4a8ccde4e462cbed20cf4d2572b11cf358e0e5e4d20e3b89afba8a591ddfc02",
+          "sourcePath": "src/shared_play_lifecycle/runtime.py"
+        },
+        "shared_play_lifecycle/tokens.py": {
+          "sha256": "abd6d6ac4d843026cab48eba1e85484ebbb7e9344875e538163d9de7db6959e2",
+          "sourcePath": "src/shared_play_lifecycle/tokens.py"
+        },
+        "shared_play_verification/__init__.py": {
+          "sha256": "02574af8319527260aef3ad53e38ce95ff6bc824d7ae2f789635eeb78605c230",
+          "sourcePath": "src/shared_play_verification/__init__.py"
+        },
+        "shared_play_verification/client.py": {
+          "sha256": "22d29b22063062257978216812db84fd32890548912114aadc5181f50b81bac1",
+          "sourcePath": "src/shared_play_verification/client.py"
+        },
+        "shared_play_verification/proof.py": {
+          "sha256": "3437a7ec176f4c375b0175ba4077be712bd8728efbf3923b31186e5fd5b577bb",
+          "sourcePath": "src/shared_play_verification/proof.py"
+        },
+        "shared_purchase_ownership/__init__.py": {
+          "sha256": "5feeb3a6507c6504c2968977b20c1a6435c48817a31ea7ce4723cb9a58a26c93",
+          "sourcePath": "src/shared_purchase_ownership/__init__.py"
+        },
+        "shared_purchase_ownership/service.py": {
+          "sha256": "584b03633278ee7a775831b290a1c6f65819efc7f519ee452f9149cbc4f5b2c5",
+          "sourcePath": "src/shared_purchase_ownership/service.py"
+        },
+        "shared_recovery_contract/__init__.py": {
+          "sha256": "2b3f219f2ce2e268eabffc11de3a433e979830c0638c1940078cb4a504e7ace3",
+          "sourcePath": "src/shared_recovery_contract/__init__.py"
+        },
+        "shared_recovery_contract/constants.py": {
+          "sha256": "03caef297d1ad675abb5b658355c46fe81a4be40acaf72ce5fe2865ffa73c57e",
+          "sourcePath": "src/shared_recovery_contract/constants.py"
+        },
+        "shared_recovery_contract/usage.py": {
+          "sha256": "1b283a5913180c033e6802828b9b5c6b0ba9cbb077566b5a69fba9a4b58ae72f",
+          "sourcePath": "src/shared_recovery_contract/usage.py"
+        },
+        "v1_play_handoff/__init__.py": {
+          "sha256": "3f525e4d1756659a60ce6b3273368e157589ce025fcbc346cd617c94de0f93eb",
+          "sourcePath": "src/v1_play_handoff/__init__.py"
+        },
+        "v1_play_handoff/app.py": {
+          "sha256": "cb0ff4f737b6abe051339ed90c15b2c4d759c6f2656d91c1e37c6d41c21f4404",
+          "sourcePath": "src/v1_play_handoff/app.py"
+        },
+        "v1_play_handoff/service.py": {
+          "sha256": "8cc95103246de5c8451efaf5e7370ce59ebe8595ca65874f38c7e8da051f7eaf",
+          "sourcePath": "src/v1_play_handoff/service.py"
+        }
+      },
+      "sourceMembersCompared": 77
+    },
+    "campaign_cluster_aggregator": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "644c8ff192eba4f55dc97d31a5bfdbf335ca39f084ee9c176925a77f355b0484",
+          "sourcePath": "src/campaign_cluster_aggregator/__init__.py"
+        },
+        "app.py": {
+          "sha256": "a5e3b228bd9bee3b79457f6cba08277c72fce6fe6dbe2de6295eb489343a0c7f",
+          "sourcePath": "src/campaign_cluster_aggregator/app.py"
+        },
+        "config.py": {
+          "sha256": "fda4902911bac01570395cda38f902e879d1ef0957fa2ce635d6f4801d6b46bf",
+          "sourcePath": "src/campaign_cluster_aggregator/config.py"
+        },
+        "scoring.py": {
+          "sha256": "01605078471e45dbbf9f7d16351eda7ba911a039a37c31491ac7079359efc216",
+          "sourcePath": "src/campaign_cluster_aggregator/scoring.py"
+        },
+        "service.py": {
+          "sha256": "600b89200d4ecdf12844ef66fa7f9fb1cb888765ae768e0feb7e5379b5120ab7",
+          "sourcePath": "src/campaign_cluster_aggregator/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_research_consent/__init__.py": {
+          "sha256": "e4825ddc062eca35bfa8122130523cbf9aad2992acf45f4336a217ea4e9c69d7",
+          "sourcePath": "src/shared_research_consent/__init__.py"
+        },
+        "shared_research_consent/authority.py": {
+          "sha256": "eeac14d53aba3f7477028f9e2b1dc954e5b124be9c7f8875e9e15f17980cde89",
+          "sourcePath": "src/shared_research_consent/authority.py"
+        }
+      },
+      "sourceMembersCompared": 27
+    },
+    "campaign_deletion_bridge": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "584d46fb58cc60fb249d9a9aa3b09d9c1a04d66882285d1c5440ccc7ea787185",
+          "sourcePath": "src/campaign_deletion_bridge/__init__.py"
+        },
+        "app.py": {
+          "sha256": "1a4ddfb105954e55697cf5cd0fa40cf794e36b8d1074618ef34665547fbebfae",
+          "sourcePath": "src/campaign_deletion_bridge/app.py"
+        },
+        "cleanup_errors.py": {
+          "sha256": "ce990ff2ede3976de57d80b9caa91f0d895beeebe3eae7bfefef36f75392e7c8",
+          "sourcePath": "src/campaign_deletion_bridge/cleanup_errors.py"
+        },
+        "completion.py": {
+          "sha256": "e542bdd3bf704fb37a9772c98b1157810ddd2fe858120720f1e1a2e2780af2df",
+          "sourcePath": "src/campaign_deletion_bridge/completion.py"
+        },
+        "config.py": {
+          "sha256": "aaf3806380b72698bbc210a65fa331952fa6e091070b1f4113dcfce492f21bd4",
+          "sourcePath": "src/campaign_deletion_bridge/config.py"
+        },
+        "coverage_assessment.py": {
+          "sha256": "95efb7d9b482561d70da0e254319aa4e925c13dd077ab65d15fb2ae0baa966fa",
+          "sourcePath": "src/campaign_deletion_bridge/coverage_assessment.py"
+        },
+        "locator_progress.py": {
+          "sha256": "923e21c32f48f51426679d51ae1822446fe69342cfc01cd1d01e7727cd571d78",
+          "sourcePath": "src/campaign_deletion_bridge/locator_progress.py"
+        },
+        "orchestration.py": {
+          "sha256": "ac3bff39ba42082df9ccdd320697d9a74a6e9b5419004432e79628ba2819820f",
+          "sourcePath": "src/campaign_deletion_bridge/orchestration.py"
+        },
+        "progress.py": {
+          "sha256": "dc384a459a2088df9bab0821d2d48b32250a5209688da312efaf79624f03accf",
+          "sourcePath": "src/campaign_deletion_bridge/progress.py"
+        },
+        "publication_recovery.py": {
+          "sha256": "976fae609766655adad2fae53e962bc90a598449492cfe79579f127347f2cfc0",
+          "sourcePath": "src/campaign_deletion_bridge/publication_recovery.py"
+        },
+        "retained_periods.py": {
+          "sha256": "433e4cd0115a77c2184ed07ca749cf6b32a5147bc58b8387e1ef8e72619cab4c",
+          "sourcePath": "src/campaign_deletion_bridge/retained_periods.py"
+        },
+        "service.py": {
+          "sha256": "fa133a59639724595f0ca02112a1cfb311305e5a0812177100467e9aa860d9a3",
+          "sourcePath": "src/campaign_deletion_bridge/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_recovery/__init__.py": {
+          "sha256": "9fda4a47941d5bc4c4a6231301893a4b434934371728c4b833b95916141c73b3",
+          "sourcePath": "src/shared_campaign_recovery/__init__.py"
+        },
+        "shared_campaign_recovery/jobs.py": {
+          "sha256": "2cdb530ab118cf475debfd3701789ed99de0d81a1942d568fb9df2adffacd0c4",
+          "sourcePath": "src/shared_campaign_recovery/jobs.py"
+        },
+        "shared_campaign_recovery/records.py": {
+          "sha256": "cd8c2788a198257626749e43881d98b0f17d08230cfd37d3f371774b06bdc84c",
+          "sourcePath": "src/shared_campaign_recovery/records.py"
+        },
+        "shared_campaign_recovery/worker.py": {
+          "sha256": "52bd271de3efc241f842dfa7104e053bf900ff535e2fa48cf5cf7ded31fdf9fd",
+          "sourcePath": "src/shared_campaign_recovery/worker.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "tombstone.py": {
+          "sha256": "d2a4c40ff187246ac85ea798a8b589c55bc6db4075a51e54bbd3afa92eef1b35",
+          "sourcePath": "src/campaign_deletion_bridge/tombstone.py"
+        }
+      },
+      "sourceMembersCompared": 37
+    },
+    "campaign_lifecycle": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "4947972c7586f94db5ce5b1f184a4d9960283a96d9f0b1e4a3e25a0634e7e96c",
+          "sourcePath": "src/campaign_lifecycle/__init__.py"
+        },
+        "app.py": {
+          "sha256": "7e3c35a5e7dcc14ceb0638d28e3c1f2e09acf7b9c9633816676e6c10ad8ae8af",
+          "sourcePath": "src/campaign_lifecycle/app.py"
+        },
+        "config.py": {
+          "sha256": "1bf538aaa1dd61a84c02ebe5915f228f8888791689cd1108779bfe4547b19f04",
+          "sourcePath": "src/campaign_lifecycle/config.py"
+        },
+        "orphan.py": {
+          "sha256": "158bce087f2f10b223a8055252d18788a6ecd56ad37d2bfa7cbac6ae6e0d450c",
+          "sourcePath": "src/campaign_lifecycle/orphan.py"
+        },
+        "publication.py": {
+          "sha256": "a04a636378266ad7e4989a1c8cd865cfb12cfa1a4a60f8dcbbc97e206b9a7d17",
+          "sourcePath": "src/campaign_lifecycle/publication.py"
+        },
+        "service.py": {
+          "sha256": "c5ba86896f67ab62b15c6c2d854296588465b228af18e1d1f3050cfab06d3a5b",
+          "sourcePath": "src/campaign_lifecycle/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_research_consent/__init__.py": {
+          "sha256": "e4825ddc062eca35bfa8122130523cbf9aad2992acf45f4336a217ea4e9c69d7",
+          "sourcePath": "src/shared_research_consent/__init__.py"
+        },
+        "shared_research_consent/authority.py": {
+          "sha256": "eeac14d53aba3f7477028f9e2b1dc954e5b124be9c7f8875e9e15f17980cde89",
+          "sourcePath": "src/shared_research_consent/authority.py"
+        }
+      },
+      "sourceMembersCompared": 28
+    },
+    "campaign_observation_publisher": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "198e57f978b90ae40e9522a39dc1203cf2eda70ab0c27478f66801e6e02d6a64",
+          "sourcePath": "src/campaign_observation_publisher/__init__.py"
+        },
+        "app.py": {
+          "sha256": "beac8a26d0a8865d9792ff9c26b8b8536822f17ae0ebffa915d0feaa9d532f72",
+          "sourcePath": "src/campaign_observation_publisher/app.py"
+        },
+        "config.py": {
+          "sha256": "9a4194b355a1b03b1c63ef362d0e25de414b63b5e89f005d0367845a2957e1bf",
+          "sourcePath": "src/campaign_observation_publisher/config.py"
+        },
+        "contracts.py": {
+          "sha256": "e5de1bb96072a124557a3c6d041b8bdad16ce853bc8fb8328957621a8b407943",
+          "sourcePath": "src/campaign_observation_publisher/contracts.py"
+        },
+        "service.py": {
+          "sha256": "a7ea56f429853775a3cda9d043804fbf3c6f3e5108cbda77a9cd1850c7ed86e3",
+          "sourcePath": "src/campaign_observation_publisher/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_research_consent/__init__.py": {
+          "sha256": "e4825ddc062eca35bfa8122130523cbf9aad2992acf45f4336a217ea4e9c69d7",
+          "sourcePath": "src/shared_research_consent/__init__.py"
+        },
+        "shared_research_consent/authority.py": {
+          "sha256": "eeac14d53aba3f7477028f9e2b1dc954e5b124be9c7f8875e9e15f17980cde89",
+          "sourcePath": "src/shared_research_consent/authority.py"
+        }
+      },
+      "sourceMembersCompared": 27
+    },
+    "campaign_review": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "16a1be830c09e50470594adf10b4490787db3b463c82e640c6d20fe8de2cb590",
+          "sourcePath": "src/campaign_review/__init__.py"
+        },
+        "app.py": {
+          "sha256": "a048361109dde5891a8384e5f429b04a3748470fe2609b701fd2e995c6c3edc2",
+          "sourcePath": "src/campaign_review/app.py"
+        },
+        "config.py": {
+          "sha256": "a0750adea24a7ee617ea959592b426d9920587492c7c4371ffc347c151c5e0ae",
+          "sourcePath": "src/campaign_review/config.py"
+        },
+        "service.py": {
+          "sha256": "0b00e4529a2e25011351adf2f2451cd18404b4d50920a33635f639375d07ab79",
+          "sourcePath": "src/campaign_review/service.py"
+        }
+      },
+      "sourceMembersCompared": 4
+    },
+    "conversation_analysis": {
+      "dependencies": [],
+      "nativeLibraries": [],
+      "sourceMembers": {
+        "__init__.py": {
+          "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+          "sourcePath": "src/conversation_analysis/__init__.py"
+        },
+        "abuse_controls.py": {
+          "sha256": "a5ce1abd7496b9dad32c1f0211ebb8a6af70d4d14c4fc813b2a72654405f4671",
+          "sourcePath": "src/conversation_analysis/abuse_controls.py"
+        },
+        "account_fence.py": {
+          "sha256": "1450af173b97b19da96c808b4151ac536abbe99dc0814554a487cf2db967e5dc",
+          "sourcePath": "src/conversation_analysis/account_fence.py"
+        },
+        "analysis_client.py": {
+          "sha256": "2f4bab176e405095568cf217d9bd14ad8e440e693501ed8c5bb6ffc6641b000e",
+          "sourcePath": "src/conversation_analysis/analysis_client.py"
+        },
+        "app.py": {
+          "sha256": "a8a5e730f958f3830caf70d088f6d3f81be4d083d7e1070089469f06948dabcc",
+          "sourcePath": "src/conversation_analysis/app.py"
+        },
+        "config.py": {
+          "sha256": "cfb89bee26927e61c76461614af5dc26a73bffe3310daf22a907ec3f9b36c03b",
+          "sourcePath": "src/conversation_analysis/config.py"
+        },
+        "device_binding.py": {
+          "sha256": "652b1e1fe8b1c05f06e478c5124aaeb816bbb4b688cbe8a8ebe414d5619cec1b",
+          "sourcePath": "src/conversation_analysis/device_binding.py"
+        },
+        "errors.py": {
+          "sha256": "e47750c53745afadaa3f8ceb290a08467e806bd4b475c73232e27e111ad24b17",
+          "sourcePath": "src/conversation_analysis/errors.py"
+        },
+        "history_completion.py": {
+          "sha256": "d988929e7c726f97c2b76e6d07a149a273922b30ad8e2e7e1f80b7520f1aebb7",
+          "sourcePath": "src/conversation_analysis/history_completion.py"
+        },
+        "response_builders.py": {
+          "sha256": "9de418dd6e1d6eb7ee6e5a5b2591aefcef9216a8347ff87835b18b01c1ef52db",
+          "sourcePath": "src/conversation_analysis/response_builders.py"
+        },
+        "retired_replay.py": {
+          "sha256": "a0976e62b6ff916e8ca700be965b5bbf12703de40c57bd1ca7bb24bb64737812",
+          "sourcePath": "src/conversation_analysis/retired_replay.py"
+        },
+        "safety.py": {
+          "sha256": "88147b1d66a0b5bff132aecb77a634a75013bb8db4736bd500ac47e3696e43c2",
+          "sourcePath": "src/conversation_analysis/safety.py"
+        },
+        "scan_access.py": {
+          "sha256": "9872acde671c805310078946979d364fe5dd4f60b0ee6ec9cc341b99117d5d80",
+          "sourcePath": "src/conversation_analysis/scan_access.py"
+        },
+        "service.py": {
+          "sha256": "3dcfc6353470576003d8312ae33b79675b0b67f90b545869acc27ae268eaec27",
+          "sourcePath": "src/conversation_analysis/service.py"
+        },
+        "shared_campaign_contracts/__init__.py": {
+          "sha256": "a8fad066d036ff0e2867ed9db0375d4e32135c82fd682b7f75d63c8f989d8637",
+          "sourcePath": "src/shared_campaign_contracts/__init__.py"
+        },
+        "shared_campaign_contracts/app_features.py": {
+          "sha256": "1a332e627932291cab3cd8f3ab227f5b454bcf544fba9a9d18dc81d382c23596",
+          "sourcePath": "src/shared_campaign_contracts/app_features.py"
+        },
+        "shared_campaign_contracts/metadata.py": {
+          "sha256": "174015187b62faf33e551ff47b9d96eea1babd958d202669ead87fb434ff400c",
+          "sourcePath": "src/shared_campaign_contracts/metadata.py"
+        },
+        "shared_campaign_contracts/repair.py": {
+          "sha256": "e37a217508e3056722346272bdc9b6dd0fc9f697af3d4746d5b2262beb31c7db",
+          "sourcePath": "src/shared_campaign_contracts/repair.py"
+        },
+        "shared_campaign_locators/__init__.py": {
+          "sha256": "4113ac36717091e12f55a8c66d47e860bb40314586a58c963223909cd1b03804",
+          "sourcePath": "src/shared_campaign_locators/__init__.py"
+        },
+        "shared_campaign_locators/core.py": {
+          "sha256": "7950779b71110d6805b62214c6c1745f6846e3e59d3721a32fa0c2bd8bae7971",
+          "sourcePath": "src/shared_campaign_locators/core.py"
+        },
+        "shared_campaign_locators/period.py": {
+          "sha256": "f4298b091dd094d0732e93db7ebc1da850c62c8c94020a58203127ba59a262e8",
+          "sourcePath": "src/shared_campaign_locators/period.py"
+        },
+        "shared_campaign_locators/publication.py": {
+          "sha256": "d453e3ac0cbeff7efc4a2bfdeab3262df4713336b663464bcfdbd967f268bf6f",
+          "sourcePath": "src/shared_campaign_locators/publication.py"
+        },
+        "shared_campaign_work/__init__.py": {
+          "sha256": "761d0c7e34e16ddae261b7ef2415b6cc9bf31fd32c101ee32cf5a8839b8a6ee6",
+          "sourcePath": "src/shared_campaign_work/__init__.py"
+        },
+        "shared_campaign_work/aggregates.py": {
+          "sha256": "46678e3e6dd1c6e672e5a964f1e752cd1ccdd5ffbd22afe58ef41f560cfd3da5",
+          "sourcePath": "src/shared_campaign_work/aggregates.py"
+        },
+        "shared_campaign_work/bootstrap.py": {
+          "sha256": "10ac42a69b224d8a123f5958e54902eb265e20c2d5ff654d3f92e8011c7cae03",
+          "sourcePath": "src/shared_campaign_work/bootstrap.py"
+        },
+        "shared_campaign_work/configuration.py": {
+          "sha256": "eb958ea54b8286896f19785d9659b347054faeac63342033ac0e32bfc0fec9f8",
+          "sourcePath": "src/shared_campaign_work/configuration.py"
+        },
+        "shared_campaign_work/lifecycle.py": {
+          "sha256": "dc40335e898a0ceeb0a78d9da6ff41093cc12e433fdf37dc6a3272f22df635fc",
+          "sourcePath": "src/shared_campaign_work/lifecycle.py"
+        },
+        "shared_campaign_work/outbox.py": {
+          "sha256": "e8ed0d163967c0a6136a85f2b9626ffb3ab19bdfd9696b529b2937a2fe953e28",
+          "sourcePath": "src/shared_campaign_work/outbox.py"
+        },
+        "shared_campaign_work/proofs.py": {
+          "sha256": "ee7a54880efba4541ec92a5449f7b027951ad3b147827ca796c1a4dda528d0d9",
+          "sourcePath": "src/shared_campaign_work/proofs.py"
+        },
+        "shared_campaign_work/records.py": {
+          "sha256": "9960f0dc6712764406bca508e3d65adc90c1dd0fc8bf3347c745f6506e7a6825",
+          "sourcePath": "src/shared_campaign_work/records.py"
+        },
+        "shared_campaign_work/retirement.py": {
+          "sha256": "b7b1575d120b88ac18ad22fcf860ceb0b73bd708cbcdd39392cfc973ea66aaf8",
+          "sourcePath": "src/shared_campaign_work/retirement.py"
+        },
+        "shared_campaign_work/scheduler.py": {
+          "sha256": "b298cd5e0fbffeda4dd9d2af11c833c198e27ec85789cbb4ba216495468cd81d",
+          "sourcePath": "src/shared_campaign_work/scheduler.py"
+        },
+        "shared_campaign_work/targets.py": {
+          "sha256": "22e4244df0a2d835c07bbddb2a91861a359465d5568b3800f135f59c1dacbbf9",
+          "sourcePath": "src/shared_campaign_work/targets.py"
+        },
+        "shared_campaign_work/transactions.py": {
+          "sha256": "5434c379befff71bad72f3b50bc32e5b45c892ac291cc53f055f414c68cb1f9c",
+          "sourcePath": "src/shared_campaign_work/transactions.py"
+        },
+        "shared_entitlements/__init__.py": {
+          "sha256": "e892c8ac70f74e008a79d87762fc1cc9ae7ac0140f41978074eab872f8517c88",
+          "sourcePath": "src/shared_entitlements/__init__.py"
+        },
+        "shared_entitlements/config.py": {
+          "sha256": "2362e27a61f982188ffef3f4bd7b7224ae7058db4b1d54ee92f007c6d658d13d",
+          "sourcePath": "src/shared_entitlements/config.py"
+        },
+        "shared_entitlements/service.py": {
+          "sha256": "0ce42defae4a44e89dad19f17d6d7944b4404a3d0ec16d42580d158528586e22",
+          "sourcePath": "src/shared_entitlements/service.py"
+        },
+        "shared_history/__init__.py": {
+          "sha256": "d15d75b47d976c581e0a9367d71134f34f1945bcb7da27231e7ef99ef0a6a7be",
+          "sourcePath": "src/shared_history/__init__.py"
+        },
+        "shared_history/config.py": {
+          "sha256": "fce97a98c3cb5332e6904cf80165f2d229e85c58983d375fc19fdf9dfae295dd",
+          "sourcePath": "src/shared_history/config.py"
+        },
+        "shared_history/contracts.py": {
+          "sha256": "da093661729195de48705f7e280c355aa1fcf0b55ff315eade7a7c6c80f06133",
+          "sourcePath": "src/shared_history/contracts.py"
+        },
+        "shared_history/errors.py": {
+          "sha256": "1a8afc8c4967d818240362b631c74463c9056020fe2b654913868416f4fc26de",
+          "sourcePath": "src/shared_history/errors.py"
+        },
+        "shared_history/security.py": {
+          "sha256": "71d562ee364c7a91bba0a10694316cfb1f70a552861554f19bed0a613492c5d8",
+          "sourcePath": "src/shared_history/security.py"
+        },
+        "validation.py": {
+          "sha256": "a6c62b7643b46ebfcfda8185aa4d59c9a6d425ca32ad364e7936e5b703ac2b8d",
+          "sourcePath": "src/conversation_analysis/validation.py"
+        }
+      },
+      "sourceMembersCompared": 43
+    }
+  },
+  "limitation": "Linux AArch64 ELF headers verified on macOS; native runtime execution is separate.",
+  "nativeExecutionPerformed": false,
+  "schemaVersion": 1,
+  "sourceCommit": "9147d545b719e54c1f967e35042bc502d79bc0f1"
+}

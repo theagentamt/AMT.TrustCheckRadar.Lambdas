@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+  "over18Acknowledged": true,
+  "agePolicyVersion": "v1.0",
+  "sub": "caller-controlled-subject"
+}

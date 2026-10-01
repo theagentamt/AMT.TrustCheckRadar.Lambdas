@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andmorethings.com/contracts/age-attestation/1.0.0-candidate.1/success.schema.json",
+  "title": "Age attestation success",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "operationId", "attestationStatus", "eligibleForSignup", "denialReasons", "attestedAt", "agePolicyVersion", "replayed"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "operationId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "attestationStatus": {"const": "ACKNOWLEDGED"},
+    "eligibleForSignup": {"const": true},
+    "denialReasons": {"type": "array", "maxItems": 0},
+    "attestedAt": {"type": "string", "format": "date-time"},
+    "agePolicyVersion": {"const": "v1.0"},
+    "replayed": {"type": "boolean"}
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "scope": "single_account_export_cursor_fix_disabled_candidate",
+  "sourceSha": "e1651f86e30fc1478f69ba16a4049be8baf0e5f3",
+  "environment": "dev",
+  "runtimeUpdated": false,
+  "activationApproved": false,
+  "artifacts": [
+    {
+      "function": "account_export_api",
+      "artifact": "account_export_api.zip",
+      "sha256": "ca76130d8e28f2786a64eabeb88bb215372411a99a79cd535adf532a645db129",
+      "sourceCodeHash": "ynYTDY4o8nhqZOq+uIuyFTckEamaec1TWt9TKmRdsSk=",
+      "bytes": 5084210,
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "handler": "app.lambda_handler",
+      "bundledDependencies": [
+        "cffi-2.1.1.dist-info",
+        "cryptography-50.0.1.dist-info",
+        "pycparser-3.0.dist-info"
+      ],
+      "bucket": "trustcheckradar-dev-107827791950-artifacts",
+      "key": "releases/e1651f86e30fc1478f69ba16a4049be8baf0e5f3/account_export_api.zip",
+      "versionId": "YNLn3_R23z7m.OIi_0AfJCu5abU2btay"
+    }
+  ],
+  "publicationComplete": true
+}

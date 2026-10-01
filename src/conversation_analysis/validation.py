@@ -1,3 +1,5 @@
+import base64
+import binascii
 import json
 from typing import Any
 
@@ -17,24 +19,51 @@ from shared_campaign_contracts import AppFeaturesContractError, validate_app_fea
 def parse_and_validate_event(event: dict[str, Any]) -> dict[str, Any]:
     body = event.get("body")
     if body is None:
-        raise AppError("INVALID_REQUEST", "The submitted request is invalid.", retryable=False, details=[{"field": "body", "issue": "Request body is required."}])
-
-    if isinstance(body, str):
-        if len(body.encode("utf-8")) > MAX_REQUEST_BODY_BYTES:
-            raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
-        try:
-            payload = json.loads(body)
-        except json.JSONDecodeError as err:
-            raise _invalid_request("body", "Request body must be valid JSON.") from err
-    elif isinstance(body, dict):
-        payload = body
-    else:
-        raise _invalid_request("body", "Request body must be a JSON object.")
+        raise _invalid_request("body", "Request body is required.")
+    encoded = event.get("isBase64Encoded", False)
+    if type(encoded) is not bool:
+        raise _invalid_request("body", "isBase64Encoded must be a boolean.")
+    try:
+        if isinstance(body, str):
+            if encoded:
+                # Bound allocation before decoding; base64 whitespace is not accepted.
+                if len(body) > 4 * ((MAX_REQUEST_BODY_BYTES + 2) // 3):
+                    raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
+                raw = base64.b64decode(body, validate=True)
+            else:
+                raw = body.encode("utf-8", errors="strict")
+            if len(raw) > MAX_REQUEST_BODY_BYTES:
+                raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
+            payload = json.loads(raw.decode("utf-8", errors="strict"))
+        elif isinstance(body, dict) and not encoded:
+            # Internal adapter convenience only: there is no original wire body.
+            raw = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+            if len(raw) > MAX_REQUEST_BODY_BYTES:
+                raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
+            payload = body
+        else:
+            raise _invalid_request("body", "Request body must be a JSON object.")
+    except (UnicodeError, ValueError, TypeError, RecursionError, binascii.Error):
+        raise _invalid_request("body", "Request body must be valid UTF-8 JSON with valid encoding.") from None
 
     if not isinstance(payload, dict):
         raise _invalid_request("body", "Request body must be a JSON object.")
-    if len(json.dumps(payload).encode("utf-8")) > MAX_REQUEST_BODY_BYTES:
-        raise _invalid_request("body", f"Request body exceeds {MAX_REQUEST_BODY_BYTES} bytes.")
+    # Escaped lone surrogates can survive json.loads even though the wire is UTF-8.
+    # Validate scalar strings without reserializing/re-measuring the sized payload.
+    def scalar_strings(value):
+        if isinstance(value, str):
+            value.encode("utf-8", errors="strict")
+        elif isinstance(value, dict):
+            for key, child in value.items():
+                scalar_strings(key)
+                scalar_strings(child)
+        elif isinstance(value, list):
+            for child in value:
+                scalar_strings(child)
+    try:
+        scalar_strings(payload)
+    except (UnicodeError, RecursionError):
+        raise _invalid_request("body", "Request body contains invalid Unicode scalar values.") from None
 
     schema_version = _required_string(payload, "schemaVersion")
     if schema_version != SCHEMA_VERSION:

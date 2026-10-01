@@ -1,0 +1,257 @@
+{
+  "bundleVersion": "recovery-playbook-1.0",
+  "cases": [
+    {
+      "id": "en-current",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "en-boundary",
+      "language": "en",
+      "today": "2027-03-20",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "en-review_due",
+      "language": "en",
+      "today": "2027-03-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "review_due",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": true,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "en-old_withdrawn",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "withdrawn",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "en-detailed_withdrawn",
+      "language": "en",
+      "today": "2027-03-20",
+      "signedIn": true,
+      "detailedState": "withdrawn",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": true,
+        "fallbackState": "review_due"
+      }
+    },
+    {
+      "id": "en-both_withdrawn",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "withdrawn",
+      "basicsState": "withdrawn",
+      "expected": {
+        "state": "limited_help",
+        "activeBundleVersion": null,
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "en-missing",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "missing",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": false,
+        "fallbackState": "available"
+      }
+    },
+    {
+      "id": "en-incompatible",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "incompatible",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": false,
+        "fallbackState": "available"
+      }
+    },
+    {
+      "id": "en-signed_out",
+      "language": "en",
+      "today": "2026-09-21",
+      "signedIn": false,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "sign_in_required",
+        "activeBundleVersion": null,
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-current",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-boundary",
+      "language": "es",
+      "today": "2027-03-20",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-review_due",
+      "language": "es",
+      "today": "2027-03-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "review_due",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": true,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-old_withdrawn",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "approved",
+      "basicsState": "withdrawn",
+      "expected": {
+        "state": "available",
+        "activeBundleVersion": "recovery-playbook-1.0",
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-detailed_withdrawn",
+      "language": "es",
+      "today": "2027-03-20",
+      "signedIn": true,
+      "detailedState": "withdrawn",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": true,
+        "fallbackState": "review_due"
+      }
+    },
+    {
+      "id": "es-both_withdrawn",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "withdrawn",
+      "basicsState": "withdrawn",
+      "expected": {
+        "state": "limited_help",
+        "activeBundleVersion": null,
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    },
+    {
+      "id": "es-missing",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "missing",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": false,
+        "fallbackState": "available"
+      }
+    },
+    {
+      "id": "es-incompatible",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": true,
+      "detailedState": "incompatible",
+      "basicsState": "approved",
+      "expected": {
+        "state": "fallback_basics",
+        "activeBundleVersion": "recovery-basics-1.0",
+        "reviewDue": false,
+        "fallbackState": "available"
+      }
+    },
+    {
+      "id": "es-signed_out",
+      "language": "es",
+      "today": "2026-09-21",
+      "signedIn": false,
+      "detailedState": "approved",
+      "basicsState": "approved",
+      "expected": {
+        "state": "sign_in_required",
+        "activeBundleVersion": null,
+        "reviewDue": false,
+        "fallbackState": null
+      }
+    }
+  ]
+}

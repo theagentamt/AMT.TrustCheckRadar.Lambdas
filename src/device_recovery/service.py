@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 import hashlib
+import hmac
 import json
 import time
 
@@ -24,6 +25,12 @@ deletion_ledger_table = (
     if config.DELETION_LEDGER_TABLE_NAME else None
 )
 dynamodb_client = boto3.client("dynamodb")
+
+RECOVERY_RECEIPT_FIELDS = frozenset({
+    "PK", "SK", "recordType", "schemaVersion", "operationId", "operation",
+    "payloadHash", "result", "status", "bindingFingerprint",
+    "completedAtEpoch", "expiresAt",
+})
 
 
 def process_recovery(*, account_id: str, action: str, binding_fingerprint: str | None, operator_id: str) -> dict:
@@ -63,7 +70,14 @@ def process_self_recovery(*, account_id: str, payload: dict, now_epoch=None) -> 
         ConsistentRead=True,
     ).get("Item")
     if previous:
-        return _replay_receipt(previous, payload_hash)
+        return _replay_receipt(
+            previous,
+            payload_hash,
+            account_id=account_id,
+            operation_id=operation_id,
+            expected_binding_fingerprint=payload["bindingFingerprint"],
+            now_epoch=now_epoch,
+        )
 
     now = datetime.fromtimestamp(now_epoch, UTC)
     now_iso = now.isoformat()
@@ -129,7 +143,14 @@ def process_self_recovery(*, account_id: str, payload: dict, now_epoch=None) -> 
             Key={"PK": receipt["PK"], "SK": receipt["SK"]}, ConsistentRead=True
         ).get("Item")
         if previous:
-            return _replay_receipt(previous, payload_hash)
+            return _replay_receipt(
+                previous,
+                payload_hash,
+                account_id=account_id,
+                operation_id=operation_id,
+                expected_binding_fingerprint=payload["bindingFingerprint"],
+                now_epoch=now_epoch,
+            )
         rate = control_table.get_item(
             Key=_rate_key(account_id, now_epoch), ConsistentRead=True
         ).get("Item")
@@ -410,6 +431,10 @@ def _empty_pointer(account_id, now):
 
 
 def _positive_version(value):
+    return _positive_integral_int(value)
+
+
+def _positive_integral_int(value):
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -490,12 +515,75 @@ def _rate_limit_update(account_id, now_epoch):
     }}
 
 
-def _replay_receipt(item, payload_hash):
-    if item.get("payloadHash") != payload_hash:
+def _replay_receipt(
+    item,
+    payload_hash,
+    *,
+    account_id,
+    operation_id,
+    expected_binding_fingerprint,
+    now_epoch,
+):
+    receipt = _validated_recovery_receipt(
+        item,
+        account_id=account_id,
+        operation_id=operation_id,
+        now_epoch=now_epoch,
+    )
+    if not hmac.compare_digest(receipt["payloadHash"], payload_hash):
         raise AppError("IDEMPOTENCY_CONFLICT", "operationId is bound to another recovery request.")
-    if item.get("status") != "COMPLETE":
-        raise AppError("REQUEST_IN_PROGRESS", "Recovery is still in progress.", retryable=True)
-    return _public_self_receipt(item)
+    if receipt["bindingFingerprint"] != expected_binding_fingerprint:
+        raise AppError("SERVER_UNAVAILABLE", "The stored recovery receipt is invalid.")
+    if receipt["expiresAt"] <= now_epoch:
+        # Reuse after logical expiry is an unresolved owner decision. Fail closed
+        # while an expired record is still observable rather than replaying stale
+        # success or silently treating the operation identifier as new.
+        raise AppError(
+            "SERVER_UNAVAILABLE",
+            "The recovery receipt is no longer available for replay.",
+            retryable=False,
+        )
+    return _public_self_receipt(receipt)
+
+
+def _validated_recovery_receipt(
+    item,
+    *,
+    account_id,
+    operation_id,
+    now_epoch,
+):
+    if not isinstance(item, dict) or set(item) != RECOVERY_RECEIPT_FIELDS:
+        raise AppError("SERVER_UNAVAILABLE", "The stored recovery receipt is invalid.")
+    completed_at = _positive_integral_int(item.get("completedAtEpoch"))
+    expires_at = _positive_integral_int(item.get("expiresAt"))
+    expected_expiry = (
+        completed_at + config.DEVICE_RECOVERY_RECEIPT_RETENTION_DAYS * 86400
+        if completed_at is not None else None
+    )
+    stored_hash = item.get("payloadHash")
+    if (
+        item.get("PK") != f"USER#{account_id}"
+        or item.get("SK") != f"RECOVERY#{operation_id}"
+        or item.get("recordType") != "DEVICE_RECOVERY_RECEIPT"
+        or item.get("schemaVersion") != 1
+        or isinstance(item.get("schemaVersion"), bool)
+        or item.get("operationId") != operation_id
+        or item.get("operation") != "REPLACE_ACTIVE_BINDING"
+        or item.get("result") != "RECOVERED"
+        or item.get("status") != "COMPLETE"
+        or not isinstance(stored_hash, str)
+        or len(stored_hash) != 64
+        or any(character not in "0123456789abcdef" for character in stored_hash)
+        or not isinstance(item.get("bindingFingerprint"), str)
+        or not config.BINDING_FINGERPRINT_PATTERN.fullmatch(item["bindingFingerprint"])
+        or completed_at is None
+        or expires_at is None
+        or completed_at > now_epoch
+        or expires_at != expected_expiry
+    ):
+        raise AppError("SERVER_UNAVAILABLE", "The stored recovery receipt is invalid.")
+    return dict(item, completedAtEpoch=completed_at, expiresAt=expires_at)
 
 
 def _public_self_receipt(item):

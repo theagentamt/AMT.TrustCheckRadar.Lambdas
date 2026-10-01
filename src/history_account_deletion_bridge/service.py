@@ -3,6 +3,8 @@ import hashlib
 import re
 import time
 
+from shared_account_finalization.history_receipts import current_command, command_guard, write_receipt
+
 
 REQUEST_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "environment",
@@ -95,7 +97,7 @@ def reconcile_account_deletions(
                 deletion_ledger_table_name=deletion_ledger_table_name,
                 dynamodb_client=dynamodb_client,
                 schema_version=schema_version,
-                erasure_sla_hours=erasure_sla_hours,
+                erasure_sla_hours=erasure_sla_hours, now_epoch=now(),
             )
             for key in ("started", "alreadyPending", "completed"):
                 totals[key] += 1 if result.get(key) else 0
@@ -127,14 +129,18 @@ def reconcile_account_deletions(
 
 def start_history_deletion(
     command, *, control_table, control_table_name, deletion_ledger_table,
-    deletion_ledger_table_name, dynamodb_client, schema_version, erasure_sla_hours,
+    deletion_ledger_table_name, dynamodb_client, schema_version, erasure_sla_hours, now_epoch=None,
 ):
+    now_epoch = int(time.time()) if now_epoch is None else now_epoch
+    if current_command(deletion_ledger_table, command, now_epoch) == "TERMINAL":
+        return {"started": False, "alreadyPending": False, "completed": False, "alreadyCompleted": True}
     account_id = command["accountId"]
     state_key = {"PK": f"USER#{account_id}", "SK": "STATE"}
     state = control_table.get_item(Key=state_key, ConsistentRead=True).get("Item")
     if not state:
         return _complete_without_history(
-            command, deletion_ledger_table, schema_version=schema_version
+            command, deletion_ledger_table, dynamodb_client, deletion_ledger_table_name,
+            control_table_name, state, now_epoch
         )
     maximum_generation = _exact_nonnegative_int(state.get("historyGeneration"))
     recognition_generation = _exact_nonnegative_int(state.get("recognitionGeneration"))
@@ -148,7 +154,8 @@ def start_history_deletion(
         raise ValueError("Invalid History account state")
     if status == "DELETED":
         return _complete_without_history(
-            command, deletion_ledger_table, schema_version=schema_version
+            command, deletion_ledger_table, dynamodb_client, deletion_ledger_table_name,
+            control_table_name, state, now_epoch
         )
     operation_id = _operation_id(command)
     job_key = {"PK": state_key["PK"], "SK": f"ERASURE#{operation_id}"}
@@ -187,22 +194,15 @@ def start_history_deletion(
             "TableName": control_table_name, "Item": _serialize(job),
             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
         }},
-        {"ConditionCheck": {
-            "TableName": deletion_ledger_table_name,
-            "Key": _serialize({"PK": command["PK"], "SK": command["SK"]}),
-            "ConditionExpression": "#status = :requested AND eventType = :event_type AND occurredAtEpoch = :occurred",
-            "ExpressionAttributeNames": {"#status": "status"},
-            "ExpressionAttributeValues": _serialize({
-                ":requested": "REQUESTED", ":event_type": "account.deletion.requested",
-                ":occurred": now,
-            }),
-        }},
+        command_guard(deletion_ledger_table_name, command),
     ]
     try:
         dynamodb_client.transact_write_items(TransactItems=transaction)
     except Exception as err:
         if _error_code(err) != "TransactionCanceledException":
             raise
+        if current_command(deletion_ledger_table, command, now_epoch) == "TERMINAL":
+            return {"started": False, "alreadyPending": False, "completed": False, "alreadyCompleted": True}
         existing = control_table.get_item(Key=job_key, ConsistentRead=True).get("Item")
         if existing and existing.get("reason") == "ACCOUNT_DELETION":
             return {"started": False, "alreadyPending": True, "completed": False}
@@ -210,40 +210,18 @@ def start_history_deletion(
     return {"started": True, "alreadyPending": False, "completed": False}
 
 
-def _complete_without_history(command, deletion_ledger_table, *, schema_version):
-    receipt = {
-        "PK": command["PK"], "SK": "ACCOUNT_DELETION#HISTORY",
-        "schemaVersion": schema_version, "recordVersion": 1,
-        "environment": command["environment"],
-        "eventType": "account.deletion.component.completed",
-        "component": "HISTORY", "status": "COMPLETE",
-        "occurredAtEpoch": command["occurredAtEpoch"],
-        "requestOccurredAtEpoch": command["occurredAtEpoch"],
-        "operationId": command["operationId"],
-        "retainUntilEpoch": (
-            command["occurredAtEpoch"]
-            + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
-        ),
-    }
-    try:
-        deletion_ledger_table.put_item(
-            Item=receipt,
-            ConditionExpression="attribute_not_exists(PK) AND attribute_not_exists(SK)",
-        )
-        created = True
-    except Exception as err:
-        if _error_code(err) != "ConditionalCheckFailedException":
-            raise
-        existing = deletion_ledger_table.get_item(
-            Key={"PK": receipt["PK"], "SK": receipt["SK"]},
-            ConsistentRead=True,
-        ).get("Item")
-        if not existing or set(existing) != set(receipt) or any(
-            existing.get(field) != value for field, value in receipt.items()
-        ):
-            raise
-        created = False
-    return {"started": False, "alreadyPending": False, "completed": True, "receiptCreated": created}
+def _complete_without_history(command, ledger, client, table_name, control_name, state, now):
+    condition = {"TableName": control_name,
+        "Key": _serialize({"PK": "USER#" + command["accountId"], "SK": "STATE"})}
+    if state is None:
+        condition["ConditionExpression"] = "attribute_not_exists(PK)"
+    else:
+        condition.update(ConditionExpression="accountStatus = :deleted",
+                         ExpressionAttributeValues={":deleted": {"S": "DELETED"}})
+    result = write_receipt(ledger=ledger, client=client, table_name=table_name,
+        command=command, now=now, guards=[{"ConditionCheck": condition}])
+    return {"started": False, "alreadyPending": False, "completed": not result["terminal"],
+            "alreadyCompleted": result["terminal"], "receiptCreated": result["receiptCreated"]}
 
 
 def _operation_id(command):

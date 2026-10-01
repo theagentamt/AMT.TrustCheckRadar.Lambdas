@@ -1,9 +1,12 @@
 import importlib.util
+import hashlib
+import json
 import sys
 import types
 import unittest
 from decimal import Decimal
 from pathlib import Path
+from unittest import mock
 
 MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "device_recovery"
 if str(MODULE_DIR) not in sys.path:
@@ -376,6 +379,175 @@ class DeviceRecoveryServiceTests(unittest.TestCase):
             )
 
         self.assertEqual(context.exception.code, "IDEMPOTENCY_CONFLICT")
+
+    def test_expired_present_receipt_fails_closed_instead_of_replaying_success(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-new",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        started_at = 1_800_000_000
+        service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at
+        )
+        transaction_count = len(fake_client.transactions)
+
+        with self.assertRaises(service.AppError) as context:
+            service.process_self_recovery(
+                account_id="user-123",
+                payload=payload,
+                now_epoch=started_at + 7 * 86400,
+            )
+
+        self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+        self.assertFalse(context.exception.retryable)
+        self.assertEqual(len(fake_client.transactions), transaction_count)
+
+    def test_receipt_replay_rejects_wrong_subject_key_and_invalid_shape(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-new",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        started_at = 1_800_000_000
+        service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at
+        )
+        key = ("USER#user-123", f"RECOVERY#{payload['operationId']}")
+        valid = dict(fake_table.items[key])
+        invalid_receipts = (
+            valid | {"PK": "USER#another-subject"},
+            valid | {"SK": "RECOVERY#47debb73-444b-4bb1-9889-fb56885b7922"},
+            valid | {"schemaVersion": True},
+            valid | {"operation": "RESET_ACTIVE_BINDING"},
+            valid | {"bindingFingerprint": "fp-other"},
+            valid | {"completedAtEpoch": Decimal("1800000000.5")},
+            valid | {"expiresAt": valid["expiresAt"] + 1},
+            valid | {"unexpected": "field"},
+        )
+        for receipt in invalid_receipts:
+            with self.subTest(receipt=receipt):
+                fake_table.items[key] = receipt
+                with self.assertRaises(service.AppError) as context:
+                    service.process_self_recovery(
+                        account_id="user-123",
+                        payload=payload,
+                        now_epoch=started_at + 1,
+                    )
+                self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+        fake_table.items[key] = valid
+
+    def test_transaction_cancel_replay_rejects_tampered_valid_fingerprint_without_recovery_writes(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-requested",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        now_epoch = 1_800_000_000
+        payload_hash = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        tampered = {
+            "PK": "USER#user-123",
+            "SK": f"RECOVERY#{payload['operationId']}",
+            "recordType": "DEVICE_RECOVERY_RECEIPT",
+            "schemaVersion": 1,
+            "operationId": payload["operationId"],
+            "operation": "REPLACE_ACTIVE_BINDING",
+            "payloadHash": payload_hash,
+            "result": "RECOVERED",
+            "status": "COMPLETE",
+            "bindingFingerprint": "fp-other-valid",
+            "completedAtEpoch": now_epoch,
+            "expiresAt": now_epoch + 7 * 86400,
+        }
+
+        def cancel_with_concurrent_tampered_receipt(**_kwargs):
+            fake_table.put_item(tampered)
+            error = RuntimeError("cancelled")
+            error.response = {"Error": {"Code": "TransactionCanceledException"}}
+            raise error
+
+        with mock.patch.object(
+            service.dynamodb_client,
+            "transact_write_items",
+            side_effect=cancel_with_concurrent_tampered_receipt,
+        ):
+            with self.assertRaises(service.AppError) as context:
+                service.process_self_recovery(
+                    account_id="user-123", payload=payload, now_epoch=now_epoch
+                )
+
+        self.assertEqual(context.exception.code, "SERVER_UNAVAILABLE")
+        self.assertNotIn(("USER#user-123", "ACTIVE_BINDING"), fake_table.items)
+        self.assertNotIn(("USER#user-123", "DEVICE#fp-requested"), fake_table.items)
+        self.assertFalse(any(
+            pk == "USER#user-123" and sk.startswith(("RATE#", "AUDIT#"))
+            for pk, sk in fake_table.items
+        ))
+
+    def test_replay_is_historical_outcome_not_current_binding_status(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-original",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        started_at = 1_800_000_000
+        original = service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at
+        )
+        transaction_count = len(fake_client.transactions)
+        fake_table.items[("USER#user-123", "ACTIVE_BINDING")]["bindingFingerprint"] = "fp-later"
+        fake_table.put_item({
+            "PK": "USER#user-123", "SK": "DEVICE#fp-later",
+            "accountId": "user-123", "bindingFingerprint": "fp-later",
+            "platform": "ios", "osVersion": "18.5", "status": "ACTIVE",
+            "firstSeenAt": "2027-01-15T08:00:00+00:00",
+            "lastSeenAt": "2027-01-15T08:00:00+00:00", "deactivatedAt": None,
+        })
+
+        replay = service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at + 1
+        )
+
+        self.assertEqual(replay, original)
+        self.assertEqual(replay["bindingFingerprint"], "fp-original")
+        self.assertNotIn("currentBinding", replay)
+        self.assertEqual(len(fake_client.transactions), transaction_count)
+
+    def test_removed_receipt_has_no_reuse_evidence_pending_owner_decision(self):
+        payload = {
+            "schemaVersion": 1,
+            "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+            "action": "REPLACE_ACTIVE_BINDING",
+            "bindingFingerprint": "fp-new",
+            "platform": "ios",
+            "osVersion": "18.4",
+        }
+        started_at = 1_800_000_000
+        service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at
+        )
+        del fake_table.items[("USER#user-123", f"RECOVERY#{payload['operationId']}")]
+        transaction_count = len(fake_client.transactions)
+
+        service.process_self_recovery(
+            account_id="user-123", payload=payload, now_epoch=started_at + 1
+        )
+
+        self.assertEqual(len(fake_client.transactions), transaction_count + 1)
 
     def test_deletion_fence_blocks_late_replay_before_receipt_read_can_succeed(self):
         payload = {

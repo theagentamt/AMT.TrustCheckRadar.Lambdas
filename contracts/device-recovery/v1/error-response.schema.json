@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amt.example/contracts/device-recovery/1.0.0/error-response.schema.json",
+  "title": "Device self-recovery V1 error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable"],
+      "properties": {
+        "code": {
+          "enum": [
+            "INVALID_REQUEST",
+            "UNAUTHORIZED",
+            "REAUTHENTICATION_REQUIRED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "CONFLICT",
+            "IDEMPOTENCY_CONFLICT",
+            "REQUEST_IN_PROGRESS",
+            "RATE_LIMITED",
+            "FEATURE_DISABLED",
+            "SERVER_UNAVAILABLE",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": {"type": "string", "minLength": 1},
+        "retryable": {"type": "boolean"},
+        "details": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "issue"],
+            "properties": {
+              "field": {"type": "string", "minLength": 1},
+              "issue": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  }
+}

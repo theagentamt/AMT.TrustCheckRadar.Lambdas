@@ -211,7 +211,7 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
 
         self.assertEqual(first, second)
 
-    def test_enrolled_free_user_gets_fifteen_with_used_count_preserved(self):
+    def test_legacy_enrollment_never_reapplies_bonus(self):
         self._put_entitlement(
             tier="FREE", status="expired", is_access_granted=False,
             remaining_monthly_scans=6,
@@ -228,9 +228,9 @@ class EntitlementSnapshotServiceTests(unittest.TestCase):
 
         result = service.get_entitlement_snapshot("user-123")
 
-        self.assertEqual(result["usage"]["limit"], 15)
+        self.assertEqual(result["usage"]["limit"], 10)
         self.assertEqual(result["usage"]["usedCount"], 4)
-        self.assertEqual(result["usage"]["remaining"], 11)
+        self.assertEqual(result["usage"]["remaining"], 6)
 
 
 if __name__ == "__main__":

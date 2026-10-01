@@ -218,6 +218,22 @@ can be aligned without weakening the privacy boundary.
 
 - Lambda path: `src/age_attestation/app.py`
 - Handler: `app.lambda_handler`
+- Contract: `contracts/age-attestation/1.0.0-candidate.1`; authenticated HTTP
+  API v2 `POST /v1/users/age-attestation` using a Cognito access token.
+- Requires `USERS_TABLE_NAME`, `DELETION_LEDGER_TABLE_NAME`, and
+  `AGE_ATTESTATION_USER_POOL_ID`. Optional
+  `AGE_ATTESTATION_ALLOWED_REGION_CODES` defaults to `US,PR,VI,GU,AS,MP`.
+- Cognito `AdminGetUser` must return the same `sub` and a stored phone number with
+  libphonenumber metadata in an allowed region and supported fixed/mobile/VoIP
+  category. V1 treats the phone as self-provided eligibility data and does not
+  trust `phone_number_verified` or establish identity, number control, ownership,
+  a seat, or recovery authority. The package pins `phonenumbers==9.0.40`.
+- The users table stores seven-day receipts at
+  `USER#<sub>/AGE_ATTESTATION#<operationId>` and needs `GetItem` plus
+  transactional `PutItem`, `UpdateItem`, and `ConditionCheckItem`. The deletion
+  ledger needs transactional `ConditionCheckItem` on the fixed account fence.
+- Missing profiles fail with `PROFILE_NOT_FOUND`; this handler never creates
+  legacy profiles. Prelaunch/Dev accounts require a reviewed reconciliation.
 - Runtime expectation: Python 3.13 compatible
 - Invocation modes:
   - API/event invocation for age attestation updates
@@ -566,6 +582,10 @@ Required environment:
 - `USER_PROFILE_DELETION_POLICY_STATUS=pending` by default. Even when approved,
   the worker refuses to query/delete profile state until exact receipts exist for
   session, device, recovery, History, analysis, campaign, outbox, and entitlements.
+- `DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS=pending` by default. It must be
+  approved before `USER_PROFILE` may erase demographic current/operation and
+  value-free authority records. Validated value-free consent audits remain only
+  through their original 400-day expiry.
 
 These false/pending/incomplete decisions are independent activation gates.
 They must not be changed merely because the artifact exists. In particular,
@@ -608,6 +628,60 @@ policy-blocked counts; unknown
 full-pass age is omitted. Reconciliation failures emit a separate counter and
 then propagate to the scheduler.
 
+---
+
+## Optional Demographic Research Profile (Phase A; no active route)
+
+- Lambda path: `src/demographic_research/`; artifact:
+  `demographic_research.zip`; handler: `app.lambda_handler`; Python 3.14/ARM64.
+- Authenticated HTTP API v2 routes are `GET` and `PUT`
+  `/v1/users/demographic-research-profile`.
+- Purpose is exactly `optional-demographic-protection-research`, purpose version
+  `consumer-protection-research-v1`, notice
+  `demographic-research-2026-09-30-v1`, and policy
+  `optional-demographic-research-v1`.
+- `DEMOGRAPHIC_RESEARCH_SERVICE_ENABLED=false`,
+  `DEMOGRAPHIC_RESEARCH_ENROLLMENT_ENABLED=false`, and
+  `DEMOGRAPHIC_RESEARCH_HTTP_SUBJECTS_JSON=[]` are independent gates. The service
+  gate and exact-subject allowlist run before body parsing and before the
+  AWS-backed service module is imported. When service is enabled but enrollment
+  remains disabled, GET and withdrawal remain available while enroll/update
+  return `ENROLLMENT_UNAVAILABLE`.
+- Required configuration is `DEMOGRAPHIC_RESEARCH_ENVIRONMENT=dev|uat|prod`,
+  `DEMOGRAPHIC_RESEARCH_USERS_TABLE_NAME`, and
+  `DEMOGRAPHIC_RESEARCH_DELETION_LEDGER_TABLE_NAME`.
+- Current state is `USER#<sub>/DEMOGRAPHIC_RESEARCH`; consent and selected values
+  expire after 400 days and require reconsent. Seven-day idempotency state is
+  `DEMOGRAPHIC_OPERATION#<operationId>`. The 400-day consent audit at
+  `DEMOGRAPHIC_CONSENT#<epoch>#<occurredAtEpoch>#<operationId>` is value-free.
+  `ACCOUNT#<sub>/DEMOGRAPHIC_RESEARCH_AUTHORITY` is also value-free and rejects a
+  restored/stale users-table record unless state/version/epoch/last operation and
+  validity match current authority.
+- Every read checks the fixed account-deletion fence first and exact active,
+  age-verified PROFILE second. Every mutation repeats both as transaction
+  conditions. Correction and withdrawal atomically replace/remove current values
+  and delete the prior value-bearing operation receipt; their value-free audit
+  records the 24-hour deadline and immediate completion.
+- IAM requires users and deletion-ledger `GetItem`; transaction-only users
+  `PutItem`/`DeleteItem`/`ConditionCheckItem` and deletion-ledger
+  `PutItem`/`ConditionCheckItem`. No Query, Scan, campaign, entitlement, device,
+  provider, or commercial-data access is part of this Lambda.
+- Metrics use `TrustCheckRadar/DemographicResearch` with bounded `Environment`
+  and `Operation` dimensions. Demographic choices, sub, request body, and
+  operation ID are prohibited from log and metric content.
+- Export candidate.5 is separately gated by
+  `DEMOGRAPHIC_RESEARCH_EXPORT_CONTRACT_ENABLED=false` and adds only
+  demographic current, operation, and value-free consent families. Account
+  deletion is separately gated by
+  `DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS=pending` under USER_PROFILE.
+- DynamoDB PITR can retain historical blocks for 35 days. Restores are
+  quarantined and cannot serve demographic data until current deletion fences,
+  current demographic authority, and account-data inventory are reapplied and
+  requalified. A jointly restored ledger is not current authority.
+- This source/package does not activate a route, concurrency, export, deletion,
+  data collection, campaign enrichment, or commercial use. Scoped Dev and later
+  release E2E remain separate acceptance work.
+
 Activation remains blocked by the unverified complete inventory, final identity
 deletion, any additional inventory components, overall
 finalization, and fence-retention policy. Full-account export is also blocked;
@@ -641,142 +715,108 @@ mutate live legacy receipts.
 
 ---
 
-## Purchase Handoff
+## Google Play purchase verification
+
+### Modern V1 handoff
+
+- Lambda path: `src/v1_play_handoff/`
+- Handler: `v1_play_handoff.app.lambda_handler`
+- Runtime/architecture: Python 3.14/ARM64
+- Protected routes:
+  - `POST /v1/purchases/google-play/prepare`
+  - `POST /v1/purchases/google-play/verify`
+- Public contract: `contracts/v1-play-handoff/candidate.1`
+
+The modern handoff is the only path that may connect Google Play proof to V1
+paid authority. API Gateway must use the Cognito JWT authorizer and require the
+access-token scope. The handler derives the account from the authorizer, requires
+the current active device and profile/deletion fences, and accepts no client grant,
+product, package, order, period, acknowledgment, or account claim.
+
+### Required activation and catalog configuration
+
+| Variable | Requirement | Purpose |
+|---|---|---|
+| `STAGE` | Exact `dev` for the current candidate | Prevents activation outside the reviewed environment |
+| `PLAY_HANDOFF_ENABLED` | Explicit `true` | Opens verification; default/current closed value is `false` |
+| `AUTHORITY_ENABLED` | Independently explicit `true` | Opens the modern V1 authority; default/current closed value is `false` |
+| `PLAY_CATALOG_P1M_VERIFIED` | Exact `true` | Confirms the reviewed monthly catalog configuration |
+| `PLAY_REQUIRE_TEST_PURCHASES` | Exact `true` in Dev | Rejects non-license-test purchases |
+| `DEV_SUBJECT_ALLOWLIST_JSON` | Exact selected Dev subjects | Prevents general-account activation |
+| `GOOGLE_PLAY_PACKAGE_NAME` | `com.andmorethings.trustcheckradar` | Fixed package checked by the provider client |
+| `GOOGLE_PLAY_PRODUCT_ID` | `trustcheck_radar_pro_monthly` | Fixed product checked in subscription and order proof |
+| `GOOGLE_PLAY_BASE_PLAN_ID` | `pro-monthly` | Fixed base plan checked in subscription and order proof |
+| `GOOGLE_PLAY_BILLING_PERIOD` | `P1M` | Fixed funded-period policy |
+| `GOOGLE_PLAY_SERVICE_ACCOUNT_SECRET_ARN` | Exact approved Secrets Manager ARN | Runtime reads `AWSCURRENT`; no secret name fallback |
+| `PURCHASE_OWNERSHIP_TABLE_NAME` | Existing purchase/ownership table name | Exact token ownership, locator, and migration inventory |
+
+The shared authority also requires its explicit users, device bindings, deletion
+ledger and authority table names; Cognito issuer/client/scope; HMAC keyring secret
+ARN; policy version; and bounded operation, settlement, reconciliation, receipt,
+counter and abuse limits. `PLAY_LIFECYCLE_ENABLED` and
+`PLAY_PREPARATION_ENABLED` are separate gates. Enabling verification does not by
+itself authorize background reconciliation, token retention, or preparation.
+
+### Verification and durable-write boundary
+
+- The fixed-host client reads `purchases.subscriptionsv2` and the exact latest
+  successful Orders resource under one bounded request budget. Package, product,
+  base plan, funded service period, current access, acknowledgment state, test
+  status, account binding, and linked-token lineage are server verified.
+- Ownership and migration inventory are observed before a fresh complete provider
+  verification. A changed provider, account, device, deletion, ownership,
+  inventory, access, or period observation fails closed.
+- Token ownership/locators, immutable 200-completed-check funded-period accounting,
+  ACCESS state, and the exact request audit commit in one conditional DynamoDB
+  transaction. Replays preserve completed and reserved counters.
+- Google acknowledgment occurs only after the exact durable receipt and current
+  account/device/ownership/period evidence are reread. A failed acknowledgment
+  leaves the committed grant intact and pending; retry never creates another
+  allowance. A lost transaction response is accepted only through the exact
+  retained request audit.
+- Raw purchase tokens and provider responses are not written by the foreground
+  flow when lifecycle retention is closed. The separately approved encrypted
+  token/lifecycle contract is documented in
+  `docs/play-lifecycle-runtime-contract.md`.
+
+Google license-test purchase, restore, order, acknowledgment, interruption and
+account-mismatch cases remain manual/provider acceptance. Grace, renewal,
+cancellation, refund/revocation and RTDN acceptance belong to the Play lifecycle
+work. Source tests, a closed-handler AWS smoke, or a deployed disabled route do
+not count as those tests and do not authorize paid access.
+
+### Retired legacy handoff
 
 - Lambda path: `src/purchase_handoff/`
 - Handler: `app.lambda_handler`
-- Runtime expectation: Python 3.13 compatible
-- Invocation mode: protected API route, effectively POST `/purchase-handoff`
+- Retired route: `POST /purchase-handoff`
 
-### Required environment variables
-
-| Variable | Required | Example | What breaks if missing |
-|---|---|---:|---|
-| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `TABLE_NAME` is set | `trustcheckradar-dev-purchase-entitlements` | Entitlement persistence fails |
-| `TABLE_NAME` | Compatibility alias | `trustcheckradar-dev-purchase-entitlements` | Same as above if `ENTITLEMENTS_TABLE_NAME` is not provided |
-| `USERS_TABLE_NAME` | Yes | `trustcheckradar-dev-users` | Active profile authority cannot be proven and purchase handoff fails closed |
-| `DELETION_LEDGER_TABLE_NAME` | Yes | `trustcheckradar-dev-deletion-ledger` | Fixed account-deletion fencing cannot be proven and purchase handoff fails closed |
-| `PURCHASE_VERIFICATION_MODE` | No, but required for live verification behavior | `google_play` | If set to `stub`, Google Play is not called |
-| `GOOGLE_PLAY_SECRET_NAME` | Required for live Google Play verification | `trustcheckradar/dev/google-play-service-account` | Live verification cannot fetch service account credentials |
-| `GOOGLE_PLAY_PACKAGE_NAME` | Required for live Google Play verification | `com.andmorethings.trustcheckradar` | Android Publisher API calls cannot be scoped correctly |
-| `GOOGLE_PLAY_PRO_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults may be used, but product mapping may be wrong |
-| `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Default free quota logic may be wrong if code assumes configured policy |
-| `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Default pro quota logic may be wrong if code assumes configured policy |
-| `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
-
-### External resources
-
-| Resource | Env/config key used | Needs | ARN, name, or both |
-|---|---|---|---|
-| DynamoDB purchase entitlements table | `ENTITLEMENTS_TABLE_NAME` or `TABLE_NAME` | `dynamodb:GetItem`, transactional `dynamodb:PutItem` | Name required by code |
-| DynamoDB users profile | `USERS_TABLE_NAME` | `dynamodb:GetItem`, transaction `dynamodb:ConditionCheckItem` on exact `USER#*/PROFILE` | Name required by code |
-| DynamoDB deletion fence | `DELETION_LEDGER_TABLE_NAME` | `dynamodb:GetItem`, transaction `dynamodb:ConditionCheckItem` on exact `ACCOUNT#*/ACCOUNT_DELETION` | Name required by code |
-| Secrets Manager Google Play service-account secret | `GOOGLE_PLAY_SECRET_NAME` | `secretsmanager:GetSecretValue` | Name required by code |
-| Google Android Publisher API | runtime outbound call | outbound HTTPS | No AWS identifier |
-| API Gateway JWT authorizer / Cognito identity | request context | invoke + authorizer context | No env var |
-| CloudWatch Logs | Lambda runtime default | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Managed by Lambda execution role |
-
-### Storage contract
-
-- Table: purchase entitlements table
-- Primary key shapes:
-  - Entitlement item:
-    - `PK = USER#<sub>`
-    - `SK = ENTITLEMENT#google_play#trustcheck_radar_pro_monthly`
-  - Idempotency item:
-    - `PK = TOKEN#<sha256(purchaseToken)>`
-    - `SK = IDEMPOTENCY`
-- Compatibility read shape:
-  - `SK = ENTITLEMENT`
-- GSI usage: none in the code path described here
-- TTL fields:
-  - none required by the purchase handoff logic itself
-- Item families:
-  - entitlement state
-  - purchase token idempotency records
-
-### Runtime assumptions
-
-- POST-style API request with authenticated Cognito user context.
-- For live verification, the code expects a full Google service-account JSON stored in Secrets Manager.
-- This Lambda is the verification point against Google Play; downstream entitlement consumers trust DynamoDB state.
-- Accepted/rejected verification state is committed in one transaction with the
-  active-profile and absent-deletion-fence checks. Replay reads are also blocked
-  after the fence. This closes late writes but does not approve token retention,
-  legacy token discovery, or an `ENTITLEMENTS` deletion receipt.
-
-### Compatibility aliases
-
-- Table variable aliases accepted:
-  - `ENTITLEMENTS_TABLE_NAME`
-  - `TABLE_NAME`
-- Secret variable expected by code:
-  - `GOOGLE_PLAY_SECRET_NAME`
-- Important: code expects secret **name**, not secret ARN.
+This compatibility endpoint is not an access authority. The legacy unconditional
+writer is removed: when `PURCHASE_OWNERSHIP_CANDIDATE_ENABLED` is false, every
+otherwise valid request returns `LEGACY_MIGRATION_REQUIRED`. Dev also keeps
+`PURCHASE_VERIFICATION_MODE=stub`. Do not activate this endpoint, use its old
+entitlement rows as a fallback, or treat its presence as evidence that Google Play
+verification is enabled. Remove the route in a separately reviewed retirement
+change when no supported client depends on its fail-closed response.
 
 ---
 
-## Entitlement Snapshot
+## Access snapshot
 
-- Lambda path: `src/entitlement_snapshot/`
-- Handler: `app.lambda_handler`
-- Runtime expectation: Python 3.13 compatible
-- Invocation mode: protected API route, effectively GET `/entitlements/snapshot`
+The modern access service is `src/v1_entitlements/`, handler
+`v1_entitlements.app.lambda_handler`, Python 3.14/ARM64. Its protected
+`GET /v1/access` route returns the server-authoritative trial, paid or
+complimentary access state and original-period counters. `POST /v1/access/trial`
+uses the same authority for explicit trial activation. Both routes require the
+Cognito access-token scope, current active profile/device, absent deletion fence,
+the selected Dev subject allowlist, `V1_ENTITLEMENTS_ENABLED=true`, and the
+independent `AUTHORITY_ENABLED=true` gate.
 
-### Required environment variables
-
-| Variable | Required | Example | What breaks if missing |
-|---|---|---:|---|
-| `ENTITLEMENTS_TABLE_NAME` | Yes, unless `USERS_TABLE_NAME` or `TABLE_NAME` is set | `trustcheckradar-dev-purchase-entitlements` | Snapshot cannot read entitlement state |
-| `USERS_TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-purchase-entitlements` | Used only if `ENTITLEMENTS_TABLE_NAME` is not set |
-| `TABLE_NAME` | Compatibility fallback | `trustcheckradar-dev-purchase-entitlements` | Used only if stronger names are not set |
-| `ENTITLEMENT_PLATFORM` | No | `google_play` | Defaults are used for key resolution |
-| `ENTITLEMENT_PRODUCT_ID` | No | `trustcheck_radar_pro_monthly` | Defaults are used for key resolution |
-| `ENTITLEMENT_USAGE_PERIOD_MODE` | No | `billing_cycle` | Defaults are used in usage response logic |
-| `FREE_MONTHLY_SCAN_LIMIT` | No | `10` | Free-tier remaining count may be incorrect |
-| `PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT` | No | `15` | Enrolled free-tier remaining count may be incorrect |
-| `PRO_MONTHLY_SCAN_LIMIT` | No | `100` | Pro-tier remaining count may be incorrect |
-| `LOG_LEVEL` | No | `INFO` | Only logging verbosity is affected |
-
-### External resources
-
-| Resource | Env/config key used | Needs | ARN, name, or both |
-|---|---|---|---|
-| DynamoDB purchase entitlements table | `ENTITLEMENTS_TABLE_NAME` or fallback aliases | `dynamodb:GetItem` | Name required by code |
-| API Gateway JWT authorizer / Cognito identity | request context | invoke + authorizer context | No env var |
-| CloudWatch Logs | Lambda runtime default | `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` | Managed by Lambda execution role |
-
-### Storage contract
-
-- Table: purchase entitlements table
-- Primary key shapes:
-  - entitlement item:
-    - `PK = USER#<sub>`
-    - `SK = ENTITLEMENT#google_play#trustcheck_radar_pro_monthly`
-  - usage item:
-    - `PK = USER#<sub>`
-    - `SK = USAGE#<periodKey>`
-- Compatibility read shape:
-  - `SK = ENTITLEMENT`
-- GSI usage: none
-- TTL fields: none required by snapshot read path
-- Item families read:
-  - entitlement item
-  - usage counter item
-
-### Runtime assumptions
-
-- Read-only entitlement/status endpoint.
-- Authenticated caller required.
-- Returns current entitlement state, usage counters, and restore guidance.
-
-### Compatibility aliases
-
-- Table variable aliases accepted:
-  - `ENTITLEMENTS_TABLE_NAME`
-  - `USERS_TABLE_NAME`
-  - `TABLE_NAME`
-- Code does not require a table ARN.
+The older `src/entitlement_snapshot/` handler and `GET /entitlements/snapshot`
+route are retired compatibility boundaries. The handler always returns
+`LEGACY_MIGRATION_REQUIRED`; it cannot interpret legacy `ENTITLEMENT#` or `USAGE#`
+rows as access and has no role in the modern Play handoff. Do not use its former
+environment aliases or response shape for new mobile work.
 
 ---
 
@@ -961,7 +1001,9 @@ retention task and TTL expiry is not evidence of physical deletion. See
 ## Shared Entitlements Module
 
 - Module path: `src/shared_entitlements/`
-- This is not a standalone Lambda, but it defines shared table/env expectations used by multiple Lambdas.
+- This is the retained legacy compatibility module, not the V1 authority and not
+  a standalone Lambda. New Play, access, or analysis work must use
+  `src/shared_check_authority/`; these aliases and row shapes do not grant access.
 
 ### Environment aliases used by shared entitlement code
 
@@ -995,28 +1037,30 @@ retention task and TTL expiry is not evidence of physical deletion. See
   - `post_confirmation`
   - `device_registration`
   - `device_recovery`
-  - `purchase_handoff`
-  - `entitlement_snapshot`
+  - `v1_play_handoff`
+  - `v1_entitlements`
   - `conversation_analysis`
   - `web_risk_communication`
 
-2. Provide secret names, not only ARNs, where code expects names.
-- The current code paths expect secret names for these integrations:
-  - `GOOGLE_PLAY_SECRET_NAME`
+2. Provide each integration's exact supported secret reference form.
+- The modern Play handler requires the exact approved secret ARN in
+  `GOOGLE_PLAY_SERVICE_ACCOUNT_SECRET_ARN`; it does not use the retired
+  `GOOGLE_PLAY_SECRET_NAME` alias. Other legacy integrations still expect names:
   - `OPENAI_SECRET_NAME`
   - `WEB_RISK_SECRET_NAME`
-- If Terraform currently injects only ARNs such as `GOOGLE_PLAY_SECRET_ARN`, the code will not resolve the secret unless compatibility support is added in code.
+- Do not interchange a name and ARN merely because Secrets Manager accepts both
+  in its API. The Lambda validates the documented form before reading a secret.
 
 3. Ensure `DEVICE_BINDINGS_TABLE_NAME` is present for `conversation_analysis`.
 - This is a hard dependency for device binding validation.
 - If missing, the Lambda returns service-unavailable style failures during the device validation stage.
 
-4. Ensure `ENTITLEMENTS_TABLE_NAME` is present for all entitlement-aware Lambdas.
-- Affected Lambdas:
-  - `purchase_handoff`
-  - `entitlement_snapshot`
-  - `conversation_analysis`
-- Fallback aliases exist in some code paths, but relying on them is brittle and makes Terraform less explicit.
+4. Ensure modern authority and Play ownership table names are explicit.
+- `v1_play_handoff` requires `AUTHORITY_TABLE_NAME` and
+  `PURCHASE_OWNERSHIP_TABLE_NAME`, plus the shared users/device/deletion table
+  names. `v1_entitlements` requires the same shared authority boundary without
+  provider or ownership mutation. Neither uses the retired legacy entitlement
+  row as a fallback.
 
 5. Ensure `ANALYSIS_ABUSE_TABLE_NAME` is present for `conversation_analysis`.
 - This is required for dedupe, rate limiting, and abuse controls.
@@ -1050,14 +1094,18 @@ retention task and TTL expiry is not evidence of physical deletion. See
 - `dynamodb:Scan`
 - `cognito-idp:AdminUserGlobalSignOut`
 
-### Purchase Handoff
-- `dynamodb:GetItem`
-- `dynamodb:PutItem`
+### Modern V1 Play Handoff
+- consistent `dynamodb:GetItem` on exact profile, device, deletion, authority,
+  ownership and inventory keys
+- conditional `dynamodb:TransactWriteItems` for exact authority, period, audit,
+  ownership and locator families
 - `secretsmanager:GetSecretValue`
-- outbound internet/NAT access if Lambda is inside a VPC and still needs Google access
+- outbound HTTPS to the fixed Android Publisher API host if Lambda is in a VPC
 
-### Entitlement Snapshot
-- `dynamodb:GetItem`
+### Modern V1 Access Snapshot
+- consistent `dynamodb:GetItem` on exact shared authority and account-fence keys
+- conditional `dynamodb:TransactWriteItems` only for explicitly enabled trial
+  activation or authority refresh
 
 ### Conversation Analysis
 - `dynamodb:GetItem`
@@ -1090,30 +1138,35 @@ retention task and TTL expiry is not evidence of physical deletion. See
 - Exact table names for:
   - users
   - device bindings
-  - purchase entitlements
+  - V1 authority
+  - purchase ownership
   - analysis abuse control
   - web risk cache
-- Exact secret names for:
+- Exact supported secret references for:
   - OpenAI API key secret
-  - Google Play service-account secret
+  - Google Play service-account secret ARN
   - Google Web Risk API key secret
 - Config values that are part of behavior, not just infrastructure:
-  - `FREE_MONTHLY_SCAN_LIMIT`
-  - `PRO_MONTHLY_SCAN_LIMIT`
+  - `AUTHORITY_POLICY_VERSION`
+  - `PLAY_HANDOFF_ENABLED`
+  - `PLAY_CATALOG_P1M_VERIFIED`
+  - `PLAY_REQUIRE_TEST_PURCHASES`
+  - `GOOGLE_PLAY_PACKAGE_NAME`
+  - `GOOGLE_PLAY_PRODUCT_ID`
+  - `GOOGLE_PLAY_BASE_PLAN_ID`
+  - `GOOGLE_PLAY_BILLING_PERIOD`
   - `SCAN_RATE_LIMIT_WINDOW_SECONDS`
   - `SCAN_RATE_LIMIT_MAX_REQUESTS`
   - `RATE_LIMIT_WINDOW_SECONDS`
   - `RATE_LIMIT_MAX_REQUESTS`
   - `REQUEST_ID_TTL_SECONDS`
   - `DEVICE_BINDINGS_INACTIVE_RETENTION_DAYS`
-  - `ENTITLEMENT_PLATFORM`
-  - `ENTITLEMENT_PRODUCT_ID`
-  - `ENTITLEMENT_USAGE_PERIOD_MODE`
 
 ## Nice-to-fix clarity gaps
 
-1. Standardize on `*_TABLE_NAME` and `*_SECRET_NAME` everywhere.
-- Today the codebase still carries compatibility aliases in a few places.
+1. Standardize on one documented table-name or secret-reference variable per
+   active integration.
+- Today the codebase still carries compatibility aliases in retired paths.
 - Terraform will be easier to reason about if each Lambda gets a single canonical env var contract.
 
 2. Decide whether code should support secret ARN aliases.

@@ -1,0 +1,171 @@
+{
+  "version": "recovery-projection-1.0",
+  "synthetic": true,
+  "humanReview": "not_claimed",
+  "cases": [
+    {
+      "id": "en_password",
+      "language": "en",
+      "rawText": "password: banana.",
+      "reviewedText": "password: [PASSWORD_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "es_contraseña",
+      "language": "es",
+      "rawText": "contraseña: platano.",
+      "reviewedText": "contraseña: [PASSWORD_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_code",
+      "language": "en",
+      "rawText": "code: 314159.",
+      "reviewedText": "code: [VERIFICATION_CODE_1].",
+      "entities": [
+        {
+          "type": "verification_code",
+          "token": "[VERIFICATION_CODE_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "es_código",
+      "language": "es",
+      "rawText": "código: 271828.",
+      "reviewedText": "código: [VERIFICATION_CODE_1].",
+      "entities": [
+        {
+          "type": "verification_code",
+          "token": "[VERIFICATION_CODE_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_passcode",
+      "language": "en",
+      "rawText": "passcode: apple.",
+      "reviewedText": "passcode: [PASSWORD_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_verification_code",
+      "language": "en",
+      "rawText": "verification code: 123456.",
+      "reviewedText": "verification code: [VERIFICATION_CODE_1].",
+      "entities": [
+        {
+          "type": "verification_code",
+          "token": "[VERIFICATION_CODE_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_api_key",
+      "language": "en",
+      "rawText": "api key: syntheticvalue.",
+      "reviewedText": "api key: [PASSWORD_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "es_token",
+      "language": "es",
+      "rawText": "token: valor.",
+      "reviewedText": "token: [PASSWORD_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_mixed_8",
+      "language": "en",
+      "rawText": "I opened example.invalid.",
+      "reviewedText": "I opened [URL_1].",
+      "entities": [
+        {
+          "type": "url",
+          "token": "[URL_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "es_mixed_9",
+      "language": "es",
+      "rawText": "Abrí example.invalid.",
+      "reviewedText": "Abrí [URL_1].",
+      "entities": [
+        {
+          "type": "url",
+          "token": "[URL_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "en_mixed_10",
+      "language": "en",
+      "rawText": "password: banana and code: 314159.",
+      "reviewedText": "password: [PASSWORD_1] and code: [VERIFICATION_CODE_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        },
+        {
+          "type": "verification_code",
+          "token": "[VERIFICATION_CODE_1]"
+        }
+      ],
+      "serverAccepts": true
+    },
+    {
+      "id": "es_mixed_11",
+      "language": "es",
+      "rawText": "contraseña: platano y código: 271828.",
+      "reviewedText": "contraseña: [PASSWORD_1] y código: [VERIFICATION_CODE_1].",
+      "entities": [
+        {
+          "type": "password",
+          "token": "[PASSWORD_1]"
+        },
+        {
+          "type": "verification_code",
+          "token": "[VERIFICATION_CODE_1]"
+        }
+      ],
+      "serverAccepts": true
+    }
+  ]
+}

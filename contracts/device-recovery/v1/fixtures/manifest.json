@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "fixtures": [
+    {"path": "valid.request.json", "schema": "self-recovery-request.schema.json", "valid": true, "scenario": "new_request"},
+    {"path": "invalid.request.boolean-schema-version.json", "schema": "self-recovery-request.schema.json", "valid": false, "scenario": "boolean_schema_version_rejected"},
+    {"path": "invalid.request.extra-field.json", "schema": "self-recovery-request.schema.json", "valid": false, "scenario": "client_account_target_rejected"},
+    {"path": "invalid.request.operation-id.json", "schema": "self-recovery-request.schema.json", "valid": false, "scenario": "non_uuid4_operation_rejected"},
+    {"path": "valid.success.json", "schema": "self-recovery-success.schema.json", "valid": true, "httpStatus": 200, "scenario": "new_success"},
+    {"path": "replay.success.json", "schema": "self-recovery-success.schema.json", "valid": true, "httpStatus": 200, "scenario": "same_payload_unexpired_replay_original_outcome"},
+    {"path": "stale-replay.success.json", "schema": "self-recovery-success.schema.json", "valid": true, "httpStatus": 200, "scenario": "original_outcome_after_current_pointer_changed_not_status"},
+    {"path": "invalid.error.json", "schema": "error-response.schema.json", "valid": true, "httpStatus": 400, "scenario": "invalid_request"},
+    {"path": "reauthentication-required.error.json", "schema": "error-response.schema.json", "valid": true, "httpStatus": 401, "scenario": "stale_auth_time"},
+    {"path": "rate-limited.error.json", "schema": "error-response.schema.json", "valid": true, "httpStatus": 429, "scenario": "three_attempt_window_exhausted"},
+    {"path": "feature-disabled.error.json", "schema": "error-response.schema.json", "valid": true, "httpStatus": 503, "scenario": "activation_off"},
+    {"path": "expired-receipt.error.json", "schema": "error-response.schema.json", "valid": true, "httpStatus": 503, "scenario": "expired_present_receipt_fail_closed_pending_reuse_policy"}
+  ]
+}

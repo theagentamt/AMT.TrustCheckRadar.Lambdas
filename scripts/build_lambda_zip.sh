@@ -11,7 +11,9 @@ SKIP_DEPENDENCIES=false
 CONTRACT_VERSION="1.0.0"
 
 FUNCTIONS=(
+  support_account_deletion
   account_data_api
+  account_export_api
   age_attestation
   campaign_cluster_aggregator
   campaign_deletion_bridge
@@ -20,7 +22,13 @@ FUNCTIONS=(
   campaign_participation
   campaign_review
   campaign_trends
+  demographic_research
   conversation_analysis
+  message_consumer
+  message_evaluator
+  recovery_consumer
+  result_feedback
+  recovery_evaluator
   device_registration
   device_recovery
   entitlement_snapshot
@@ -34,6 +42,11 @@ FUNCTIONS=(
   url_consumer
   url_lease_recovery
   v1_entitlements
+  v1_play_handoff
+  play_lifecycle_ingress
+  play_lifecycle_worker
+  play_token_deletion
+  v1_authority_deletion
   web_risk_communication
   post_confirmation
 )
@@ -87,14 +100,14 @@ is_known_function() {
 
 needs_shared_entitlements() {
   case "$1" in
-    campaign_participation|conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
+    conversation_analysis|entitlement_snapshot|purchase_handoff) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 needs_shared_campaign_contracts() {
   case "$1" in
-    campaign_cluster_aggregator|campaign_observation_publisher|conversation_analysis) return 0 ;;
+    campaign_cluster_aggregator|campaign_observation_publisher|campaign_deletion_bridge|campaign_lifecycle|conversation_analysis|account_data_api|account_export_api) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -164,7 +177,10 @@ build_function() {
   local output_zip="$OUTPUT_DIR/$function_name.zip"
   local requirements_file="$source_dir/requirements.txt"
   local python_version="${PYTHON_VERSION:-3.13}"
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" ) ]]; then
+  if [[ "$function_name" == "support_account_deletion" && -z "$PYTHON_VERSION" ]]; then
+    python_version="3.14"
+  fi
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "demographic_research" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -176,17 +192,114 @@ build_function() {
   mkdir -p "$build_dir"
   cp -R "$source_dir"/. "$build_dir/"
 
-  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" ]]; then
+  if [[ "$function_name" == "support_account_deletion" ]]; then
+    mkdir -p "$build_dir/support_account_deletion" "$build_dir/account_data_api"
+    cp -R "$source_dir"/. "$build_dir/support_account_deletion/"
+    printf 'from support_account_deletion.app import lambda_handler\n' > "$build_dir/app.py"
+    cp "$ROOT_DIR/src/account_data_api/__init__.py" "$ROOT_DIR/src/account_data_api/service.py" "$ROOT_DIR/src/account_data_api/errors.py" "$build_dir/account_data_api/"
+    cp -R "$ROOT_DIR/src/shared_account_finalization" "$ROOT_DIR/src/shared_campaign_recovery" "$build_dir/"
+  fi
+
+  if [[ "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" ]]; then
+    mkdir -p "$build_dir/$function_name"
+    cp -R "$source_dir"/. "$build_dir/$function_name/"
+    printf 'from %s.app import lambda_handler\n' "$function_name" > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_purchase_ownership" "$ROOT_DIR/src/shared_account_finalization" "$ROOT_DIR/src/v1_authority_deletion" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
+  fi
+  if [[ "$function_name" == "v1_play_handoff" ]]; then
+    mkdir -p "$build_dir/v1_play_handoff"
+    cp -R "$source_dir"/. "$build_dir/v1_play_handoff/"
+    printf 'from v1_play_handoff.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/shared_play_lifecycle" "$build_dir/"
+  fi
+  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
     cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
     cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
   fi
-  if [[ "$function_name" == "v1_entitlements" ]]; then
-    mkdir -p "$build_dir/v1_entitlements"
-    cp -R "$source_dir"/. "$build_dir/v1_entitlements/"
+  if [[ "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
+    mkdir -p "$build_dir/$function_name"
+    cp -R "$source_dir"/. "$build_dir/$function_name/"
   fi
   if [[ "$function_name" == "url_consumer" ]]; then
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/public_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/public_contract_v2"
+    cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.2" "$build_dir/transport_contract_v2"
     cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.1" "$build_dir/transport_contract"
+  fi
+
+  if [[ "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" ]]; then
+    mkdir -p "$build_dir/$function_name" "$build_dir/url_redirect_resolver"
+    cp -R "$source_dir"/. "$build_dir/$function_name/"
+    printf 'from %s.app import lambda_handler\n' "$function_name" > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
+    cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
+    if [[ "$function_name" == "message_evaluator" ]]; then
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_evaluator/ai_contract"
+    fi
+    if [[ "$function_name" == "message_consumer" ]]; then
+      cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+      cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+      mkdir -p "$build_dir/message_evaluator" "$build_dir/url_consumer"
+      cp "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/policy_v3.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
+      cp "$ROOT_DIR/src/url_consumer/service.py" "$build_dir/url_consumer/"
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.1" "$build_dir/message_consumer/contract"
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_consumer/contract_v2"
+      cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.3" "$build_dir/message_consumer/contract_v3"
+    fi
+  fi
+
+  if [[ "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" ]]; then
+    mkdir -p "$build_dir/$function_name" "$build_dir/url_redirect_resolver" "$build_dir/message_evaluator"
+    cp -R "$source_dir"/. "$build_dir/$function_name/"
+    printf 'from %s.app import lambda_handler\n' "$function_name" > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_recovery_contract" "$build_dir/shared_recovery_contract"
+    cp -R "$ROOT_DIR/contracts/recovery-playbook/1.0" "$build_dir/shared_recovery_contract/playbook"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
+    cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
+    if [[ "$function_name" == "recovery_consumer" ]]; then
+      cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+      cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+      mkdir -p "$build_dir/url_consumer"
+      cp "$ROOT_DIR/src/url_consumer/service.py" "$build_dir/url_consumer/"
+      cp -R "$ROOT_DIR/contracts/recovery-consumer/1.0.0-candidate.1" "$build_dir/recovery_consumer/contract"
+    else
+      cp "$ROOT_DIR/src/message_evaluator/proposer.py" "$build_dir/message_evaluator/"
+    fi
+  fi
+  if [[ "$function_name" == "result_feedback" ]]; then
+    mkdir -p "$build_dir/result_feedback" "$build_dir/url_redirect_resolver"
+    cp -R "$source_dir"/. "$build_dir/result_feedback/"
+    printf 'from result_feedback.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp "$ROOT_DIR/src/url_redirect_resolver/resolver.py" "$build_dir/url_redirect_resolver/"
+    cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
+    cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
+  fi
+  if [[ "$function_name" == "account_export_api" ]]; then
+    mkdir -p "$build_dir/account_export_api"
+    cp -R "$source_dir"/. "$build_dir/account_export_api/"
+    printf 'from account_export_api.app import lambda_handler\n' > "$build_dir/app.py"
+    cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+    cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp -R "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
+  fi
+  if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
+    cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
+  fi
+
+  # Every shared-authority consumer can recover a recovery lease without the
+  # model/parser/bundle modules. Keep this lightweight dependency in old workers.
+  if [[ -d "$build_dir/shared_check_authority" && ! -d "$build_dir/shared_recovery_contract" ]]; then
+    mkdir -p "$build_dir/shared_recovery_contract"
+    cp "$ROOT_DIR/src/shared_recovery_contract/__init__.py" "$ROOT_DIR/src/shared_recovery_contract/constants.py" "$ROOT_DIR/src/shared_recovery_contract/usage.py" "$build_dir/shared_recovery_contract/"
   fi
 
   if [[ "$function_name" == "url_assessment" ]]; then
@@ -197,9 +310,30 @@ build_function() {
   if needs_shared_entitlements "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_entitlements" "$build_dir/shared_entitlements"
   fi
+  if [[ "$function_name" == "purchase_handoff" || "$function_name" == "account_data_api" || "$function_name" == "account_export_api" || "$function_name" == "v1_play_handoff" ]]; then
+    cp -R "$ROOT_DIR/src/shared_purchase_ownership" "$build_dir/shared_purchase_ownership"
+  fi
 
+  if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "campaign_lifecycle" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
+  fi
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "account_export_api" || "$function_name" == "conversation_analysis" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_locators" "$build_dir/shared_campaign_locators"
+    cp -R "$ROOT_DIR/src/shared_campaign_work" "$build_dir/shared_campaign_work"
+  fi
+  if [[ "$function_name" == "campaign_observation_publisher" || "$function_name" == "campaign_cluster_aggregator" || "$function_name" == "campaign_lifecycle" ]]; then
+    cp -R "$ROOT_DIR/src/shared_research_consent" "$build_dir/shared_research_consent"
+  fi
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "campaign_participation" || "$function_name" == "campaign_deletion_bridge" || "$function_name" == "v1_authority_deletion" || "$function_name" == "history_account_deletion_bridge" || "$function_name" == "history_lifecycle" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" ]]; then
+    cp -R "$ROOT_DIR/src/shared_campaign_recovery" "$build_dir/shared_campaign_recovery"
+  fi
   if needs_shared_campaign_contracts "$function_name"; then
     cp -R "$ROOT_DIR/src/shared_campaign_contracts" "$build_dir/shared_campaign_contracts"
+  fi
+
+  if [[ "$function_name" == "account_data_api" || "$function_name" == "v1_authority_deletion" || "$function_name" == "history_account_deletion_bridge" || "$function_name" == "history_lifecycle" ]]; then
+    cp -R "$ROOT_DIR/src/shared_account_finalization" "$build_dir/shared_account_finalization"
   fi
 
   if needs_shared_history "$function_name"; then
@@ -335,12 +469,47 @@ print(f"{sha256(output_zip.read_bytes()).hexdigest()}  {output_zip}")
 PY
 }
 
+package_device_recovery_contracts() {
+  local source_dir="$ROOT_DIR/contracts/device-recovery/v1"
+  local output_zip="$OUTPUT_DIR/device-recovery-contracts-$CONTRACT_VERSION.zip"
+  [[ -f "$source_dir/contract-set.json" ]] || fail "device recovery contract source not found: $source_dir"
+  rm -f "$output_zip"
+  python3 - "$source_dir" "$output_zip" <<'PY'
+from hashlib import sha256
+from pathlib import Path
+import stat
+import sys
+import zipfile
+
+source_dir = Path(sys.argv[1]).resolve()
+output_zip = Path(sys.argv[2]).resolve()
+files = sorted(path for path in source_dir.rglob("*") if path.is_file())
+manifest = "".join(
+    f"{sha256(path.read_bytes()).hexdigest()}  {path.relative_to(source_dir).as_posix()}\n"
+    for path in files
+)
+with zipfile.ZipFile(output_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+    for path in files:
+        relative_path = path.relative_to(source_dir).as_posix()
+        info = zipfile.ZipInfo(relative_path, date_time=(1980, 1, 1, 0, 0, 0))
+        info.external_attr = (stat.S_IFREG | 0o644) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        archive.writestr(info, path.read_bytes(), compresslevel=9)
+    info = zipfile.ZipInfo("SHA256SUMS", date_time=(1980, 1, 1, 0, 0, 0))
+    info.external_attr = (stat.S_IFREG | 0o644) << 16
+    info.compress_type = zipfile.ZIP_DEFLATED
+    archive.writestr(info, manifest.encode("utf-8"), compresslevel=9)
+print(f"{sha256(output_zip.read_bytes()).hexdigest()}  {output_zip}")
+PY
+}
+
 if [[ "$BUILD_ALL" == true ]]; then
   for function_name in "${FUNCTIONS[@]}"; do
     build_function "$function_name"
   done
   package_campaign_contracts
   package_history_contracts
+  package_device_recovery_contracts
 
   python3 - "$OUTPUT_DIR" <<'PY'
 from hashlib import sha256

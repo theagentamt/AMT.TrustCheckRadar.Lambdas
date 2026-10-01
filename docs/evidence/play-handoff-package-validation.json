@@ -1,0 +1,162 @@
+{
+  "scope": "local extracted-source import and disabled-handler checks; not AWS execution",
+  "results": [
+    {
+      "function": "account_export_api",
+      "handler": "app",
+      "sha256": "7e7fdb62fd2b418bb31856b1837bd58e30a49e56d2bca56644d625b81013c74c",
+      "bytes": 5050509,
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store",
+          "Pragma": "no-cache"
+        },
+        "body": "{\"schemaVersion\":1,\"error\":{\"code\":\"SERVICE_NOT_ENABLED\",\"retryable\":true}}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "message_consumer",
+      "handler": "app",
+      "sha256": "e3dc51e6a8c76ffdde89767881966b9616090f789454cd5fd8c5659bbae85299",
+      "bytes": 750288,
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-message-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-22T04:11:35.889192Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"errorCode\":\"SERVICE_NOT_ENABLED\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "recovery_consumer",
+      "handler": "app",
+      "sha256": "49fd67feb60d54e7e4e17287be28d6ad0f45153df3f7059b9afbce2815257ba3",
+      "bytes": 730038,
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-recovery-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-22T04:11:36.157438Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"usage\":null,\"resultAvailability\":\"none\",\"errorCode\":\"SERVICE_NOT_ENABLED\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "result_feedback",
+      "handler": "app",
+      "sha256": "fe3834bddb25209c49f74f762a05011564f4cdf7596f2d2fe911b4efff2abbcc",
+      "bytes": 711314,
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"feedbackTransportVersion\":\"1.0.0-feedback-candidate.1\",\"feedbackId\":null,\"checkId\":null,\"status\":\"unknown\",\"reasonCode\":\"SERVICE_NOT_ENABLED\",\"retryable\":false,\"retryAfterSeconds\":null,\"receivedAt\":null,\"expiresAt\":null}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "url_consumer",
+      "handler": "app",
+      "sha256": "b2a7a0b1c6c0b5416b594168aeb076bfec2927b22c9f2c66a6311a6dbff46512",
+      "bytes": 689704,
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-22T04:11:36.460359Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"errorCode\":\"SERVICE_UNAVAILABLE\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "url_lease_recovery",
+      "handler": "app",
+      "sha256": "95b5e48f10965515fe19152a4c42d988a3ca14c59775cbaac34cde1ef1245856",
+      "bytes": 44478,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "response": {
+        "enabled": false,
+        "recovered": 0
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "v1_authority_deletion",
+      "handler": "v1_authority_deletion.app",
+      "sha256": "62f107d2a861bcc48ee0c09d8f82747ec57db0be5983e5539b7568cc80f3cc2d",
+      "bytes": 55874,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "response": {
+        "enabled": false
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "v1_entitlements",
+      "handler": "v1_entitlements.app",
+      "sha256": "dc1f5ca356d4c361019e12b8f78ddd3d3bf1560057be8c0d6362f299fa0d1ebe",
+      "bytes": 48479,
+      "hostNativeDependencySubstitutions": [],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"schemaVersion\":1,\"error\":{\"code\":\"ACCESS_SERVICE_UNAVAILABLE\",\"retryable\":false}}"
+      },
+      "deploymentPerformed": false
+    },
+    {
+      "function": "v1_play_handoff",
+      "handler": "v1_play_handoff.app",
+      "sha256": "942149c9fda1206fd66e1af1c924554c2c444707673f821673f9c02b27fb97f2",
+      "bytes": 6209605,
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ],
+      "exitCode": 0,
+      "response": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"schemaVersion\":1,\"contractVersion\":\"v1-play-handoff-1.0.0-candidate.1\",\"requestId\":null,\"error\":{\"code\":\"PURCHASE_SERVICE_UNAVAILABLE\",\"retryable\":false}}"
+      },
+      "deploymentPerformed": false
+    }
+  ]
+}

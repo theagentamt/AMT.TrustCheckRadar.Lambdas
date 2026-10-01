@@ -1,0 +1,28 @@
+{
+  "targetRuntime": "python3.14",
+  "targetArchitecture": "arm64",
+  "sdk": "local real boto3 with Moto, not AWS runtime",
+  "nativeDependencies": [],
+  "published": false,
+  "artifacts": {
+    "post_confirmation": {
+      "sha256": "962801e6256b812301e6405fbd8bde33beb8cb34d7dab173375b1efd4bf26e88",
+      "bytes": 1397,
+      "sourceMembersVerified": 1,
+      "handler": "app.lambda_handler"
+    },
+    "age_attestation": {
+      "sha256": "e1f70b37c6073ce64d818de24ede20ce589c6d730776fd53a05fff3565337818",
+      "bytes": 2984,
+      "sourceMembersVerified": 1,
+      "handler": "app.lambda_handler"
+    }
+  },
+  "packagedSyntheticChecks": [
+    "signup creates pending profile",
+    "age promotes existing profile",
+    "completed fence blocks age",
+    "completed fence blocks signup",
+    "profile unchanged after fence"
+  ]
+}

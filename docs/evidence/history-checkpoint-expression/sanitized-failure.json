@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "eventsObserved": 44,
+  "traversalComplete": true,
+  "errorCategories": {
+    "reserved keyword: shard": 14,
+    "Invalid ConditionExpression": 14,
+    "ValidationException": 14
+  },
+  "serviceActions": {},
+  "sourceFrames": {
+    "/var/task/app.py:30": 14,
+    "/var/task/service.py:35": 14,
+    "/var/task/service.py:78": 14,
+    "/var/task/service.py:127": 14,
+    "/var/task/service.py:224": 14
+  },
+  "rawMessagesRetained": false
+}

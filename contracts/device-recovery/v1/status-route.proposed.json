@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "proposalStatus": "unsupported_pending_owner_approval",
+  "method": "GET",
+  "path": "/v1/users/device-binding",
+  "identitySource": "validated_cognito_access_token_sub",
+  "requestFingerprintSource": "x-device-binding-fingerprint header",
+  "requestBodyAllowed": false,
+  "accountTargetingAllowed": false,
+  "writesAllowed": false,
+  "readConsistency": "strong_pointer_and_target",
+  "otherFingerprintDisclosureAllowed": false,
+  "candidateSemanticStates": [
+    "CURRENT_DEVICE_ACTIVE",
+    "DIFFERENT_DEVICE_ACTIVE",
+    "NO_ACTIVE_BINDING",
+    "UNKNOWN_OR_INCONSISTENT"
+  ],
+  "note": "Names, response fields, errors, deployment, and activation are not approved by this proposal."
+}

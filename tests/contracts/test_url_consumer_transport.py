@@ -33,3 +33,12 @@ def test_pending_cannot_claim_free_or_offer_an_outcome():
     value=deepcopy(next(x['response'] for x in FIXTURES if x['name']=='pending'))
     value['accounting']={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
     assert list(VALIDATOR.iter_errors(value))
+
+
+def test_authoritative_unadmitted_close_has_narrow_exact_shape():
+    body=deepcopy(next(x['response'] for x in FIXTURES if x['name']=='expired-unadmitted-closed'))
+    assert body['state']=='rejected' and body['accounting']['chargedChecks']==0
+    assert body['accounting']['requiresReconciliation'] is False
+    for changes in ({'errorCode':'SERVICE_UNAVAILABLE'},{'checkId':None},{'operationProof':None}):
+        assert list(VALIDATOR.iter_errors(body|changes))
+    assert list(VALIDATOR.iter_errors(body|{'accounting':body['accounting']|{'requiresReconciliation':True}}))

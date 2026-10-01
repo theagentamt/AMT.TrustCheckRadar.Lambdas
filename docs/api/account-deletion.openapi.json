@@ -1,0 +1,1274 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "TrustCheckRadar account deletion",
+    "version": "1.0.0-candidate.1",
+    "description": "HTTP description of the immutable candidate1 wire schemas. This document does not enable a route, approve an inventory, or declare a public production launch. Current restricted Dev deployment controls are documented separately in docs/account-deletion-http-scope.md. Later release/UAT qualification remains SECUR4ALL-329."
+  },
+  "tags": [
+    {
+      "name": "Account deletion"
+    }
+  ],
+  "paths": {
+    "/v1/users/account-deletion": {
+      "post": {
+        "tags": [
+          "Account deletion"
+        ],
+        "security": [
+          {
+            "CognitoAccessToken": []
+          }
+        ],
+        "parameters": [],
+        "x-query-parameters-allowed": false,
+        "operationId": "requestAccountDeletion",
+        "summary": "Accept deletion for the verified account",
+        "description": "The verified access-token subject is the only target; no accountId, email or phone field is accepted. Require signed auth_time within 300 seconds, with the existing 60-second future-clock tolerance and iat >= auth_time. Refreshing an access token is not reauthentication. A retry for the same account and operationId refers to the fixed command; never generate a replacement ID after a timeout or lost acknowledgement. Acceptance is asynchronous and does not prove backup erasure or identity finalization. Export before requesting deletion; acceptance invalidates unfinished account exports. No paid/provider/allowance dependency. No device-binding header is required by this route.",
+        "x-reauthentication": {
+          "maximumAgeSeconds": 300,
+          "futureToleranceSeconds": 60,
+          "claims": [
+            "auth_time",
+            "iat"
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "description": "At most 1024 UTF-8 bytes of ordinary JSON. Reject duplicate keys, NaN/Infinity, base64 proxy bodies and schemaVersion written as 1.0 or 1e0. JSON Schema alone cannot enforce all lexical/transport checks.",
+          "x-max-utf8-bytes": 1024,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletionRequest"
+              },
+              "examples": {
+                "request": {
+                  "value": {
+                    "schemaVersion": 1,
+                    "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                    "action": "DELETE_ACCOUNT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Committed acceptance or idempotent replay. Overall status remains REQUESTED, including when completionEligible is true. A post-fence cleanup failure does not roll back acceptance.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Pragma": {
+                "description": "Set on Lambda-produced responses.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-cache"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionAccepted"
+                },
+                "examples": {
+                  "accepted": {
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "eligibleStillNotComplete": {
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "currentAccepted": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  },
+                  "currentEligibleStillNotComplete": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Http400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Http401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Http403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Http404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Http409"
+          },
+          "429": {
+            "$ref": "#/components/responses/Http429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Http500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Http503"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Account deletion"
+        ],
+        "security": [
+          {
+            "CognitoAccessToken": []
+          }
+        ],
+        "parameters": [],
+        "x-query-parameters-allowed": false,
+        "operationId": "getAccountDeletionStatus",
+        "summary": "Read the verified account deletion status",
+        "description": "No request body or query parameters. Requires verified access-token claims; no new reauthentication or active profile/device check is required. NOT_REQUESTED is an authoritative read at that time, not proof that a racing or ambiguously acknowledged POST failed. Status access is best-effort before Cognito identity removal; after terminal completion the source returns 401 and continued login/status access is not promised. The current wire contract never emits overall COMPLETE.",
+        "responses": {
+          "200": {
+            "description": "Current status. completionEligible means configured component receipts validate; it is not global finalization or backup-erasure proof. Components must be unique; completionEligible must match whether all components are COMPLETE. For REQUESTED, deleteByEpoch must equal requestedAtEpoch+86400. Clients fail closed on unknown overall status, extra fields or inconsistent semantics.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Pragma": {
+                "description": "Set on Lambda-produced responses.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-cache"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionStatusResponse"
+                },
+                "examples": {
+                  "notRequested": {
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "NOT_REQUESTED",
+                      "completionEligible": false,
+                      "components": []
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory"
+                  },
+                  "accepted": {
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "eligibleStillNotComplete": {
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    },
+                    "summary": "Historical candidate.1 wire-format fixture; not a current deployment component inventory",
+                    "description": "Preserved immutable 11-component fixture. The current runtime requires 12 components including PLAY_TOKENS; use currentAccepted/currentEligibleStillNotComplete for current configuration examples."
+                  },
+                  "currentAccepted": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": false,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "PENDING"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "PENDING"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  },
+                  "currentEligibleStillNotComplete": {
+                    "summary": "Current required 12-component configuration including PLAY_TOKENS",
+                    "description": "Synthetic documentation example validated against current account-data configuration; it does not claim a particular account or deployment has completed deletion.",
+                    "value": {
+                      "schemaVersion": 1,
+                      "operation": "ACCOUNT_DELETION",
+                      "status": "REQUESTED",
+                      "completionEligible": true,
+                      "components": [
+                        {
+                          "component": "SESSION_REVOCATION",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_BINDINGS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "DEVICE_RECOVERY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ANALYSIS_ABUSE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "HISTORY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "CAMPAIGN_OUTBOX",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "ENTITLEMENTS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "V1_AUTHORITY",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "PLAY_TOKENS",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "USER_PROFILE",
+                          "status": "COMPLETE"
+                        },
+                        {
+                          "component": "IDENTITY",
+                          "status": "COMPLETE"
+                        }
+                      ],
+                      "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                      "requestedAtEpoch": 1800000000,
+                      "deleteByEpoch": 1800086400
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Http400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Http401"
+          },
+          "403": {
+            "$ref": "#/components/responses/Http403"
+          },
+          "404": {
+            "$ref": "#/components/responses/Http404"
+          },
+          "429": {
+            "$ref": "#/components/responses/Http429"
+          },
+          "500": {
+            "$ref": "#/components/responses/Http500"
+          },
+          "503": {
+            "$ref": "#/components/responses/Http503"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "CognitoAccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Cognito access token validated by API Gateway. Lambda additionally checks configured issuer and client_id, token_use=access, unexpired exp, required scope aws.cognito.signin.user.admin, and signed sub. Never accept caller-supplied identity headers or an ID token."
+      }
+    },
+    "schemas": {
+      "AccountDeletionRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "operationId",
+          "action"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "action": {
+            "const": "DELETE_ACCOUNT"
+          }
+        }
+      },
+      "AccountDeletionStatusResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "operation",
+              "status",
+              "completionEligible",
+              "components"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "type": "integer",
+                "const": 1
+              },
+              "operation": {
+                "const": "ACCOUNT_DELETION"
+              },
+              "status": {
+                "const": "NOT_REQUESTED"
+              },
+              "completionEligible": {
+                "const": false
+              },
+              "components": {
+                "type": "array",
+                "maxItems": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "operation",
+              "status",
+              "completionEligible",
+              "components",
+              "operationId",
+              "requestedAtEpoch",
+              "deleteByEpoch"
+            ],
+            "properties": {
+              "schemaVersion": {
+                "type": "integer",
+                "const": 1
+              },
+              "operation": {
+                "const": "ACCOUNT_DELETION"
+              },
+              "status": {
+                "const": "REQUESTED"
+              },
+              "completionEligible": {
+                "type": "boolean"
+              },
+              "components": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "status"
+                  ],
+                  "properties": {
+                    "component": {
+                      "type": "string",
+                      "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                    },
+                    "status": {
+                      "enum": [
+                        "COMPLETE",
+                        "PENDING"
+                      ]
+                    }
+                  }
+                }
+              },
+              "operationId": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "requestedAtEpoch": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "deleteByEpoch": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        ]
+      },
+      "AccountDeletionAccepted": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "operation",
+          "status",
+          "completionEligible",
+          "components",
+          "operationId",
+          "requestedAtEpoch",
+          "deleteByEpoch"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "operation": {
+            "const": "ACCOUNT_DELETION"
+          },
+          "status": {
+            "const": "REQUESTED"
+          },
+          "completionEligible": {
+            "type": "boolean"
+          },
+          "components": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "component",
+                "status"
+              ],
+              "properties": {
+                "component": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                },
+                "status": {
+                  "enum": [
+                    "COMPLETE",
+                    "PENDING"
+                  ]
+                }
+              }
+            }
+          },
+          "operationId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "requestedAtEpoch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "deleteByEpoch": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "retryable"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "UNAUTHORIZED",
+                  "REAUTHENTICATION_REQUIRED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "CONFLICT",
+                  "IDEMPOTENCY_CONFLICT",
+                  "FEATURE_DISABLED",
+                  "SERVER_UNAVAILABLE",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "Map the fixed code to localized UI. Do not display arbitrary server text."
+              },
+              "retryable": {
+                "type": "boolean",
+                "description": "Retryability never establishes that an ambiguous POST failed; preserve its operationId."
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "field",
+                    "issue"
+                  ],
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "issue": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "GatewayError": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "description": "An API Gateway rejection can occur before Lambda; its message does not establish deletion outcome."
+      }
+    },
+    "responses": {
+      "Http400": {
+        "description": "Invalid JSON, unexpected fields, noncanonical UUIDv4, body/query violation or oversized request.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "INVALID_REQUEST"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            },
+            "examples": {
+              "0": {
+                "value": {
+                  "error": {
+                    "code": "INVALID_REQUEST",
+                    "message": "The submitted request is invalid.",
+                    "retryable": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Http401": {
+        "description": "Missing/invalid verified access-token claims, stale POST reauthentication, or identity no longer available. Not an outcome proof.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "UNAUTHORIZED",
+          "REAUTHENTICATION_REQUIRED"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
+            },
+            "examples": {
+              "1": {
+                "value": {
+                  "error": {
+                    "code": "REAUTHENTICATION_REQUIRED",
+                    "message": "A recent server-verified sign-in is required for account deletion.",
+                    "retryable": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Http403": {
+        "description": "Gateway access or scope refusal; not an outcome proof.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "FORBIDDEN"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Http404": {
+        "description": "Route unavailable or not found; no deletion outcome can be inferred.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "NOT_FOUND"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "Http409": {
+        "description": "Different operationId conflicts with the fixed command, or account state changed during admission. Keep the original operationId after ambiguity.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "CONFLICT",
+          "IDEMPOTENCY_CONFLICT"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            },
+            "examples": {
+              "2": {
+                "value": {
+                  "error": {
+                    "code": "IDEMPOTENCY_CONFLICT",
+                    "message": "The account already has a different deletion request.",
+                    "retryable": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Http429": {
+        "description": "Gateway request throttling. No deduction or deletion outcome is implied.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [],
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GatewayError"
+            }
+          }
+        }
+      },
+      "Http500": {
+        "description": "Fixed internal failure. The deletion fence may already have committed; recover with the same operationId. Gateway or upstream failures can instead return a JSON message without an application code, an empty body, or a non-JSON body. No error envelope or content type is guaranteed for such failures. Treat these as an unconfirmed outcome, preserve the pending intent and original operationId, and recover explicitly; never infer deletion success or non-acceptance.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "INTERNAL_ERROR"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
+            }
+          }
+        },
+        "x-upstream-outcome-unconfirmed": true
+      },
+      "Http503": {
+        "description": "Feature disabled, incomplete configuration/inventory or restricted Dev subject scope. A later unavailable response does not negate an earlier accepted request. Gateway or upstream failures can instead return a JSON message without an application code, an empty body, or a non-JSON body. No error envelope or content type is guaranteed for such failures. Treat these as an unconfirmed outcome, preserve the pending intent and original operationId, and recover explicitly; never infer deletion success or non-acceptance.",
+        "headers": {
+          "Cache-Control": {
+            "description": "Set on Lambda-produced responses; gateway rejections may use different headers.",
+            "schema": {
+              "type": "string",
+              "const": "private, no-store"
+            }
+          },
+          "Pragma": {
+            "description": "Set on Lambda-produced responses.",
+            "schema": {
+              "type": "string",
+              "const": "no-cache"
+            }
+          }
+        },
+        "x-lambda-error-codes": [
+          "FEATURE_DISABLED",
+          "SERVER_UNAVAILABLE"
+        ],
+        "content": {
+          "application/json": {
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                },
+                {
+                  "$ref": "#/components/schemas/GatewayError"
+                }
+              ]
+            },
+            "examples": {
+              "3": {
+                "value": {
+                  "error": {
+                    "code": "FEATURE_DISABLED",
+                    "message": "Account deletion is not enabled.",
+                    "retryable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-upstream-outcome-unconfirmed": true
+      }
+    }
+  },
+  "x-immutable-wire-contract": "contracts/account-deletion/1.0.0-candidate.1",
+  "x-release-qualification": "SECUR4ALL-329"
+}

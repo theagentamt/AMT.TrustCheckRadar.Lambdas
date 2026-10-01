@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amt.example/contracts/device-recovery/1.0.0/receipt-record.schema.json",
+  "title": "Internal device recovery receipt V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "PK",
+    "SK",
+    "recordType",
+    "schemaVersion",
+    "operationId",
+    "operation",
+    "payloadHash",
+    "result",
+    "status",
+    "bindingFingerprint",
+    "completedAtEpoch",
+    "expiresAt"
+  ],
+  "properties": {
+    "PK": {"type": "string", "pattern": "^USER#[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$"},
+    "SK": {"type": "string", "pattern": "^RECOVERY#[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "recordType": {"const": "DEVICE_RECOVERY_RECEIPT"},
+    "schemaVersion": {"const": 1},
+    "operationId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "operation": {"const": "REPLACE_ACTIVE_BINDING"},
+    "payloadHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "result": {"const": "RECOVERED"},
+    "status": {"const": "COMPLETE"},
+    "bindingFingerprint": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"},
+    "completedAtEpoch": {"type": "integer", "minimum": 1},
+    "expiresAt": {"type": "integer", "minimum": 1}
+  }
+}

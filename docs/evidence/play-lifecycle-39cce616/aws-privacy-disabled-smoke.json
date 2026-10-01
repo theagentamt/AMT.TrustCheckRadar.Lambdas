@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "39cce61623794a123e61d25f5248b0c081eccf4a",
+  "verifiedAtUtc": "2026-09-23T06:14:23.514567+00:00",
+  "scope": "two closed Dev account export/deletion $LATEST candidates; empty events only",
+  "providerOrCustomerDataRequests": false,
+  "revisionGuardLimitation": "Unqualified Invoke has no RevisionId precondition; configuration is checked before and after each invocation, not atomically pinned by an alias.",
+  "functions": [
+    {
+      "function": "trustcheckradar-dev-account-export-api",
+      "artifact": "account_export_api",
+      "revisionId": "a95d4a0c-9f98-4440-9377-6489788935ad",
+      "version": "$LATEST",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "codeSha256": "/q1/eMfOPR6OzsVxme7ACh911HqTfS7AJO34M62U5oc=",
+      "closedFlags": {
+        "ACCOUNT_EXPORT_ENABLED": false,
+        "ACCOUNT_EXPORT_PLAY_TOKENS_ENABLED": false
+      },
+      "expectedCode": "SERVICE_NOT_ENABLED",
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expectedStatus": 503,
+        "actualStatus": 503,
+        "actualCode": "SERVICE_NOT_ENABLED",
+        "revisionUnchangedAfterInvoke": true,
+        "passed": true
+      }
+    },
+    {
+      "function": "trustcheckradar-dev-account-data-api",
+      "artifact": "account_data_api",
+      "revisionId": "62e6f8dc-0fe9-4191-b48f-f87a59dbe23c",
+      "version": "$LATEST",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architectures": [
+        "arm64"
+      ],
+      "codeSha256": "1QZcQV/kDtAThdaZt4K48EOW00R3dbMOqq0pQqOH7LQ=",
+      "closedFlags": {
+        "ACCOUNT_DELETION_ENABLED": false,
+        "ACCOUNT_IDENTITY_FINALIZER_ENABLED": false
+      },
+      "expectedCode": "FEATURE_DISABLED",
+      "smoke": {
+        "emptyEvent": true,
+        "functionError": false,
+        "expectedStatus": 503,
+        "actualStatus": 503,
+        "actualCode": "FEATURE_DISABLED",
+        "revisionUnchangedAfterInvoke": true,
+        "passed": true
+      }
+    }
+  ]
+}

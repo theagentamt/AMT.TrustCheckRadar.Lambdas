@@ -1,5 +1,11 @@
 # Account-data inventory and deletion/export gap contract
 
+> Historical increment: the implementation/deployment gaps below describe its original
+> evidence date. For current retention and disclosure facts, including completed
+> Dev account/campaign/export work and remaining limits, see the
+> [September 30 backend/provider attestation](backend-provider-attestation-2026-09-30.md).
+> Historical tests and approvals are not rewritten.
+
 Status: **source inventory complete for the Lambda repository; policy approval and
 runtime activation remain pending**
 
@@ -160,6 +166,7 @@ expiry lanes and replay redactions reconciled before traffic is admitted.
 | Store / item family | Key and user data | Producers and readers | Erasure/export coverage | Classification and blocker |
 |---|---|---|---|---|
 | Current participation | Users `PK=USER#<sub>`, `SK=CAMPAIGN_PARTICIPATION`; state/version, notice/policy, consent epoch and effective/withdrawal timestamps | `campaign_participation` writes; entitlement, analysis and publisher read/condition-check. GET/PUT/replay now strongly check the profile/fence and PUT repeats both checks transactionally. | Withdrawal transitions to `withdrawn` only after contribution deletion. The gated `USER_PROFILE` worker deletes current participation and operation records after all producer components, while preserving exact approved consent audits. | Active consent state is **erasable** after withdrawal/account deletion. Existing exact 400-day consent audit evidence is preserved separately. |
+| Optional demographic research | Users `USER#<sub>/DEMOGRAPHIC_RESEARCH`, newest `DEMOGRAPHIC_OPERATION#*`, and value-free `DEMOGRAPHIC_CONSENT#*`; deletion ledger `ACCOUNT#<sub>/DEMOGRAPHIC_RESEARCH_AUTHORITY` | Default-disabled `demographic_research` only. No campaign, commercial, entitlement, device, or provider consumer exists in Phase A. | Correction/withdrawal atomically removes prior value-bearing state; `USER_PROFILE` erases current/operation/authority after its existing prerequisite receipts. Candidate.5 export is independently gated. | Selected values and consent are **erasable** and expire after 400 days; operation receipts expire after seven days. The consent audit and authority contain no selected values. Validated audit remains 400 days. PITR can retain historical blocks 35 days, so restores stay quarantined and must pass current fence/authority requalification. |
 | Participation operation | Users `PK=USER#<sub>`, `SK=CAMPAIGN_OPERATION#<operationId>`; action, epoch, resulting state/time | Participation API writes/reads for replay | 400-day `expiresAt`; no explicit full-account cleanup/export | **Minimal idempotency/audit candidate**, but 400-day retention is policy-specific and cannot be silently changed. Approve fields, duration, physical sweep and export treatment. |
 | Consent audit | Users `PK=USER#<sub>`, `SK=CAMPAIGN_CONSENT#<epoch>#<time>#<operationId>` and completion variant; notice/policy/state/limit/time | Participation and deletion bridge write | Approved 400-day `expiresAt`. The profile worker validates the two exact source shapes and preserves them unchanged while removing current participation/operation state. | **Approved minimal consent evidence for 400 days.** Restore/non-resurrection and physical expiry evidence are still required before activation. |
 | Campaign withdrawal command | Ledger `PK=ACCOUNT#<sub>`, `SK=CAMPAIGN_WITHDRAWAL#<operationId>`; direct account, epoch, deadline/status | Participation writes; deletion bridge consumes/updates | Remains as protected operation evidence; no TTL in Lambda contract | **Necessary work record then minimal audit.** Retention and final minimization are unresolved. |

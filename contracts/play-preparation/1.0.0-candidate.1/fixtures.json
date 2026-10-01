@@ -1,0 +1,11 @@
+{
+  "request": {
+    "schemaVersion": 1
+  },
+  "response": {
+    "schemaVersion": 1,
+    "contractVersion": "v1-play-preparation-1.0.0-candidate.1",
+    "accountBinding": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "prepared": true
+  }
+}

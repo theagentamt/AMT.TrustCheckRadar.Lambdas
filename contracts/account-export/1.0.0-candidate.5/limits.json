@@ -1,0 +1,9 @@
+{
+  "pageBytes": 65536,
+  "totalWireBytes": 8388608,
+  "pages": 256,
+  "sourceRowsPerPage": 25,
+  "cursorCharacters": 8192,
+  "continuationSeconds": 900,
+  "maxReauthenticationAgeSeconds": 300
+}

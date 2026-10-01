@@ -20,7 +20,7 @@ def lambda_handler(event, _context):
     except AppError as err:
         return _response(err.status_code, _build_error_response(account_id, err))
     except Exception:
-        LOGGER.exception("Unexpected purchase handoff error")
+        LOGGER.error("Unexpected purchase handoff error")
         err = AppError("INTERNAL_ERROR", "An internal error occurred while processing the request.", retryable=False)
         return _response(500, _build_error_response(account_id, err))
 

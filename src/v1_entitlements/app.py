@@ -33,6 +33,8 @@ def lambda_handler(event, _context):
     try:
         if os.environ.get('V1_ENTITLEMENTS_ENABLED') != 'true':
             raise AuthorityError('ACCESS_SERVICE_UNAVAILABLE')
+        from shared_check_authority.engineering import require_engineering_subject
+        require_engineering_subject(event)
         if not isinstance(event, dict) or event.get('version') != '2.0' or event.get('isBase64Encoded') is True:
             raise AuthorityError('INPUT_REJECTED')
         route = event.get('routeKey')

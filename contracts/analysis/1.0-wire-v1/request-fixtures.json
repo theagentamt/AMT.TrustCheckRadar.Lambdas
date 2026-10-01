@@ -1,0 +1,55 @@
+[
+  {
+    "schemaVersion": "1.0",
+    "requestId": "fixture-en",
+    "sourceType": "pasted_text",
+    "localSanitizationApplied": true,
+    "sanitizedText": "Contact [EMAIL_1].",
+    "entities": [
+      {
+        "type": "email",
+        "token": "[EMAIL_1]"
+      }
+    ]
+  },
+  {
+    "schemaVersion": "1.0",
+    "requestId": "fixture-es",
+    "sourceType": "ocr",
+    "localSanitizationApplied": true,
+    "sanitizedText": "Contacte a [EMAIL_1].",
+    "entities": [
+      {
+        "type": "email",
+        "token": "[EMAIL_1]"
+      }
+    ]
+  },
+  {
+    "schemaVersion": "1.0",
+    "requestId": "fixture-mixed",
+    "sourceType": "mixed",
+    "localSanitizationApplied": true,
+    "sanitizedText": "Contact [EMAIL_1].",
+    "entities": [
+      {
+        "type": "email",
+        "token": "[EMAIL_1]"
+      }
+    ],
+    "campaignConsentGranted": true,
+    "appFeatures": {
+      "schemaVersion": 1,
+      "extractorVersion": "fixture-1",
+      "languageId": "en",
+      "taxonomyBucket": "unknown",
+      "vector": [
+        0
+      ],
+      "lexicalFingerprint": [],
+      "signalIds": [],
+      "indicatorIds": [],
+      "confidence": 0
+    }
+  }
+]

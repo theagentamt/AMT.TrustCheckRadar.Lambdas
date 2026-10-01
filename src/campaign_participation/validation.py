@@ -31,14 +31,18 @@ def parse_request(event: dict, *, notice_version: str) -> dict:
         except (TypeError, ValueError, UnicodeError) as err:
             raise _invalid("body", "Request body must be valid JSON.") from err
 
-    if not isinstance(payload, dict) or set(payload) != REQUEST_FIELDS:
+    if not isinstance(payload, dict) or set(payload) != (REQUEST_FIELDS | {"expectedStateVersion"} if payload.get("schemaVersion") == 2 else REQUEST_FIELDS):
         raise _invalid("body", "Request body fields do not match the V1 contract.")
-    if isinstance(payload["schemaVersion"], bool) or payload["schemaVersion"] != 1:
-        raise _invalid("schemaVersion", "schemaVersion must be integer 1.")
+    if type(payload["schemaVersion"]) is not int or payload["schemaVersion"] not in (1, 2):
+        raise _invalid("schemaVersion", "schemaVersion must be integer 1 or 2.")
+    if payload["schemaVersion"] == 2 and (type(payload["expectedStateVersion"]) is not int or not 0 <= payload["expectedStateVersion"] <= 9007199254740991):
+        raise _invalid("expectedStateVersion", "expectedStateVersion must be the reviewed state revision.")
     if not isinstance(payload["action"], str) or payload["action"] not in {"join", "withdraw"}:
         raise _invalid("action", "action must be join or withdraw.")
-    if not isinstance(payload["noticeVersion"], str) or payload["noticeVersion"] != notice_version:
-        raise _invalid("noticeVersion", "noticeVersion does not match the current notice.")
+    if not isinstance(payload["noticeVersion"], str) or not 1 <= len(payload["noticeVersion"].encode("utf-8")) <= 64:
+        raise _invalid("noticeVersion", "noticeVersion is invalid.")
+    if payload["schemaVersion"] == 2 and payload["action"] == "join" and payload["noticeVersion"] != notice_version:
+        raise AppError("POLICY_REVIEW_REQUIRED", "Review the current research notice before joining.")
     _require_uuid4(payload["operationId"])
     return dict(payload)
 

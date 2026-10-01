@@ -1,0 +1,11 @@
+[
+  {"phoneNumber":"+12015550123","regionCode":"US","eligible":true},
+  {"phoneNumber":"+17872345678","regionCode":"PR","eligible":true},
+  {"phoneNumber":"+13406421234","regionCode":"VI","eligible":true},
+  {"phoneNumber":"+16713001234","regionCode":"GU","eligible":true},
+  {"phoneNumber":"+16846221234","regionCode":"AS","eligible":true},
+  {"phoneNumber":"+16702345678","regionCode":"MP","eligible":true},
+  {"phoneNumber":"+12423456789","regionCode":"BS","eligible":false},
+  {"phoneNumber":"+15062345678","regionCode":"CA","eligible":false},
+  {"phoneNumber":"+18002345678","regionCode":"US","eligible":false}
+]

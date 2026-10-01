@@ -1,11 +1,16 @@
 import json
 import os
 import re
+from uuid import UUID
 
 from errors import AppError
 
 
 APP_ENVIRONMENT = os.environ.get("APP_ENVIRONMENT", "")
+ENTITLEMENTS_TABLE_NAME = os.environ.get("ENTITLEMENTS_TABLE_NAME", "")
+ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256 = os.environ.get("ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256", "")
+ACCOUNT_DATA_INVENTORY_REVISION = int(os.environ.get("ACCOUNT_DATA_INVENTORY_REVISION", "0") or "0")
+ACCOUNT_IDENTITY_FINALIZER_ENABLED = os.environ.get("ACCOUNT_IDENTITY_FINALIZER_ENABLED", "false") == "true"
 USERS_TABLE_NAME = os.environ.get("USERS_TABLE_NAME", "")
 DELETION_LEDGER_TABLE_NAME = os.environ.get("DELETION_LEDGER_TABLE_NAME", "")
 DEVICE_BINDINGS_TABLE_NAME = os.environ.get("DEVICE_BINDINGS_TABLE_NAME", "")
@@ -89,6 +94,9 @@ CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS = os.environ.get(
 USER_PROFILE_DELETION_POLICY_STATUS = os.environ.get(
     "USER_PROFILE_DELETION_POLICY_STATUS", "pending"
 )
+DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS = os.environ.get(
+    "DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS", "pending"
+)
 HISTORY_DEDUP_RETENTION_DAYS = int(
     os.environ.get("HISTORY_DEDUP_RETENTION_DAYS", "120")
 )
@@ -103,6 +111,9 @@ def validate_config():
         )
     if (
         APP_ENVIRONMENT not in {"dev", "uat", "prod"}
+        or not ENTITLEMENTS_TABLE_NAME
+        or not re.fullmatch(r"[0-9a-f]{64}", ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256)
+        or ACCOUNT_DATA_INVENTORY_REVISION < 1
         or not USERS_TABLE_NAME
         or not DELETION_LEDGER_TABLE_NAME
         or not DEVICE_BINDINGS_TABLE_NAME
@@ -117,7 +128,9 @@ def validate_config():
     ):
         raise AppError("SERVER_UNAVAILABLE", "Account deletion is not configured.")
     if (
-        ACCOUNT_DELETION_POLICY_STATUS != "approved"
+        not ACCOUNT_IDENTITY_FINALIZER_ENABLED
+        or not CAMPAIGN_RECOVERY_WRITES_ENABLED
+        or ACCOUNT_DELETION_POLICY_STATUS != "approved"
         or ACCOUNT_DATA_INVENTORY_STATUS != "approved"
         or ACCOUNT_DELETION_COMPLETION_STATUS != "complete"
         or ACCOUNT_DELETION_MAX_REAUTH_AGE_SECONDS != 300
@@ -138,6 +151,7 @@ def validate_config():
         or ANALYSIS_CONSUMPTION_DELETION_POLICY_STATUS != "approved"
         or CAMPAIGN_OUTBOX_LOCATOR_COVERAGE_STATUS != "approved"
         or USER_PROFILE_DELETION_POLICY_STATUS != "approved"
+        or DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS != "approved"
         or HISTORY_DEDUP_RETENTION_DAYS != 120
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-deletion policy is not approved.")
@@ -158,8 +172,29 @@ def required_components():
             "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY",
             "ANALYSIS_ABUSE", "HISTORY", "CAMPAIGN",
             "CAMPAIGN_OUTBOX",
-            "ENTITLEMENTS", "USER_PROFILE", "IDENTITY",
+            "ENTITLEMENTS", "V1_AUTHORITY", "PLAY_TOKENS", "USER_PROFILE", "IDENTITY",
         }.issubset(values)
     ):
         raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is invalid.")
     return tuple(values)
+
+CAMPAIGN_RECOVERY_WRITES_ENABLED = os.environ.get("CAMPAIGN_RECOVERY_WRITES_ENABLED", "false") == "true"
+
+
+def require_http_subject(account_id):
+    """Restrict this Dev-only HTTP qualification; workers never use this gate."""
+    try:
+        raw = os.environ.get("ACCOUNT_DELETION_HTTP_SUBJECTS_JSON", "[]")
+        if APP_ENVIRONMENT != "dev" or len(raw.encode("utf-8")) > 512:
+            raise ValueError
+        subjects = json.loads(raw)
+        if (not isinstance(subjects, list) or len(subjects) > 10
+                or any(not isinstance(value, str) or str(UUID(value)) != value
+                       for value in subjects)
+                or len(set(subjects)) != len(subjects)
+                or account_id not in subjects):
+            raise ValueError
+    except (ValueError, TypeError, UnicodeError, RecursionError):
+        raise AppError(
+            "SERVER_UNAVAILABLE", "Account deletion is not available.", retryable=True
+        ) from None

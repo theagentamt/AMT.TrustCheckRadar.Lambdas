@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "checkId",
+    "policyVersion",
+    "playbookVersion",
+    "processingOutcome",
+    "kind",
+    "contentDisposition"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "policyVersion": {
+      "const": "recovery-clarification-2026-09-21-v1"
+    },
+    "playbookVersion": {
+      "const": "recovery-playbook-1.0"
+    },
+    "processingOutcome": {
+      "enum": [
+        "complete",
+        "inconclusive",
+        "partial",
+        "failed",
+        "blocked",
+        "invalid_input",
+        "unsupported",
+        "unavailable"
+      ]
+    },
+    "kind": {
+      "const": "recovery_usage"
+    },
+    "contentDisposition": {
+      "const": "not_retained"
+    }
+  }
+}

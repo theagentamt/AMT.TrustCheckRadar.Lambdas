@@ -223,6 +223,56 @@ class DeviceRecoveryHandlerTests(unittest.TestCase):
         self.assertEqual(response["statusCode"], 400)
         self.assertEqual(json.loads(response["body"])["error"]["code"], "INVALID_REQUEST")
 
+    def test_self_recovery_rejects_boolean_schema_version_without_service_call(self):
+        event = {
+            "routeKey": "POST /v1/users/device-recovery",
+            "body": json.dumps({
+                "schemaVersion": True,
+                "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                "action": "REPLACE_ACTIVE_BINDING",
+                "bindingFingerprint": "installation-key-1",
+                "platform": "ios",
+                "osVersion": "18.5",
+            }),
+        }
+        with mock.patch.object(app.config, "validate_self_recovery_config"), \
+                mock.patch.object(app, "_self_subject", return_value="user-123"), \
+                mock.patch.object(app, "process_self_recovery") as process:
+            response = app.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 400)
+        self.assertEqual(json.loads(response["body"])["error"]["code"], "INVALID_REQUEST")
+        process.assert_not_called()
+
+    def test_expired_receipt_failure_matches_versioned_fixture(self):
+        event = {
+            "routeKey": "POST /v1/users/device-recovery",
+            "body": json.dumps({
+                "schemaVersion": 1,
+                "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+                "action": "REPLACE_ACTIVE_BINDING",
+                "bindingFingerprint": "installation-key-1",
+                "platform": "ios",
+                "osVersion": "18.5",
+            }),
+        }
+        error = app.AppError(
+            "SERVER_UNAVAILABLE",
+            "The recovery receipt is no longer available for replay.",
+            retryable=False,
+        )
+        with mock.patch.object(app.config, "validate_self_recovery_config"), \
+                mock.patch.object(app, "_self_subject", return_value="user-123"), \
+                mock.patch.object(app, "process_self_recovery", side_effect=error):
+            response = app.lambda_handler(event, None)
+
+        fixture = json.loads((
+            Path(__file__).resolve().parents[2]
+            / "contracts/device-recovery/v1/fixtures/expired-receipt.error.json"
+        ).read_text(encoding="utf-8"))
+        self.assertEqual(response["statusCode"], 503)
+        self.assertEqual(json.loads(response["body"]), fixture)
+
 
 if __name__ == "__main__":
     unittest.main()

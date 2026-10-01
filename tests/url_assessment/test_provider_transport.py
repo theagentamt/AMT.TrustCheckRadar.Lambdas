@@ -36,7 +36,7 @@ def transport(monkeypatch, chunks, answers=('8.8.8.8',)):
 def test_fixed_provider_endpoint_tls_host_and_encoded_parameters(monkeypatch):
     sock, context, resolver = transport(monkeypatch, [b'HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}'])
     key = 'synthetic_provider_key_123456789'
-    assert module.lookup('https://example.com/?a=1&b=2', key, Budget(32)) == []
+    assert module.lookup('https://example.com/?a=1&b=2', key, Budget(32))['threatTypes'] == []
     assert sock.address == ('8.8.8.8', 443)
     context.wrap_socket.assert_called_once_with(sock, server_hostname='webrisk.googleapis.com')
     assert sock.data.startswith(b'GET /v1/uris:search?uri=https%3A%2F%2Fexample.com%2F%3Fa%3D1%26b%3D2&threatTypes=MALWARE&')

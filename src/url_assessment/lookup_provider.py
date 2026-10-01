@@ -1,5 +1,6 @@
 """Fixed-endpoint Lookup GET with bounded DNS, TLS, response and total time."""
-import datetime
+import time
+from shared_lookup_freshness import observed, current, wall_clock
 import http.client
 import io
 import ipaddress
@@ -17,9 +18,11 @@ MAX_WIRE_BYTES = 32768
 MAX_BODY_BYTES = 4096
 
 
-def parse_lookup(payload):
+def parse_lookup(payload, *, now=None):
+    now = wall_clock() if now is None else now
+    observation = observed(now)
     if payload == {}:
-        return []
+        return {'threatTypes': [], 'observedAt': observation, 'validUntil': None}
     if not isinstance(payload, dict) or set(payload) != {'threat'}:
         raise Unavailable('PROVIDER_RESPONSE_INVALID')
     threat = payload['threat']
@@ -30,12 +33,13 @@ def parse_lookup(payload):
             or not isinstance(threat['expireTime'], str)):
         raise Unavailable('PROVIDER_RESPONSE_INVALID')
     try:
-        timestamp = datetime.datetime.fromisoformat(threat['expireTime'].replace('Z', '+00:00'))
-        if timestamp.tzinfo is None:
+        if not current(observation, threat['expireTime'], now):
             raise ValueError()
-    except ValueError:
+    except (ValueError, TypeError, OverflowError):
         raise Unavailable('PROVIDER_RESPONSE_INVALID') from None
-    return threat['threatTypes']
+    return {'threatTypes': threat['threatTypes'], 'observedAt': observation,
+            'validUntil': threat['expireTime']}
+
 
 
 def unique_object(pairs):

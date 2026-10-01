@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "error": {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "message": "operationId is not available for this age-attestation request.",
+    "retryable": false
+  },
+  "requestId": "fixture-request-id"
+}

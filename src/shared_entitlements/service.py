@@ -143,7 +143,8 @@ def load_campaign_participation(account_id: str) -> dict:
     if item.get("state") == "enrolled" and (
         not _is_uuid4(item.get("consentEpochId"))
         or not isinstance(item.get("noticeVersion"), str)
-        or not item["noticeVersion"]
+        or item["noticeVersion"] != "research-consent-2026-09-21-v2"
+        or item.get("policyVersion") != "independent-research-v1"
         or isinstance(item.get("stateVersion"), bool)
         or state_version < 1
         or state_version != item.get("stateVersion")
@@ -154,21 +155,9 @@ def load_campaign_participation(account_id: str) -> dict:
 
 
 def apply_campaign_participation_allowance(account_id: str, entitlement: dict) -> dict:
-    adjusted = dict(entitlement)
-    if adjusted.get("entitlementTier") == "PRO":
-        return adjusted
-    participation = load_campaign_participation(account_id)
-    target_limit = (
-        PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT
-        if participation.get("state") == "enrolled"
-        else FREE_MONTHLY_SCAN_LIMIT
-    )
-    old_limit = max(0, int(adjusted.get("monthlyScanLimit", FREE_MONTHLY_SCAN_LIMIT)))
-    remaining = max(0, int(adjusted.get("remainingMonthlyScans", old_limit)))
-    used = max(0, old_limit - remaining)
-    adjusted["monthlyScanLimit"] = target_limit
-    adjusted["remainingMonthlyScans"] = max(0, target_limit - used)
-    return adjusted
+    # Compatibility name only. Research never mutates access or usage, including
+    # during purchase verification. Historical rows are not rewritten on reads.
+    return dict(entitlement)
 
 
 def _candidate_entitlement_sks(platform: str | None, product_id: str | None) -> list[str]:

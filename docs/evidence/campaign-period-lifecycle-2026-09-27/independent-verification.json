@@ -1,0 +1,54 @@
+{
+  "sourceCommit": "9147d545b719e54c1f967e35042bc502d79bc0f1",
+  "independent": true,
+  "artifacts": {
+    "account_data_api": {
+      "sha256": "c1414e0e0473d516893ef6dc087ab559d14316bfd518715e325972d3154a2ed8",
+      "sourceMembersMatched": 41,
+      "pythonMembersCompiled": 41,
+      "arm64NativeLibraries": 0
+    },
+    "account_export_api": {
+      "sha256": "8e3ffe0d12a455d9f84ea41be6718f306c307598f84dbbd4fce137cd7ea491e7",
+      "sourceMembersMatched": 77,
+      "pythonMembersCompiled": 182,
+      "arm64NativeLibraries": 2
+    },
+    "campaign_cluster_aggregator": {
+      "sha256": "e2d7eb0b3bc228eab15e684b01f970854e991b2940816a812d7eb95aeb84e0b9",
+      "sourceMembersMatched": 27,
+      "pythonMembersCompiled": 27,
+      "arm64NativeLibraries": 0
+    },
+    "campaign_deletion_bridge": {
+      "sha256": "c694fa18f29f615bc2d876bd7ffe8b18f8e9f844d0428faa047c489098d5678c",
+      "sourceMembersMatched": 37,
+      "pythonMembersCompiled": 37,
+      "arm64NativeLibraries": 0
+    },
+    "campaign_lifecycle": {
+      "sha256": "bc65a0f7b4ffbebe4da64c19567fa8da25ee800775b492216959a74d41313b62",
+      "sourceMembersMatched": 28,
+      "pythonMembersCompiled": 28,
+      "arm64NativeLibraries": 0
+    },
+    "campaign_observation_publisher": {
+      "sha256": "56c7d2f35924986f09e5f2fb10dbdee44a7dfb0a1e2f6f25917b0c3655ded092",
+      "sourceMembersMatched": 27,
+      "pythonMembersCompiled": 27,
+      "arm64NativeLibraries": 0
+    },
+    "campaign_review": {
+      "sha256": "59af5b4d18691f81f246daf0a7e7b22dbfa5ba63ac5e914a1203a7465e440647",
+      "sourceMembersMatched": 4,
+      "pythonMembersCompiled": 4,
+      "arm64NativeLibraries": 0
+    },
+    "conversation_analysis": {
+      "sha256": "18ab9bd800dd339f6a7171707f77b425da5ae3105f8f94e18bd5d40a48f72bc1",
+      "sourceMembersMatched": 43,
+      "pythonMembersCompiled": 43,
+      "arm64NativeLibraries": 0
+    }
+  }
+}

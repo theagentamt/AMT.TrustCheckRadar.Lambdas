@@ -1,0 +1,194 @@
+{
+  "approval": "Draft",
+  "modelQualityMeasured": false,
+  "cases": [
+    {
+      "id": "offline-en-1",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "en",
+        "sanitizedDescription": "I sent money.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "classified",
+        "context": "clear",
+        "exposureIds": [
+          "sent_payment"
+        ],
+        "actionIds": [
+          "basics_payment"
+        ],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-en-2",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "en",
+        "sanitizedDescription": "I opened [URL_1].",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ]
+      },
+      "injectedProposal": {
+        "status": "classified",
+        "context": "clear",
+        "exposureIds": [
+          "clicked_link"
+        ],
+        "actionIds": [
+          "basics_link",
+          "basics_device"
+        ],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-en-3",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "en",
+        "sanitizedDescription": "I am not sure what I shared.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "needs_confirmation",
+        "context": "insufficient",
+        "exposureIds": [],
+        "actionIds": [],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-en-4",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "en",
+        "sanitizedDescription": "Please explain a confusing situation.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "abstained",
+        "context": "insufficient",
+        "exposureIds": [],
+        "actionIds": [],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-es-1",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "es",
+        "sanitizedDescription": "Envié dinero.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "classified",
+        "context": "clear",
+        "exposureIds": [
+          "sent_payment"
+        ],
+        "actionIds": [
+          "basics_payment"
+        ],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-es-2",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "es",
+        "sanitizedDescription": "Abrí [URL_1].",
+        "entities": [
+          {
+            "type": "url",
+            "token": "[URL_1]"
+          }
+        ]
+      },
+      "injectedProposal": {
+        "status": "classified",
+        "context": "clear",
+        "exposureIds": [
+          "clicked_link"
+        ],
+        "actionIds": [
+          "basics_link",
+          "basics_device"
+        ],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-es-3",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "es",
+        "sanitizedDescription": "No estoy seguro de lo que compartí.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "needs_confirmation",
+        "context": "insufficient",
+        "exposureIds": [],
+        "actionIds": [],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    },
+    {
+      "id": "offline-es-4",
+      "request": {
+        "contractVersion": "recovery-clarification-0.1.0-candidate.1",
+        "scope": "recovery_clarification",
+        "selectionVersion": "recovery-selection-1.0.0",
+        "contentBundleVersion": "recovery-basics-1.0",
+        "language": "es",
+        "sanitizedDescription": "Quisiera entender una situación confusa.",
+        "entities": []
+      },
+      "injectedProposal": {
+        "status": "abstained",
+        "context": "insufficient",
+        "exposureIds": [],
+        "actionIds": [],
+        "questionIds": []
+      },
+      "reviewStatus": "engineering_only_unapproved_semantic_label"
+    }
+  ]
+}

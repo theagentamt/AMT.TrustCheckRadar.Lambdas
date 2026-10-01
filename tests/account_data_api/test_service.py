@@ -1,11 +1,14 @@
 import importlib.util
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
 MODULE = Path(__file__).resolve().parents[2] / "src" / "account_data_api"
 sys.path.insert(0, str(MODULE))
+sys.path.insert(0, str(MODULE.parent))
+from shared_account_finalization.service import REQUIRED_COMPONENTS
 
 
 def _load(name, path):
@@ -43,7 +46,7 @@ class Table:
         self.puts.append(Item)
         self.items[key] = dict(Item)
 
-    def delete_item(self, Key):
+    def delete_item(self, Key, **_kwargs):
         self.items.pop((Key["PK"], Key["SK"]), None)
 
 
@@ -141,13 +144,20 @@ def command():
 
 class AccountDeletionServiceTests(unittest.TestCase):
     def setUp(self):
-        self.ledger = Table()
+        self.ledger = Table({("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY"): {
+            "PK":"INVENTORY#dev", "SK":"ACCOUNT_DATA_INVENTORY",
+            "recordType":"ACCOUNT_DATA_INVENTORY", "schemaVersion":1,"revision":1,
+            "environment":"dev","coverage":"VERIFIED_COMPLETE","manifestSha256":"a"*64,
+            "requiredComponents":list(REQUIRED_COMPONENTS),"usernameIsSubVerified":True,
+            "approvedAtEpoch":99,
+        }})
         self.client = Client(self.ledger)
         self.subject = service.AccountDeletionService(
             environment="dev", ledger_table=self.ledger,
             users_table_name="users", ledger_table_name="ledger",
             dynamodb_client=self.client,
-            required_components=("SESSION_REVOCATION", "HISTORY", "CAMPAIGN"),
+            required_components=REQUIRED_COMPONENTS,
+            inventory_manifest_sha256="a"*64, inventory_revision=1,
             now=lambda: 100,
         )
 
@@ -159,14 +169,25 @@ class AccountDeletionServiceTests(unittest.TestCase):
         self.assertEqual(result["status"], "REQUESTED")
         self.assertFalse(result["completionEligible"])
         transaction = self.client.transactions[0]
-        self.assertEqual(len(transaction), 2)
+        self.assertEqual(len(transaction), 3)
         profile = transaction[0]["Update"]
         self.assertEqual(profile["TableName"], "users")
         self.assertIn("#status = :active", profile["ConditionExpression"])
-        self.assertIn("ageVerified = :true", profile["ConditionExpression"])
+        self.assertIn("#status = :pending", profile["ConditionExpression"])
+        self.assertNotIn("ageVerified", profile["ConditionExpression"])
         stored = self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")]
         self.assertEqual(set(stored), service.COMMAND_FIELDS)
         self.assertEqual(stored["deleteByEpoch"], 86_500)
+
+    def test_admission_requires_current_inventory_strictly_before_request_time(self):
+        marker = self.ledger.items[("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY")]
+        for change in ({"approvedAtEpoch":100}, {"revision":2}, {"manifestSha256":"b"*64}):
+            with self.subTest(change=change):
+                self.ledger.items[("INVENTORY#dev", "ACCOUNT_DATA_INVENTORY")] = marker | change
+                with self.assertRaises(service.AppError) as error:
+                    self.subject.request("account-1", command()["operationId"])
+                self.assertEqual(error.exception.code,"SERVER_UNAVAILABLE")
+                self.assertEqual(self.client.transactions, [])
 
     def test_same_operation_replays_and_different_operation_conflicts(self):
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")] = command()
@@ -182,6 +203,15 @@ class AccountDeletionServiceTests(unittest.TestCase):
                 "account-1", "47debb73-444b-4bb1-9889-fb56885b7922"
             )
         self.assertEqual(raised.exception.code, "IDEMPOTENCY_CONFLICT")
+
+    def test_component_receipts_reject_boolean_versions_and_predating_completion(self):
+        original = service._component_receipt(command(), "HISTORY", 110)
+        self.assertTrue(service._valid_component_receipt(original, command(), "HISTORY"))
+        for changes in ({"schemaVersion": True}, {"recordVersion": True},
+                        {"occurredAtEpoch": 99, "retainUntilEpoch": 99 + 120 * 86400}):
+            with self.subTest(changes=changes):
+                self.assertFalse(service._valid_component_receipt(
+                    {**original, **changes}, command(), "HISTORY"))
 
     def test_status_accepts_only_receipts_bound_to_same_request(self):
         self.ledger.items[("ACCOUNT#account-1", "ACCOUNT_DELETION")] = command()
@@ -207,7 +237,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
         result = self.subject.status("account-1")
 
         self.assertEqual(
-            result["components"],
+            [item for item in result["components"] if item["component"] in ("SESSION_REVOCATION", "HISTORY", "CAMPAIGN")],
             [
                 {"component": "SESSION_REVOCATION", "status": "PENDING"},
                 {"component": "HISTORY", "status": "COMPLETE"},
@@ -285,6 +315,72 @@ class AccountDeletionServiceTests(unittest.TestCase):
             "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
         )]
         self.assertEqual(checkpoint["completedPassAtEpoch"], 200)
+
+    def _reconciliation(self, ledger, **overrides):
+        result = {"deleted": 0, "minimized": 0, "complete": True}
+        with mock.patch.object(service, "delete_device_bindings", return_value=result), \
+                mock.patch.object(service, "delete_device_recovery_control", return_value=result), \
+                mock.patch.object(service, "delete_analysis_abuse_control", return_value=result), \
+                mock.patch.object(service, "delete_campaign_outbox", return_value=result), \
+                mock.patch.object(service, "delete_user_profile_state", return_value=result):
+            return service.reconcile_session_revocations(
+                environment="dev", ledger_table=ledger, device_table=Table(),
+                recovery_table=Table(), abuse_table=Table(), outbox_table=Table(),
+                users_table=Table(), user_pool_id="pool", cognito=object(),
+                scan_limit=100, max_pages=1, now=lambda: 200, **overrides)
+
+    def test_poison_command_does_not_starve_later_accounts_or_report_clean_pass(self):
+        ledger = ScanTable([{"Items": [{**command(), "schemaVersion": True}, command()], "ScannedCount": 2}])
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True) as revoke:
+            result = self._reconciliation(ledger)
+        self.assertEqual(revoke.call_count, 1)
+        self.assertEqual(result["commandFailures"], 1)
+        self.assertTrue(result["passHadFailures"])
+        self.assertFalse(result["completedFullPass"])
+        self.assertIsNone(result["completedPassAtEpoch"])
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertNotIn("lastEvaluatedKey", checkpoint)
+        self.assertFalse(checkpoint["passHadFailures"])
+
+    def test_hard_interruption_checkpoint_skips_to_next_account_but_keeps_pass_failure(self):
+        ledger = ScanTable([{"Items": [command()], "ScannedCount": 1}])
+        with mock.patch.object(service, "ensure_session_revoked", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                self._reconciliation(ledger)
+        key = {"PK": command()["PK"], "SK": command()["SK"]}
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertEqual(checkpoint["lastEvaluatedKey"], key)
+        self.assertTrue(checkpoint["passHadFailures"])
+        ledger.pages.append({"Items": [], "ScannedCount": 0})
+        result = self._reconciliation(ledger)
+        self.assertEqual(ledger.scans[-1]["ExclusiveStartKey"], key)
+        self.assertFalse(result["completedFullPass"])
+        self.assertIsNone(result["completedPassAtEpoch"])
+        # Wrapping starts another scan pass; interrupted work is revisited.
+        ledger.pages.append({"Items": [command()], "ScannedCount": 1})
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True):
+            result = self._reconciliation(ledger)
+        self.assertNotIn("ExclusiveStartKey", ledger.scans[-1])
+        self.assertTrue(result["completedFullPass"])
+
+    def test_command_budget_resumes_at_last_attempted_item_not_end_of_scan_page(self):
+        second = {**command(), "PK": "ACCOUNT#account-2", "accountId": "account-2"}
+        ledger = ScanTable([{"Items": [command(), second], "ScannedCount": 2}])
+        with mock.patch.object(service, "ensure_session_revoked", return_value=True) as revoke:
+            result = self._reconciliation(ledger, max_commands=1)
+        self.assertEqual(revoke.call_count, 1)
+        self.assertTrue(result["worksetTruncated"])
+        self.assertFalse(result["completedFullPass"])
+        checkpoint = ledger.items[("LIFECYCLE#dev", "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION")]
+        self.assertEqual(checkpoint["lastEvaluatedKey"], {"PK": command()["PK"], "SK": command()["SK"]})
+        self.assertFalse(checkpoint["passHadFailures"])
+
+    def test_low_time_budget_never_starts_a_scan(self):
+        ledger = ScanTable([])
+        result = self._reconciliation(ledger, remaining_millis=lambda: 9999)
+        self.assertTrue(result["worksetTruncated"])
+        self.assertFalse(result["completedFullPass"])
+        self.assertEqual(ledger.scans, [])
 
     def test_campaign_outbox_cleanup_is_bounded_target_bound_and_receipted(self):
         account_hash = service.hashlib.sha256(b"account-1").hexdigest()
@@ -435,7 +531,7 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ledger.items[(receipt["PK"], receipt["SK"])] = receipt
         result = service.delete_user_profile_state(
             deletion, users_table=users, ledger_table=ledger,
-            policy_status="approved", now_epoch=200,
+            policy_status="approved", demographic_research_policy_status="approved", now_epoch=200,
         )
 
         self.assertTrue(result["complete"])
@@ -448,6 +544,61 @@ class AccountDeletionServiceTests(unittest.TestCase):
             ("ACCOUNT#account-1", "ACCOUNT_DELETION#USER_PROFILE"),
             ledger.items,
         )
+
+    def test_user_profile_cleanup_erases_demographic_values_and_preserves_value_free_audit(self):
+        deletion = command()
+        partition = "USER#account-1"
+        epoch = "15c81ba4-2fa6-43c3-8895-889f08c931bf"
+        operation = "47debb73-444b-4bb1-9889-fb56885b7922"
+        profile = {"PK":partition,"SK":"PROFILE","sub":"account-1","status":"DELETION_REQUESTED",
+                   "deletionOperationId":deletion["operationId"],"deletionRequestedAtEpoch":100}
+        demographic = {"PK":partition,"SK":"DEMOGRAPHIC_RESEARCH","ageBand":"25_34","stateCode":"IL"}
+        receipt = {"PK":partition,"SK":f"DEMOGRAPHIC_OPERATION#{operation}","ageBand":"25_34","stateCode":"IL"}
+        audit = {"PK":partition,"SK":f"DEMOGRAPHIC_CONSENT#{epoch}#90#{operation}","schemaVersion":1,
+                 "recordVersion":1,"eventType":"demographic.research.update","purpose":"optional-demographic-protection-research",
+                 "purposeVersion":"consumer-protection-research-v1",
+                 "noticeVersion":"demographic-research-2026-09-30-v1","policyVersion":"optional-demographic-research-v1",
+                 "consentEpochId":epoch,"operationId":operation,"resultingState":"enrolled","stateVersion":2,
+                 "occurredAtEpoch":90,"expiresAt":90+400*86400,"valueCleanupDeadlineEpoch":90+86400,
+                 "valueCleanupCompletedAtEpoch":90}
+        authority = {"PK":"ACCOUNT#account-1","SK":"DEMOGRAPHIC_RESEARCH_AUTHORITY","schemaVersion":1,
+                     "recordVersion":1,"purpose":"optional-demographic-protection-research",
+                     "purposeVersion":"consumer-protection-research-v1",
+                     "noticeVersion":"demographic-research-2026-09-30-v1","policyVersion":"optional-demographic-research-v1",
+                     "state":"enrolled","stateVersion":2,"consentEpochId":epoch,"lastOperationId":operation,
+                     "validUntilEpoch":1000,"updatedAtEpoch":90,"expiresAt":1000}
+        users = OutboxTable([{"Items":[profile,demographic,receipt,audit]}],
+                            {(x["PK"],x["SK"]):x for x in (profile,demographic,receipt,audit)})
+        ledger = Table({(authority["PK"],authority["SK"]):authority})
+        for component in service.USER_PROFILE_PREREQUISITES:
+            proof=service._component_receipt(deletion,component,150);ledger.items[(proof["PK"],proof["SK"])]=proof
+        result=service.delete_user_profile_state(deletion,users_table=users,ledger_table=ledger,policy_status="approved",
+                                                 demographic_research_policy_status="approved",now_epoch=200)
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["deleted"],4)
+        self.assertEqual(users.items[(partition,audit["SK"])],audit)
+        self.assertNotIn((authority["PK"],authority["SK"]),ledger.items)
+
+    def test_demographic_audit_rejects_linkable_values(self):
+        item={"PK":"USER#account-1","SK":"DEMOGRAPHIC_CONSENT#bad","ageBand":"25_34"}
+        with self.assertRaisesRegex(ValueError,"Demographic consent audit"):
+            service._validate_demographic_audit(item,"USER#account-1")
+
+    def test_v1_component_is_additional_to_legacy_entitlements(self):
+        deletion = command()
+        for missing in ("V1_AUTHORITY", "ENTITLEMENTS"):
+            ledger = Table()
+            for component in service.USER_PROFILE_PREREQUISITES:
+                if component != missing:
+                    receipt = service._component_receipt(deletion, component, 150)
+                    ledger.items[(receipt["PK"], receipt["SK"])] = receipt
+            users = OutboxTable([{"Items": []}])
+            result = service.delete_user_profile_state(
+                deletion, users_table=users, ledger_table=ledger,
+                policy_status="approved", now_epoch=200,
+            )
+            self.assertEqual(result["policyBlocked"], "USER_PROFILE_PREREQUISITES")
+            self.assertEqual(users.queries, [])
 
     def test_user_profile_cleanup_is_policy_blocked_before_reads(self):
         users = OutboxTable([{"Items": []}])

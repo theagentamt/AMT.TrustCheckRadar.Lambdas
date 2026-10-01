@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transportVersion",
+    "checkId",
+    "entryPoint",
+    "language",
+    "target",
+    "operationProof"
+  ],
+  "properties": {
+    "transportVersion": {
+      "const": "1.0.0-message-candidate.2"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "entryPoint": {
+      "const": "message"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "sourceType",
+        "sanitizedText",
+        "speakerRole",
+        "entities",
+        "withheldLinks",
+        "reviewedLinks"
+      ],
+      "properties": {
+        "scope": {
+          "const": "sanitized_message"
+        },
+        "sourceType": {
+          "enum": [
+            "mixed",
+            "ocr",
+            "pasted_text"
+          ]
+        },
+        "sanitizedText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "speakerRole": {
+          "enum": [
+            "mixed",
+            "other",
+            "self",
+            "unknown"
+          ]
+        },
+        "entities": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token",
+              "type"
+            ],
+            "properties": {
+              "token": {
+                "type": "string",
+                "pattern": "^\\[(URL|EMAIL|PHONE|CREDIT_CARD|SSN|IP_ADDRESS|MESSENGER_HANDLE|PAYMENT_HANDLE|CRYPTO_WALLET|PASSWORD|VERIFICATION_CODE)_[1-9][0-9]{0,2}\\]$"
+              },
+              "type": {
+                "enum": [
+                  "credit_card",
+                  "crypto_wallet",
+                  "email",
+                  "ip_address",
+                  "messenger_handle",
+                  "password",
+                  "payment_handle",
+                  "phone",
+                  "ssn",
+                  "url",
+                  "verification_code"
+                ]
+              }
+            }
+          }
+        },
+        "withheldLinks": {
+          "type": "boolean"
+        },
+        "reviewedLinks": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "token",
+              "url",
+              "scope",
+              "withheldComponents"
+            ],
+            "properties": {
+              "token": {
+                "type": "string",
+                "pattern": "^\\[URL_[1-9][0-9]{0,2}\\]$"
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "scope": {
+                "enum": [
+                  "full_url",
+                  "origin_only"
+                ]
+              },
+              "withheldComponents": {
+                "type": "array",
+                "maxItems": 3,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "fragment",
+                    "path",
+                    "query"
+                  ]
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "scope": {
+                      "const": "full_url"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "withheldComponents": {
+                      "items": {
+                        "const": "fragment"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "operationProof": {
+      "type": "string",
+      "pattern": "^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$"
+    }
+  }
+}

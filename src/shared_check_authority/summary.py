@@ -5,9 +5,11 @@ import re
 
 def validate_summary(value, client_id, outcome):
     keys={'schemaVersion','checkId','verdict','processingOutcome','coverage','reasonCodes','transportWarnings','threatTypes','lookupCount','providerCallCount','observedHopCount','scope','consumerAccessEnabled'}
-    if not isinstance(value,dict) or set(value)!=keys or value['checkId']!=client_id or value['processingOutcome']!=outcome:
+    modern=isinstance(value,dict) and value.get('schemaVersion')==2
+    expected=keys|{'lookupObservedAt','lookupValidUntil'} if modern else keys
+    if not isinstance(value,dict) or set(value)!=expected or value['checkId']!=client_id or value['processingOutcome']!=outcome:
         raise AuthorityError('RESULT_SUMMARY_INVALID')
-    if value['schemaVersion']!=1 or value['consumerAccessEnabled'] is not False or value['scope']!='HTTP_REDIRECTS_AND_GOOGLE_LOOKUP':
+    if type(value['schemaVersion']) is not int or value['schemaVersion'] not in (1,2) or value['consumerAccessEnabled'] is not False or value['scope']!='HTTP_REDIRECTS_AND_GOOGLE_LOOKUP':
         raise AuthorityError('RESULT_SUMMARY_INVALID')
     if value['verdict'] not in ('unknown','high_risk','no_known_threat_detected') or value['coverage'] not in ('not_assessed','limited','supported_checks_complete'):
         raise AuthorityError('RESULT_SUMMARY_INVALID')
@@ -16,4 +18,11 @@ def validate_summary(value, client_id, outcome):
             raise AuthorityError('RESULT_SUMMARY_INVALID')
     if any(type(value[k]) is not int or not 0<=value[k]<=6 for k in ('lookupCount','providerCallCount','observedHopCount')):
         raise AuthorityError('RESULT_SUMMARY_INVALID')
+    if modern:
+        try:
+            from shared_lookup_freshness import validate
+            if value['lookupObservedAt'] is None:
+                if value['lookupValidUntil'] is not None or value['verdict']!='unknown':raise ValueError()
+            else:validate(value['lookupObservedAt'],value['lookupValidUntil'],matched=value['verdict']=='high_risk')
+        except (ValueError,TypeError,OverflowError):raise AuthorityError('RESULT_SUMMARY_INVALID') from None
     return value

@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "FEATURE_DISABLED",
+    "message": "Self-service device recovery is not enabled.",
+    "retryable": true
+  }
+}

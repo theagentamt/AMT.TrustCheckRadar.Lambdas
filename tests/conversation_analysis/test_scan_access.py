@@ -470,7 +470,7 @@ class ScanAccessTests(unittest.TestCase):
         entitlements_fake.put_item({
             "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
             "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
-            "noticeVersion": "notice-2026-09", "environment": "dev",
+            "noticeVersion": "research-consent-2026-09-21-v2", "policyVersion": "independent-research-v1", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
         transaction_fake.transactions.clear()
@@ -563,7 +563,7 @@ class ScanAccessTests(unittest.TestCase):
         entitlements_fake.put_item({
             "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
             "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
-            "noticeVersion": "notice-2026-09", "environment": "dev",
+            "noticeVersion": "research-consent-2026-09-21-v2", "policyVersion": "independent-research-v1", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
         transaction_fake.transactions.clear()
@@ -621,7 +621,7 @@ class ScanAccessTests(unittest.TestCase):
         entitlements_fake.put_item({
             "PK": "USER#user-123", "SK": "CAMPAIGN_PARTICIPATION", "state": "enrolled",
             "stateVersion": 2, "consentEpochId": "15c81ba4-2fa6-43c3-8895-889f08c931bf",
-            "noticeVersion": "notice-2026-09", "environment": "dev",
+            "noticeVersion": "research-consent-2026-09-21-v2", "policyVersion": "independent-research-v1", "environment": "dev",
         })
         grant = scan_access.prepare_scan_access("user-123", now_epoch=60)
         transaction_fake.transactions.clear()

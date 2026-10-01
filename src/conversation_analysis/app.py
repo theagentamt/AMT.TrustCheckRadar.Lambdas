@@ -1,62 +1,37 @@
+"""Retired legacy analysis endpoint: owned replay only, never new dispatch."""
 import json
-import logging
-import os
+import time
+import boto3
 
-from abuse_controls import extract_identity
-from device_binding import assert_active_device_binding
+from config import ANALYSIS_ABUSE_TABLE_NAME
 from errors import AppError
 from response_builders import build_error_response
-from service import handle_analysis_request
+from retired_replay import LegacyReplay
 from validation import parse_and_validate_event
-
-LOGGER = logging.getLogger()
-LOGGER.setLevel(os.environ.get("LOG_LEVEL", "INFO").upper())
+from shared_history import HistorySettings, HistoryError
+from shared_history.security import jwt_subject
 
 
 def lambda_handler(event, _context):
     request_id = None
     try:
-        LOGGER.info("Stage started: request_received")
+        settings = HistorySettings.from_env()
+        settings.validate_api_auth()
+        account = jwt_subject(event, settings)
         payload = parse_and_validate_event(event)
-        request_id = payload["requestId"]
-        LOGGER.info(
-            "Stage completed: request_validated | sourceType=%s entityCount=%s",
-            payload["sourceType"],
-            len(payload["entities"]),
-        )
-
-        LOGGER.info("Stage started: identity_extraction")
-        identity = extract_identity(event)
-        LOGGER.info("Stage completed: identity_extracted")
-
-        LOGGER.info("Stage started: device_binding_validation")
-        assert_active_device_binding(event, identity)
-        LOGGER.info("Stage completed: device_binding_validated")
-
-        LOGGER.info("Stage started: analysis_flow")
-        response_body = handle_analysis_request(payload, identity)
-        LOGGER.info(
-            "Stage completed: analysis_flow | riskLevel=%s scamScore=%s",
-            response_body.get("riskLevel"),
-            response_body.get("scamScore"),
-        )
-        return _response(200, response_body)
-    except AppError as err:
-        LOGGER.warning(
-            "Stage failed: handled_error | errorCode=%s retryable=%s",
-            err.code,
-            err.retryable,
-        )
-        return _response(err.status_code, build_error_response(request_id=request_id, err=err))
+        request_id = payload['requestId']
+        response = LegacyReplay(resource=boto3.resource('dynamodb'), settings=settings,
+            abuse_table_name=ANALYSIS_ABUSE_TABLE_NAME, now=lambda: int(time.time())).replay(event, account, payload)
+        return _response(200, response)
+    except (AppError, HistoryError) as err:
+        safe = AppError(err.code, err.message, retryable=err.retryable)
+        return _response(safe.status_code, build_error_response(request_id=request_id, err=safe))
     except Exception:
-        LOGGER.exception("Stage failed: unhandled_error")
-        internal_error = AppError("INTERNAL_ERROR", "An internal error occurred while processing the request.", retryable=False)
-        return _response(500, build_error_response(request_id=request_id, err=internal_error))
+        # No raw SDK exception, submitted text, identifiers or tracebacks.
+        err = AppError('SERVER_UNAVAILABLE', 'Legacy request evidence is unavailable. No new check was started or charged.', retryable=False)
+        return _response(503, build_error_response(request_id=request_id, err=err))
 
 
-def _response(status_code: int, body: dict) -> dict:
-    return {
-        "statusCode": status_code,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body),
-    }
+def _response(status_code, body):
+    return {'statusCode': status_code, 'headers': {'Content-Type': 'application/json', 'Cache-Control': 'no-store'},
+            'body': json.dumps(body, allow_nan=False)}

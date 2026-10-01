@@ -1,0 +1,11 @@
+{
+  "valid": {
+    "requests": ["valid.request.json"],
+    "successes": ["valid.success.json", "replay.success.json"],
+    "errors": ["error.phone-number-unsupported.json", "error.phone-region-not-allowed.json", "error.idempotency-conflict.json"]
+  },
+  "invalid": {
+    "requests": ["invalid.request.extra-field.json", "invalid.request.false.json"]
+  },
+  "phoneMetadata": "phone-metadata.json"
+}

@@ -1,0 +1,75 @@
+{
+  "request": {
+    "schemaVersion": 1,
+    "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+    "intent": "PURCHASE",
+    "purchaseToken": "synthetic-purchase-token"
+  },
+  "responses": [
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "snapshotRequired": true,
+      "idempotencyReplay": false,
+      "status": "committed",
+      "acknowledgment": "acknowledged"
+    },
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "snapshotRequired": true,
+      "idempotencyReplay": false,
+      "status": "committed",
+      "acknowledgment": "pending"
+    },
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "snapshotRequired": true,
+      "idempotencyReplay": false,
+      "status": "pending",
+      "acknowledgment": "not_applicable"
+    },
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "snapshotRequired": true,
+      "idempotencyReplay": false,
+      "status": "not_granted",
+      "acknowledgment": "not_applicable"
+    },
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "snapshotRequired": true,
+      "idempotencyReplay": true,
+      "status": "committed",
+      "acknowledgment": "acknowledged"
+    }
+  ],
+  "errors": [
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": null,
+      "error": {
+        "code": "PURCHASE_SERVICE_UNAVAILABLE",
+        "retryable": false
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "contractVersion": "v1-play-handoff-1.0.0-candidate.1",
+      "requestId": "f3b9c62a-4e6f-4b38-9d1a-233341aec322",
+      "error": {
+        "code": "PURCHASE_RECONCILIATION_REQUIRED",
+        "retryable": true
+      }
+    }
+  ]
+}

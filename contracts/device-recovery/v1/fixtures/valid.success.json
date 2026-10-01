@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+  "operation": "REPLACE_ACTIVE_BINDING",
+  "result": "RECOVERED",
+  "status": "COMPLETE",
+  "bindingFingerprint": "installation-key-1",
+  "completedAtEpoch": 1800000000
+}

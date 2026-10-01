@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import re
 import uuid
+import time
+import hashlib
 
 CAMPAIGN_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 REASON_CODES = {"quality_verified", "privacy_verified", "policy_violation", "false_positive", "emergency"}
@@ -22,7 +24,7 @@ class ReviewError(Exception):
         super().__init__(message); self.status, self.code, self.message = status, code, message
 
 
-def review(event, *, table_name, reviewer_group, minimum_contributors, dynamodb):
+def review(event, *, table_name, reviewer_group, minimum_contributors, dynamodb, now_epoch=None):
     _authorize(event, reviewer_group)
     campaign_id = (event.get("pathParameters") or {}).get("campaignId")
     if not isinstance(campaign_id, str) or not CAMPAIGN_ID.fullmatch(campaign_id):
@@ -42,6 +44,20 @@ def review(event, *, table_name, reviewer_group, minimum_contributors, dynamodb)
     key = {"PK": {"S": f"CAMPAIGN#{campaign_id}"}, "SK": {"S": "AGGREGATE"}}
     raw = dynamodb.get_item(TableName=table_name, Key=key, ConsistentRead=True).get("Item")
     if not raw: raise ReviewError(404, "NOT_FOUND", "Campaign was not found")
+    now = int(time.time()) if now_epoch is None else now_epoch
+    expiry = raw.get("expiresAt", {}).get("N")
+    if type(now) is not int or type(expiry) is not str or not expiry.isdigit() or int(expiry) <= now:
+        raise ReviewError(404, "NOT_FOUND", "Campaign was not found")
+    expiry_partition = raw.get("expiryPartition", {}).get("S")
+    if expiry_partition is not None:
+        try:
+            parsed = uuid.UUID(campaign_id)
+            valid_id = parsed.version == 4 and str(parsed) == campaign_id
+        except (ValueError, TypeError, AttributeError): valid_id = False
+        environment = raw.get("environment", {}).get("S")
+        expected = f"EXPIRY#{environment}#{int(hashlib.sha256(campaign_id.encode()).hexdigest(),16)%16:02d}"
+        if not valid_id or environment not in ("dev", "uat", "prod") or expiry_partition != expected:
+            raise ReviewError(404, "NOT_FOUND", "Campaign was not found")
     current = raw.get("state", {}).get("S")
     target = TRANSITIONS.get((current, payload["action"]))
     if not target: raise ReviewError(409, "INVALID_TRANSITION", "The requested state transition is invalid")
@@ -52,10 +68,11 @@ def review(event, *, table_name, reviewer_group, minimum_contributors, dynamodb)
     version = int(raw.get("version", {"N": "0"})["N"])
     update = {"Update": {"TableName": table_name, "Key": key,
         "UpdateExpression": "SET #state = :target, version = :next_version",
-        "ConditionExpression": "#state = :current AND version = :version",
+        "ConditionExpression": "#state = :current AND version = :version AND expiresAt = :expiry AND expiresAt > :now",
         "ExpressionAttributeNames": {"#state": "state"},
         "ExpressionAttributeValues": {":target": {"S": target}, ":current": {"S": current},
-            ":version": {"N": str(version)}, ":next_version": {"N": str(version + 1)}}}}
+            ":version": {"N": str(version)}, ":next_version": {"N": str(version + 1)},
+            ":expiry": raw["expiresAt"], ":now": {"N": str(now)}}}}
     if target == "PUBLISHED":
         period = raw["periodWeek"]["S"]
         update["Update"]["UpdateExpression"] += ", GSI1PK = :published, GSI1SK = :publication_key"
@@ -73,6 +90,10 @@ def review(event, *, table_name, reviewer_group, minimum_contributors, dynamodb)
         "reasonCode": {"S": payload["reasonCode"]}, "reviewerRole": {"S": reviewer_group},
         "auditId": {"S": audit_id}, "expiresAt": raw["expiresAt"],
     }, "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
+    if expiry_partition is not None:
+        audit["Put"]["Item"]["expiryPartition"] = {"S": expiry_partition}
+        update["Update"]["ConditionExpression"] += " AND expiryPartition = :expiry_partition"
+        update["Update"]["ExpressionAttributeValues"][":expiry_partition"] = {"S": expiry_partition}
     dynamodb.transact_write_items(TransactItems=[update, audit])
     return {"schemaVersion": 1, "campaignId": campaign_id, "state": target, "version": version + 1}
 

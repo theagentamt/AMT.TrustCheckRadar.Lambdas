@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "sourceSha": "39cce61623794a123e61d25f5248b0c081eccf4a",
+  "noNetwork": true,
+  "awsRuntimeQualified": false,
+  "artifacts": [
+    {
+      "function": "play_lifecycle_ingress",
+      "sha256": "068717931c3a55e2521e9e0682d99ce70973e25c5eb56857a536f3fa662dad1a",
+      "bytes": 6241017,
+      "sourceFilesCompared": 40,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/cd.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/md.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "body": ""
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    },
+    {
+      "function": "play_lifecycle_worker",
+      "sha256": "61d66ff6b1c53c061272756124b161f7f359e7df11dd281a784ce2ec0d9781cb",
+      "bytes": 6244077,
+      "sourceFilesCompared": 41,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/cd.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/md.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "enabled": false
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    },
+    {
+      "function": "play_token_deletion",
+      "sha256": "25a30170bb53afb8253c95e335d76c5527531faea0f644c733b12cc5cfe2da14",
+      "bytes": 6241234,
+      "sourceFilesCompared": 40,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/cd.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/md.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "enabled": false
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    },
+    {
+      "function": "v1_play_handoff",
+      "sha256": "dac08a762404e0d692edc7547987168fa4f076d4f80976ba6ccf35df7c9bf1ac",
+      "bytes": 6232755,
+      "sourceFilesCompared": 38,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/cd.cpython-314-aarch64-linux-gnu.so",
+        "charset_normalizer/md.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "v1_play_handoff.app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"schemaVersion\":1,\"contractVersion\":\"v1-play-handoff-1.0.0-candidate.1\",\"requestId\":null,\"error\":{\"code\":\"PURCHASE_SERVICE_UNAVAILABLE\",\"retryable\":false}}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    },
+    {
+      "function": "url_consumer",
+      "sha256": "63c88940c601f1a58e5e278904c6892eb3a9068a77b0ba5b834f46cbe3e755b0",
+      "bytes": 693106,
+      "sourceFilesCompared": 21,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "rpds/rpds.cpython-314-aarch64-linux-gnu.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-23T04:54:53.515618Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"errorCode\":\"SERVICE_UNAVAILABLE\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ]
+    },
+    {
+      "function": "url_lease_recovery",
+      "sha256": "6b9ba8b94e6fcb564932e5a98d0638194436dfa7788e9452db7c9399a3f92be6",
+      "bytes": 47884,
+      "sourceFilesCompared": 20,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "enabled": false,
+        "recovered": 0
+      },
+      "hostNativeDependencySubstitutions": []
+    },
+    {
+      "function": "v1_entitlements",
+      "sha256": "c45bb2d32946847a5f1ec24110566c61cc61a5d8ac875431e1ae54705d193a13",
+      "bytes": 51941,
+      "sourceFilesCompared": 22,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [],
+      "disabledHandler": "v1_entitlements.app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"schemaVersion\":1,\"error\":{\"code\":\"ACCESS_SERVICE_UNAVAILABLE\",\"retryable\":false}}"
+      },
+      "hostNativeDependencySubstitutions": []
+    },
+    {
+      "function": "v1_authority_deletion",
+      "sha256": "e51c4943640a234f7cbed2f94cadf949a321c0c6a717bd12c5c18498e33b18c7",
+      "bytes": 59406,
+      "sourceFilesCompared": 25,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [],
+      "disabledHandler": "v1_authority_deletion.app.lambda_handler",
+      "disabledResponse": {
+        "enabled": false
+      },
+      "hostNativeDependencySubstitutions": []
+    },
+    {
+      "function": "message_consumer",
+      "sha256": "080242a2b575afe99ac341fd83b9dfa15777e4fd609dc84749c94145b76c2d20",
+      "bytes": 753690,
+      "sourceFilesCompared": 28,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "rpds/rpds.cpython-314-aarch64-linux-gnu.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-message-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-23T04:54:53.895349Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"errorCode\":\"SERVICE_NOT_ENABLED\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ]
+    },
+    {
+      "function": "recovery_consumer",
+      "sha256": "b0d89e94e409800820af2055b91ce6eb49096a4678f447930b46ee9f2feb4e9e",
+      "bytes": 733440,
+      "sourceFilesCompared": 29,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "rpds/rpds.cpython-314-aarch64-linux-gnu.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"transportVersion\":\"1.0.0-recovery-candidate.1\",\"checkId\":null,\"operationProof\":null,\"state\":\"unknown\",\"access\":{\"state\":\"temporarily_unavailable\",\"basis\":\"unknown\",\"externalChecksAllowed\":false,\"builtInChecksAllowed\":false,\"reconciliationAllowed\":false,\"remainingChecks\":null,\"resetsAt\":null,\"unlimited\":false,\"observedAt\":\"2026-09-23T04:54:54.125234Z\"},\"accounting\":{\"state\":\"unknown\",\"chargedChecks\":null,\"receiptId\":null,\"requiresReconciliation\":true},\"outcome\":null,\"usage\":null,\"resultAvailability\":\"none\",\"errorCode\":\"SERVICE_NOT_ENABLED\",\"retryAfterSeconds\":null,\"expiresAt\":null}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ]
+    },
+    {
+      "function": "result_feedback",
+      "sha256": "fbe438d059088eecc9bc44d4510bbded13d012df658f6cb479b4376d6c024602",
+      "bytes": 714716,
+      "sourceFilesCompared": 29,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "rpds/rpds.cpython-314-aarch64-linux-gnu.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store"
+        },
+        "body": "{\"feedbackTransportVersion\":\"1.0.0-feedback-candidate.1\",\"feedbackId\":null,\"checkId\":null,\"status\":\"unknown\",\"reasonCode\":\"SERVICE_NOT_ENABLED\",\"retryable\":false,\"retryAfterSeconds\":null,\"receivedAt\":null,\"expiresAt\":null}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "rpds"
+      ]
+    },
+    {
+      "function": "account_export_api",
+      "sha256": "fead7f78c7ce3d1e8ecec57199eec00a1f75d47a937d2ec024edf833ad94e687",
+      "bytes": 5083522,
+      "sourceFilesCompared": 47,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [
+        "_cffi_backend.cpython-314-aarch64-linux-gnu.so",
+        "cryptography/hazmat/bindings/_rust.abi3.so"
+      ],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store",
+          "Pragma": "no-cache"
+        },
+        "body": "{\"schemaVersion\":1,\"error\":{\"code\":\"SERVICE_NOT_ENABLED\",\"retryable\":true}}"
+      },
+      "hostNativeDependencySubstitutions": [
+        "cryptography"
+      ]
+    },
+    {
+      "function": "account_data_api",
+      "sha256": "d5065c415fe40ed01385d699b782b8f04396d3447775b30eaaad2942a387ecb4",
+      "bytes": 41379,
+      "sourceFilesCompared": 17,
+      "pythonCompile": "passed",
+      "nativeLinuxAarch64Objects": [],
+      "disabledHandler": "app.lambda_handler",
+      "disabledResponse": {
+        "statusCode": 503,
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store",
+          "Pragma": "no-cache"
+        },
+        "body": "{\"error\":{\"code\":\"FEATURE_DISABLED\",\"message\":\"Account deletion is not enabled.\",\"retryable\":true}}"
+      },
+      "hostNativeDependencySubstitutions": []
+    }
+  ]
+}

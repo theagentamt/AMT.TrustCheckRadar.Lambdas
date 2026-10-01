@@ -770,6 +770,38 @@
         "retryAfterSeconds": null,
         "expiresAt": null
       }
+    },
+    {
+      "name": "expired-unadmitted-closed",
+      "httpStatus": 200,
+      "requestRoute": "POST /v1/url-checks/reconcile",
+      "response": {
+        "transportVersion": "1.0.0-candidate.1",
+        "checkId": "client-1",
+        "operationProof": "v1_k1_6b49d23c_0123456789abcdef_2fe1925f225d8bb70b9ddbc3",
+        "state": "rejected",
+        "access": {
+          "state": "allowed",
+          "basis": "paid",
+          "externalChecksAllowed": true,
+          "builtInChecksAllowed": true,
+          "reconciliationAllowed": true,
+          "remainingChecks": 200,
+          "resetsAt": "2027-01-15T08:16:40Z",
+          "unlimited": false,
+          "observedAt": "2027-01-15T08:01:00Z"
+        },
+        "accounting": {
+          "state": "not_started",
+          "chargedChecks": 0,
+          "receiptId": null,
+          "requiresReconciliation": false
+        },
+        "outcome": null,
+        "errorCode": "OPERATION_EXPIRED",
+        "retryAfterSeconds": null,
+        "expiresAt": 1800000480
+      }
     }
   ]
 }

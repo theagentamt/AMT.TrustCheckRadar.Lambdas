@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "transportVersion",
+    "checkId",
+    "entryPoint",
+    "language",
+    "target",
+    "operationProof"
+  ],
+  "properties": {
+    "transportVersion": {
+      "const": "1.0.0-recovery-candidate.1"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "entryPoint": {
+      "const": "recovery"
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "sanitizedText",
+        "entities",
+        "playbookVersion"
+      ],
+      "properties": {
+        "scope": {
+          "const": "recovery_clarification"
+        },
+        "sanitizedText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "entities": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "token"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "url",
+                  "email",
+                  "phone",
+                  "ssn",
+                  "credit_card",
+                  "ip_address",
+                  "messenger_handle",
+                  "payment_handle",
+                  "crypto_wallet",
+                  "password",
+                  "verification_code"
+                ]
+              },
+              "token": {
+                "type": "string",
+                "maxLength": 64
+              }
+            }
+          }
+        },
+        "playbookVersion": {
+          "const": "recovery-playbook-1.0"
+        }
+      }
+    },
+    "operationProof": {
+      "type": "string",
+      "pattern": "^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$"
+    }
+  }
+}

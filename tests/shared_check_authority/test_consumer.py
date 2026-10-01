@@ -10,10 +10,10 @@ from copy import deepcopy
 import importlib.util
 import json
 from pathlib import Path
-from url_consumer.service import Consumer, VERSION
+from url_consumer.service import Consumer, FRESH_VERSION as VERSION
 
 ROOT=Path(__file__).resolve().parents[2]
-spec=importlib.util.spec_from_file_location('canonical_url_mapper',ROOT/'contracts/url-assessment/v1-draft/reference_mapping.py')
+spec=importlib.util.spec_from_file_location('canonical_url_mapper',ROOT/'contracts/url-assessment/0.3.0-candidate.1/reference_mapping.py')
 mapper=importlib.util.module_from_spec(spec);spec.loader.exec_module(mapper)
 
 
@@ -28,7 +28,7 @@ def request(check='client-1'):
 
 
 def result(check='client-1'):
-    return {'schemaVersion':1,'checkId':check,'verdict':'no_known_threat_detected','processingOutcome':'complete','coverage':'supported_checks_complete','reasonCodes':['NO_LIST_MATCH','BROWSER_NAVIGATION_NOT_EVALUATED'],'transportWarnings':[],'threatTypes':[],'lookupCount':1,'providerCallCount':1,'observedHopCount':1,'scope':'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP','consumerAccessEnabled':False}
+    return {'schemaVersion':2,'lookupObservedAt':'2027-01-15T08:00:00Z','lookupValidUntil':None,'checkId':check,'verdict':'no_known_threat_detected','processingOutcome':'complete','coverage':'supported_checks_complete','reasonCodes':['NO_LIST_MATCH','BROWSER_NAVIGATION_NOT_EVALUATED'],'transportWarnings':[],'threatTypes':[],'lookupCount':1,'providerCallCount':1,'observedHopCount':1,'scope':'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP','consumerAccessEnabled':False}
 
 
 def system(world,provider=None):
@@ -58,7 +58,7 @@ def test_real_core_consumer_complete_once_and_url_free_reconcile(world):
 
 
 def test_partial_positive_preserved_without_charge(world):
-    def provider(body):return result(body['checkId'])|{'verdict':'high_risk','processingOutcome':'partial','coverage':'limited','reasonCodes':['KNOWN_THREAT_MATCH'],'threatTypes':['MALWARE']}
+    def provider(body):return result(body['checkId'])|{'verdict':'high_risk','processingOutcome':'partial','coverage':'limited','reasonCodes':['KNOWN_THREAT_MATCH'],'threatTypes':['MALWARE'],'lookupValidUntil':'2027-01-15T08:01:00Z'}
     service,e,calls=system(world,provider)
     proof=prepared(service,e)
     status,body=service.handle(event(e,'POST /v1/url-checks',request()|{'operationProof':proof}))
@@ -110,7 +110,7 @@ def test_url_in_reconciliation_request_rejected(world):
 def test_expired_admission_recovered_without_provider(world):
     service,e,calls=system(world);proof=prepared(service,e)
     a,_,_,_,_,clock=world
-    a.admit(e,PAYLOAD,proof,client_check_id='client-1')
+    a.admit(e,PAYLOAD|{'urlTransportVersion':VERSION},proof,client_check_id='client-1')
     clock[0]+=a.s.worker_settlement_seconds;e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
     status,body=service.handle(event(e,'POST /v1/url-checks/reconcile',{'transportVersion':VERSION,'checkId':'client-1','operationProof':proof}))
     assert status==200 and body['state']=='settled' and body['accounting']['chargedChecks']==0 and not calls
@@ -149,3 +149,28 @@ def test_disabled_handler_returns_complete_unknown_envelope(monkeypatch):
     from url_consumer.service import unavailable_envelope,validate_envelope
     body=unavailable_envelope()
     assert validate_envelope(body)==body and body['accounting']['chargedChecks'] is None
+
+
+def test_expired_unadmitted_preparation_closes_authoritatively(world):
+    service,e,calls=system(world);proof=prepared(service,e)
+    a,_,_,row,_,clock=world
+    req={'transportVersion':VERSION,'checkId':'client-1','operationProof':proof}
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']['chargedChecks'] is None
+    clock[0]+=a.s.operation_validity_seconds
+    status,body=service.handle(event(e,'POST /v1/url-checks/reconcile',req))
+    assert status==200 and body['state']=='rejected' and body['errorCode']=='OPERATION_EXPIRED'
+    assert body['accounting']=={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
+    assert row('PREPARE#client-1')['admissionState']=='CLOSED' and not calls
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']==body['accounting']
+
+
+def test_missing_or_retention_expired_preparation_remains_unknown(world):
+    service,e,calls=system(world);proof=prepared(service,e)
+    a,_,_,row,_,clock=world
+    clock[0]+=a.s.receipt_retention_seconds+1
+    e['requestContext']['authorizer']['jwt']['claims']['exp']=str(clock[0]+100)
+    req={'transportVersion':VERSION,'checkId':'client-1','operationProof':proof}
+    body=service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]
+    assert body['state']=='unknown' and body['accounting']['chargedChecks'] is None
+    a.ddb.Table('authority').delete_item(Key={'PK':a._partition(ACCOUNT,'k1'),'SK':'PREPARE#client-1'})
+    assert service.handle(event(e,'POST /v1/url-checks/reconcile',req))[1]['accounting']['chargedChecks'] is None

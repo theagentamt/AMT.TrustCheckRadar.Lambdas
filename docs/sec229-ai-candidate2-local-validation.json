@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-21",
+  "baseReleaseSha": "0f0820e7a50576d261806c42370f19f855c2e457",
+  "immutableCandidate2Pin": "80bcb53dd96058c55a48cbaedbfd3eeb48f84b41",
+  "candidate1Changed": false,
+  "qualifiedModels": 0,
+  "providerCalls": 0,
+  "normalSuite": {
+    "passed": 1107,
+    "subtestsPassed": 212,
+    "expectedIsolatedModuleSkips": 9
+  },
+  "isolatedMotoSuite": {
+    "passed": 615
+  },
+  "additionalChecks": [
+    "Python 3.14 compileall all source/tests",
+    "shellcheck scripts/*.sh",
+    "git diff --check",
+    "redacted changed-file Gitleaks: no findings",
+    "candidate2 schemas/reference/checksums/50 transport +5 invalid fixtures",
+    "source archive message handler imports",
+    "archived URL consumer/recovery real authority failed settlement and expired recovery without message-package dependency",
+    "full ARM64 artifact module/contract/native-wheel inventory"
+  ],
+  "artifacts": {
+    "message_consumer": {
+      "sha256": "ea43b64783e8fb8b48ff10dda3ad9feca0c246c3678039631bc53b1fe43bff42",
+      "python": "3.14",
+      "architecture": "arm64",
+      "dependencies": "full direct pinned requirements and resolved transitive wheels",
+      "targetRuntimeExecuted": false
+    },
+    "message_evaluator": {
+      "sha256": "0f4ea2280a89b1190afc8970ee4d38ca6c443ad0c8986643815fe49bfa8bbd6a",
+      "python": "3.14",
+      "architecture": "arm64",
+      "dependencies": "full direct pinned requirements and resolved transitive wheels",
+      "targetRuntimeExecuted": false
+    }
+  },
+  "notPerformed": [
+    "AWS deployment or activation",
+    "paid/live provider request",
+    "actual provider settings or retention verification",
+    "independent held-out accuracy/cost evaluation",
+    "physical device/store acceptance",
+    "operational outcome reporting qualification"
+  ]
+}

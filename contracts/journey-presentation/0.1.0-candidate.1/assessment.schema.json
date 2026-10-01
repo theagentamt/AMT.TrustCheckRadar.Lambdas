@@ -1,0 +1,817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engineering journey presentation, not a public service response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "journey",
+    "processingOutcome",
+    "verdict",
+    "limitationCodes",
+    "evidence",
+    "nextAction",
+    "messageKey"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": "0.1.0-candidate.1"
+    },
+    "journey": {
+      "enum": [
+        "link",
+        "message",
+        "qr",
+        "recovery"
+      ]
+    },
+    "processingOutcome": {
+      "enum": [
+        "blocked",
+        "complete",
+        "inconclusive",
+        "invalid_input",
+        "partial",
+        "unavailable",
+        "unsupported"
+      ]
+    },
+    "verdict": {
+      "enum": [
+        "no_known_threat_detected",
+        "high_risk",
+        "unknown"
+      ]
+    },
+    "limitationCodes": {
+      "type": "array",
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "CLARIFICATION_REQUIRED",
+          "HOSTILE_INPUT_STOP",
+          "INSUFFICIENT_EVIDENCE",
+          "PROVIDER_UNAVAILABLE",
+          "RECOVERY_CONTENT_UNAVAILABLE",
+          "UNSUPPORTED_CONTENT"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "outcome",
+          "targetScope"
+        ],
+        "properties": {
+          "source": {
+            "const": "google_web_risk_lookup"
+          },
+          "outcome": {
+            "enum": [
+              "match",
+              "no_match"
+            ]
+          },
+          "targetScope": {
+            "enum": [
+              "full_submitted_url",
+              "redirect_hop",
+              "origin_only"
+            ]
+          }
+        }
+      }
+    },
+    "nextAction": {
+      "enum": [
+        "avoid_link",
+        "verify_independently",
+        "review_input",
+        "use_built_in_help"
+      ]
+    },
+    "messageKey": {
+      "enum": [
+        "journey.recovery_unavailable",
+        "journey.known_threat",
+        "journey.known_threat_partial",
+        "journey.no_known_threat",
+        "journey.hostile_input_stop",
+        "journey.clarification_required",
+        "journey.unsupported",
+        "journey.provider_unavailable",
+        "journey.inconclusive"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete",
+              "partial"
+            ]
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete",
+              "partial"
+            ]
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          },
+          "messageKey": {
+            "enum": [
+              "journey.known_threat",
+              "journey.known_threat_partial"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "no_known_threat_detected"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "journey": {
+            "enum": [
+              "link",
+              "qr"
+            ]
+          },
+          "processingOutcome": {
+            "const": "complete"
+          },
+          "limitationCodes": {
+            "maxItems": 0
+          },
+          "evidence": {
+            "contains": {
+              "properties": {
+                "outcome": {
+                  "const": "no_match"
+                },
+                "targetScope": {
+                  "const": "full_submitted_url"
+                }
+              },
+              "required": [
+                "outcome",
+                "targetScope"
+              ]
+            }
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          },
+          "messageKey": {
+            "const": "journey.no_known_threat"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "enum": [
+              "unavailable",
+              "blocked",
+              "invalid_input",
+              "unsupported",
+              "inconclusive"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "journey": {
+            "const": "recovery"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "evidence": {
+            "maxItems": 0
+          },
+          "limitationCodes": {
+            "const": [
+              "RECOVERY_CONTENT_UNAVAILABLE"
+            ]
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          },
+          "messageKey": {
+            "const": "journey.recovery_unavailable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.known_threat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "complete"
+          },
+          "verdict": {
+            "const": "high_risk"
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.known_threat_partial"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "partial"
+          },
+          "verdict": {
+            "const": "high_risk"
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.no_known_threat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "complete"
+          },
+          "verdict": {
+            "const": "no_known_threat_detected"
+          },
+          "nextAction": {
+            "const": "verify_independently"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.hostile_input_stop"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "blocked"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "HOSTILE_INPUT_STOP"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.clarification_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "inconclusive"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "CLARIFICATION_REQUIRED"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.unsupported"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unsupported"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "UNSUPPORTED_CONTENT"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.provider_unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "PROVIDER_UNAVAILABLE"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.inconclusive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "inconclusive"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "review_input"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "INSUFFICIENT_EVIDENCE"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "messageKey": {
+            "const": "journey.recovery_unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "RECOVERY_CONTENT_UNAVAILABLE"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limitationCodes": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "journey": {
+            "not": {
+              "const": "recovery"
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "HOSTILE_INPUT_STOP"
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "blocked"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "messageKey": {
+            "const": "journey.hostile_input_stop"
+          },
+          "nextAction": {
+            "const": "review_input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "journey": {
+            "not": {
+              "const": "recovery"
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "CLARIFICATION_REQUIRED"
+            },
+            "not": {
+              "contains": {
+                "enum": [
+                  "HOSTILE_INPUT_STOP"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "inconclusive"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "messageKey": {
+            "const": "journey.clarification_required"
+          },
+          "nextAction": {
+            "const": "review_input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "journey": {
+            "not": {
+              "const": "recovery"
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "UNSUPPORTED_CONTENT"
+            },
+            "not": {
+              "contains": {
+                "enum": [
+                  "HOSTILE_INPUT_STOP",
+                  "CLARIFICATION_REQUIRED"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unsupported"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "messageKey": {
+            "const": "journey.unsupported"
+          },
+          "nextAction": {
+            "const": "review_input"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "journey": {
+            "not": {
+              "const": "recovery"
+            }
+          },
+          "evidence": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "const": "match"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
+          },
+          "limitationCodes": {
+            "contains": {
+              "const": "PROVIDER_UNAVAILABLE"
+            },
+            "not": {
+              "contains": {
+                "enum": [
+                  "HOSTILE_INPUT_STOP",
+                  "CLARIFICATION_REQUIRED",
+                  "UNSUPPORTED_CONTENT"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          },
+          "verdict": {
+            "const": "unknown"
+          },
+          "messageKey": {
+            "const": "journey.provider_unavailable"
+          },
+          "nextAction": {
+            "const": "use_built_in_help"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
+          },
+          "limitationCodes": {
+            "minItems": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "high_risk"
+          },
+          "processingOutcome": {
+            "const": "partial"
+          },
+          "messageKey": {
+            "const": "journey.known_threat_partial"
+          },
+          "nextAction": {
+            "const": "avoid_link"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "limitationCodes": {
+                "contains": {
+                  "const": "RECOVERY_CONTENT_UNAVAILABLE"
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "messageKey": {
+                "const": "journey.recovery_unavailable"
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "journey": {
+            "const": "recovery"
+          }
+        }
+      }
+    }
+  ]
+}

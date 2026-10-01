@@ -12,6 +12,10 @@ from v1_entitlements import app
 @pytest.fixture(autouse=True)
 def enabled(monkeypatch):
     monkeypatch.setenv('V1_ENTITLEMENTS_ENABLED', 'true')
+    # Handler protocol tests inject authority; the pre-AWS engineering gate has
+    # separate real validation/no-network regressions in test_engineering.py.
+    import shared_check_authority.engineering as engineering
+    monkeypatch.setattr(engineering, 'require_engineering_subject', lambda event: ACCOUNT)
 
 
 def event_for(event, route='GET /v1/access', body=None):

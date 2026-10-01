@@ -1,0 +1,32 @@
+{
+  "sourceSha": "1dd917057527e58cf07c70eb0155991cb6c5bb3c",
+  "publicationComplete": true,
+  "runtimeUpdated": false,
+  "activationApproved": false,
+  "artifacts": {
+    "history_bridge": {
+      "function": "history_account_deletion_bridge",
+      "bucket": "trustcheckradar-dev-107827791950-artifacts",
+      "key": "releases/1dd917057527e58cf07c70eb0155991cb6c5bb3c/history_account_deletion_bridge.zip",
+      "objectVersion": "NXD98uIY5D9TJiKkQWS1lTo3r1BcRFEI",
+      "sourceCodeHash": "z30oWQNIh/9C4iMmgw6b31RmXbLP2RjZd3HFgYW2zuw=",
+      "sha256": "cf7d2859034887ff42e22326830e9bdf54665db2cfd918d97771c58185b6ceec",
+      "bytes": 18340,
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "handler": "app.lambda_handler"
+    },
+    "history_lifecycle": {
+      "function": "history_lifecycle",
+      "bucket": "trustcheckradar-dev-107827791950-artifacts",
+      "key": "releases/1dd917057527e58cf07c70eb0155991cb6c5bb3c/history_lifecycle.zip",
+      "objectVersion": "90QNrBATjzc1VOUYsi_gU43xuZdWSrcT",
+      "sourceCodeHash": "M3HltayXPA3yle/4K7YeQXGnXyiRMgBliT8FN6o9zqo=",
+      "sha256": "3371e5b5ac973c0df295eff82bb61e4171a75f2891320065893f0537aa3dceaa",
+      "bytes": 30262,
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "handler": "app.lambda_handler"
+    }
+  }
+}

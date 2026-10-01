@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "status": "structural_checks_passed",
+  "lambdaSourceCommit": "6c855c1e8c400c089a51a76648a416e084442bdf",
+  "cases": 40,
+  "translationFamilies": 20,
+  "languages": {
+    "en": 20,
+    "es": 20
+  },
+  "cohorts": {
+    "en": {
+      "warning": 8,
+      "benign": 5,
+      "ambiguous": 3,
+      "adversarial": 4
+    },
+    "es": {
+      "warning": 8,
+      "benign": 5,
+      "ambiguous": 3,
+      "adversarial": 4
+    }
+  },
+  "proposedCategoryCounts": {
+    "en": {
+      "AI_CREDENTIAL_REQUEST": 2,
+      "AI_PAYMENT_PRESSURE": 4,
+      "AI_CONSEQUENTIAL_URGENCY": 4,
+      "AI_PRETEXT": 1,
+      "AI_VERIFICATION_BYPASS": 1
+    },
+    "es": {
+      "AI_CREDENTIAL_REQUEST": 2,
+      "AI_PAYMENT_PRESSURE": 4,
+      "AI_CONSEQUENTIAL_URGENCY": 4,
+      "AI_PRETEXT": 1,
+      "AI_VERIFICATION_BYPASS": 1
+    }
+  },
+  "realProviderCalls": 0,
+  "humanReviews": 0,
+  "qualificationEligible": false,
+  "holdoutEligible": false,
+  "checks": [
+    "real existing corpus schema validator",
+    "actual source/scope/rubric/label hash bindings",
+    "EN/ES paired role/source/entity/link/label structural parity",
+    "all five proposed categories per language",
+    "NFC and codepoint span boundaries",
+    "synthetic response shapes accepted by shared parser",
+    "NFD rejected at existing intake boundary",
+    "engineering-only holdout rejected",
+    "all human-review and adjudication worksheet cells blank"
+  ],
+  "limitations": [
+    "Semantic translation correctness and evidence support are not independently reviewed",
+    "Simulation deliberately mirrors proposed labels; no model accuracy claim",
+    "No cohort threshold or representative sample claim",
+    "No billing/recovery or provider transport exercised",
+    "Explicit backend-only independent-link cases do not match current Android reviewedLinks-empty scope"
+  ]
+}

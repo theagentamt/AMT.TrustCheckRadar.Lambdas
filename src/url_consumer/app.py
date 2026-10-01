@@ -37,6 +37,8 @@ def lambda_handler(event,context):
     if os.environ.get('STAGE')!='dev' or os.environ.get('CONSUMER_ENABLED')!='true':
         return _response(503,unavailable_envelope())
     try:
+        from shared_check_authority.engineering import require_engineering_subject
+        require_engineering_subject(event)
         from shared_check_authority.runtime import load_authority
         from shared_check_authority.entitlements import EntitlementWriter
         authority=load_authority()

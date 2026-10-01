@@ -30,14 +30,23 @@ botocore_exceptions.ClientError = FakeClientError
 sys.modules["botocore.exceptions"] = botocore_exceptions
 
 
+from shared_campaign_locators import locator_for_target,serialize as locator_wire
+from tests.campaign_period_fixtures import row as period_row,GENERATION,ARN as PERIOD_ARN
+os.environ.update(CAMPAIGN_PERIOD_ADMISSION_ENABLED='true',CAMPAIGN_PERIOD_ADMISSION_GENERATION=GENERATION,CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID='107827791950',AWS_REGION='us-east-1')
+INVENTORY={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
+'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':1,
+'locatorSchemaVersion':1,'minimumPeriodId':0,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']}
+
 class FakeDynamo:
     def __init__(self):
         self.item = None
+        self.persisted = {}
         self.participation_item = {
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": "15c81ba4-2fa6-43c3-8895-889f08c931bf"},
             "environment": {"S": "dev"},
-            "noticeVersion": {"S": "2026-09-07"},
+            "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
         self.transactions = []
         self.updates = []
@@ -49,12 +58,22 @@ class FakeDynamo:
             return {"Item": self.participation_item} if self.participation_item else {}
         if TableName == "deletion-ledger":
             return {"Item": self.deletion_item} if self.deletion_item else {}
+        key = _kwargs.get('Key',{})
+        pk,sk = key.get('PK',{}).get('S'),key.get('SK',{}).get('S')
+        if sk=='HMAC_KEY':return {'Item':locator_wire(period_row(int(pk.split('#')[1])))}
+        if sk=='CAMPAIGN_LOCATORS':return {'Item':locator_wire(INVENTORY)}
+        if sk!='DEDUPE':
+            value=self.persisted.get((pk,sk))
+            return {'Item':value} if value else {}
         return {"Item": self.item} if self.item else {}
 
     def transact_write_items(self, **kwargs):
         transaction = kwargs["TransactItems"]
         self.transactions.append(transaction)
-        if "Update" in transaction[-1]:
+        for action in transaction:
+            if 'Put' in action:
+                item=action['Put']['Item'];self.persisted[(item['PK']['S'],item['SK']['S'])]=item
+        if any("Update" in action for action in transaction):
             if self.fail_final_transaction_with_deletion:
                 self.deletion_item = {"PK": {"S": "ACCOUNT#account-123"}}
                 raise FakeClientError(
@@ -175,7 +194,7 @@ def valid_item(**overrides):
         "accountId": "account-123",
         "campaignConsentGranted": True,
         "consentEpochId": CONSENT_EPOCH_ID,
-        "noticeVersion": "2026-09-07",
+        "noticeVersion": "research-consent-2026-09-21-v2",
         "observedAtEpoch": 1_780_000_000,
         "sourceType": "pasted_text",
         "sanitizedText": "A caller requested payment using [PAYMENT_HANDLE_1].",
@@ -330,11 +349,13 @@ class ContractTests(unittest.TestCase):
 class ServiceTests(unittest.TestCase):
     def setUp(self):
         fake_dynamo.item = None
+        fake_dynamo.persisted.clear()
         fake_dynamo.participation_item = {
             "state": {"S": "enrolled"},
             "consentEpochId": {"S": CONSENT_EPOCH_ID},
             "environment": {"S": "dev"},
-            "noticeVersion": {"S": "2026-09-07"},
+            "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
         fake_dynamo.transactions.clear()
         fake_dynamo.updates.clear()
@@ -350,12 +371,13 @@ class ServiceTests(unittest.TestCase):
             users_table_name="users",
             deletion_ledger_table_name="deletion-ledger",
             cluster_queue_url="https://sqs.example/cluster",
-            hmac_key_id="alias/period-key",
+            hmac_key_id=PERIOD_ARN,
             transient_retention_days=21,
             dynamodb_client=fake_dynamo,
             kms_client=fake_kms,
             sqs_client=fake_sqs,
             now_epoch=now_epoch,
+            locator_manifest_sha256="a"*64,locator_inventory_revision=1,
         )
 
     def test_publishes_pseudonymous_app_feature_and_cluster_message(self):
@@ -368,29 +390,29 @@ class ServiceTests(unittest.TestCase):
             b"campaign-contributor:v1\0account-123",
         )
         self.assertEqual(fake_kms.calls[0]["MacAlgorithm"], "HMAC_SHA_256")
-        condition = fake_dynamo.transactions[0][0]["ConditionCheck"]
+        condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
         self.assertEqual(condition["TableName"], "users")
         self.assertEqual(condition["ExpressionAttributeValues"][":epoch"], {"S": CONSENT_EPOCH_ID})
-        self.assertEqual(condition["ExpressionAttributeValues"][":environment"], {"S": "dev"})
-        self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "2026-09-07"})
-        deletion_condition = fake_dynamo.transactions[0][1]["ConditionCheck"]
+        self.assertEqual(condition["ExpressionAttributeValues"][":env"], {"S": "dev"})
+        self.assertEqual(condition["ExpressionAttributeValues"][":notice"], {"S": "research-consent-2026-09-21-v2"})
+        deletion_condition = fake_dynamo.transactions[0][2]["ConditionCheck"]
         self.assertEqual(deletion_condition["TableName"], "deletion-ledger")
         self.assertEqual(
             deletion_condition["ConditionExpression"], "attribute_not_exists(PK)"
         )
         final_transaction = fake_dynamo.transactions[1]
-        self.assertEqual(final_transaction[0]["ConditionCheck"]["TableName"], "users")
+        self.assertEqual(final_transaction[1]["ConditionCheck"]["TableName"], "users")
         self.assertEqual(
-            final_transaction[1]["ConditionCheck"]["TableName"],
+            final_transaction[2]["ConditionCheck"]["TableName"],
             "deletion-ledger",
         )
-        final_update = final_transaction[2]["Update"]
+        final_update = final_transaction[3]["Update"]
         self.assertEqual(final_update["TableName"], "campaign-pipeline")
         self.assertEqual(
             final_update["ConditionExpression"],
             "attribute_exists(PK) AND attribute_exists(SK) AND #status = :pending",
         )
-        feature = fake_dynamo.transactions[0][2]["Put"]["Item"]
+        feature = fake_dynamo.transactions[0][3]["Put"]["Item"]
         self.assertEqual(feature["SK"], {"S": "FEATURE"})
         self.assertNotIn("accountId", feature)
         self.assertNotIn("sanitizedText", feature)
@@ -415,10 +437,20 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(fake_dynamo.transactions, [])
         self.assertEqual(fake_sqs.calls, [])
 
+    def test_every_pipeline_write_atomically_checks_contributor_tombstone(self):
+        self.publish()
+        self.assertTrue(fake_dynamo.transactions)
+        for transaction in fake_dynamo.transactions:
+            condition = transaction[0]["ConditionCheck"]
+            self.assertEqual(condition["TableName"], "campaign-pipeline")
+            self.assertEqual(condition["Key"]["SK"], {"S":"TOMBSTONE"})
+            self.assertTrue(condition["Key"]["PK"]["S"].startswith("CONTRIB#"))
+            self.assertIn("attribute_not_exists", condition["ConditionExpression"])
+
     def test_publisher_feature_record_satisfies_cluster_input_contract(self):
         self.publish()
         persisted = aggregator_service.deserialize(
-            fake_dynamo.transactions[0][2]["Put"]["Item"]
+            fake_dynamo.transactions[0][3]["Put"]["Item"]
         )
 
         validated = aggregator_service._validated_feature(
@@ -446,11 +478,11 @@ class ServiceTests(unittest.TestCase):
     def test_withdrawal_or_new_epoch_blocks_publication_before_side_effects(self):
         for participation in (
             {"state": {"S": "withdrawal_pending"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-             "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             {"state": {"S": "enrolled"}, "consentEpochId": {"S": "new-epoch"},
-             "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             {"state": {"S": "enrolled"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-             "environment": {"S": "prod"}, "noticeVersion": {"S": "2026-09-07"}},
+             "environment": {"S": "prod"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"}},
             None,
         ):
             with self.subTest(participation=participation):
@@ -463,7 +495,8 @@ class ServiceTests(unittest.TestCase):
                     "state": {"S": "enrolled"},
                     "consentEpochId": {"S": CONSENT_EPOCH_ID},
                     "environment": {"S": "dev"},
-                    "noticeVersion": {"S": "2026-09-07"},
+                    "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
                 }
 
     def test_withdrawal_is_checked_before_period_key_resolution(self):
@@ -513,15 +546,22 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(fake_dynamo.transactions, [])
         self.assertEqual(fake_sqs.calls, [])
 
-    def test_pending_delivery_retries_without_rederiving_identity_token(self):
+    def test_pending_delivery_rederives_token_to_fence_final_write(self):
         fake_dynamo.item = {"status": {"S": "PENDING"}}
 
+        raw=valid_item()
+        f={'PK':f'EVENT#{EVENT_ID}','SK':'FEATURE','periodId':service.contributor_period_id(raw['observedAtEpoch']),
+           'GSI1PK':f"CONTRIB#{service.contributor_period_id(raw['observedAtEpoch'])}#{base64.urlsafe_b64encode(b'x'*32).decode().rstrip('=')}",
+           'expiresAt':1_780_000_100+21*86400,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1'}
+        loc=locator_for_target(f,'dev')
+        fake_dynamo.persisted[(f['PK'],f['SK'])]=locator_wire(f)
+        fake_dynamo.persisted[(loc['PK'],loc['SK'])]=locator_wire(loc)
         result = self.publish()
 
         self.assertEqual(result, "published")
-        self.assertEqual(fake_kms.calls, [])
+        self.assertEqual(len(fake_kms.calls), 1)
         self.assertEqual(len(fake_dynamo.transactions), 1)
-        self.assertIn("Update", fake_dynamo.transactions[0][2])
+        self.assertIn("Update", fake_dynamo.transactions[0][3])
         self.assertEqual(len(fake_sqs.calls), 1)
         self.assertEqual(fake_dynamo.updates, [])
 
@@ -535,10 +575,10 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(len(fake_dynamo.transactions), 2)
         final_transaction = fake_dynamo.transactions[1]
         self.assertEqual(
-            final_transaction[1]["ConditionCheck"]["ConditionExpression"],
+            final_transaction[2]["ConditionCheck"]["ConditionExpression"],
             "attribute_not_exists(PK)",
         )
-        self.assertIn("Update", final_transaction[2])
+        self.assertIn("Update", final_transaction[3])
         self.assertEqual(fake_dynamo.updates, [])
 
     def test_period_is_fixed_fourteen_day_utc_bucket(self):
@@ -553,13 +593,14 @@ class HandlerTests(unittest.TestCase):
         fake_dynamo.item = {"status": {"S": "ENABLED"}, "keyArn": {"S": "arn:period-key"}}
         fake_dynamo.participation_item = {
             "state": {"S": "enrolled"}, "consentEpochId": {"S": CONSENT_EPOCH_ID},
-            "environment": {"S": "dev"}, "noticeVersion": {"S": "2026-09-07"},
+            "environment": {"S": "dev"}, "noticeVersion": {"S": "research-consent-2026-09-21-v2"},
+            "policyVersion": {"S": "independent-research-v1"},
         }
 
     def test_handler_uses_content_free_completion_log(self):
         with mock.patch.object(app, "publish_observation", return_value="published") as publish, \
              self.assertLogs(level="INFO") as captured:
-            result = app.lambda_handler(stream_event(), None)
+            result = app.lambda_handler(stream_event(), types.SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:test'))
 
         self.assertEqual(result, {"processed": 1, "results": {"published": 1}})
         self.assertEqual(publish.call_count, 1)
@@ -573,7 +614,7 @@ class HandlerTests(unittest.TestCase):
 
     def test_malformed_record_emits_only_content_free_metric(self):
         with self.assertRaises(contracts.ContractError):
-            app.lambda_handler(stream_event(valid_item(environment="prod")), None)
+            app.lambda_handler(stream_event(valid_item(environment="prod")), types.SimpleNamespace(invoked_function_arn='arn:aws:lambda:us-east-1:107827791950:function:test'))
 
         self.assertEqual(len(fake_cloudwatch.calls), 1)
         metric = fake_cloudwatch.calls[0]["MetricData"][0]

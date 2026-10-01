@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -12,6 +13,13 @@ for path in (SRC_DIR, MODULE_DIR):
 for name in ("service", "scoring"): sys.modules.pop(name, None)
 import scoring  # noqa: E402
 import service  # noqa: E402
+from shared_campaign_locators import locator_for_target,serialize as locator_wire
+from tests.campaign_period_fixtures import row as period_row,GENERATION
+os.environ.update(CAMPAIGN_PERIOD_ADMISSION_ENABLED='true',CAMPAIGN_PERIOD_ADMISSION_GENERATION=GENERATION,CAMPAIGN_PERIOD_ADMISSION_ACCOUNT_ID='107827791950',AWS_REGION='us-east-1')
+INVENTORY={'PK':'INVENTORY#dev','SK':'CAMPAIGN_LOCATORS','recordType':'CAMPAIGN_LOCATOR_INVENTORY','schemaVersion':1,
+'revision':1,'environment':'dev','coverage':'VERIFIED_COMPLETE','manifestSha256':'a'*64,'approvedAtEpoch':1,
+'locatorSchemaVersion':1,'minimumPeriodId':0,'priorPeriodsErased':True,'writers':['publisher','cluster','deletion_bridge','lifecycle']}
+
 
 EVENT_ID = "7fbce2ac-bd2e-4d2e-9ec6-1f895a482abc"
 
@@ -24,9 +32,11 @@ def feature(**updates):
         "schemaVersion": 1,
         "recordVersion": 1,
         "statisticsEventId": EVENT_ID,
+        "researchNoticeVersion": "research-consent-2026-09-21-v2",
+        "researchPolicyVersion": "independent-research-v1",
         "periodId": 1471,
-        "contributorToken": "token-a",
-        "GSI1PK": "CONTRIB#1471#token-a",
+        "contributorToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "GSI1PK": "CONTRIB#1471#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "GSI1SK": f"EVENT#{EVENT_ID}#FEATURE",
         "GSI3PK": "EXPIRY#dev",
         "GSI3SK": 2_000_000_000,
@@ -45,8 +55,8 @@ def feature(**updates):
 
 
 def candidate():
-    return {"PK": "CANDIDATE#c1", "SK": "SUMMARY", "candidateId": "c1", "periodId": 1471,
-            "taxonomyBucket": "advance_fee", "centroid": [1.0, 0.0],
+    return {"PK": "CANDIDATE#11111111-1111-4111-8111-111111111111", "SK": "SUMMARY", "candidateId": "11111111-1111-4111-8111-111111111111", "periodId": 1471,
+            "taxonomyBucket": "advance_fee", "metadataSchemaVersion":1, "researchNoticeVersion":"research-consent-2026-09-21-v2", "researchPolicyVersion":"independent-research-v1", "centroid": [1.0, 0.0],
             "lexicalFingerprint": ["0123456789abcdef", "fedcba9876543210"],
             "signalIds": ["payment_request"], "indicatorIds": [],
             "contributorCount": 9, "submissionCount": 9, "version": 2, "expiresAt": 2_000_000_000}
@@ -56,17 +66,27 @@ class Dynamo:
     def __init__(self, feature_item=None, candidates=None, contribution=None, dedupe=None):
         self.feature_item = service.serialize(feature_item) if feature_item else None
         self.candidates = candidates or []
-        self.contribution = contribution
+        self.contribution = (contribution | service.serialize({"metadataSchemaVersion":1,"lexicalFingerprint":["0123456789abcdef"],"signalIds":["payment_request"],"indicatorIds":["payment.crypto"]})) if contribution else None
         self.dedupe = dedupe
         self.transactions = []
         self.puts = []
         self.queries = []
 
     def get_item(self, Key, **_kwargs):
+        if Key["SK"]["S"]=="HMAC_KEY":return {"Item":locator_wire(period_row(int(Key["PK"]["S"].split("#")[1])))}
         pk, sk = Key["PK"]["S"], Key["SK"]["S"]
-        if sk == "FEATURE": item = self.feature_item
+        if sk == 'OBSERVATION_READY': item = service.serialize({'PK':pk,'SK':sk,'eventType':'campaign.observation.ready','statisticsEventId':EVENT_ID,'accountId':'a','environment':'dev','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','campaignConsentGranted':True,'noticeVersion':'research-consent-2026-09-21-v2','expiresAt':2000000000})
+        elif sk == 'CAMPAIGN_PARTICIPATION': item = service.serialize({'state':'enrolled','consentEpochId':'15c81ba4-2fa6-43c3-8895-889f08c931bf','environment':'dev','noticeVersion':'research-consent-2026-09-21-v2','policyVersion':'independent-research-v1'})
+        elif sk == 'ACCOUNT_DELETION': item = None
+        elif sk == 'CAMPAIGN_LOCATORS': item = locator_wire(INVENTORY)
+        elif sk.startswith('LOCATOR#EVENT#'): item = locator_wire(locator_for_target(service.deserialize(self.feature_item),'dev'))
+        elif sk.startswith('LOCATOR#CANDIDATE#'):
+            target = service.deserialize(self.contribution) | {'PK':sk.removeprefix('LOCATOR#'),'SK':'CONTRIB#'+'a'*43,'GSI1PK':'CONTRIB#1471#'+'a'*43,'periodId':1471}
+            item = locator_wire(locator_for_target(target,'dev'))
+        elif sk == "FEATURE": item = self.feature_item
         elif sk == "CLUSTERED": item = self.dedupe
-        elif sk.startswith("CONTRIB#"): item = self.contribution
+        elif sk.startswith("CONTRIB#"):
+            item = (self.contribution | service.serialize({'PK':pk,'SK':sk,'GSI1PK':'CONTRIB#1471#'+'a'*43,'periodId':1471,'researchNoticeVersion':'research-consent-2026-09-21-v2','researchPolicyVersion':'independent-research-v1'})) if self.contribution else None
         else:
             found = next((c for c in self.candidates if c["PK"] == pk and c["SK"] == sk), None)
             item = service.serialize(found) if found else None
@@ -114,7 +134,8 @@ class ClusterServiceTests(unittest.TestCase):
     def process(self, dynamo, message=None):
         return service.process_message(message or body(), environment="dev", schema_version=1,
             table_name="pipeline", retention_days=21, max_submissions=3, dynamodb=dynamo,
-            now_epoch=1_780_000_100)
+            users_table_name="users",deletion_ledger_table_name="ledger",outbox_table_name="outbox",
+            now_epoch=1_780_000_100,locator_manifest_sha256="a"*64,locator_inventory_revision=1)
 
     def test_matches_high_score_and_writes_one_contribution(self):
         dynamo = Dynamo(feature(), [candidate()])
@@ -123,29 +144,29 @@ class ClusterServiceTests(unittest.TestCase):
 
         transaction = dynamo.transactions[0]
         updated = service.deserialize(transaction[0]["Put"]["Item"])
-        self.assertEqual(updated["candidateId"], "c1")
+        self.assertEqual(updated["candidateId"], "11111111-1111-4111-8111-111111111111")
         self.assertEqual(updated["contributorCount"], 10)
         self.assertEqual(updated["submissionCount"], 10)
         self.assertEqual(updated["centroid"], [1.0, 0.0])
-        self.assertEqual(len(transaction), 3)
+        self.assertEqual(len(transaction), 11)
 
-        contribution = service.deserialize(transaction[1]["Put"]["Item"])
+        contribution = service.deserialize(transaction[2]["Put"]["Item"])
         self.assertEqual(contribution["languageId"], "en")
         self.assertEqual(contribution["signalIds"], ["payment_request"])
         self.assertEqual(contribution["indicatorIds"], ["payment.crypto"])
         self.assertEqual(contribution["GSI3PK"], "EXPIRY#dev")
         self.assertEqual(contribution["GSI3SK"], contribution["expiresAt"])
 
-    @mock.patch.object(service.uuid, "uuid4", return_value="new-candidate")
+    @mock.patch.object(service.uuid, "uuid4", return_value="22222222-2222-4222-8222-222222222222")
     def test_conflict_creates_separate_candidate(self, _uuid):
         dynamo = Dynamo(feature(taxonomyBucket="impersonation"), [candidate()])
 
         self.assertEqual(self.process(dynamo), "candidate-created")
         transaction = dynamo.transactions[0]
         created = service.deserialize(transaction[0]["Put"]["Item"])
-        self.assertEqual(created["candidateId"], "new-candidate")
-        self.assertEqual(len(transaction), 4)
-        creation_control = transaction[1]["Put"]
+        self.assertEqual(created["candidateId"], "22222222-2222-4222-8222-222222222222")
+        self.assertEqual(len(transaction), 12)
+        creation_control = transaction[2]["Put"]
         self.assertEqual(creation_control["Item"]["SK"], {"S": "CREATION_CONTROL"})
         self.assertIn("attribute_not_exists", creation_control["ConditionExpression"])
 
@@ -158,7 +179,7 @@ class ClusterServiceTests(unittest.TestCase):
 
         dynamo = ControlledDynamo(feature())
         self.assertEqual(self.process(dynamo), "candidate-created")
-        control = dynamo.transactions[0][1]["Update"]
+        control = dynamo.transactions[0][2]["Update"]
         self.assertEqual(control["ExpressionAttributeValues"][":version"], {"N": "4"})
         self.assertEqual(control["ExpressionAttributeValues"][":next_version"], {"N": "5"})
         self.assertEqual(control["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
@@ -170,7 +191,7 @@ class ClusterServiceTests(unittest.TestCase):
 
         self.assertEqual(self.process(dynamo), "counted-repeat")
 
-        update = dynamo.transactions[0][0]["Update"]
+        update = dynamo.transactions[0][1]["Update"]
         self.assertEqual(update["ExpressionAttributeValues"][":expiry"], {"N": "1780500000"})
         self.assertEqual(update["ExpressionAttributeValues"][":expiry_partition"], {"S": "EXPIRY#dev"})
 
@@ -180,8 +201,22 @@ class ClusterServiceTests(unittest.TestCase):
         })
 
         self.assertEqual(self.process(dynamo), "contributor-capped")
-        self.assertEqual(dynamo.transactions, [])
-        self.assertEqual(len(dynamo.puts), 1)
+        self.assertEqual(len(dynamo.transactions), 1)
+        self.assertIn("ConditionCheck", dynamo.transactions[0][0])
+        self.assertEqual(dynamo.puts, [])
+
+    def test_all_write_paths_include_atomic_tombstone_absence(self):
+        for existing in (None, {"submissionCount":{"N":"2"},"expiresAt":{"N":"1900000000"}},
+                         {"submissionCount":{"N":"3"},"expiresAt":{"N":"1900000000"}}):
+            dynamo = Dynamo(feature(), [candidate()], contribution=existing)
+            self.process(dynamo)
+            self.assertTrue(dynamo.transactions)
+            for transaction in dynamo.transactions:
+                conditions = [action["ConditionCheck"] for action in transaction if "ConditionCheck" in action and action["ConditionCheck"]["Key"]["SK"] == {"S":"TOMBSTONE"}]
+                self.assertEqual(len(conditions),1)
+                self.assertEqual(conditions[0]["Key"]["SK"], {"S":"TOMBSTONE"})
+                self.assertIn("attribute_not_exists",conditions[0]["ConditionExpression"])
+            self.assertFalse(dynamo.puts)
 
     def test_missing_suppressed_and_duplicate_are_noops(self):
         self.assertEqual(self.process(Dynamo()), "missing")

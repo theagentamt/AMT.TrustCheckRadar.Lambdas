@@ -1,0 +1,14 @@
+{
+  "history_bridge": {
+    "exactVersionDownloaded": true,
+    "bytesMatchLocal": true,
+    "sha256": "cf7d2859034887ff42e22326830e9bdf54665db2cfd918d97771c58185b6ceec",
+    "sizeBytes": 18340
+  },
+  "history_lifecycle": {
+    "exactVersionDownloaded": true,
+    "bytesMatchLocal": true,
+    "sha256": "3371e5b5ac973c0df295eff82bb61e4171a75f2891320065893f0537aa3dceaa",
+    "sizeBytes": 30262
+  }
+}

@@ -31,18 +31,21 @@ def lambda_handler(event, _context):
     if isinstance(event, dict) and isinstance(event.get("Records"), list):
         return _stream_handler(event)
     if event == {"schemaVersion": 1, "operation": "reconcile-session-revocation"}:
-        return _reconciliation_handler()
+        return _reconciliation_handler(_context)
     try:
         config.validate_config()
         route = _route_key(event)
         account_id = _subject(event)
+        config.require_http_subject(account_id)
         service = _service()
         if route == "POST /v1/users/account-deletion":
             _assert_recent_reauthentication(event)
             body = deletion_request(event)
             result = service.request(account_id, body["operationId"])
             _attempt_post_fence_cleanup(account_id)
-            result = service.status(account_id)
+            # Return the committed acceptance snapshot even if a durable worker
+            # finalizes identity concurrently. Do not turn an accepted request
+            # into a 401 by polling again after irreversible completion.
             _metric("request", True)
             return _response(202, result)
         if route == "GET /v1/users/account-deletion":
@@ -59,7 +62,7 @@ def lambda_handler(event, _context):
         app_error = AppError(err.code, err.message, retryable=err.retryable, details=err.details)
         return _response(app_error.status_code, _error(app_error))
     except Exception:
-        LOGGER.exception("Account-data Lambda failed")
+        LOGGER.error("Account-data Lambda failed")
         _metric(_operation(event), False)
         return _response(500, _error(AppError("INTERNAL_ERROR", "An internal error occurred.")))
 
@@ -74,6 +77,9 @@ def _service():
         dynamodb_client=boto3.client("dynamodb"),
         required_components=config.required_components(),
         erasure_sla_hours=config.ACCOUNT_DELETION_SLA_HOURS,
+        inventory_manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION,
+        campaign_recovery_writes_enabled=config.CAMPAIGN_RECOVERY_WRITES_ENABLED,
     )
 
 
@@ -84,6 +90,9 @@ def _attempt_post_fence_cleanup(account_id):
         ConsistentRead=True,
     ).get("Item")
     try:
+        lifecycle = _lifecycle(ledger)
+        if lifecycle.verify(command) is None:
+            return
         ensure_session_revoked(
             command, user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"), ledger_table=ledger,
@@ -144,12 +153,16 @@ def _attempt_post_fence_cleanup(account_id):
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
         )
+        lifecycle.entitlements(command)
         delete_user_profile_state(
             command,
             users_table=boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME),
             ledger_table=ledger,
             page_size=100,
             policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+            demographic_research_policy_status=(
+                config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
+            ),
             account_receipt_retention_days=(
                 config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
             ),
@@ -157,7 +170,7 @@ def _attempt_post_fence_cleanup(account_id):
     except Exception:
         # The durable stream consumer retries revocation. The deletion fence is
         # never rolled back because an external identity call failed.
-        LOGGER.exception("Account deletion accepted; post-fence cleanup remains pending")
+        LOGGER.error("Account deletion accepted; post-fence cleanup remains pending")
 
 
 def _stream_handler(event):
@@ -180,6 +193,9 @@ def _stream_handler(event):
         try:
             command = command_from_stream(record, environment=config.APP_ENVIRONMENT)
             if command:
+                lifecycle = _lifecycle(ledger)
+                if lifecycle.verify(command) is None:
+                    continue
                 ensure_session_revoked(
                     command, user_pool_id=config.COGNITO_USER_POOL_ID,
                     cognito=cognito, ledger_table=ledger,
@@ -232,26 +248,31 @@ def _stream_handler(event):
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
                 )
+                lifecycle.entitlements(command)
                 delete_user_profile_state(
                     command, users_table=users_table, ledger_table=ledger,
                     page_size=100,
                     policy_status=config.USER_PROFILE_DELETION_POLICY_STATUS,
+                    demographic_research_policy_status=(
+                        config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
+                    ),
                     account_receipt_retention_days=(
                         config.ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS
                     ),
                 )
+                lifecycle.finalize(command)
         except Exception:
-            LOGGER.exception("Account-deletion post-fence stream record failed")
+            LOGGER.error("Account-deletion post-fence stream record failed")
             identifier = (record.get("dynamodb") or {}).get("SequenceNumber")
             if isinstance(identifier, str) and identifier:
                 failures.append({"itemIdentifier": identifier})
             else:
-                raise
+                raise RuntimeError("Account deletion stream record failed") from None
     _metric("session-revocation", not failures)
     return {"batchItemFailures": failures}
 
 
-def _reconciliation_handler():
+def _reconciliation_handler(context=None):
     # Scheduler failures propagate so EventBridge/Lambda retry and alarm.
     try:
         config.validate_config()
@@ -267,9 +288,13 @@ def _reconciliation_handler():
             config.CAMPAIGN_OUTBOX_TABLE_NAME
         )
         users_table = boto3.resource("dynamodb").Table(config.USERS_TABLE_NAME)
+        lifecycle = _lifecycle(ledger)
         result = reconcile_session_revocations(
             environment=config.APP_ENVIRONMENT,
             ledger_table=ledger,
+            verify_command=lifecycle.verify,
+            delete_entitlements=lifecycle.entitlements,
+            finalize_account=lifecycle.finalize,
             device_table=device_table,
             recovery_table=recovery_table,
             abuse_table=abuse_table,
@@ -277,6 +302,8 @@ def _reconciliation_handler():
             users_table=users_table,
             user_pool_id=config.COGNITO_USER_POOL_ID,
             cognito=boto3.client("cognito-idp"),
+            remaining_millis=(context.get_remaining_time_in_millis
+                              if context is not None else lambda: 30000),
             scan_limit=config.ACCOUNT_DELETION_RECONCILIATION_SCAN_LIMIT,
             max_pages=config.ACCOUNT_DELETION_RECONCILIATION_MAX_PAGES,
             device_page_size=config.ACCOUNT_DELETION_DEVICE_DELETE_PAGE_SIZE,
@@ -292,6 +319,9 @@ def _reconciliation_handler():
             ),
             user_profile_deletion_policy_status=(
                 config.USER_PROFILE_DELETION_POLICY_STATUS
+            ),
+            demographic_research_deletion_policy_status=(
+                config.DEMOGRAPHIC_RESEARCH_DELETION_POLICY_STATUS
             ),
             analysis_request_retention_seconds=(
                 config.ANALYSIS_REQUEST_ID_TTL_SECONDS
@@ -311,7 +341,29 @@ def _reconciliation_handler():
         return {"schemaVersion": 1, "operation": "reconcile-session-revocation", **result}
     except Exception:
         _reconciliation_failure_metric()
-        raise
+        raise RuntimeError("Account deletion reconciliation failed") from None
+
+
+def _lifecycle(ledger):
+    from lifecycle import Lifecycle
+    from shared_purchase_ownership import OwnershipStore
+    from shared_account_finalization.service import Finalizer
+    resource = boto3.resource("dynamodb")
+    client = boto3.client("dynamodb")
+    now = lambda: int(time.time())
+    ownership = OwnershipStore(table=resource.Table(config.ENTITLEMENTS_TABLE_NAME),
+        ledger=ledger, users_table_name=config.USERS_TABLE_NAME,
+        table_name=config.ENTITLEMENTS_TABLE_NAME, ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+        client=client, environment=config.APP_ENVIRONMENT, now=now)
+    finalizer = Finalizer(ledger_table=ledger,ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+        client=client,cognito=boto3.client("cognito-idp"),user_pool_id=config.COGNITO_USER_POOL_ID,
+        environment=config.APP_ENVIRONMENT,now=now,enabled=config.ACCOUNT_IDENTITY_FINALIZER_ENABLED,
+        manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION)
+    return Lifecycle(ledger=ledger,ledger_name=config.DELETION_LEDGER_TABLE_NAME,client=client,
+        ownership=ownership,finalizer=finalizer,environment=config.APP_ENVIRONMENT,
+        manifest_sha256=config.ACCOUNT_DATA_INVENTORY_MANIFEST_SHA256,
+        inventory_revision=config.ACCOUNT_DATA_INVENTORY_REVISION,now=now)
 
 
 def _subject(event):
@@ -379,6 +431,8 @@ def _reconciliation_metric(result):
         "SessionRevocationReconciliationSuccess": 1,
         "SessionRevocationReconciliationScanned": result["scanned"],
         "SessionRevocationReconciliationMatched": result["matched"],
+        "AccountDeletionReconciliationCommandFailures": result["commandFailures"],
+        "AccountDeletionReconciliationPassFailures": int(result["passHadFailures"]),
         "SessionRevocationReconciliationRevoked": result["revoked"],
         "SessionRevocationReconciliationAlreadyComplete": result["sessionAlreadyComplete"],
         "AccountDeletionDeviceRecordsDeleted": result["deviceRecordsDeleted"],

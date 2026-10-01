@@ -5,11 +5,21 @@ from pathlib import Path
 from jsonschema import Draft202012Validator, FormatChecker
 import json
 import re
+import importlib.util
+from copy import deepcopy
 import time
 from shared_check_authority.core import AuthorityError, TrustedWorkerContext
 from shared_check_authority.recovery import Recovery
 
 VERSION='1.0.0-candidate.1'
+FRESH_VERSION='1.0.0-candidate.2'
+
+def fresh_mapper():
+    path=Path(__file__).parent/'public_contract_v2'/'reference_mapping.py'
+    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/url-assessment/0.3.0-candidate.1/reference_mapping.py'
+    spec=importlib.util.spec_from_file_location('fresh_url_mapping',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module
 ROUTES={'POST /v1/url-checks/prepare','POST /v1/url-checks','POST /v1/url-checks/reconcile'}
 
 
@@ -22,8 +32,9 @@ def plain(value):
     return value
 
 def validate_envelope(body):
-    path=Path(__file__).parent/'transport_contract'/'response.schema.json'
-    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/url-consumer/1.0.0-candidate.1/response.schema.json'
+    modern=body.get('transportVersion')==FRESH_VERSION
+    path=Path(__file__).parent/('transport_contract_v2' if modern else 'transport_contract')/'response.schema.json'
+    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/url-consumer'/('1.0.0-candidate.2' if modern else '1.0.0-candidate.1')/'response.schema.json'
     Draft202012Validator(json.loads(path.read_text()),format_checker=FormatChecker()).validate(body)
     outcome=body.get('outcome')
     if outcome is not None and (outcome['checkId']!=body['checkId'] or outcome['access']!=body['access'] or outcome['accounting']!=body['accounting']):raise ValueError('OUTCOME_IDENTITY_MISMATCH')
@@ -47,6 +58,7 @@ def unique_pairs(pairs):
 class Consumer:
     def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic):
         self.a,self.mapper,self.provider,self.refresh,self.clock=authority,mapper,provider,refresh,clock
+        self.legacy_mapper=mapper;self.version=VERSION
 
     def access(self,event):
         observed=timestamp(self.a.now())
@@ -79,16 +91,22 @@ class Consumer:
             charged=int(row['chargedChecks'])
             accounting.update(state='charged' if charged else 'not_charged',chargedChecks=charged,receiptId=row['receiptId'])
         if row and row.get('resultSummary'):
-            outcome=self.mapper.map_private(plain(row['resultSummary']),expected_check_id=client,request_scope=row['projectionScope'],
-                    assessed_at=timestamp(int(row['assessmentEpoch'])),access=access,accounting=accounting,same_check_replay_authorized=False)
+            summary=plain(row['resultSummary'])
+            if row.get('urlTransportVersion',VERSION)!=self.version:raise AuthorityError('CHECK_ID_CONFLICT')
+            if self.version==VERSION and summary.get('verdict')=='high_risk':
+                summary=deepcopy(summary);summary.update(verdict='unknown',processingOutcome='unavailable',coverage='not_assessed',reasonCodes=['PROVIDER_RESPONSE_INVALID'],threatTypes=[])
+            extra={'now':self.a.freshness_now()} if self.version==FRESH_VERSION else {}
+            outcome=self.mapper.map_private(summary,expected_check_id=client,request_scope=row['projectionScope'],
+                    assessed_at=timestamp(int(row['assessmentEpoch'])),access=access,accounting=accounting,same_check_replay_authorized=False,**extra)
         if row and row.get('state')=='SETTLED' and not row.get('resultSummary') and error is None:
             error='SERVICE_UNAVAILABLE'
-        return validate_envelope({'transportVersion':VERSION,'checkId':client,'operationProof':proof,'state':state,'access':access,'accounting':accounting,
+        return validate_envelope({'transportVersion':self.version,'checkId':client,'operationProof':proof,'state':state,'access':access,'accounting':accounting,
                 'outcome':outcome,'errorCode':error,'retryAfterSeconds':self.a.s.attempt_window_seconds if error=='RATE_LIMITED' else (2 if state=='pending' else None),
                 'expiresAt':int(row['expiresAt']) if row and row.get('expiresAt') is not None else None})
 
     def handle(self,event):
         started=self.clock();client=proof=None;admission_uncertain=False
+        self.version=VERSION;self.mapper=self.legacy_mapper
         try:
             if not isinstance(event,dict) or event.get('version')!='2.0' or event.get('routeKey') not in ROUTES or event.get('requestContext',{}).get('http',{}).get('method')!='POST' or event.get('isBase64Encoded') is True or event.get('rawQueryString') or event.get('queryStringParameters'):
                 raise AuthorityError('INPUT_REJECTED')
@@ -98,23 +116,28 @@ class Consumer:
             if not isinstance(raw,str) or len(raw.encode('utf-8'))>8192:raise AuthorityError('INPUT_REJECTED')
             try:body=json.loads(raw,object_pairs_hook=unique_pairs)
             except (ValueError,TypeError):raise AuthorityError('INPUT_REJECTED') from None
-            if not isinstance(body,dict) or body.get('transportVersion')!=VERSION:raise AuthorityError('CONTRACT_UNSUPPORTED')
+            if not isinstance(body,dict) or body.get('transportVersion') not in (VERSION,FRESH_VERSION):raise AuthorityError('CONTRACT_UNSUPPORTED')
+            self.version=body['transportVersion'];self.mapper=fresh_mapper() if self.version==FRESH_VERSION else self.legacy_mapper
             client=body.get('checkId');proof=body.get('operationProof')
             if not isinstance(client,str) or not re.fullmatch('[A-Za-z0-9_-]{1,64}',client):raise AuthorityError('INPUT_REJECTED')
             if route.endswith('/reconcile'):
                 if set(body)!={'transportVersion','checkId','operationProof'}:raise AuthorityError('INPUT_REJECTED')
-                row=self.a.reconcile(event,proof)
+                row=self.a.reconcile(event,proof,client_check_id=client,expected_scope='url',expected_url_version=self.version)
                 if row.get('clientCheckId') not in (None,client):raise AuthorityError('CHECK_ID_CONFLICT')
                 if row['state']=='ADMITTED':
                     try:row=self.a.recover_expired(event,proof)
                     except AuthorityError as error:
                         if error.code!='OPERATION_PENDING':raise
+                if row['state']=='NOT_STARTED':
+                    return 200,self.envelope(event,client,proof,'rejected',row=row,error='OPERATION_EXPIRED')
                 state={'ADMITTED':'pending','SETTLED':'settled','UNKNOWN':'unknown'}[row['state']]
                 return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row)
+            if self.version==VERSION:raise AuthorityError('CONTRACT_UNSUPPORTED')
             request={k:v for k,v in body.items() if k not in ('transportVersion','operationProof')}
             try:self.mapper.validate('request.schema.json',request)
             except Exception:raise AuthorityError('INPUT_REJECTED') from None
             intent={k:request[k] for k in ('entryPoint','language','target')}
+            if self.version==FRESH_VERSION:intent['urlTransportVersion']=FRESH_VERSION
             self.refresh(event)
             if route.endswith('/prepare'):
                 if proof is not None or 'operationProof' in body:raise AuthorityError('INPUT_REJECTED')
@@ -138,7 +161,16 @@ class Consumer:
             outcome='failed'
             if self.mapper.supported_private(result,client,intent['target']['scope']):outcome=result['processingOutcome']
             else:result=None
-            row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],outcome,result_summary=result)
+            if result is not None and result.get('verdict')=='high_risk':
+                from shared_lookup_freshness import current
+                if result.get('schemaVersion')!=2 or not current(result['lookupObservedAt'],result['lookupValidUntil'],self.a.freshness_now()):
+                    result=None;outcome='failed'
+            try:row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],outcome,result_summary=result)
+            except AuthorityError as error:
+                if error.code!='PROVIDER_EVIDENCE_EXPIRED':raise
+                # No provider retry: release this original reservation without charging.
+                row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],'failed',result_summary=None)
+                result=None
             return 200,self.envelope(event,client,proof,'settled',row=row,error='SERVICE_UNAVAILABLE' if result is None else None)
         except AuthorityError as error:
             allowed={'AUTHENTICATION_REQUIRED','ACCOUNT_UNAVAILABLE','ACTIVE_DEVICE_REQUIRED','EXTERNAL_ACCESS_UNAVAILABLE','ALLOWANCE_EXHAUSTED','INPUT_REJECTED','CHECK_ID_CONFLICT','OPERATION_EXPIRED','RATE_LIMITED','OPERATION_PENDING','CONTRACT_UNSUPPORTED'}

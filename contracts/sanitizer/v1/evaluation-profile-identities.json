@@ -1,0 +1,13 @@
+{
+  "reason": "additive_residual_ipv6_privacy_guard",
+  "baselineSourceCommit": "1afa71dd3291a58cb1ca0de3f9a45456e85cc98b",
+  "promptSha256": "a2593d45e096b7bc257662ceda066e69abce1bbebf51f8ad2012ea4cfeb6d63f",
+  "schemaSha256": "fbe75bac1c21b9b9bffe6159587f59ec55a2bbc19932763ff02c56bc23dedd45",
+  "controlledProfiles": {
+    "gpt-4.1-mini-2025-04-14": "5388372f8d67d8032779308e0ef8585e4d5011eb1720031431225e375df160e3",
+    "gpt-5.4-nano-2026-03-17": "6f39689d06637871e135fddf934e74d89306453774a488ec191205594728abca",
+    "gpt-5.4-mini-2026-03-17": "9aab2065364c3d570ff1c216659259ee887f9720833a3d638b7a5d51b8133c29"
+  },
+  "qualification": "none",
+  "paidExecutionAuthorized": false
+}

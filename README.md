@@ -14,36 +14,49 @@ this repository owns function code, tests, and immutable deployment packages.
 | `campaign_lifecycle.zip` | EventBridge Scheduler | Finalizes thresholded periods and creates/retires period HMAC keys. |
 | `campaign_observation_publisher.zip` | Campaign outbox DynamoDB stream | Revalidates app-provided features, pseudonymizes the contributor, and enqueues opaque clustering work. |
 | `campaign_participation.zip` | `GET`/`PUT /v1/users/campaign-participation` | Manages optional server-authoritative participation, quota, receipts, and withdrawal commands. |
+| `demographic_research.zip` | `GET`/`PUT /v1/users/demographic-research-profile` | Default-disabled optional age-band/state research profile with independent consent, export, correction, withdrawal, and deletion controls. |
 | `campaign_review.zip` | Internal campaign transition API | Enforces reviewer authorization and audited publication state changes. |
 | `campaign_trends.zip` | `GET /v1/scam-trends` | Returns localized, privacy-thresholded published campaign summaries. |
-| `conversation_analysis.zip` | `POST /analysis` | Analyzes sanitized conversation text with device, abuse, and entitlement controls. |
+| `conversation_analysis.zip` | Retired `POST /analysis` | Replays owned historical results only; it cannot start a new analysis or provider request. |
 | `device_registration.zip` | `POST /device-registration` | Creates and updates account-to-device bindings. |
-| `device_recovery.zip` | `POST /device-recovery` | Performs the optional protected device-recovery flow. |
-| `entitlement_snapshot.zip` | `GET /entitlements/snapshot` | Returns the current subscription and scan-usage view. |
+| `device_recovery.zip` | `POST /device-recovery`; disabled candidate `POST /v1/users/device-recovery` | Performs the IAM operator flow and separately gated consumer recovery. |
+| `device-recovery-contracts-1.0.0.zip` | Versioned contract artifact | Publishes the disabled consumer-recovery request, original-operation response, error, receipt, and fixture contract. |
+| `entitlement_snapshot.zip` | Retired `GET /entitlements/snapshot` | Returns `LEGACY_MIGRATION_REQUIRED`; it cannot create or normalize access. |
 | `history_lifecycle.zip` | EventBridge Scheduler | Expires History records and processes durable erasure/completion control jobs. |
 | `history_mutation_api.zip` | History delete/clear/reset routes | Applies idempotent History and recognition lifecycle mutations. |
 | `history_read_api.zip` | History/progress read routes | Returns authenticated, device-bound History and recognition progress. |
 | `history_account_deletion_bridge.zip` | Account-deletion ledger stream + reconciliation schedule | Fences History and durably recovers missed account-deletion events. |
 | `history-contracts-1.0.0.zip` | Versioned contract artifact | Publishes exact History routes, limits, errors, badges, and EN/ES localization keys. |
-| `purchase_handoff.zip` | `POST /purchase-handoff` | Verifies Google Play purchases and updates entitlement state. |
+| `purchase_handoff.zip` | Retired `POST /purchase-handoff` | Preserves a fail-closed legacy boundary; it cannot grant access. |
+| `v1_entitlements.zip` | `GET /v1/access`; `POST /v1/access/trial` | Returns the modern authority snapshot and handles explicitly gated trial activation. |
+| `v1_play_handoff.zip` | `POST /v1/purchases/google-play/prepare`; `POST /v1/purchases/google-play/verify` | Verifies Google Play test purchases and atomically connects funded periods to the modern authority. |
+| `play_lifecycle_ingress.zip` | Authenticated Google Pub/Sub push | Requests authoritative refresh after a Play lifecycle notification. |
+| `play_lifecycle_worker.zip` | EventBridge schedule | Reconciles retained Play proof and pending acknowledgments. |
+| `play_token_deletion.zip` | Account-deletion ledger stream + reconciliation schedule | Erases retained Play tokens and completes the matching deletion component. |
 | `url_redirect_resolver.zip` | Private IAM invocation | Observes bounded public HTTP redirects; no reputation verdict. See [contract](docs/url-redirect-resolver.md). |
-| `web_risk_communication.zip` | `POST /web-risk-communication` | Evaluates the optional URL-risk flow. |
+| `web_risk_communication.zip` | Retired `POST /web-risk-communication` | Returns `410 LEGACY_ENDPOINT_RETIRED`; it does not parse a URL or contact Google. |
 | `post_confirmation.zip` | Cognito PostConfirmation | Creates the initial user profile. |
 
-Handlers use `app.lambda_handler`. The URL redirect resolver targets Python 3.14; other functions retain Python 3.13. Runtime rollout is owned by infrastructure. Optional functions
-and campaign workers are packaged with the required release set, but Terraform
-decides whether to deploy them.
+Handlers use `app.lambda_handler`. Runtime and architecture are selected per
+artifact by the packager and infrastructure. The modern Google Play functions
+target Python 3.14/ARM64. Runtime rollout is owned by infrastructure. Optional
+functions and campaign workers are packaged with the required release set, but
+Terraform decides whether to deploy them.
 
 ## Local development
 
 Prerequisites:
 
-- Python 3.13 or newer for local tests
+- Python 3.14 for current release-package and local acceptance checks
 - `pytest`
 - `shellcheck` for shell validation
 - AWS CLI only when publishing artifacts
 
-Run the quality checks:
+GitHub CI runs automatically only after a push or merge to `main`. Feature and
+`release-V01` work require appropriate local validation recorded in the PR; no
+pre-main GitHub run is required. See [CI and publishing policy](docs/GITHUB_PUBLISHING.md).
+
+Run the quality checks locally:
 
 ```bash
 make check
@@ -63,14 +76,15 @@ make package
 ```
 
 Artifacts are written to `dist/`. The packager uses sorted paths and normalized ZIP
-metadata so identical inputs produce identical archives. Full builds include 20
-Lambda packages plus the immutable `campaign-contracts-1.0.0.zip` and
-`history-contracts-1.0.0.zip` handoffs.
+metadata so identical inputs produce identical archives. Full builds include 28
+Lambda packages plus the immutable `campaign-contracts-1.0.0.zip`,
+`history-contracts-1.0.0.zip`, and
+`device-recovery-contracts-1.0.0.zip` handoffs.
 
 Build one function or target x86_64 explicitly:
 
 ```bash
-./scripts/build_lambda_zip.sh --function purchase_handoff
+./scripts/build_lambda_zip.sh --function v1_play_handoff
 ./scripts/build_lambda_zip.sh --all --arch x86_64
 ```
 
@@ -110,3 +124,6 @@ variables, AWS role contract, and promotion flow.
 
 The `events/` directory contains sanitized examples for handler debugging. It does
 not contain credentials or production identifiers.
+
+The current Lambda source, provider and retention boundary for ATCR-95 is recorded
+in the [30 September 2026 backend/provider attestation](docs/backend-provider-attestation-2026-09-30.md).

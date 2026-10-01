@@ -4,6 +4,7 @@ import os
 import boto3
 
 import config
+from shared_campaign_locators import period as period_fence
 from contracts import ContractError, parse_stream_record
 from service import publish_observation
 
@@ -18,6 +19,7 @@ cloudwatch_client = boto3.client("cloudwatch")
 
 
 def lambda_handler(event, _context):
+    period_fence.runtime(_context)
     config.validate_config()
     records = event.get("Records") if isinstance(event, dict) else None
     if not isinstance(records, list):
@@ -47,6 +49,9 @@ def lambda_handler(event, _context):
             dynamodb_client=dynamodb_client,
             kms_client=kms_client,
             sqs_client=sqs_client,
+            locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+            locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION,
+            remaining_ms=getattr(_context,"get_remaining_time_in_millis",lambda:30000),
         )
         results[result] = results.get(result, 0) + 1
         _metric(result)

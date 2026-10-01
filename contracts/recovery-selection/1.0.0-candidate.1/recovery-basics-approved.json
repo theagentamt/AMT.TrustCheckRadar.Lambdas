@@ -1,0 +1,46 @@
+{
+  "bundleVersion": "recovery-basics-1.0",
+  "approval": "Approved",
+  "approvedOn": "2026-09-20",
+  "approvalTimezone": "America/Chicago",
+  "approvalRecordedAtUtc": "2026-09-21T02:19:43Z",
+  "ownerInstruction": "this is perfect, please continue",
+  "sourceReview": "SECUR4ALL-163 comment 7-1189; exact /tmp/amt-atcr120-recovery-approval.md draft",
+  "sourceDraftSha256": "ce40bd3e6b0529cef759da34a4a1d511fd3358b87b69edf5b02ca9e75d287f22",
+  "reviewDueAfterDays": 180,
+  "content": {
+    "en": {
+      "recovery_intro_title": "Post-scam help",
+      "recovery_intro_body": "You can use these built-in steps without a paid subscription or remaining checks. An account is required. AMT cannot guarantee recovery or provide live recovery support. Do not enter passwords, verification codes, or financial account numbers here.",
+      "recovery_link_title": "Opened a suspicious link",
+      "recovery_link_body": "Stop using the suspicious page. Contact the claimed organization through its known app or website. If you downloaded something suspicious, follow the device steps below. Opening a link alone does not establish whether your device or accounts were compromised.",
+      "recovery_password_title": "Shared a password or verification code",
+      "recovery_password_body": "Open the service's known app or website. Change the affected password and any reused passwords, and turn on multifactor authentication. If you cannot sign in, use that service's account-recovery process. A shared verification code may allow account access; changing a password alone does not establish that access has ended.",
+      "recovery_identity_title": "Shared financial or identity information",
+      "recovery_identity_body": "Contact your bank or card issuer through its official app or the number on your card. For exposed identity information, visit IdentityTheft.gov for steps specific to your situation.",
+      "recovery_payment_title": "Sent money, gift cards, or cryptocurrency",
+      "recovery_payment_body": "Immediately contact the bank, payment service, gift-card issuer, or cryptocurrency exchange/operator you used. Report the scam and ask whether the payment can be reversed. Keep receipts. Recovery is not guaranteed.",
+      "recovery_device_title": "Installed software or gave device access",
+      "recovery_device_body": "Follow your device manufacturer's security guidance. Update security software, scan for threats, and remove detected problems. Use trusted manufacturer support if you need help. AMT cannot verify that the device is clean.",
+      "recovery_official_title": "More official help",
+      "recovery_official_body": "Read the FTC's recovery guidance or report the scam to the FTC. These destinations open only when you choose them; AMT does not submit a report for you."
+    },
+    "es": {
+      "recovery_intro_title": "Ayuda después de una estafa",
+      "recovery_intro_body": "Puede usar estos pasos incluidos sin una suscripción de pago ni verificaciones disponibles. Se requiere una cuenta. AMT no garantiza la recuperación ni ofrece asistencia de recuperación en vivo. No introduzca aquí contraseñas, códigos de verificación ni números de cuentas financieras.",
+      "recovery_link_title": "Abrió un enlace sospechoso",
+      "recovery_link_body": "Deje de usar la página sospechosa. Contacte a la organización mediante su aplicación o sitio web conocido. Si descargó algo sospechoso, siga los pasos para el dispositivo que aparecen abajo. Abrir un enlace por sí solo no permite determinar si sus cuentas o dispositivo están comprometidos.",
+      "recovery_password_title": "Compartió una contraseña o un código de verificación",
+      "recovery_password_body": "Abra la aplicación o el sitio web conocido del servicio. Cambie la contraseña afectada y las contraseñas reutilizadas; active la autenticación multifactor. Si no puede iniciar sesión, use el proceso de recuperación del servicio. Un código compartido puede permitir el acceso a su cuenta; cambiar la contraseña por sí solo no confirma que ese acceso haya terminado.",
+      "recovery_identity_title": "Compartió información financiera o de identidad",
+      "recovery_identity_body": "Contacte a su banco o emisor de tarjeta mediante su aplicación oficial o el número de su tarjeta. Para información de identidad expuesta, visite RobodeIdentidad.gov y consulte los pasos para su situación.",
+      "recovery_payment_title": "Envió dinero, tarjetas de regalo o criptomonedas",
+      "recovery_payment_body": "Contacte de inmediato al banco, servicio de pagos, emisor de tarjeta de regalo o proveedor de criptomonedas que utilizó. Informe la estafa y pregunte si pueden revertir el pago. Guarde los recibos. No se garantiza recuperar el dinero.",
+      "recovery_device_title": "Instaló programas o dio acceso al dispositivo",
+      "recovery_device_body": "Siga las indicaciones de seguridad del fabricante. Actualice el programa de seguridad, busque amenazas y elimine los problemas detectados. Si necesita ayuda, recurra al soporte de confianza del fabricante. AMT no puede verificar que el dispositivo esté libre de amenazas.",
+      "recovery_official_title": "Más ayuda oficial",
+      "recovery_official_body": "Consulte la guía de recuperación de la FTC o denuncie la estafa ante la FTC. Los destinos se abren solo cuando usted los elige; AMT no presenta una denuncia por usted."
+    }
+  },
+  "approvalRecord": "SECUR4ALL-163 comment 7-1198; ATCR-120 comment 7-1197; SECUR4ALL-234 comment 7-1199"
+}

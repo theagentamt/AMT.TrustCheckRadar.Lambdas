@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "authorship": "AI-assisted engineering preparation at owner request; no external dataset or customer submission used",
+  "createdOn": "2026-09-21",
+  "humanReviewOccurred": false,
+  "existingExampleSource": {
+    "repository": "AMT.TrustCheckRadar.Lambdas",
+    "commit": "6c855c1e8c400c089a51a76648a416e084442bdf",
+    "path": "src/message_evaluator/policy.py"
+  },
+  "records": [
+    {
+      "caseId": "dev-001-en",
+      "familyId": "group-001",
+      "language": "en",
+      "textSha256": "8a8c6f008b50cb4d4f75184809cf4986615c024f74f8480c72def4a3ea7ca7dc",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-001-es",
+      "familyId": "group-001",
+      "language": "es",
+      "textSha256": "7a9c35a29fb696c6fc6db334f2691b9dcb791a46291c92d2769266e69dd8b44a",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-002-en",
+      "familyId": "group-002",
+      "language": "en",
+      "textSha256": "1803b92f2c3116be66014de7ab98e9dfc6bc4c964aff39e57aefae2bec25eac2",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-002-es",
+      "familyId": "group-002",
+      "language": "es",
+      "textSha256": "e59c53255216bd2ebfb49b2434558e9e0212943cadfc246450c716742fbee154",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-003-en",
+      "familyId": "group-003",
+      "language": "en",
+      "textSha256": "4b4be109100ab4c0e2f906c256b1fdd5770918e2118c584fcda93cfb1bbc9022",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-003-es",
+      "familyId": "group-003",
+      "language": "es",
+      "textSha256": "cf59baf2e70ac98b08aa0fa2f61d2a2bc09a95d1b11a26baf23b99a9ffca57db",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-004-en",
+      "familyId": "group-004",
+      "language": "en",
+      "textSha256": "4b53e61a4d54ee532f36418d758c962c1dc1650dab404bf8fa9a13e124a98c20",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-004-es",
+      "familyId": "group-004",
+      "language": "es",
+      "textSha256": "5b36d34f077e65fe0f89c5ac62787b909000d9a9139e588a70e43d0c2de2435b",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-005-en",
+      "familyId": "group-005",
+      "language": "en",
+      "textSha256": "4b84dfc103cb536e285ff03ef841decff1b56290f030a81f9adaaa46b2f4cb7b",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-005-es",
+      "familyId": "group-005",
+      "language": "es",
+      "textSha256": "12ef5416580ea15ec4f9dbe4e15d67c7a5198b3338a4443903d20ad3c35fe454",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-006-en",
+      "familyId": "group-006",
+      "language": "en",
+      "textSha256": "265d9283f3e50784e4be79780781ac56c0a4910de7a455433f7fd2a9b73c7815",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    },
+    {
+      "caseId": "dev-006-es",
+      "familyId": "group-006",
+      "language": "es",
+      "textSha256": "77d280ecab1138b33b6444c8a00d695cb22fe69f69821424342c37d050873211",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    },
+    {
+      "caseId": "dev-007-en",
+      "familyId": "group-007",
+      "language": "en",
+      "textSha256": "1d28c405ba2c6fcb9df6628badd09c23bf178a441992b5602a46cfddb9bcdd20",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-007-es",
+      "familyId": "group-007",
+      "language": "es",
+      "textSha256": "9c13068674e5c0f218103f00970410a3d11418cf04a4250ea53239b2c5b82acc",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-008-en",
+      "familyId": "group-008",
+      "language": "en",
+      "textSha256": "96e818908964def805aa1c940cd26f5230c2e79bc2b46f2b45ae6131ef08df7a",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    },
+    {
+      "caseId": "dev-008-es",
+      "familyId": "group-008",
+      "language": "es",
+      "textSha256": "616c12d3b0d5d283fd9c25f9d60b0ebb87697f2359b249abf4f1b0b11b7ce2e4",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    },
+    {
+      "caseId": "dev-009-en",
+      "familyId": "group-009",
+      "language": "en",
+      "textSha256": "4c2c3cb492d7b77e8358842d8011100b960c70a0df4fa52f0a4ac2d91ffb57ac",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-009-es",
+      "familyId": "group-009",
+      "language": "es",
+      "textSha256": "acb77ac38879c88e0f772bfe52ad6f99dbaaf82987df2aa61e284fb329f2467b",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-010-en",
+      "familyId": "group-010",
+      "language": "en",
+      "textSha256": "68320da6f2efb6e4c25588f2697f4b968ecf05c6b434e026ceae7e930b7d65f5",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-010-es",
+      "familyId": "group-010",
+      "language": "es",
+      "textSha256": "85503e9298bf29429d17611b67f8c56ac52d8a248335598b6a4d01175168593d",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-011-en",
+      "familyId": "group-011",
+      "language": "en",
+      "textSha256": "a40884bc2dba646498a0b4b51f3e29d39a63ac0a4deb6981a319271b25b5480b",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-011-es",
+      "familyId": "group-011",
+      "language": "es",
+      "textSha256": "fbcca1310a490850c91b3cd7dee17d37037496206186014f9e9140c2dd23863e",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-012-en",
+      "familyId": "group-012",
+      "language": "en",
+      "textSha256": "19ada1f6fbca8b9f30e0516197bcc6243a9824ab37877b360e56d6396ec0d7d3",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-012-es",
+      "familyId": "group-012",
+      "language": "es",
+      "textSha256": "de24b3f5384f8b16b323bdfa58efb5ed309495b2a0ebc1f3a951fb895f16c218",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-013-en",
+      "familyId": "group-013",
+      "language": "en",
+      "textSha256": "120c4edd81e3a29581775dffe6521d9d6a84c5c641c41b6ed34c030f910645e0",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-013-es",
+      "familyId": "group-013",
+      "language": "es",
+      "textSha256": "151cab74c1731df32c2c312b9b18a1b349b7ca16c9245d27f1ed313e6d04dbd2",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-014-en",
+      "familyId": "group-014",
+      "language": "en",
+      "textSha256": "17a7953fc089975264e24dd8f812a98e2c1ae250739d57ea55cb5edb0910d899",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-014-es",
+      "familyId": "group-014",
+      "language": "es",
+      "textSha256": "e45962966b122b980d395c888b8d733491562593d20f1657de1b376dd9a15ebe",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-015-en",
+      "familyId": "group-015",
+      "language": "en",
+      "textSha256": "933971722500efb9fe06bcedd809389558a0e7a6ce7b9202640162dacaa3e754",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-015-es",
+      "familyId": "group-015",
+      "language": "es",
+      "textSha256": "506774d6f65a785f5a1b3cc105227e253bc6f3d59c61a3308d154a7ec09220e5",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-016-en",
+      "familyId": "group-016",
+      "language": "en",
+      "textSha256": "1143d2da0fd5c2d9b2aef84ca35ffeb282a9bee1a7356ecb03dbf18d38e3b62f",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-016-es",
+      "familyId": "group-016",
+      "language": "es",
+      "textSha256": "22f5bec4eda3acd11a906ec543b2e3dab670c08b47ed3d0903af10474fe2b596",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-017-en",
+      "familyId": "group-017",
+      "language": "en",
+      "textSha256": "b7c1ee0d1c099c305611ccaf109a65a38ca793b091aa6ba8559412a9da604588",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-017-es",
+      "familyId": "group-017",
+      "language": "es",
+      "textSha256": "e49b7e97ac86e5e08fd20374e754e1dea37f6e8202ff966b0bb25031e6fdde64",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-018-en",
+      "familyId": "group-018",
+      "language": "en",
+      "textSha256": "4c92e4a51b79c4e0a5495779faa9d50adef3381f769eb19507aa3bf660408583",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-018-es",
+      "familyId": "group-018",
+      "language": "es",
+      "textSha256": "7919fbc01400dc9e5f0dff33d028b7109be4e0e651f203f64c776bae7bd5b9ef",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-019-en",
+      "familyId": "group-019",
+      "language": "en",
+      "textSha256": "bfed533b6f88254a11f669eeefea2a6c41fdefa2b936007d91e152f351ae707f",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-019-es",
+      "familyId": "group-019",
+      "language": "es",
+      "textSha256": "b0e46ebb87da1000b427da2881edde6f92744131db084aa4de62e19d78507311",
+      "origin": "new_assistant_authored_synthetic_example"
+    },
+    {
+      "caseId": "dev-020-en",
+      "familyId": "group-020",
+      "language": "en",
+      "textSha256": "fc451fcb47a8dafd161ccfc1760cd92b38bd411d040dee9bd971f59db7f5b4ec",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    },
+    {
+      "caseId": "dev-020-es",
+      "familyId": "group-020",
+      "language": "es",
+      "textSha256": "87e8a6cad4624676d442ea76bb72341ce64b981bbe884995952df58632d92d68",
+      "origin": "existing_owner_repository_qualified_synthetic_example"
+    }
+  ]
+}

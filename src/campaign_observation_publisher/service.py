@@ -6,8 +6,12 @@ import time
 
 from botocore.exceptions import ClientError
 
+from shared_research_consent import CURRENT_NOTICE, CURRENT_POLICY, authorized, condition_checks
+from shared_campaign_locators import period as period_fence
 from contracts import build_cluster_envelope
 from shared_campaign_contracts import validate_app_features
+from shared_campaign_locators import (load_inventory, inventory_condition, locator_for_target,
+    locator_put, locator_condition, get_owned_locator, locator_pointer, deserialize as locator_deserialize)
 
 
 TOKEN_DOMAIN = b"campaign-contributor:v1\0"
@@ -28,7 +32,14 @@ def publish_observation(
     kms_client,
     sqs_client,
     now_epoch: int | None = None,
+    locator_manifest_sha256=None, locator_inventory_revision=0, remaining_ms=lambda:30000,
 ) -> str:
+    period_fence.configuration()
+    from shared_campaign_work import configuration as work_config
+    if work_config.enabled():
+        dynamodb_client=work_config.BudgetClient(dynamodb_client,remaining_ms)
+        kms_client=work_config.BudgetClient(kms_client,remaining_ms)
+        sqs_client=work_config.BudgetClient(sqs_client,remaining_ms)
     if not item["campaignConsentGranted"]:
         return "consent-suppressed"
 
@@ -43,10 +54,15 @@ def publish_observation(
         return "participation-suppressed"
 
     period_id = contributor_period_id(item["observedAtEpoch"])
+    period_record=period_fence.read(dynamodb_client,pipeline_table_name,period_id,
+        locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
     if hmac_key_id is None:
         if hmac_key_resolver is None:
             raise ValueError("A period HMAC key resolver is required")
         hmac_key_id = hmac_key_resolver(period_id)
+    if hmac_key_id != period_record['keyArn']:
+        raise RuntimeError('Campaign period key is unavailable')
+    dynamodb_client=period_fence.GuardedClient(dynamodb_client,pipeline_table_name,period_record,now=lambda:now_epoch,remaining_ms=remaining_ms)
     event_id = item["statisticsEventId"]
     key = {"PK": {"S": f"EVENT#{event_id}"}, "SK": {"S": "DEDUPE"}}
     existing = dynamodb_client.get_item(
@@ -59,23 +75,27 @@ def publish_observation(
     if existing and existing.get("status") == {"S": "PUBLISHED"}:
         return "duplicate"
 
+    inventory = load_inventory(dynamodb_client,pipeline_table_name,item['environment'],
+                               locator_manifest_sha256,locator_inventory_revision,now_epoch)
+    if period_id < inventory['minimumPeriodId']:
+        raise RuntimeError('Campaign locator period is not covered')
+    contributor_token = derive_contributor_token(item["accountId"], key_id=hmac_key_id, kms_client=kms_client)
     if not existing:
-        contributor_token = derive_contributor_token(
-            item["accountId"],
-            key_id=hmac_key_id,
-            kms_client=kms_client,
-        )
-        transient_expiry = min(
-            item["expiresAt"] + 18 * 24 * 60 * 60,
+        transient_expiry = period_fence.transient_deadline(
+            period_id, now_epoch, item["expiresAt"] + 18 * 24 * 60 * 60,
             now_epoch + transient_retention_days * 24 * 60 * 60,
         )
         expiration_index = {
             "GSI3PK": f"EXPIRY#{item['environment']}",
             "GSI3SK": transient_expiry,
         }
+        feature = {"PK":f"EVENT#{event_id}","SK":"FEATURE","GSI1PK":f"CONTRIB#{period_id}#{contributor_token}",
+                   "periodId":period_id,"expiresAt":transient_expiry}
+        feature_locator = locator_for_target(feature,item['environment'])
         try:
             dynamodb_client.transact_write_items(
                 TransactItems=[
+                    _tombstone_condition(pipeline_table_name, period_id, contributor_token),
                     *_authority_condition_checks(
                         item, users_table_name, deletion_ledger_table_name
                     ),
@@ -90,6 +110,8 @@ def publish_observation(
                                     "recordVersion": item["recordVersion"],
                                     "environment": item["environment"],
                                     "statisticsEventId": event_id,
+                                    "researchNoticeVersion": CURRENT_NOTICE,
+                                    "researchPolicyVersion": CURRENT_POLICY,
                                     "periodId": period_id,
                                     "contributorToken": contributor_token,
                                     "GSI1PK": f"CONTRIB#{period_id}#{contributor_token}",
@@ -110,6 +132,7 @@ def publish_observation(
                                     "PK": f"EVENT#{event_id}",
                                     "SK": "DEDUPE",
                                     "status": "PENDING",
+                                    **locator_pointer(feature_locator),
                                     "periodId": period_id,
                                     **expiration_index,
                                     "expiresAt": transient_expiry,
@@ -118,6 +141,8 @@ def publish_observation(
                             "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
                         }
                     },
+                    locator_put(pipeline_table_name,feature_locator),
+                    inventory_condition(pipeline_table_name,inventory),
                 ]
             )
         except ClientError as err:
@@ -140,17 +165,33 @@ def publish_observation(
             if not concurrent:
                 raise
 
+    feature_raw = dynamodb_client.get_item(TableName=pipeline_table_name,
+        Key={"PK":{"S":f"EVENT#{event_id}"},"SK":{"S":"FEATURE"}},ConsistentRead=True).get("Item")
+    if not feature_raw:
+        raise RuntimeError('Campaign feature locator is unavailable')
+    feature = locator_deserialize(feature_raw)
+    if feature.get('researchNoticeVersion') != CURRENT_NOTICE or feature.get('researchPolicyVersion') != CURRENT_POLICY:
+        return 'legacy-feature-suppressed'
+    feature_locator = get_owned_locator(dynamodb_client,pipeline_table_name,
+                                       locator_for_target(feature,item['environment']))
+    if feature_locator['targetExpiresAtEpoch'] <= now_epoch:
+        return "expired"
     if not _account_authorizes(
         item, users_table_name, deletion_ledger_table_name, dynamodb_client
     ):
         return "participation-suppressed"
     envelope = build_cluster_envelope(item)
+    latest=period_fence.read(dynamodb_client,pipeline_table_name,period_id,
+        locator_manifest_sha256,locator_inventory_revision,now_epoch,states=('OPEN',))
+    if latest != period_record:
+        raise RuntimeError('Campaign period changed')
     sqs_client.send_message(
         QueueUrl=cluster_queue_url,
         MessageBody=json.dumps(envelope, separators=(",", ":"), sort_keys=True),
     )
     try:
         dynamodb_client.transact_write_items(TransactItems=[
+            _tombstone_condition(pipeline_table_name, period_id, contributor_token),
             *_authority_condition_checks(
                 item, users_table_name, deletion_ledger_table_name
             ),
@@ -174,6 +215,8 @@ def publish_observation(
                     },
                 }
             },
+            locator_condition(pipeline_table_name,feature_locator),
+            inventory_condition(pipeline_table_name,inventory),
         ])
     except ClientError as err:
         if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
@@ -196,74 +239,18 @@ def publish_observation(
     return "published"
 
 
-def _authority_condition_checks(
-    item, users_table_name, deletion_ledger_table_name,
-):
-    return [
-        {
-            "ConditionCheck": {
-                "TableName": users_table_name,
-                "Key": {
-                    "PK": {"S": f"USER#{item['accountId']}"},
-                    "SK": {"S": "CAMPAIGN_PARTICIPATION"},
-                },
-                "ConditionExpression": (
-                    "#state = :enrolled AND consentEpochId = :epoch "
-                    "AND #environment = :environment AND noticeVersion = :notice"
-                ),
-                "ExpressionAttributeNames": {
-                    "#state": "state",
-                    "#environment": "environment",
-                },
-                "ExpressionAttributeValues": {
-                    ":enrolled": {"S": "enrolled"},
-                    ":epoch": {"S": item["consentEpochId"]},
-                    ":environment": {"S": item["environment"]},
-                    ":notice": {"S": item["noticeVersion"]},
-                },
-            }
-        },
-        {
-            "ConditionCheck": {
-                "TableName": deletion_ledger_table_name,
-                "Key": {
-                    "PK": {"S": f"ACCOUNT#{item['accountId']}"},
-                    "SK": {"S": "ACCOUNT_DELETION"},
-                },
-                "ConditionExpression": "attribute_not_exists(PK)",
-            }
-        },
-    ]
+
+def _tombstone_condition(table, period, token):
+    return {"ConditionCheck":{"TableName":table,
+        "Key":{"PK":{"S":f"CONTRIB#{period}#{token}"},"SK":{"S":"TOMBSTONE"}},
+        "ConditionExpression":"attribute_not_exists(PK) AND attribute_not_exists(SK)"}}
+
+def _authority_condition_checks(item, users_table_name, deletion_ledger_table_name):
+    return condition_checks(item, users_table_name, deletion_ledger_table_name)
 
 
-def _account_authorizes(
-    item, users_table_name, deletion_ledger_table_name, dynamodb_client,
-):
-    participation = dynamodb_client.get_item(
-        TableName=users_table_name,
-        Key={
-            "PK": {"S": f"USER#{item['accountId']}"},
-            "SK": {"S": "CAMPAIGN_PARTICIPATION"},
-        },
-        ConsistentRead=True,
-        ProjectionExpression="#state,consentEpochId,#environment,noticeVersion",
-        ExpressionAttributeNames={"#state": "state", "#environment": "environment"},
-    ).get("Item") or {}
-    deletion = dynamodb_client.get_item(
-        TableName=deletion_ledger_table_name,
-        Key={
-            "PK": {"S": f"ACCOUNT#{item['accountId']}"},
-            "SK": {"S": "ACCOUNT_DELETION"},
-        },
-        ConsistentRead=True,
-        ProjectionExpression="PK",
-    ).get("Item")
-    return not deletion and (
-        participation.get("state") == {"S": "enrolled"}
-        and participation.get("consentEpochId") == {"S": item["consentEpochId"]}
-        and participation.get("environment") == {"S": item["environment"]}
-        and participation.get("noticeVersion") == {"S": item["noticeVersion"]}
-    )
+def _account_authorizes(item, users_table_name, deletion_ledger_table_name, dynamodb_client):
+    return authorized(item, users_table_name, deletion_ledger_table_name, dynamodb_client)
 
 
 def contributor_period_id(epoch_seconds: int) -> int:

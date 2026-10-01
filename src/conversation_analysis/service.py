@@ -6,13 +6,16 @@ from analysis_client import analyze_conversation
 from errors import AppError
 from history_completion import assert_history_result_visible, reserve_history_acceptance
 from response_builders import build_success_response
-from safety import build_safe_low_confidence_response, is_instruction_style_abuse
+from safety import reject_instruction_style_input
 from scan_access import campaign_authorization, commit_scan_and_request, prepare_scan_access
 
 LOGGER = logging.getLogger(__name__)
 
 
 def handle_analysis_request(payload: dict, identity: str) -> dict:
+    # Stop before locks, quota/history writes, model calls and replay presentation.
+    # A legacy replay may have an earlier charge; this error does not deny it.
+    reject_instruction_style_input(payload["sanitizedText"])
     request_id = payload["requestId"]
     LOGGER.info("Stage started: request_lock")
     request_state = check_or_lock_request(identity, request_id, payload)
@@ -59,19 +62,13 @@ def handle_analysis_request(payload: dict, identity: str) -> dict:
             snapshot.get("remainingCredits"),
         )
 
-        LOGGER.info("Stage started: prompt_safety_check")
-        if is_instruction_style_abuse(payload["sanitizedText"]):
-            LOGGER.info("Stage completed: prompt_safety_check | outcome=short_circuit")
-            analysis = build_safe_low_confidence_response()
-        else:
-            LOGGER.info("Stage completed: prompt_safety_check | outcome=model_call")
-            LOGGER.info("Stage started: model_analysis")
-            analysis = analyze_conversation(payload)
-            LOGGER.info(
-                "Stage completed: model_analysis | riskLevel=%s scamScore=%s",
-                analysis.get("riskLevel"),
-                analysis.get("scamScore"),
-            )
+        LOGGER.info("Stage started: model_analysis")
+        analysis = analyze_conversation(payload)
+        LOGGER.info(
+            "Stage completed: model_analysis | riskLevel=%s scamScore=%s",
+            analysis.get("riskLevel"),
+            analysis.get("scamScore"),
+        )
 
         LOGGER.info("Stage started: response_build")
         response_body = build_success_response(request_id=request_id, analysis=analysis)

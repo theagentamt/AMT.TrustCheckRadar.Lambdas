@@ -1,0 +1,695 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bundleVersion",
+    "activeBundleVersion",
+    "state",
+    "reason",
+    "nowActionIds",
+    "followUpActionIds",
+    "limitIds",
+    "conditionalNoteKey",
+    "officialLinkIds",
+    "reviewDue",
+    "fallbackPlan",
+    "accounting",
+    "clarification"
+  ],
+  "properties": {
+    "bundleVersion": {
+      "const": "recovery-playbook-1.0"
+    },
+    "activeBundleVersion": {
+      "enum": [
+        null,
+        "recovery-playbook-1.0",
+        "recovery-basics-1.0"
+      ]
+    },
+    "state": {
+      "enum": [
+        "available",
+        "review_due",
+        "fallback_basics",
+        "sign_in_required",
+        "limited_help"
+      ]
+    },
+    "reason": {
+      "enum": [
+        null,
+        "sign_in_required",
+        "detailed_unavailable",
+        "content_unavailable"
+      ]
+    },
+    "nowActionIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 5,
+      "items": {
+        "enum": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure"
+        ]
+      }
+    },
+    "followUpActionIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 4,
+      "items": {
+        "enum": [
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ]
+      }
+    },
+    "limitIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 4,
+      "items": {
+        "enum": [
+          "limit_clicked_link",
+          "limit_credentials_or_mfa",
+          "limit_sent_payment",
+          "limit_software_or_remote_access"
+        ]
+      }
+    },
+    "conditionalNoteKey": {
+      "enum": [
+        null,
+        "link_device_conditional"
+      ]
+    },
+    "officialLinkIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 3,
+      "items": {
+        "enum": [
+          "recovery_guidance",
+          "identity_help",
+          "fraud_report"
+        ]
+      }
+    },
+    "reviewDue": {
+      "type": "boolean"
+    },
+    "fallbackPlan": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "contentBundleVersion",
+            "state",
+            "reason",
+            "actionIds",
+            "officialLinkIds",
+            "reviewDue",
+            "clarification",
+            "accounting"
+          ],
+          "properties": {
+            "contractVersion": {
+              "const": "recovery-selection-1.0.0"
+            },
+            "contentBundleVersion": {
+              "const": "recovery-basics-1.0"
+            },
+            "state": {
+              "enum": [
+                "available",
+                "review_due",
+                "sign_in_required",
+                "limited_help"
+              ]
+            },
+            "reason": {
+              "enum": [
+                null,
+                "sign_in_required",
+                "selection_unapproved",
+                "content_missing",
+                "content_withdrawn",
+                "content_incompatible",
+                "content_unapproved"
+              ]
+            },
+            "actionIds": {
+              "type": "array",
+              "uniqueItems": true,
+              "maxItems": 5,
+              "items": {
+                "enum": [
+                  "basics_link",
+                  "basics_password",
+                  "basics_identity",
+                  "basics_payment",
+                  "basics_device"
+                ]
+              }
+            },
+            "officialLinkIds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "recovery_guidance",
+                  "identity_help",
+                  "fraud_report"
+                ]
+              }
+            },
+            "reviewDue": {
+              "type": "boolean"
+            },
+            "clarification": {
+              "const": "unavailable"
+            },
+            "accounting": {
+              "const": "not_an_analysis_check"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "available",
+                      "review_due"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "const": null
+                  },
+                  "actionIds": {
+                    "minItems": 1
+                  },
+                  "officialLinkIds": {
+                    "const": [
+                      "recovery_guidance",
+                      "identity_help",
+                      "fraud_report"
+                    ]
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "actionIds": {
+                    "maxItems": 0
+                  },
+                  "officialLinkIds": {
+                    "maxItems": 0
+                  },
+                  "reviewDue": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "review_due"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reviewDue": {
+                    "const": true
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "reviewDue": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "sign_in_required"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "const": "sign_in_required"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "state": {
+                    "const": "limited_help"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "reason": {
+                    "enum": [
+                      "selection_unapproved",
+                      "content_missing",
+                      "content_withdrawn",
+                      "content_incompatible",
+                      "content_unapproved"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "accounting": {
+      "const": "not_an_analysis_check"
+    },
+    "clarification": {
+      "const": "unavailable"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "available",
+              "review_due"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": null
+          },
+          "activeBundleVersion": {
+            "const": "recovery-playbook-1.0"
+          },
+          "fallbackPlan": {
+            "type": "null"
+          },
+          "nowActionIds": {
+            "minItems": 1
+          },
+          "officialLinkIds": {
+            "const": [
+              "recovery_guidance",
+              "identity_help",
+              "fraud_report"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "nowActionIds": {
+            "maxItems": 0
+          },
+          "followUpActionIds": {
+            "maxItems": 0
+          },
+          "limitIds": {
+            "maxItems": 0
+          },
+          "conditionalNoteKey": {
+            "const": null
+          },
+          "officialLinkIds": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "fallback_basics"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "detailed_unavailable"
+          },
+          "activeBundleVersion": {
+            "const": "recovery-basics-1.0"
+          },
+          "fallbackPlan": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contractVersion",
+              "contentBundleVersion",
+              "state",
+              "reason",
+              "actionIds",
+              "officialLinkIds",
+              "reviewDue",
+              "clarification",
+              "accounting"
+            ],
+            "properties": {
+              "contractVersion": {
+                "const": "recovery-selection-1.0.0"
+              },
+              "contentBundleVersion": {
+                "const": "recovery-basics-1.0"
+              },
+              "state": {
+                "enum": [
+                  "available",
+                  "review_due"
+                ]
+              },
+              "reason": {
+                "enum": [
+                  null,
+                  "sign_in_required",
+                  "selection_unapproved",
+                  "content_missing",
+                  "content_withdrawn",
+                  "content_incompatible",
+                  "content_unapproved"
+                ]
+              },
+              "actionIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "maxItems": 5,
+                "items": {
+                  "enum": [
+                    "basics_link",
+                    "basics_password",
+                    "basics_identity",
+                    "basics_payment",
+                    "basics_device"
+                  ]
+                }
+              },
+              "officialLinkIds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "recovery_guidance",
+                    "identity_help",
+                    "fraud_report"
+                  ]
+                }
+              },
+              "reviewDue": {
+                "type": "boolean"
+              },
+              "clarification": {
+                "const": "unavailable"
+              },
+              "accounting": {
+                "const": "not_an_analysis_check"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "available",
+                        "review_due"
+                      ]
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reason": {
+                      "const": null
+                    },
+                    "actionIds": {
+                      "minItems": 1
+                    },
+                    "officialLinkIds": {
+                      "const": [
+                        "recovery_guidance",
+                        "identity_help",
+                        "fraud_report"
+                      ]
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "actionIds": {
+                      "maxItems": 0
+                    },
+                    "officialLinkIds": {
+                      "maxItems": 0
+                    },
+                    "reviewDue": {
+                      "const": false
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "const": "review_due"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reviewDue": {
+                      "const": true
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "reviewDue": {
+                      "const": false
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "const": "sign_in_required"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reason": {
+                      "const": "sign_in_required"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "const": "limited_help"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reason": {
+                      "enum": [
+                        "selection_unapproved",
+                        "content_missing",
+                        "content_withdrawn",
+                        "content_incompatible",
+                        "content_unapproved"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "sign_in_required",
+              "limited_help"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "activeBundleVersion": {
+            "type": "null"
+          },
+          "fallbackPlan": {
+            "type": "null"
+          },
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "available"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "review_due"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "sign_in_required"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "sign_in_required"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "limited_help"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "content_unavailable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "fallback_basics"
+          },
+          "fallbackPlan": {
+            "type": "object",
+            "properties": {
+              "reviewDue": {
+                "const": false
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "fallback_basics"
+          },
+          "fallbackPlan": {
+            "type": "object",
+            "properties": {
+              "reviewDue": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reviewDue": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

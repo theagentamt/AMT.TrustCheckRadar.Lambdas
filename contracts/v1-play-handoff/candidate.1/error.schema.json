@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractVersion",
+    "requestId",
+    "error"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "contractVersion": {
+      "const": "v1-play-handoff-1.0.0-candidate.1"
+    },
+    "requestId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "INPUT_REJECTED",
+            "AUTHENTICATION_REQUIRED",
+            "ACCOUNT_UNAVAILABLE",
+            "ACTIVE_DEVICE_REQUIRED",
+            "REQUEST_CONFLICT",
+            "PURCHASE_ACCOUNT_MISMATCH",
+            "PURCHASE_OWNERSHIP_CONFLICT",
+            "PURCHASE_VERIFICATION_UNAVAILABLE",
+            "PURCHASE_PLAN_UNSUPPORTED",
+            "PURCHASE_TRANSITION_UNSUPPORTED",
+            "PURCHASE_TEST_REQUIRED",
+            "PURCHASE_REJECTED",
+            "PURCHASE_RECONCILIATION_REQUIRED",
+            "PURCHASE_SERVICE_UNAVAILABLE"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "PURCHASE_VERIFICATION_UNAVAILABLE",
+                  "PURCHASE_RECONCILIATION_REQUIRED"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "retryable": {
+                "const": true
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "error": {
+            "properties": {
+              "retryable": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requestId": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "error": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "INPUT_REJECTED",
+                  "AUTHENTICATION_REQUIRED",
+                  "PURCHASE_SERVICE_UNAVAILABLE"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

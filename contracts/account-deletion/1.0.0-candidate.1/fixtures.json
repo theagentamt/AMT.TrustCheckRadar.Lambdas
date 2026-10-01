@@ -1,0 +1,166 @@
+{
+  "postRequest": {
+    "schemaVersion": 1,
+    "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+    "action": "DELETE_ACCOUNT"
+  },
+  "notRequested": {
+    "schemaVersion": 1,
+    "operation": "ACCOUNT_DELETION",
+    "status": "NOT_REQUESTED",
+    "completionEligible": false,
+    "components": []
+  },
+  "accepted": {
+    "schemaVersion": 1,
+    "operation": "ACCOUNT_DELETION",
+    "status": "REQUESTED",
+    "completionEligible": false,
+    "components": [
+      {
+        "component": "SESSION_REVOCATION",
+        "status": "PENDING"
+      },
+      {
+        "component": "DEVICE_BINDINGS",
+        "status": "PENDING"
+      },
+      {
+        "component": "DEVICE_RECOVERY",
+        "status": "PENDING"
+      },
+      {
+        "component": "ANALYSIS_ABUSE",
+        "status": "PENDING"
+      },
+      {
+        "component": "HISTORY",
+        "status": "PENDING"
+      },
+      {
+        "component": "CAMPAIGN",
+        "status": "PENDING"
+      },
+      {
+        "component": "CAMPAIGN_OUTBOX",
+        "status": "PENDING"
+      },
+      {
+        "component": "ENTITLEMENTS",
+        "status": "PENDING"
+      },
+      {
+        "component": "V1_AUTHORITY",
+        "status": "PENDING"
+      },
+      {
+        "component": "USER_PROFILE",
+        "status": "PENDING"
+      },
+      {
+        "component": "IDENTITY",
+        "status": "PENDING"
+      }
+    ],
+    "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+    "requestedAtEpoch": 1800000000,
+    "deleteByEpoch": 1800086400
+  },
+  "eligibleStillNotComplete": {
+    "schemaVersion": 1,
+    "operation": "ACCOUNT_DELETION",
+    "status": "REQUESTED",
+    "completionEligible": true,
+    "components": [
+      {
+        "component": "SESSION_REVOCATION",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "DEVICE_BINDINGS",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "DEVICE_RECOVERY",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "ANALYSIS_ABUSE",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "HISTORY",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "CAMPAIGN",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "CAMPAIGN_OUTBOX",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "ENTITLEMENTS",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "V1_AUTHORITY",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "USER_PROFILE",
+        "status": "COMPLETE"
+      },
+      {
+        "component": "IDENTITY",
+        "status": "COMPLETE"
+      }
+    ],
+    "operationId": "3fefbf1a-caf4-4e72-ab61-4fb36bf925b4",
+    "requestedAtEpoch": 1800000000,
+    "deleteByEpoch": 1800086400
+  },
+  "errors": [
+    {
+      "httpStatus": 400,
+      "body": {
+        "error": {
+          "code": "INVALID_REQUEST",
+          "message": "The submitted request is invalid.",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "httpStatus": 401,
+      "body": {
+        "error": {
+          "code": "REAUTHENTICATION_REQUIRED",
+          "message": "A recent server-verified sign-in is required for account deletion.",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "httpStatus": 409,
+      "body": {
+        "error": {
+          "code": "IDEMPOTENCY_CONFLICT",
+          "message": "The account already has a different deletion request.",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "httpStatus": 503,
+      "body": {
+        "error": {
+          "code": "FEATURE_DISABLED",
+          "message": "Account deletion is not enabled.",
+          "retryable": true
+        }
+      }
+    }
+  ]
+}

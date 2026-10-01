@@ -22,6 +22,7 @@ def lambda_handler(event, _context):
         resource = boto3.resource("dynamodb")
         result = HistoryLifecycleService(
             settings=settings,
+            dynamodb_client=boto3.client("dynamodb"),
             content_table=resource.Table(settings.content_table_name),
             control_table=resource.Table(settings.control_table_name),
             abuse_table=resource.Table(settings.analysis_abuse_table_name),

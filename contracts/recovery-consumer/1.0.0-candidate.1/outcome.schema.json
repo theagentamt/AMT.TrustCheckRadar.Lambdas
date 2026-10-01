@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "checkId",
+    "policyVersion",
+    "playbookVersion",
+    "processingOutcome",
+    "reasonCode",
+    "exposureIds",
+    "actionIds",
+    "applyRequiresConfirmation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "const": "recovery_clarification"
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "policyVersion": {
+      "const": "recovery-clarification-2026-09-21-v1"
+    },
+    "playbookVersion": {
+      "const": "recovery-playbook-1.0"
+    },
+    "processingOutcome": {
+      "enum": [
+        "complete",
+        "inconclusive",
+        "partial",
+        "failed",
+        "blocked",
+        "invalid_input",
+        "unsupported",
+        "unavailable"
+      ]
+    },
+    "reasonCode": {
+      "enum": [
+        null,
+        "INSUFFICIENT_EVIDENCE",
+        "INCOMPLETE_RESPONSE",
+        "PROVIDER_UNAVAILABLE",
+        "HOSTILE_INPUT_STOP",
+        "INPUT_REJECTED",
+        "UNSUPPORTED_CONTENT",
+        "PROVIDER_RESPONSE_INVALID",
+        "BUDGET_LIMIT",
+        "SERVICE_NOT_ENABLED"
+      ]
+    },
+    "exposureIds": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "clicked_link",
+          "credentials_or_mfa",
+          "financial_or_identity",
+          "sent_payment",
+          "software_or_remote_access"
+        ]
+      }
+    },
+    "actionIds": {
+      "type": "array",
+      "maxItems": 9,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "payment_contact",
+          "account_secure",
+          "financial_contact",
+          "link_stop",
+          "device_secure",
+          "payment_receipts",
+          "identity_steps",
+          "link_verify",
+          "device_support"
+        ]
+      }
+    },
+    "applyRequiresConfirmation": {
+      "const": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": null
+          },
+          "exposureIds": {
+            "minItems": 1
+          },
+          "actionIds": {
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "exposureIds": {
+            "maxItems": 0
+          },
+          "actionIds": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "inconclusive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "INSUFFICIENT_EVIDENCE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "partial"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "INCOMPLETE_RESPONSE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "PROVIDER_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "blocked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "HOSTILE_INPUT_STOP"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "invalid_input"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "INPUT_REJECTED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unsupported"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "UNSUPPORTED_CONTENT"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "processingOutcome": {
+            "const": "unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "PROVIDER_UNAVAILABLE",
+              "PROVIDER_RESPONSE_INVALID",
+              "BUDGET_LIMIT",
+              "SERVICE_NOT_ENABLED"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

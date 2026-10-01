@@ -1,0 +1,8 @@
+{
+  "sourceSha": "68198f448f378508783925526a59cc3454137c6a",
+  "zipSha256": "15b13d8a53d2a989dfb72ce4784d8fca991d63415237052a77f7503c7728346d",
+  "pythonMembersVerified": 99,
+  "allMembersMatchFrozenGit": true,
+  "handler": "campaign_qualification.lambda_handler",
+  "productionArtifactsDeployed": false
+}

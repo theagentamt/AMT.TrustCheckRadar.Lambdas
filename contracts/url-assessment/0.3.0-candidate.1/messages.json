@@ -1,0 +1,118 @@
+{
+  "url.no_known_threat": {
+    "en": "No known threat was found in the completed checks. This does not guarantee the link is safe.",
+    "es": "No se encontró ninguna amenaza conocida en las comprobaciones completadas. Esto no garantiza que el enlace sea seguro."
+  },
+  "url.known_threat_partial": {
+    "en": "A known threat was found. Some checks were not completed. Avoid opening the link.",
+    "es": "Se encontró una amenaza conocida. Algunas comprobaciones no se completaron. Evita abrir el enlace."
+  },
+  "url.unavailable": {
+    "en": "We could not complete this check. Verify the link independently before opening it.",
+    "es": "No pudimos completar esta comprobación. Verifica el enlace por otro medio antes de abrirlo."
+  },
+  "url.origin_only": {
+    "en": "Only the site address was checked. Private parts of the link were withheld, so the full link remains unassessed.",
+    "es": "Solo se comprobó la dirección del sitio. Se omitieron las partes privadas del enlace, por lo que el enlace completo sigue sin evaluar."
+  },
+  "url.suspicious_rule_draft": {
+    "en": "A warning pattern was found. Verify the link independently before opening it.",
+    "es": "Se encontró un patrón de advertencia. Verifica el enlace por otro medio antes de abrirlo."
+  },
+  "url.blocked": {
+    "en": "This link could not be safely processed. We did not open the blocked destination.",
+    "es": "No se pudo procesar este enlace de forma segura. No abrimos el destino bloqueado."
+  },
+  "url.unsupported": {
+    "en": "This type of link cannot be checked. Do not open it automatically.",
+    "es": "No se puede comprobar este tipo de enlace. No lo abras automáticamente."
+  },
+  "access.external_unavailable": {
+    "en": "External checks are unavailable for this account. Built-in checks and recovery guidance remain available after sign-in.",
+    "es": "Las comprobaciones externas no están disponibles para esta cuenta. Las comprobaciones integradas y la guía de recuperación siguen disponibles después de iniciar sesión."
+  },
+  "contract.unsupported": {
+    "en": "Update the app before requesting this check.",
+    "es": "Actualiza la aplicación antes de solicitar esta comprobación."
+  },
+  "check.reconcile": {
+    "en": "The result is not yet available. Do not start another check automatically.",
+    "es": "El resultado aún no está disponible. No inicies otra comprobación automáticamente."
+  },
+  "url.known_threat_conflict": {
+    "en": "Some checks did not report a threat, but a known threat was found. Avoid opening the link.",
+    "es": "Algunas comprobaciones no detectaron amenazas, pero se encontró una amenaza conocida. Evita abrir el enlace."
+  },
+  "url.invalid": {
+    "en": "Review the link and try again. It could not be checked.",
+    "es": "Revisa el enlace e inténtalo de nuevo. No se pudo comprobar."
+  },
+  "url.sensitive": {
+    "en": "This link may contain private information. It was not checked.",
+    "es": "Este enlace puede contener información privada. No se comprobó."
+  },
+  "url.destination_blocked": {
+    "en": "This destination could not be checked. Verify it independently.",
+    "es": "No se pudo comprobar este destino. Verifícalo por otra vía."
+  },
+  "url.rate_limited": {
+    "en": "Link checks are temporarily limited. Use built-in guidance while we confirm this check.",
+    "es": "Las comprobaciones de enlaces están limitadas temporalmente. Usa la orientación integrada mientras confirmamos esta comprobación."
+  },
+  "url.timeout": {
+    "en": "The check did not finish. Confirm its status before trying again.",
+    "es": "La comprobación no terminó. Confirma su estado antes de volver a intentarlo."
+  },
+  "error.sign_in": {
+    "en": "Sign in to continue.",
+    "es": "Inicia sesión para continuar."
+  },
+  "error.active_device": {
+    "en": "Review your active device before starting another check.",
+    "es": "Revisa tu dispositivo activo antes de iniciar otra comprobación."
+  },
+  "error.subscription": {
+    "en": "External checks require eligible access. Built-in guidance remains available.",
+    "es": "Las comprobaciones externas requieren acceso habilitado. La orientación integrada sigue disponible."
+  },
+  "error.allowance": {
+    "en": "Your external-check allowance is exhausted. Built-in guidance and check-status confirmation remain available.",
+    "es": "Has agotado tu cupo de comprobaciones externas. La orientación integrada y la consulta del estado siguen disponibles."
+  },
+  "error.conflict": {
+    "en": "This check ID was used for different input. Review the existing check before continuing.",
+    "es": "Este identificador se usó para otra entrada. Revisa la comprobación existente antes de continuar."
+  },
+  "error.service": {
+    "en": "The check is unavailable. Confirm its status before trying again.",
+    "es": "La comprobación no está disponible. Confirma su estado antes de volver a intentarlo."
+  },
+  "accounting.pending": {
+    "en": "Confirming whether this check used your allowance.",
+    "es": "Estamos confirmando si esta comprobación consumió tu cupo."
+  },
+  "accounting.charged": {
+    "en": "This check used one check from your allowance.",
+    "es": "Esta comprobación consumió una unidad de tu cupo."
+  },
+  "accounting.not_charged": {
+    "en": "This check did not use your allowance.",
+    "es": "Esta comprobación no consumió tu cupo."
+  },
+  "compatibility.unsupported": {
+    "en": "This result could not be understood. Update the app and confirm the existing check status.",
+    "es": "No se pudo interpretar este resultado. Actualiza la aplicación y confirma el estado de la comprobación existente."
+  },
+  "url.known_threat": {
+    "en": "A known threat was found. Avoid opening the link.",
+    "es": "Se encontró una amenaza conocida. Evita abrir el enlace."
+  },
+  "url.evidence_expired": {
+    "en": "This earlier Google threat finding has expired. The link has not been checked again.",
+    "es": "Este hallazgo anterior de Google ha caducado. El enlace no se ha vuelto a comprobar."
+  },
+  "url.evidence_unverified": {
+    "en": "The validity of this earlier Google finding is unavailable. The link has not been checked again.",
+    "es": "La vigencia de este hallazgo anterior de Google no está disponible. El enlace no se ha vuelto a comprobar."
+  }
+}

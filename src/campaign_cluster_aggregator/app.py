@@ -2,6 +2,7 @@ import logging
 import os
 import boto3
 import config
+from shared_campaign_locators import period as period_fence
 from service import process_message
 
 LOGGER = logging.getLogger()
@@ -10,6 +11,7 @@ dynamodb = boto3.client("dynamodb")
 
 
 def lambda_handler(event, _context):
+    period_fence.runtime(_context)
     config.validate_config()
     failures, successes = [], 0
     for record in event.get("Records", []):
@@ -17,7 +19,11 @@ def lambda_handler(event, _context):
             process_message(record.get("body"), environment=config.APP_ENVIRONMENT,
                 schema_version=config.CAMPAIGN_SCHEMA_VERSION, table_name=config.PIPELINE_TABLE_NAME,
                 retention_days=config.TRANSIENT_RETENTION_DAYS,
-                max_submissions=config.MAX_CONTRIBUTOR_SUBMISSIONS, dynamodb=dynamodb)
+                max_submissions=config.MAX_CONTRIBUTOR_SUBMISSIONS, dynamodb=dynamodb,
+                locator_manifest_sha256=config.CAMPAIGN_LOCATOR_MANIFEST_SHA256,
+                locator_inventory_revision=config.CAMPAIGN_LOCATOR_INVENTORY_REVISION,
+                users_table_name=config.USERS_TABLE_NAME, deletion_ledger_table_name=config.DELETION_LEDGER_TABLE_NAME,
+                outbox_table_name=config.OUTBOX_TABLE_NAME,remaining_ms=getattr(context,"get_remaining_time_in_millis",lambda:30000))
             successes += 1
         except Exception:
             failures.append({"itemIdentifier": record.get("messageId", "unknown")})

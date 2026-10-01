@@ -131,6 +131,27 @@ class LifecycleTests(unittest.TestCase):
         self.assertNotIn("centroid", serialized)
         self.assertTrue(dynamo.batches)
 
+    def test_contribution_pages_are_complete_before_threshold_evaluation(self):
+        class Paged(Dynamo):
+            def __init__(self):
+                super().__init__(); self.calls = []
+            def query(self, **kwargs):
+                self.calls.append(kwargs)
+                if "ExclusiveStartKey" not in kwargs:
+                    return {"Items":[service.serialize({"PK":"CANDIDATE#x","SK":"CONTRIB#a"})],
+                            "LastEvaluatedKey":{"PK":{"S":"CANDIDATE#x"},"SK":{"S":"CONTRIB#a"}}}
+                return {"Items":[service.serialize({"PK":"CANDIDATE#x","SK":"CONTRIB#b"})]}
+        d = Paged()
+        self.assertEqual(len(service._contributions(d,"pipeline","x")),2)
+        self.assertTrue(all(c["ConsistentRead"] and c["Limit"] == 100 for c in d.calls))
+
+    def test_oversized_contribution_pass_fails_instead_of_returning_truncated_counts(self):
+        class Unfinished(Dynamo):
+            def query(self, **kwargs):
+                return {"Items":[],"LastEvaluatedKey":{"PK":{"S":"CANDIDATE#x"},"SK":{"S":"CONTRIB#a"}}}
+        with self.assertRaises(RuntimeError):
+            service._contributions(Unfinished(),"pipeline","x")
+
     def test_dimension_ids_require_ten_distinct_contributions(self):
         contributions = [
             {"languageId": "en", "signalIds": ["tactic.urgency", "channel.sms"]}

@@ -3,6 +3,7 @@ import logging
 import os
 
 import boto3
+from boto3.dynamodb.types import TypeSerializer
 from botocore.exceptions import ClientError
 
 LOGGER = logging.getLogger()
@@ -38,6 +39,7 @@ DELETION_LEDGER_TABLE_NAME = _ledger_table_name_from_environment()
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(TABLE_NAME)
 dynamodb_client = boto3.client("dynamodb")
+serializer = TypeSerializer()
 
 
 def lambda_handler(event, _context):
@@ -63,35 +65,35 @@ def lambda_handler(event, _context):
             "updatedAt": now,
         }
 
-        dynamodb_client.transact_write_items(
-            TransactItems=[
-                {
-                    "ConditionCheck": {
-                        "TableName": DELETION_LEDGER_TABLE_NAME,
-                        "Key": _serialize_map(
-                            {"PK": f"ACCOUNT#{sub}", "SK": "ACCOUNT_DELETION"}
-                        ),
-                        "ConditionExpression": "attribute_not_exists(PK)",
-                    }
-                },
-                {
-                    "Put": {
-                        "TableName": TABLE_NAME,
-                        "Item": _serialize_map(item),
-                        "ConditionExpression": (
-                            "attribute_not_exists(PK) AND attribute_not_exists(SK)"
-                        ),
-                    }
-                },
-            ]
-        )
+        try:
+            dynamodb_client.transact_write_items(
+                TransactItems=[
+                    _absent_deletion_fence(sub),
+                    {
+                        "Put": {
+                            "TableName": TABLE_NAME,
+                            "Item": _serialize_map(item),
+                            "ConditionExpression": (
+                                "attribute_not_exists(PK) AND attribute_not_exists(SK)"
+                            ),
+                        }
+                    },
+                ]
+            )
+        except ClientError as err:
+            if not _is_proven_conditional_cancellation(err, expected_actions=2):
+                raise
+            _confirm_safe_duplicate(sub)
         return event
-    except KeyError as err:
-        LOGGER.warning("Post confirmation event missing required attribute: %s", err)
-        raise
-    except ClientError:
-        LOGGER.exception("Failed to create user profile during post confirmation")
-        raise
+    except (KeyError, TypeError, AttributeError):
+        LOGGER.warning("POST_CONFIRMATION_INVALID_EVENT")
+        raise RuntimeError("POST_CONFIRMATION_INVALID_EVENT") from None
+    except Exception:
+        # SDK messages and exception chains can contain identifiers. Lambda also
+        # logs uncaught exceptions, so replacing the application log alone is
+        # insufficient; only this fixed diagnostic may reach the trigger caller.
+        LOGGER.error("POST_CONFIRMATION_FAILED")
+        raise RuntimeError("POST_CONFIRMATION_FAILED") from None
 
 
 def _get_required_attribute(attributes, key):
@@ -110,14 +112,58 @@ def _optional_attribute(attributes, key):
 
 
 def _serialize_map(value):
-    return {key: _serialize_value(item) for key, item in value.items()}
+    return {key: serializer.serialize(item) for key, item in value.items()}
 
 
-def _serialize_value(value):
-    if value is None:
-        return {"NULL": True}
-    if isinstance(value, bool):
-        return {"BOOL": value}
-    if isinstance(value, str):
-        return {"S": value}
-    raise TypeError(type(value).__name__)
+def _absent_deletion_fence(sub):
+    return {
+        "ConditionCheck": {
+            "TableName": DELETION_LEDGER_TABLE_NAME,
+            "Key": _serialize_map(
+                {"PK": f"ACCOUNT#{sub}", "SK": "ACCOUNT_DELETION"}
+            ),
+            "ConditionExpression": "attribute_not_exists(PK)",
+        }
+    }
+
+
+def _confirm_safe_duplicate(sub):
+    dynamodb_client.transact_write_items(
+        TransactItems=[
+            _absent_deletion_fence(sub),
+            {
+                "ConditionCheck": {
+                    "TableName": TABLE_NAME,
+                    "Key": _serialize_map({"PK": f"USER#{sub}", "SK": "PROFILE"}),
+                    "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
+                    "ExpressionAttributeValues": _serialize_map(
+                        {
+                            ":account": sub,
+                            ":pending": "PENDING_AGE_GATE",
+                            ":active": "ACTIVE",
+                        }
+                    ),
+                    "ConditionExpression": (
+                        "#sub = :account AND "
+                        "(#status = :pending OR #status = :active)"
+                    ),
+                }
+            },
+        ]
+    )
+
+
+def _is_proven_conditional_cancellation(err, *, expected_actions):
+    if err.response.get("Error", {}).get("Code") != "TransactionCanceledException":
+        return False
+    reasons = err.response.get("CancellationReasons")
+    return (
+        isinstance(reasons, list)
+        and len(reasons) == expected_actions
+        and all(isinstance(reason, dict) for reason in reasons)
+        and any(reason.get("Code") == "ConditionalCheckFailed" for reason in reasons)
+        and all(
+            reason.get("Code") in {"None", "ConditionalCheckFailed"}
+            for reason in reasons
+        )
+    )

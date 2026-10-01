@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "artifact": "device-recovery-contracts-1.0.0.zip",
+  "manifest": {
+    "path": "contract-manifest.json",
+    "sha256": "504a3b4d2667c35357b33d495543efc8d5304bea4655564e8eada60707c48884"
+  },
+  "activationStatus": "source_candidate_disabled",
+  "identity": {
+    "source": "validated_cognito_access_token_sub",
+    "clientAccountTargetingAllowed": false,
+    "recentAuthenticationSeconds": 300
+  },
+  "route": {
+    "method": "POST",
+    "path": "/v1/users/device-recovery",
+    "requestSchema": "self-recovery-request.schema.json",
+    "successSchema": "self-recovery-success.schema.json",
+    "errorSchema": "error-response.schema.json",
+    "allowedQuery": []
+  },
+  "limits": {
+    "attemptsPerWindow": 3,
+    "rateWindowSeconds": 3600,
+    "receiptRetentionDays": 7,
+    "rateStateRetentionSeconds": 86400,
+    "auditRetentionDays": 90
+  },
+  "registrationDecision": {
+    "automaticSwitchingPreserved": true,
+    "recoveryStepUpDoesNotApplyToNormalRegistration": true
+  },
+  "replaySemantics": {
+    "successRepresents": "original_operation_outcome_only",
+    "currentBindingStatusIncluded": false,
+    "expiredPresentReceipt": "fail_closed_server_unavailable_pending_owner_decision",
+    "removedReceiptOperationIdReuse": "owner_decision_pending"
+  },
+  "statusRoute": {
+    "proposal": "status-route.proposed.json",
+    "supported": false,
+    "ownerDecisionRequired": true
+  },
+  "testEvidence": {
+    "statefulConditionEnforcingLocalTransactions": true,
+    "actualDynamoDbIntegration": "gated_not_available_locally",
+    "deployedAcceptance": false
+  },
+  "fixtures": "fixtures/manifest.json"
+}

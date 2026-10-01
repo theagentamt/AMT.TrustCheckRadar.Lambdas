@@ -70,39 +70,13 @@ class DeletionTests(unittest.TestCase):
         self.assertEqual(service.active_periods(current + 1), [10, 9])
         self.assertEqual(service.active_periods(current + service.RECOVERY_SECONDS), [10])
 
-    def test_tombstones_deletes_and_recomputes_without_persisting_identity(self):
-        dynamo, kms = Dynamo(), Kms()
-
-        result = service.delete_account_contributions(command(), table_name="pipeline",
-            retention_days=21, dynamodb=dynamo, kms=kms, now_epoch=10 * service.PERIOD_SECONDS + 1)
-
-        self.assertEqual(result, {"deleted": 2, "recomputedCandidates": 1})
-        self.assertEqual(len(kms.calls), 2)
-        self.assertEqual(kms.calls[0]["Message"], b"campaign-contributor:v1\0account-123")
-        self.assertEqual(len(dynamo.deletes), 2)
-        self.assertTrue(any("centroid" in call.get("UpdateExpression", "") for call in dynamo.updates))
-        self.assertNotIn("account-123", str(dynamo.updates))
-
-    def test_feature_deletion_also_removes_unindexed_event_dedupe_siblings(self):
-        dynamo, kms = Dynamo(), Kms()
-        dynamo.index_items = [
-            {"PK": {"S": "EVENT#event-1"}, "SK": {"S": "FEATURE"}},
-        ]
-
-        result = service.delete_account_contributions(
-            command(), table_name="pipeline", retention_days=21,
-            dynamodb=dynamo, kms=kms, now_epoch=10 * service.PERIOD_SECONDS + 1,
-        )
-
-        deleted_keys = {
-            (call["Key"]["PK"]["S"], call["Key"]["SK"]["S"])
-            for call in dynamo.deletes
-        }
-        self.assertEqual(
-            deleted_keys,
-            {("EVENT#event-1", "FEATURE"), ("EVENT#event-1", "DEDUPE"), ("EVENT#event-1", "CLUSTERED")},
-        )
-        self.assertEqual(result["deleted"], 6)
+    def test_no_completion_helper_can_bypass_missing_locator_proof(self):
+        for function, value in ((service.complete_account_deletion_component, account_command()),
+                                (service.complete_campaign_withdrawal, campaign_command())):
+            dynamo = Dynamo()
+            with self.assertRaises(RuntimeError):
+                function(value, dynamodb=dynamo)
+            self.assertEqual(dynamo.puts + dynamo.transactions, [])
 
     def test_strict_command_rejects_cross_environment_and_extra_fields(self):
         def av(value): return {"N": str(value)} if isinstance(value, int) else {"S": value}
@@ -145,69 +119,6 @@ class DeletionTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 service.parse_deletion_record(record, environment="dev", schema_version=1)
 
-    def test_account_deletion_writes_campaign_component_receipt(self):
-        dynamo = Dynamo()
-
-        result = service.complete_account_deletion_component(
-            account_command(), deletion_ledger_table_name="ledger",
-            dynamodb=dynamo, now_epoch=1_780_000_010,
-        )
-
-        self.assertTrue(result)
-        receipt = dynamo.puts[0]["Item"]
-        self.assertEqual(receipt["SK"], {"S": "ACCOUNT_DELETION#CAMPAIGN"})
-        self.assertEqual(receipt["component"], {"S": "CAMPAIGN"})
-        self.assertEqual(
-            receipt["operationId"],
-            {"S": "47debb73-444b-4bb1-9889-fb56885b7922"},
-        )
-        self.assertEqual(
-            receipt["retainUntilEpoch"],
-            {"N": str(1_780_000_010 + 120 * 86400)},
-        )
-
-    def test_successful_deletion_completion_is_atomic_and_privacy_safe(self):
-        dynamo = Dynamo()
-        result = service.complete_campaign_withdrawal(
-            campaign_command(), users_table_name="users", deletion_ledger_table_name="ledger",
-            participation_item_sk="CAMPAIGN_PARTICIPATION", audit_days=400,
-            dynamodb=dynamo, now_epoch=1_780_000_010,
-        )
-
-        self.assertTrue(result)
-        transaction = dynamo.transactions[0]
-        self.assertEqual(len(transaction), 3)
-        state_update = transaction[0]["Update"]
-        self.assertIn("#state = :pending", state_update["ConditionExpression"])
-        self.assertIn("consentEpochId = :epoch", state_update["ConditionExpression"])
-        self.assertIn("lastOperationId = :operation_id", state_update["ConditionExpression"])
-        receipt = transaction[1]["Put"]["Item"]
-        self.assertEqual(receipt["eventType"], {"S": "campaign.participation.withdrawal_completed"})
-        self.assertEqual(receipt["expiresAt"], {"N": str(1_780_000_010 + 400 * 86400)})
-        self.assertNotIn("accountId", receipt)
-        ledger_update = transaction[2]["Update"]
-        self.assertEqual(ledger_update["ExpressionAttributeValues"][":complete"], {"S": "COMPLETE"})
-        self.assertEqual(ledger_update["ExpressionAttributeValues"][":completed_at"], {"N": "1780000010"})
-
-    def test_completion_retry_accepts_already_complete_matching_command(self):
-        class Canceled(Exception):
-            response = {"Error": {"Code": "TransactionCanceledException"}}
-
-        class ReplayDynamo(Dynamo):
-            def transact_write_items(self, **_kwargs):
-                raise Canceled()
-
-            def get_item(self, TableName=None, **kwargs):
-                if TableName == "ledger":
-                    complete = campaign_command(status="COMPLETE") | {"completedAtEpoch": 1_780_000_010}
-                    return {"Item": {key: ({"N": str(value)} if isinstance(value, int) else {"S": value}) for key, value in complete.items()}}
-                return super().get_item(**kwargs)
-
-        self.assertFalse(service.complete_campaign_withdrawal(
-            campaign_command(), users_table_name="users", deletion_ledger_table_name="ledger",
-            participation_item_sk="CAMPAIGN_PARTICIPATION", audit_days=400,
-            dynamodb=ReplayDynamo(), now_epoch=1_780_000_010,
-        ))
 
 
 if __name__ == "__main__": unittest.main()

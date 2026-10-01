@@ -7,6 +7,7 @@ its typed result is an internal trust boundary, not receipt verification itself.
 from copy import deepcopy
 from dataclasses import dataclass, field
 import json
+import hashlib
 import re
 
 from .core import (AuthorityError, OWNER_POLICY, PAID_COMPLETED_CHECKS,
@@ -27,6 +28,15 @@ class VerifiedMonthlyDecision:
     period_start_epoch: int | None = None
     period_end_epoch: int | None = None
     billing_period: str = 'P1M'
+    require_existing_usage: bool = False
+    access_until_epoch: int | None = None
+    head_token_digest: str | None = field(default=None, repr=False)
+
+
+@dataclass(frozen=True)
+class TrustedLifecycleWorker:
+    """Server-created worker identity; never deserialize HTTP/PubSub body fields."""
+    principal_arn: str
 
 
 @dataclass(frozen=True)
@@ -45,7 +55,7 @@ def _json_integral(value):
 
 class EntitlementWriter:
     def __init__(self, authority, *, approved_products, operator_principals,
-                 store_verifier=None, verification_max_age_seconds, trial_retention_approved=False):
+                 store_verifier=None, verification_max_age_seconds, trial_retention_approved=False, lifecycle_principals=frozenset()):
         if (type(verification_max_age_seconds) is not int or verification_max_age_seconds <= 0
                 or not isinstance(approved_products, frozenset)
                 or any(not isinstance(x, tuple) or len(x) != 2 or x[0] not in ('google_play', 'app_store')
@@ -54,6 +64,9 @@ class EntitlementWriter:
                 or any(not isinstance(x, str) or not re.fullmatch(r'arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9_+=,.@/-]+', x)
                        for x in operator_principals)):
             raise AuthorityError('WRITER_CONFIGURATION_UNAVAILABLE')
+        if not isinstance(lifecycle_principals, frozenset) or any(not isinstance(x,str) or not re.fullmatch(r'arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9_+=,.@/-]+',x) for x in lifecycle_principals):
+            raise AuthorityError('WRITER_CONFIGURATION_UNAVAILABLE')
+        self.lifecycle_principals = lifecycle_principals
         self.a = authority
         self.products = approved_products
         self.operators = operator_principals
@@ -70,12 +83,95 @@ class EntitlementWriter:
                 raise AuthorityError('AUTHORITY_MIGRATION_REQUIRED')
         row = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'ACCESS'})
         if row is not None and (row.get('recordType') != 'V1_ACCESS_AUTHORITY'
-                or row.get('schemaVersion') != 1 or row.get('policyVersion') != OWNER_POLICY
+                or integral(row.get('schemaVersion')) != 1 or row.get('policyVersion') != OWNER_POLICY
                 or integral(row.get('revision')) is None or row['revision'] < 1
                 or not isinstance(row.get('sources'), dict)
                 or not set(row['sources']).issubset({'trial', 'paid', 'complimentary'})):
             raise AuthorityError('AUTHORITY_STATE_INVALID')
+        if row is not None:
+            self._validate_sources(row['sources'])
+            if row.get('state') not in ('ACTIVE', 'INACTIVE'):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if row['state'] == 'ACTIVE':
+                basis = row.get('basis')
+                source = row['sources'].get(basis) if isinstance(basis, str) else None
+                fields = ('validFromEpoch', 'validUntilEpoch') + (() if basis == 'complimentary' else ('periodId', 'periodRevision'))
+                if (not source or source['state'] != 'ACTIVE'
+                        or integral(row.get('validFromEpoch')) is None
+                        or row.get('validUntilEpoch') is not None and integral(row['validUntilEpoch']) is None
+                        or basis != 'complimentary' and integral(row.get('periodRevision')) is None
+                        or any(row.get(name) != source.get(name) for name in fields)):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
         return pk, row, deepcopy(row['sources']) if row else {}
+
+    @staticmethod
+    def _validate_sources(sources):
+        """Only accept source forms actually emitted by these trusted writers."""
+        period_fields = {'validFromEpoch', 'validUntilEpoch', 'periodId', 'periodRevision'}
+        paid_fields = {'state', 'store', 'productId', 'subscriptionDigest', 'sourceRevision'}
+        for basis, source in sources.items():
+            if not isinstance(source, dict) or source.get('state') not in ('ACTIVE', 'INACTIVE'):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if basis == 'paid':
+                allowed = paid_fields | period_fields
+                shape = set(source) - {'headTokenDigest'}
+                if ('headTokenDigest' in source and (not isinstance(source['headTokenDigest'],str) or not re.fullmatch(r'[0-9a-f]{64}',source['headTokenDigest']))
+                        or shape not in (paid_fields, allowed)
+                        or source['state'] == 'ACTIVE' and shape != allowed
+                        or source.get('store') not in ('google_play', 'app_store')
+                        or not isinstance(source.get('productId'), str) or not source['productId']
+                        or not isinstance(source.get('subscriptionDigest'), str)
+                        or not re.fullmatch(r'[0-9a-f]{64}', source['subscriptionDigest'])
+                        or integral(source.get('sourceRevision')) is None or source['sourceRevision'] < 1):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+                if shape == paid_fields:
+                    continue  # A verified inactive subscription may never have a funded period.
+            elif basis == 'trial':
+                if set(source) != {'state'} | period_fields:
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+            elif set(source) != {'state', 'validFromEpoch', 'validUntilEpoch'}:
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            start, end = integral(source.get('validFromEpoch')), integral(source.get('validUntilEpoch'))
+            if (start is None or start < 0 or (source.get('validUntilEpoch') is None and basis != 'complimentary')
+                    or source.get('validUntilEpoch') is not None and (end is None or end < start or end == start and not (basis == 'paid' and source['state'] == 'INACTIVE'))
+                    or basis == 'trial' and end != start + TRIAL_SECONDS):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            if basis != 'complimentary':
+                if (not isinstance(source.get('periodId'), str)
+                        or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', source['periodId'])
+                        or integral(source.get('periodRevision')) is None or source['periodRevision'] < 1):
+                    raise AuthorityError('AUTHORITY_STATE_INVALID')
+
+    def trial_history(self, account, sources=None):
+        """Validate retained eligibility evidence without repairing or extending it.
+
+        Multiple retained namespaces may carry the same historical activation;
+        conflicting clocks must never be normalized into new eligibility.
+        """
+        histories = {}
+        activated = None
+        for partition in self.a.deletion_partitions(account):
+            row = self.a._get(self.a.s.authority_table, {'PK': partition, 'SK': 'TRIAL_HISTORY'})
+            if row is None:
+                histories[partition] = None
+                continue
+            epoch = integral(row.get('activatedAtEpoch'))
+            if (set(row) != {'PK', 'SK', 'recordType', 'policyVersion', 'activationKind', 'activatedAtEpoch'}
+                    or row['PK'] != partition or row['SK'] != 'TRIAL_HISTORY'
+                    or row.get('recordType') != 'V1_TRIAL_ELIGIBILITY'
+                    or row.get('policyVersion') != OWNER_POLICY or row.get('activationKind') != 'explicit'
+                    or epoch is None or not 0 <= epoch <= self.a.now()
+                    or activated is not None and activated != epoch):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+            activated = epoch
+            histories[partition] = row
+        if sources is not None and 'trial' in sources:
+            source = sources['trial']
+            if (not isinstance(source, dict) or activated is None
+                    or source.get('validFromEpoch') != activated
+                    or source.get('validUntilEpoch') != activated + TRIAL_SECONDS):
+                raise AuthorityError('AUTHORITY_STATE_INVALID')
+        return activated, histories
 
     def _device_conditions(self, event, account):
         fingerprint, version = self.a._device(event, account)
@@ -115,7 +211,7 @@ class EntitlementWriter:
             break
         return row
 
-    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None):
+    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None, request_digest=None):
         if not isinstance(operation_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', operation_id):
             raise AuthorityError('WRITER_INPUT_REJECTED')
         kid = self.a.s.active_key_id
@@ -138,6 +234,10 @@ class EntitlementWriter:
                  'policyVersion': OWNER_POLICY, 'mutationDigest': digest,
                  'action': action, 'recordedAtEpoch': self.a.now(), 'revision': row['revision'],
                  'effectiveState': row['state'], 'effectiveBasis': row.get('basis')}
+        if request_digest is not None:
+            if not isinstance(request_digest, str) or not re.fullmatch(r'[0-9a-f]{64}', request_digest):
+                raise AuthorityError('WRITER_INPUT_REJECTED')
+            audit['requestDigest'] = request_digest
         if actor:
             audit['operatorPrincipalArn'] = actor['principal']
             audit['operatorSessionDigest'] = actor['session']
@@ -151,6 +251,8 @@ class EntitlementWriter:
             if other != pk:
                 items.append(self.a._check(self.a.s.authority_table, {'PK': other, 'SK': 'ACCESS'}, 'attribute_not_exists(PK)'))
         items += list(extras) + [self._put(row, condition, values), self._put(audit)]
+        if len(items) > 100:
+            raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
         try:
             self.a._transact(items)
         except AuthorityError:
@@ -167,15 +269,10 @@ class EntitlementWriter:
         account = self.a._account(verified_event)
         device_conditions = self._device_conditions(verified_event, account)
         pk, old, sources = self._read(account)
-        histories = [self.a._get(self.a.s.authority_table, {'PK': p, 'SK': 'TRIAL_HISTORY'})
-                     for p in self.a.deletion_partitions(account)]
-        if any(histories):
-            history = next(h for h in histories if h)
-            if (history.get('recordType') != 'V1_TRIAL_ELIGIBILITY' or history.get('policyVersion') != OWNER_POLICY
-                    or integral(history.get('activatedAtEpoch')) is None):
-                raise AuthorityError('AUTHORITY_STATE_INVALID')
-            return {'activatedAtEpoch': int(history['activatedAtEpoch']),
-                    'validUntilEpoch': int(history['activatedAtEpoch']) + TRIAL_SECONDS,
+        activated, _ = self.trial_history(account, sources)
+        if activated is not None:
+            return {'activatedAtEpoch': activated,
+                    'validUntilEpoch': activated + TRIAL_SECONDS,
                     'alreadyActivated': True}
         if any(s.get('state') == 'ACTIVE' and (s.get('validUntilEpoch') is None or s['validUntilEpoch'] > self.a.now())
                for s in sources.values()):
@@ -212,17 +309,69 @@ class EntitlementWriter:
             raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
         # purchase_reference is forwarded to the verifier only; never persisted/logged.
         decision = self.verify_store(account, purchase_reference)
+        return self.commit_verified_paid(verified_event, decision, operation_id)
+
+    def commit_verified_paid(self, verified_event, decision, operation_id, *, observation=None, transaction_extras=(), request_digest=None):
+        """Internal atomic adapter boundary; never deserialize a client decision.
+
+        A modern Play adapter supplies pre-provider ACCESS/device observations and
+        exact ownership CAS actions. Existing verifier callers keep their API.
+        """
+        account = self.a._account(verified_event)
+        device_conditions = self._device_conditions(verified_event, account)
+        expected = None
+        if observation is not None:
+            if set(observation) != {'access', 'device'} or self.a._device(verified_event, account) != observation['device']:
+                raise AuthorityError('STORE_OBSERVATION_CHANGED')
+            expected = observation['access']
+        return self._commit_paid(account, decision, operation_id, observed=observation is not None,
+            expected_access=expected, extras=device_conditions + list(transaction_extras), request_digest=request_digest)
+
+    def commit_background_paid(self, worker, decision, operation_id, *, expected_access, ownership_actions, token_actions=(), request_digest=None):
+        if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in self.lifecycle_principals:
+            raise AuthorityError('LIFECYCLE_AUTHORIZATION_REQUIRED')
+        if type(decision) is not VerifiedMonthlyDecision or not isinstance(expected_access,dict) or not ownership_actions:
+            raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+        # Only pre-existing ownership may be reconciled in the background. The
+        # adapter supplies exact inventory/owner/locator ConditionChecks, never
+        # ownership claims, automatic restores or an invented device session.
+        if any(set(action) != {'ConditionCheck'} for action in ownership_actions):
+            raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+        return self._commit_paid(decision.account, decision, operation_id, observed=True,
+            expected_access=expected_access, extras=list(ownership_actions)+list(token_actions), request_digest=request_digest)
+
+    def commit_background_initial_paid(self, worker, decision, operation_id, *, expected_access, ownership_actions, token_actions=(), request_digest=None):
+        """Trusted prepared-account recovery, never an automatic ownership transfer.
+
+        Only the verified adapter can supply ownership claim CAS and the exact
+        reverse/forward preparation mapping proof. No client decision/JWT enters.
+        """
+        if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in self.lifecycle_principals:
+            raise AuthorityError('LIFECYCLE_AUTHORIZATION_REQUIRED')
+        if (type(decision) is not VerifiedMonthlyDecision or not decision.active or not ownership_actions
+                or expected_access is not None and (not isinstance(expected_access,dict) or 'paid' in expected_access.get('sources',{}))
+                or any(set(action) not in ({'ConditionCheck'},{'Put'}) for action in ownership_actions)
+                or not any('Put' in action and action['Put'].get('Item',{}).get('PK','').startswith('TOKEN#') for action in ownership_actions)
+                or sum('ConditionCheck' in action and action['ConditionCheck'].get('Key',{}).get('PK','').startswith('PLAY_BINDING#') for action in ownership_actions)!=1):
+            raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+        return self._commit_paid(decision.account,decision,operation_id,observed=True,
+            expected_access=expected_access,extras=list(ownership_actions)+list(token_actions),request_digest=request_digest)
+
+    def _commit_paid(self, account, decision, operation_id, *, observed, expected_access, extras, request_digest):
         if type(decision) is not VerifiedMonthlyDecision:
             raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
         now = self.a.now()
         if (decision.account != account or (decision.store, decision.product_id) not in self.products
-                or type(decision.active) is not bool or decision.billing_period != 'P1M'
+                or type(decision.active) is not bool or type(decision.require_existing_usage) is not bool or decision.billing_period != 'P1M'
                 or type(decision.source_revision) is not int or decision.source_revision < 1
                 or type(decision.verified_at_epoch) is not int
                 or not now - self.verification_max_age <= decision.verified_at_epoch <= now
-                or not isinstance(decision.subscription_id, str) or not 1 <= len(decision.subscription_id) <= 512):
+                or not isinstance(decision.subscription_id, str) or not 1 <= len(decision.subscription_id) <= 512
+                or decision.head_token_digest is not None and (not isinstance(decision.head_token_digest,str) or not re.fullmatch(r'[0-9a-f]{64}',decision.head_token_digest))):
             raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
         pk, old, sources = self._read(account)
+        if observed and old != expected_access:
+            raise AuthorityError('STORE_OBSERVATION_CHANGED')
         kid = self.a.s.active_key_id
         subscription = self.a._mac(kid, 'store-subscription', decision.store + '\0' + decision.subscription_id)
         previous = sources.get('paid')
@@ -233,14 +382,30 @@ class EntitlementWriter:
         source = {'state': 'ACTIVE' if decision.active else 'INACTIVE', 'store': decision.store,
                   'productId': decision.product_id, 'subscriptionDigest': subscription,
                   'sourceRevision': decision.source_revision}
-        extras = device_conditions
+        if decision.head_token_digest is not None:
+            source['headTokenDigest'] = decision.head_token_digest
+        elif previous and 'headTokenDigest' in previous:
+            source['headTokenDigest'] = previous['headTokenDigest']
         if decision.active:
             start, end = decision.period_start_epoch, decision.period_end_epoch
+            access_end = end if decision.access_until_epoch is None else decision.access_until_epoch
             if (not isinstance(decision.period_id, str) or not 1 <= len(decision.period_id) <= 512
-                    or type(start) is not int or type(end) is not int or not start <= now < end):
+                    or type(start) is not int or type(end) is not int or type(access_end) is not int
+                    or not start < end <= access_end or not start <= now < access_end):
                 raise AuthorityError('VERIFIED_MONTHLY_PERIOD_UNAVAILABLE')
             period_id = 'paid-' + self.a._mac(kid, 'store-period', subscription + '\0' + decision.period_id)[:40]
             period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#' + period_id})
+            from . import purchase_usage
+            if period is not None:
+                purchase_usage.validate_period(period)
+                if period['startEpoch'] != start or period['endEpoch'] != end:
+                    raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
+            usage_key = purchase_usage.key(hashlib.sha256((decision.store+'\0'+decision.subscription_id).encode()).hexdigest(), hashlib.sha256(decision.period_id.encode()).hexdigest())
+            observed_usage = self.a._get(self.a.s.authority_table, usage_key)
+            if observed_usage is None and (period is not None or decision.require_existing_usage):
+                raise AuthorityError('PURCHASE_USAGE_UNAVAILABLE')
+            usage_actions, usage_seed = purchase_usage.funding_actions(self.a.s.authority_table, usage_key, start, end, observed_usage, now=now, access_until_epoch=access_end)
+            extras.extend(usage_actions)
             if period:
                 if (period.get('recordType') != 'V1_ALLOWANCE_PERIOD' or period.get('policyVersion') != OWNER_POLICY
                         or period.get('startEpoch') != start or period.get('endEpoch') != end
@@ -248,24 +413,73 @@ class EntitlementWriter:
                         or integral(period.get('usedChecks')) is None or integral(period.get('reservedChecks')) is None
                         or period['usedChecks'] < 0 or period['reservedChecks'] < 0):
                     raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
+                if period.get('purchaseUsageKey') != usage_key or any(period.get(k) != v for k,v in usage_seed.items()):
+                    raise AuthorityError('PURCHASE_USAGE_MISMATCH')
                 revision = int(period['grantRevision'])
-                extras.append(self.a._check(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#' + period_id},
-                                           'grantRevision = :r AND startEpoch = :s AND endEpoch = :e AND #l = :l',
-                                           {':r': revision, ':s': start, ':e': end, ':l': PAID_COMPLETED_CHECKS}, {'#l': 'limit'}))
+                if purchase_usage.effective_access_end(period) != access_end:
+                    updated_period = dict(period, accessUntilEpoch=access_end)
+                    extras.append({'Put': {'TableName': self.a.s.authority_table, 'Item': updated_period, **purchase_usage.exact_condition(period)}})
+                else:
+                    extras.append({'ConditionCheck': {'TableName': self.a.s.authority_table, 'Key': {'PK': pk, 'SK': period['SK']}, **purchase_usage.exact_condition(period)}})
             else:
-                # Different store IDs cannot create overlapping independently spendable periods.
-                if previous and previous.get('validUntilEpoch', 0) > start:
-                    raise AuthorityError('OVERLAPPING_STORE_PERIOD')
+                # Temporary grace/deferral access may overlap a newly funded
+                # period. Only immutable funded accounting dates must not overlap.
+                if previous and previous.get('periodId'):
+                    previous_period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#'+previous['periodId']})
+                    purchase_usage.validate_period(previous_period)
+                    if (previous_period['grantRevision'] != previous['periodRevision']
+                            or previous_period['startEpoch'] != previous['validFromEpoch']):
+                        raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
+                    if previous_period['endEpoch'] > start:
+                        raise AuthorityError('OVERLAPPING_STORE_PERIOD')
+                    extras.append({'ConditionCheck': {'TableName': self.a.s.authority_table,
+                        'Key': {'PK': pk, 'SK': previous_period['SK']}, **purchase_usage.exact_condition(previous_period)}})
                 revision = (int(old['revision']) if old else 0) + 1
-                extras.append(self._put(self._period(pk, period_id, revision, start, end, PAID_COMPLETED_CHECKS)))
-            source.update(validFromEpoch=start, validUntilEpoch=end, periodId=period_id, periodRevision=revision)
+                if usage_seed['reservedChecks'] != 0:
+                    raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+                period_row = self._period(pk, period_id, revision, start, end, PAID_COMPLETED_CHECKS)
+                period_row.update(usage_seed, purchaseUsageKey=usage_key, accessUntilEpoch=access_end)
+                extras.append(self._put(period_row))
+            source.update(validFromEpoch=start, validUntilEpoch=access_end, periodId=period_id, periodRevision=revision)
         elif previous:
             # Keep period identity/history while disabling new paid admission.
             source.update({k: v for k, v in previous.items() if k in ('periodId', 'periodRevision', 'validFromEpoch', 'validUntilEpoch')})
+            if decision.access_until_epoch is not None and 'periodId' in previous:
+                from . import purchase_usage
+                access_end = decision.access_until_epoch
+                if type(access_end) is not int or access_end < previous['validFromEpoch']:
+                    raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
+                period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#'+previous['periodId']})
+                pointer = purchase_usage.validate_period(period)
+                if (period['grantRevision'] != previous['periodRevision']
+                        or period['startEpoch'] != previous['validFromEpoch']):
+                    raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
+                usage = self.a._get(self.a.s.authority_table, pointer)
+                closed_pending = False
+                if usage is None:
+                    if now < purchase_usage.usage_deadline(period) or now < access_end+purchase_usage.RETENTION_SECONDS or period['reservedChecks'] != 0:
+                        raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+                    extras.append(self.a._check(self.a.s.authority_table,pointer,'attribute_not_exists(PK)'))
+                else:
+                    purchase_usage.validate(usage,pointer,now,allow_expired=True)
+                    if any(usage[k] != period[k] for k in ('startEpoch','endEpoch','usedChecks','reservedChecks','limit')) or purchase_usage.effective_access_end(usage)!=purchase_usage.effective_access_end(period):
+                        raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+                    if access_end + purchase_usage.RETENTION_SECONDS <= now and period['reservedChecks'] > 0:
+                        extras.extend(purchase_usage.due_reservation_actions(self.a.ddb, self.a.s.authority_table,
+                            period, usage, access_end, now=now))
+                        closed_pending = True
+                    else:
+                        extras.extend(purchase_usage.access_window_actions(self.a.s.authority_table,pointer,usage,access_end,now=now))
+                updated_period = dict(period, accessUntilEpoch=access_end)
+                if closed_pending:
+                    updated_period['reservedChecks'] = 0
+                extras.append({'Put': {'TableName': self.a.s.authority_table, 'Item': updated_period, **purchase_usage.exact_condition(period)}})
+                source['validUntilEpoch'] = access_end
         if previous and decision.source_revision == previous['sourceRevision'] and source != previous:
             raise AuthorityError('STORE_REVISION_CONFLICT')
         sources['paid'] = source
-        return self._commit(account, pk, old, sources, operation_id, 'SYNC_PAID', source, extras=extras)
+        details = source if request_digest is None else {'source': source, 'requestDigest': request_digest}
+        return self._commit(account, pk, old, sources, operation_id, 'SYNC_PAID', details, extras=extras, request_digest=request_digest)
 
     def set_complimentary(self, operator, account, operation_id, *, enabled, reason_code, expires_at=None):
         if (type(operator) is not TrustedOperator or operator.principal_arn not in self.operators

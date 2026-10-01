@@ -2325,6 +2325,50 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "rejected"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "checkId": {
+            "type": "string"
+          },
+          "operationProof": {
+            "type": "string"
+          },
+          "errorCode": {
+            "const": "OPERATION_EXPIRED"
+          },
+          "outcome": {
+            "type": "null"
+          },
+          "expiresAt": {
+            "type": "integer"
+          },
+          "accounting": {
+            "properties": {
+              "state": {
+                "const": "not_started"
+              },
+              "chargedChecks": {
+                "const": 0
+              },
+              "receiptId": {
+                "type": "null"
+              },
+              "requiresReconciliation": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

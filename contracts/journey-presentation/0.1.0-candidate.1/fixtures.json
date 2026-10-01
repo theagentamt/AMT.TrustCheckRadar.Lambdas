@@ -1,0 +1,343 @@
+[
+  {
+    "id": "message-hostile",
+    "input": {
+      "journey": "message",
+      "processing": "blocked",
+      "limitations": [
+        "HOSTILE_INPUT_STOP"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "blocked",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "HOSTILE_INPUT_STOP"
+      ],
+      "evidence": [],
+      "nextAction": "review_input",
+      "messageKey": "journey.hostile_input_stop"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-inconclusive",
+    "input": {
+      "journey": "message",
+      "processing": "inconclusive",
+      "limitations": [
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "inconclusive",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "evidence": [],
+      "nextAction": "review_input",
+      "messageKey": "journey.inconclusive"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-provider-failure",
+    "input": {
+      "journey": "message",
+      "processing": "unavailable",
+      "limitations": [
+        "PROVIDER_UNAVAILABLE"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "unavailable",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "PROVIDER_UNAVAILABLE"
+      ],
+      "evidence": [],
+      "nextAction": "use_built_in_help",
+      "messageKey": "journey.provider_unavailable"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-roles",
+    "input": {
+      "journey": "message",
+      "processing": "inconclusive",
+      "limitations": [
+        "CLARIFICATION_REQUIRED"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "inconclusive",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "CLARIFICATION_REQUIRED"
+      ],
+      "evidence": [],
+      "nextAction": "review_input",
+      "messageKey": "journey.clarification_required"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "qr-non-url",
+    "input": {
+      "journey": "qr",
+      "processing": "unsupported",
+      "limitations": [
+        "UNSUPPORTED_CONTENT"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "qr",
+      "processingOutcome": "unsupported",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "UNSUPPORTED_CONTENT"
+      ],
+      "evidence": [],
+      "nextAction": "review_input",
+      "messageKey": "journey.unsupported"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "recovery-unapproved",
+    "input": {
+      "journey": "recovery",
+      "processing": "unavailable",
+      "limitations": [
+        "RECOVERY_CONTENT_UNAVAILABLE"
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "recovery",
+      "processingOutcome": "unavailable",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "RECOVERY_CONTENT_UNAVAILABLE"
+      ],
+      "evidence": [],
+      "nextAction": "use_built_in_help",
+      "messageKey": "journey.recovery_unavailable"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "link-known",
+    "input": {
+      "journey": "link",
+      "processing": "complete",
+      "limitations": [],
+      "verified_evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "link",
+      "processingOutcome": "complete",
+      "verdict": "high_risk",
+      "limitationCodes": [],
+      "evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ],
+      "nextAction": "avoid_link",
+      "messageKey": "journey.known_threat"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-known-hostile",
+    "input": {
+      "journey": "message",
+      "processing": "blocked",
+      "limitations": [
+        "HOSTILE_INPUT_STOP"
+      ],
+      "verified_evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "partial",
+      "verdict": "high_risk",
+      "limitationCodes": [
+        "HOSTILE_INPUT_STOP"
+      ],
+      "evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ],
+      "nextAction": "avoid_link",
+      "messageKey": "journey.known_threat_partial"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-known-provider-failure",
+    "input": {
+      "journey": "message",
+      "processing": "unavailable",
+      "limitations": [
+        "PROVIDER_UNAVAILABLE"
+      ],
+      "verified_evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "partial",
+      "verdict": "high_risk",
+      "limitationCodes": [
+        "PROVIDER_UNAVAILABLE"
+      ],
+      "evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "match",
+          "targetScope": "full_submitted_url"
+        }
+      ],
+      "nextAction": "avoid_link",
+      "messageKey": "journey.known_threat_partial"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "qr-no-match",
+    "input": {
+      "journey": "qr",
+      "processing": "complete",
+      "limitations": [],
+      "verified_evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "no_match",
+          "targetScope": "full_submitted_url"
+        }
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "qr",
+      "processingOutcome": "complete",
+      "verdict": "no_known_threat_detected",
+      "limitationCodes": [],
+      "evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "no_match",
+          "targetScope": "full_submitted_url"
+        }
+      ],
+      "nextAction": "verify_independently",
+      "messageKey": "journey.no_known_threat"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  },
+  {
+    "id": "message-url-no-match",
+    "input": {
+      "journey": "message",
+      "processing": "complete",
+      "limitations": [],
+      "verified_evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "no_match",
+          "targetScope": "full_submitted_url"
+        }
+      ]
+    },
+    "assessment": {
+      "contractVersion": "0.1.0-candidate.1",
+      "journey": "message",
+      "processingOutcome": "inconclusive",
+      "verdict": "unknown",
+      "limitationCodes": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "evidence": [
+        {
+          "source": "google_web_risk_lookup",
+          "outcome": "no_match",
+          "targetScope": "full_submitted_url"
+        }
+      ],
+      "nextAction": "review_input",
+      "messageKey": "journey.inconclusive"
+    },
+    "languages": [
+      "en",
+      "es"
+    ]
+  }
+]

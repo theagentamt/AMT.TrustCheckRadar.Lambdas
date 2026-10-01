@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "codeSourceCommit": "cdf607854db89534c8dbd3d2e72b725e2ed28249",
+  "sourceScope": "All src and build-script bytes at this commit; subsequent evidence/documentation-only commits do not change these artifacts.",
+  "artifacts": [
+    {
+      "function": "campaign_cluster_aggregator",
+      "artifact": "campaign_cluster_aggregator.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "a6969db84e7398cc5e2985f5c3c241b91ad5813b45329dfdf91cb3305f82e21a",
+      "codeSha256": "ppaduE5zmMxeKYX1w8JBuRrVgTtFMp39+RyzMF+C4ho=",
+      "bytes": 14061,
+      "bundledDependencies": []
+    },
+    {
+      "function": "campaign_deletion_bridge",
+      "artifact": "campaign_deletion_bridge.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "148b535cd6a2df4d8738efa81e730d8fbd32eadd2bff961e5a349c4d7ed040c4",
+      "codeSha256": "FItTXNai302HOO+oHnMNj70y6t0r/5YeWjScTX7QQMQ=",
+      "bytes": 13470,
+      "bundledDependencies": []
+    },
+    {
+      "function": "campaign_lifecycle",
+      "artifact": "campaign_lifecycle.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "3de85507c54fbf8fed91c36b8a0c43e827bae26530b044fda97d743fe500909a",
+      "codeSha256": "PehVB8VPv4/tkcNrigxD6Ce64mUwsET9qX10P+UAkJo=",
+      "bytes": 14985,
+      "bundledDependencies": []
+    },
+    {
+      "function": "campaign_observation_publisher",
+      "artifact": "campaign_observation_publisher.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "9ffd3caaafdfa46671fdfa1bf224efc62b4c551a400b07d3beded271426e49b1",
+      "codeSha256": "n/08qq/fpGZx/fob8iTvxitMVRpACwfTvt7ScUJuSbE=",
+      "bytes": 15024,
+      "bundledDependencies": []
+    },
+    {
+      "function": "campaign_participation",
+      "artifact": "campaign_participation.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "a7ec0f6120bb052c4de636127df78f400bb60cb64b7c3859f9c24b28fd9d9d7f",
+      "codeSha256": "p+wPYSC7BSxN5jYSffePQAu2DLZLfDhZ+cJLKP2dnX8=",
+      "bytes": 8359,
+      "bundledDependencies": []
+    },
+    {
+      "function": "conversation_analysis",
+      "artifact": "conversation_analysis.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "bcc18da16b1495b44af895a538d110f2d0232be5efb0e7b23b8c1898a027d0ee",
+      "codeSha256": "vMGNoWsUlbRK+JWlONEQ8tAjK+XvsOeyO4wYmKAn0O4=",
+      "bytes": 42211,
+      "bundledDependencies": []
+    },
+    {
+      "function": "entitlement_snapshot",
+      "artifact": "entitlement_snapshot.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "dc7c71b0402d0042a5b3cf4ec4df7509f350a3579dabab9c36eb38afea36455a",
+      "codeSha256": "3HxxsEAtAEKls89OxN91CfNQo1edq6ucNus4r+o2RVo=",
+      "bytes": 6310,
+      "bundledDependencies": []
+    },
+    {
+      "function": "purchase_handoff",
+      "artifact": "purchase_handoff.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "33f8b7b3a4145e8bd11b6e46825bf67f9189a476a969de24f845bc9c411b4595",
+      "codeSha256": "M/i3s6QUXovRG25Gglv2f5GJpHapad4k+EW8nEEbRZU=",
+      "bytes": 6165872,
+      "bundledDependencies": [
+        {
+          "name": "certifi",
+          "version": "2026.7.22"
+        },
+        {
+          "name": "cffi",
+          "version": "2.1.1"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.5.1"
+        },
+        {
+          "name": "cryptography",
+          "version": "50.0.1"
+        },
+        {
+          "name": "google-auth",
+          "version": "2.57.0"
+        },
+        {
+          "name": "idna",
+          "version": "3.20"
+        },
+        {
+          "name": "pyasn1",
+          "version": "0.6.4"
+        },
+        {
+          "name": "pyasn1_modules",
+          "version": "0.4.2"
+        },
+        {
+          "name": "pycparser",
+          "version": "3.0"
+        },
+        {
+          "name": "requests",
+          "version": "2.34.2"
+        },
+        {
+          "name": "urllib3",
+          "version": "2.8.0"
+        }
+      ]
+    },
+    {
+      "function": "web_risk_communication",
+      "artifact": "web_risk_communication.zip",
+      "handler": "app.lambda_handler",
+      "runtime": "python3.14",
+      "architecture": "arm64",
+      "sha256": "ace17bae50cef21240feed521ce882d5e6d8339237733a1c994b63efbc309c22",
+      "codeSha256": "rOF7rlDO8hJA/u1SHOiC1ebYM5I3czocmUtj77wwnCI=",
+      "bytes": 8120,
+      "bundledDependencies": []
+    }
+  ],
+  "qualification": {
+    "fullDependenciesPackaged": true,
+    "python314ImportCompileSmokePassed": true,
+    "providerCallsMade": false,
+    "deployed": false,
+    "liveInventoryComplete": false,
+    "migrationApproved": false
+  }
+}

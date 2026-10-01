@@ -3,7 +3,13 @@ import hashlib
 import re
 import time
 
-from errors import AppError
+try:  # Package import for the private support adapter; flat Lambda import retained.
+    from .errors import AppError
+except ImportError:
+    from errors import AppError
+from shared_account_finalization.service import (
+    validate_inventory, inventory_condition, serialize_operation, FinalizationError,
+)
 
 
 COMMAND_FIELDS = {
@@ -30,7 +36,7 @@ OUTBOX_LOCATOR_FIELDS = {
 }
 USER_PROFILE_PREREQUISITES = (
     "SESSION_REVOCATION", "DEVICE_BINDINGS", "DEVICE_RECOVERY", "HISTORY",
-    "ANALYSIS_ABUSE", "CAMPAIGN", "CAMPAIGN_OUTBOX", "ENTITLEMENTS",
+    "ANALYSIS_ABUSE", "CAMPAIGN", "CAMPAIGN_OUTBOX", "ENTITLEMENTS", "V1_AUTHORITY", "PLAY_TOKENS",
 )
 CONSENT_AUDIT_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "eventType", "occurredAt",
@@ -41,6 +47,16 @@ CONSENT_COMPLETION_FIELDS = {
     "PK", "SK", "schemaVersion", "recordVersion", "eventType", "occurredAt",
     "consentEpochId", "operationId", "resultingState", "expiresAt",
 }
+DEMOGRAPHIC_AUDIT_BASE_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "eventType", "purpose", "purposeVersion",
+    "noticeVersion", "policyVersion", "consentEpochId", "operationId",
+    "resultingState", "stateVersion", "occurredAtEpoch", "expiresAt",
+}
+DEMOGRAPHIC_AUTHORITY_FIELDS = {
+    "PK", "SK", "schemaVersion", "recordVersion", "purpose", "purposeVersion", "noticeVersion",
+    "policyVersion", "state", "stateVersion", "consentEpochId", "lastOperationId",
+    "updatedAtEpoch", "expiresAt",
+}
 PAYLOAD_HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
@@ -50,6 +66,7 @@ class AccountDeletionService:
         self, *, environment, ledger_table, users_table_name,
         ledger_table_name, dynamodb_client, required_components,
         erasure_sla_hours=24, now=lambda: int(time.time()),
+        inventory_manifest_sha256=None, inventory_revision=None, campaign_recovery_writes_enabled=False,
     ):
         self.environment = environment
         self.ledger_table = ledger_table
@@ -59,12 +76,27 @@ class AccountDeletionService:
         self.required_components = tuple(required_components)
         self.erasure_sla_hours = erasure_sla_hours
         self.now = now
+        self.inventory_manifest_sha256 = inventory_manifest_sha256
+        self.inventory_revision = inventory_revision
+        self.campaign_recovery_writes_enabled = campaign_recovery_writes_enabled
 
     def request(self, account_id, operation_id):
         existing = self._command(account_id)
         if existing:
             return self._replay(existing, operation_id)
         now = self.now()
+        inventory = self.ledger_table.get_item(
+            Key={"PK": "INVENTORY#" + self.environment, "SK": "ACCOUNT_DATA_INVENTORY"},
+            ConsistentRead=True,
+        ).get("Item")
+        try:
+            validate_inventory(inventory, self.environment, self.inventory_manifest_sha256,
+                               self.required_components, expected_revision=self.inventory_revision,
+                               now_epoch=now)
+            if inventory["approvedAtEpoch"] >= now:
+                raise FinalizationError("FINALIZER_INVENTORY_UNVERIFIED")
+        except FinalizationError:
+            raise AppError("SERVER_UNAVAILABLE", "The account-data inventory is not verified.") from None
         command = {
             "PK": f"ACCOUNT#{account_id}", "SK": "ACCOUNT_DELETION",
             "schemaVersion": 1, "recordVersion": 1,
@@ -83,12 +115,12 @@ class AccountDeletionService:
                     "deletionRequestedAtEpoch = :now, updatedAtEpoch = :now"
                 ),
                 "ConditionExpression": (
-                    "#status = :active AND ageVerified = :true AND #sub = :account"
+                    "(#status = :active OR #status = :pending) AND #sub = :account"
                 ),
                 "ExpressionAttributeNames": {"#status": "status", "#sub": "sub"},
                 "ExpressionAttributeValues": _serialize({
                     ":requested": "DELETION_REQUESTED", ":active": "ACTIVE",
-                    ":true": True, ":account": account_id,
+                    ":pending": "PENDING_AGE_GATE", ":account": account_id,
                     ":operation_id": operation_id, ":now": now,
                 }),
             }},
@@ -97,6 +129,12 @@ class AccountDeletionService:
                 "ConditionExpression": "attribute_not_exists(PK) AND attribute_not_exists(SK)",
             }},
         ]
+        transaction.append(serialize_operation(inventory_condition(self.ledger_table_name, inventory)))
+        if self.campaign_recovery_writes_enabled:
+            from shared_campaign_recovery.jobs import enqueue_actions
+            from shared_campaign_recovery.records import serialize_actions
+            transaction.extend(serialize_actions(enqueue_actions(
+                self.dynamodb_client, self.ledger_table_name, command)))
         try:
             self.dynamodb_client.transact_write_items(TransactItems=transaction)
         except Exception as err:
@@ -118,6 +156,8 @@ class AccountDeletionService:
                 "status": "NOT_REQUESTED", "completionEligible": False,
                 "components": [],
             }
+        if command.get("status") == "COMPLETE":
+            raise AppError("UNAUTHORIZED", "The account is no longer available.")
         command = validate_command(command, self.environment)
         components = []
         for component in self.required_components:
@@ -131,8 +171,8 @@ class AccountDeletionService:
         return {
             "schemaVersion": 1, "operation": "ACCOUNT_DELETION",
             "operationId": command["operationId"], "status": command["status"],
-            "requestedAtEpoch": command["occurredAtEpoch"],
-            "deleteByEpoch": command["deleteByEpoch"],
+            "requestedAtEpoch": _exact_int(command["occurredAtEpoch"]),
+            "deleteByEpoch": _exact_int(command["deleteByEpoch"]),
             "completionEligible": completion_eligible,
             "components": components,
         }
@@ -144,6 +184,8 @@ class AccountDeletionService:
         ).get("Item")
 
     def _replay(self, command, operation_id):
+        if command.get("status") == "COMPLETE":
+            raise AppError("UNAUTHORIZED", "The account is no longer available.")
         command = validate_command(command, self.environment)
         if command["operationId"] != operation_id:
             raise AppError(
@@ -550,6 +592,7 @@ def delete_analysis_abuse_control(
 def delete_campaign_outbox(
     command, *, outbox_table, ledger_table, page_size=100, now_epoch=None,
     locator_coverage_status="pending",
+    work_client=None,
     account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
 ):
     """Delete account-linked outbox content through exact same-table locators."""
@@ -599,6 +642,16 @@ def delete_campaign_outbox(
         event = outbox_table.get_item(
             Key=event_key, ConsistentRead=True
         ).get("Item")
+        from shared_campaign_work import configuration as work_config
+        if work_config.enabled():
+            from shared_campaign_work.outbox import paired_delete
+            if work_client is None:
+                import boto3
+                work_client=boto3.client('dynamodb')
+            paired_delete(work_client,outbox_table=outbox_table.name,ledger_table=ledger_table.name,
+                          command=command,locator=locator,event=event,now=int(time.time()) if now_epoch is None else now_epoch)
+            deleted+=1+int(event is not None)
+            continue
         if event:
             if (
                 event.get("PK") != event_key["PK"]
@@ -677,7 +730,8 @@ def delete_campaign_outbox(
 
 def delete_user_profile_state(
     command, *, users_table, ledger_table, page_size=100,
-    policy_status="pending", prerequisite_components=USER_PROFILE_PREREQUISITES,
+    policy_status="pending", demographic_research_policy_status="pending",
+    prerequisite_components=USER_PROFILE_PREREQUISITES,
     now_epoch=None,
     account_receipt_retention_days=ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS,
 ):
@@ -686,6 +740,7 @@ def delete_user_profile_state(
     if (
         page_size != 100
         or policy_status not in {"pending", "approved"}
+        or demographic_research_policy_status not in {"pending", "approved"}
         or tuple(prerequisite_components) != USER_PROFILE_PREREQUISITES
         or account_receipt_retention_days != 120
     ):
@@ -723,6 +778,11 @@ def delete_user_profile_state(
             "deleted": 0, "complete": False, "alreadyComplete": False,
             "policyBlocked": "USER_PROFILE_PREREQUISITES",
             "missingComponents": missing,
+        }
+    if demographic_research_policy_status != "approved":
+        return {
+            "deleted": 0, "complete": False, "alreadyComplete": False,
+            "policyBlocked": "DEMOGRAPHIC_RESEARCH_DELETION",
         }
     progress = ledger_table.get_item(
         Key=progress_key, ConsistentRead=True
@@ -772,6 +832,11 @@ def delete_user_profile_state(
             deleted += 1
         elif sk.startswith("CAMPAIGN_CONSENT#"):
             _validate_consent_audit(item, partition)
+        elif sk == "DEMOGRAPHIC_RESEARCH" or sk.startswith("DEMOGRAPHIC_OPERATION#"):
+            users_table.delete_item(Key=key)
+            deleted += 1
+        elif sk.startswith("DEMOGRAPHIC_CONSENT#"):
+            _validate_demographic_audit(item, partition)
         else:
             raise ValueError("Unknown users-table item family during profile deletion")
     continuation = page.get("LastEvaluatedKey")
@@ -789,6 +854,9 @@ def delete_user_profile_state(
             "updatedAtEpoch": now,
         })
         return {"deleted": deleted, "complete": False, "alreadyComplete": False}
+    deleted += _delete_demographic_authority(
+        ledger_table, command["accountId"]
+    )
     receipt = _component_receipt(
         command, "USER_PROFILE", now,
         retention_days=account_receipt_retention_days,
@@ -825,8 +893,13 @@ def reconcile_session_revocations(
     analysis_consumption_deletion_policy_status="pending",
     campaign_outbox_locator_coverage_status="pending",
     user_profile_deletion_policy_status="pending",
-    now=lambda: int(time.time()),
+    demographic_research_deletion_policy_status="pending",
+    now=lambda: int(time.time()), remaining_millis=lambda: 30000,
+    max_commands=10, minimum_remaining_millis=10000,
+    verify_command=None, delete_entitlements=None, finalize_account=None,
 ):
+    if not 1 <= max_commands <= 10 or minimum_remaining_millis != 10000:
+        raise ValueError("Invalid reconciliation work budget")
     checkpoint_key = {
         "PK": f"LIFECYCLE#{environment}",
         "SK": "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
@@ -838,8 +911,11 @@ def reconcile_session_revocations(
     if start_key is not None and not _valid_key(start_key):
         raise ValueError("Invalid session-revocation reconciliation checkpoint")
     completed_pass_at = _exact_int(checkpoint.get("completedPassAtEpoch"))
+    pass_had_failures = checkpoint.get("passHadFailures", False)
+    if not isinstance(pass_had_failures, bool):
+        raise ValueError("Invalid reconciliation pass state")
     totals = {
-        "scanned": 0, "matched": 0, "revoked": 0,
+        "scanned": 0, "matched": 0, "revoked": 0, "commandFailures": 0,
         "sessionAlreadyComplete": 0, "deviceRecordsDeleted": 0,
         "deviceComponentsCompleted": 0,
         "recoveryRecordsDeleted": 0, "recoveryRecordsMinimized": 0,
@@ -856,7 +932,12 @@ def reconcile_session_revocations(
         "userProfilePolicyBlocked": 0,
     }
     truncated = False
+    completed_clean_pass = False
+    attempted = 0
     for page_number in range(max_pages):
+        if attempted >= max_commands or remaining_millis() < minimum_remaining_millis:
+            truncated = True
+            break
         kwargs = {
             "ConsistentRead": True,
             "Limit": scan_limit,
@@ -872,92 +953,128 @@ def reconcile_session_revocations(
         page = ledger_table.scan(**kwargs)
         totals["scanned"] += int(page.get("ScannedCount", 0))
         for raw in page.get("Items") or []:
-            command = validate_command(raw, environment)
-            totals["matched"] += 1
-            receipt = ledger_table.get_item(
-                Key={
-                    "PK": command["PK"],
-                    "SK": "ACCOUNT_DELETION#SESSION_REVOCATION",
-                },
-                ConsistentRead=True,
-            ).get("Item")
-            if _valid_component_receipt(receipt, command, "SESSION_REVOCATION"):
-                totals["sessionAlreadyComplete"] += 1
-            else:
-                ensure_session_revoked(
-                    command, user_pool_id=user_pool_id, cognito=cognito,
-                    ledger_table=ledger_table, now_epoch=now(),
+            if attempted >= max_commands or remaining_millis() < minimum_remaining_millis:
+                truncated = True
+                break
+            key = {"PK": raw.get("PK"), "SK": raw.get("SK")}
+            if not _valid_key(key):
+                raise ValueError("Invalid reconciliation item key")
+            # Advance before work. A timeout must not starve every later account.
+            # The fail-closed marker prevents that pass being reported clean.
+            _save_reconciliation_checkpoint(
+                ledger_table, checkpoint_key, key, now(),
+                completed_pass_at=completed_pass_at, pass_had_failures=True,
+            )
+            start_key = key
+            attempted += 1
+            try:
+                command = validate_command(raw, environment)
+                if verify_command is not None and verify_command(command) is None:
+                    continue
+                totals["matched"] += 1
+                receipt = ledger_table.get_item(
+                    Key={
+                        "PK": command["PK"],
+                        "SK": "ACCOUNT_DELETION#SESSION_REVOCATION",
+                    },
+                    ConsistentRead=True,
+                ).get("Item")
+                if _valid_component_receipt(receipt, command, "SESSION_REVOCATION"):
+                    totals["sessionAlreadyComplete"] += 1
+                else:
+                    ensure_session_revoked(
+                        command, user_pool_id=user_pool_id, cognito=cognito,
+                        ledger_table=ledger_table, now_epoch=now(),
+                    )
+                    totals["revoked"] += 1
+                device_result = delete_device_bindings(
+                    command, device_table=device_table, ledger_table=ledger_table,
+                    page_size=device_page_size, now_epoch=now(),
                 )
-                totals["revoked"] += 1
-            device_result = delete_device_bindings(
-                command, device_table=device_table, ledger_table=ledger_table,
-                page_size=device_page_size, now_epoch=now(),
+                totals["deviceRecordsDeleted"] += device_result["deleted"]
+                totals["deviceComponentsCompleted"] += 1 if device_result["complete"] else 0
+                recovery_result = delete_device_recovery_control(
+                    command, recovery_table=recovery_table, ledger_table=ledger_table,
+                    page_size=recovery_page_size, now_epoch=now(),
+                )
+                totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
+                totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
+                totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
+                abuse_result = delete_analysis_abuse_control(
+                    command, abuse_table=abuse_table, ledger_table=ledger_table,
+                    page_size=analysis_abuse_page_size,
+                    request_retention_seconds=analysis_request_retention_seconds,
+                    history_dedup_retention_days=history_dedup_retention_days,
+                    request_dedupe_policy_status=(
+                        analysis_request_dedupe_policy_status
+                    ),
+                    legacy_request_retention_policy_status=(
+                        analysis_legacy_request_retention_policy_status
+                    ),
+                    consumption_deletion_policy_status=(
+                        analysis_consumption_deletion_policy_status
+                    ),
+                    now_epoch=now(),
+                )
+                totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
+                totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
+                totals["analysisAbuseComponentsCompleted"] += (
+                    1 if abuse_result["complete"] else 0
+                )
+                totals["analysisAbusePolicyBlocked"] += (
+                    1 if abuse_result.get("policyBlocked") else 0
+                )
+                outbox_result = delete_campaign_outbox(
+                    command, outbox_table=outbox_table, ledger_table=ledger_table,
+                    page_size=campaign_outbox_page_size,
+                    locator_coverage_status=campaign_outbox_locator_coverage_status,
+                    now_epoch=now(),
+                )
+                totals["campaignOutboxRecordsDeleted"] += outbox_result["deleted"]
+                totals["campaignOutboxComponentsCompleted"] += (
+                    1 if outbox_result["complete"] else 0
+                )
+                totals["campaignOutboxPolicyBlocked"] += (
+                    1 if outbox_result.get("policyBlocked") else 0
+                )
+                if delete_entitlements is not None:
+                    delete_entitlements(command)
+                profile_result = delete_user_profile_state(
+                    command, users_table=users_table, ledger_table=ledger_table,
+                    page_size=100, policy_status=user_profile_deletion_policy_status,
+                    demographic_research_policy_status=(
+                        demographic_research_deletion_policy_status
+                    ),
+                    now_epoch=now(),
+                )
+                totals["userProfileRecordsDeleted"] += profile_result["deleted"]
+                totals["userProfileComponentsCompleted"] += (
+                    1 if profile_result["complete"] else 0
+                )
+                totals["userProfilePolicyBlocked"] += (
+                    1 if profile_result.get("policyBlocked") else 0
+                )
+                if finalize_account is not None:
+                    finalize_account(command)
+            except Exception:
+                totals["commandFailures"] += 1
+                pass_had_failures = True
+            _save_reconciliation_checkpoint(
+                ledger_table, checkpoint_key, start_key, now(),
+                completed_pass_at=completed_pass_at,
+                pass_had_failures=pass_had_failures,
             )
-            totals["deviceRecordsDeleted"] += device_result["deleted"]
-            totals["deviceComponentsCompleted"] += 1 if device_result["complete"] else 0
-            recovery_result = delete_device_recovery_control(
-                command, recovery_table=recovery_table, ledger_table=ledger_table,
-                page_size=recovery_page_size, now_epoch=now(),
-            )
-            totals["recoveryRecordsDeleted"] += recovery_result["deleted"]
-            totals["recoveryRecordsMinimized"] += recovery_result["minimized"]
-            totals["recoveryComponentsCompleted"] += 1 if recovery_result["complete"] else 0
-            abuse_result = delete_analysis_abuse_control(
-                command, abuse_table=abuse_table, ledger_table=ledger_table,
-                page_size=analysis_abuse_page_size,
-                request_retention_seconds=analysis_request_retention_seconds,
-                history_dedup_retention_days=history_dedup_retention_days,
-                request_dedupe_policy_status=(
-                    analysis_request_dedupe_policy_status
-                ),
-                legacy_request_retention_policy_status=(
-                    analysis_legacy_request_retention_policy_status
-                ),
-                consumption_deletion_policy_status=(
-                    analysis_consumption_deletion_policy_status
-                ),
-                now_epoch=now(),
-            )
-            totals["analysisAbuseRecordsDeleted"] += abuse_result["deleted"]
-            totals["analysisAbuseRecordsMinimized"] += abuse_result["minimized"]
-            totals["analysisAbuseComponentsCompleted"] += (
-                1 if abuse_result["complete"] else 0
-            )
-            totals["analysisAbusePolicyBlocked"] += (
-                1 if abuse_result.get("policyBlocked") else 0
-            )
-            outbox_result = delete_campaign_outbox(
-                command, outbox_table=outbox_table, ledger_table=ledger_table,
-                page_size=campaign_outbox_page_size,
-                locator_coverage_status=campaign_outbox_locator_coverage_status,
-                now_epoch=now(),
-            )
-            totals["campaignOutboxRecordsDeleted"] += outbox_result["deleted"]
-            totals["campaignOutboxComponentsCompleted"] += (
-                1 if outbox_result["complete"] else 0
-            )
-            totals["campaignOutboxPolicyBlocked"] += (
-                1 if outbox_result.get("policyBlocked") else 0
-            )
-            profile_result = delete_user_profile_state(
-                command, users_table=users_table, ledger_table=ledger_table,
-                page_size=100, policy_status=user_profile_deletion_policy_status,
-                now_epoch=now(),
-            )
-            totals["userProfileRecordsDeleted"] += profile_result["deleted"]
-            totals["userProfileComponentsCompleted"] += (
-                1 if profile_result["complete"] else 0
-            )
-            totals["userProfilePolicyBlocked"] += (
-                1 if profile_result.get("policyBlocked") else 0
-            )
+        if truncated:
+            break
         start_key = page.get("LastEvaluatedKey")
         checkpoint_time = now()
-        if not start_key:
+        if not start_key and not pass_had_failures:
             completed_pass_at = checkpoint_time
+            completed_clean_pass = True
         _save_reconciliation_checkpoint(
             ledger_table, checkpoint_key, start_key, checkpoint_time,
             completed_pass_at=completed_pass_at,
+            pass_had_failures=pass_had_failures if start_key else False,
         )
         if not start_key:
             break
@@ -967,7 +1084,8 @@ def reconcile_session_revocations(
     return {
         **totals,
         "worksetTruncated": truncated,
-        "completedFullPass": not truncated and not start_key,
+        "completedFullPass": completed_clean_pass,
+        "passHadFailures": pass_had_failures,
         "completedPassAtEpoch": completed_pass_at,
         "fullPassAgeSeconds": (
             max(0, completed_at - completed_pass_at)
@@ -1034,8 +1152,8 @@ def _valid_component_receipt(item, command, component):
         and set(item) == RECEIPT_FIELDS
         and item.get("PK") == command["PK"]
         and item.get("SK") == f"ACCOUNT_DELETION#{component}"
-        and item.get("schemaVersion") == 1
-        and item.get("recordVersion") == 1
+        and _exact_int(item.get("schemaVersion")) == 1
+        and _exact_int(item.get("recordVersion")) == 1
         and item.get("environment") == command["environment"]
         and item.get("eventType") == "account.deletion.component.completed"
         and item.get("component") == component
@@ -1043,6 +1161,7 @@ def _valid_component_receipt(item, command, component):
         and item.get("operationId") == command["operationId"]
         and _exact_int(item.get("requestOccurredAtEpoch")) == command["occurredAtEpoch"]
         and _exact_int(item.get("occurredAtEpoch")) is not None
+        and _exact_int(item.get("occurredAtEpoch")) >= command["occurredAtEpoch"]
         and _exact_int(item.get("retainUntilEpoch"))
         == _exact_int(item.get("occurredAtEpoch"))
         + ACCOUNT_DELETION_RECEIPT_RETENTION_DAYS * 86400
@@ -1098,6 +1217,10 @@ def _validate_analysis_abuse_key(item, partition):
 def _validate_outbox_locator(
     item, *, partition, account_hash, environment,
 ):
+    if isinstance(item,dict) and item.get('schemaVersion')==2:
+        from shared_campaign_work.outbox import validate_locator
+        validate_locator(item,environment,account_hash)
+        return item['statisticsEventId']
     event_id = item.get("statisticsEventId") if isinstance(item, dict) else None
     event_expires = _exact_int(item.get("eventExpiresAt")) if isinstance(item, dict) else None
     expires = _exact_int(item.get("expiresAt")) if isinstance(item, dict) else None
@@ -1150,6 +1273,65 @@ def _validate_consent_audit(item, partition):
         or not _is_uuid4(item.get("operationId"))
     ):
         raise ValueError("Consent audit is invalid")
+
+
+def _validate_demographic_audit(item, partition):
+    fields = set(item)
+    action = str(item.get("eventType", "")).removeprefix("demographic.research.")
+    expected = set(DEMOGRAPHIC_AUDIT_BASE_FIELDS)
+    if action in {"update", "withdraw"}:
+        expected |= {"valueCleanupDeadlineEpoch", "valueCleanupCompletedAtEpoch"}
+    occurred = _exact_int(item.get("occurredAtEpoch"))
+    expires = _exact_int(item.get("expiresAt"))
+    deadline = _exact_int(item.get("valueCleanupDeadlineEpoch"))
+    completed = _exact_int(item.get("valueCleanupCompletedAtEpoch"))
+    if (
+        fields != expected or item.get("PK") != partition
+        or action not in {"enroll", "update", "withdraw"}
+        or item.get("purpose") != "optional-demographic-protection-research"
+        or item.get("purposeVersion") != "consumer-protection-research-v1"
+        or item.get("noticeVersion") != "demographic-research-2026-09-30-v1"
+        or item.get("policyVersion") != "optional-demographic-research-v1"
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or occurred is None or expires != occurred + 400 * 86400
+        or not _is_uuid4(item.get("consentEpochId"))
+        or not _is_uuid4(item.get("operationId"))
+        or (action in {"update", "withdraw"}
+            and (deadline != occurred + 24 * 3600 or completed != occurred))
+        or any(name in item for name in ("ageBand", "stateCode"))
+    ):
+        raise ValueError("Demographic consent audit is invalid")
+
+
+def _delete_demographic_authority(ledger_table, account_id):
+    key = {"PK": f"ACCOUNT#{account_id}", "SK": "DEMOGRAPHIC_RESEARCH_AUTHORITY"}
+    item = ledger_table.get_item(Key=key, ConsistentRead=True).get("Item")
+    if not item:
+        return 0
+    expected = set(DEMOGRAPHIC_AUTHORITY_FIELDS)
+    if item.get("state") == "enrolled":
+        expected.add("validUntilEpoch")
+    if (
+        set(item) != expected or item.get("PK") != key["PK"] or item.get("SK") != key["SK"]
+        or item.get("purpose") != "optional-demographic-protection-research"
+        or item.get("purposeVersion") != "consumer-protection-research-v1"
+        or item.get("noticeVersion") != "demographic-research-2026-09-30-v1"
+        or item.get("policyVersion") != "optional-demographic-research-v1"
+        or item.get("state") not in {"enrolled", "withdrawn"}
+        or _exact_int(item.get("schemaVersion")) != 1
+        or _exact_int(item.get("recordVersion")) != 1
+        or _exact_int(item.get("stateVersion")) is None
+        or not _is_uuid4(item.get("consentEpochId"))
+        or not _is_uuid4(item.get("lastOperationId"))
+        or any(name in item for name in ("ageBand", "stateCode"))
+    ):
+        raise ValueError("Demographic authority is invalid")
+    ledger_table.delete_item(
+        Key=key, ConditionExpression="stateVersion = :version AND lastOperationId = :operation",
+        ExpressionAttributeValues={":version": item["stateVersion"], ":operation": item["lastOperationId"]},
+    )
+    return 1
 
 
 def _minimal_analysis_request(
@@ -1268,12 +1450,14 @@ def _validate_rate_state(item, retention_seconds):
 
 def _save_reconciliation_checkpoint(
     table, key, last_evaluated_key, now_epoch, *, completed_pass_at,
+    pass_had_failures=False,
 ):
     item = {
         **key,
         "recordType": "ACCOUNT_DELETION_SESSION_REVOCATION_RECONCILIATION",
         "schemaVersion": 1,
         "updatedAtEpoch": now_epoch,
+        "passHadFailures": pass_had_failures,
     }
     if last_evaluated_key:
         if not _valid_key(last_evaluated_key):

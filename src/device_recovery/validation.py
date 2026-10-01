@@ -73,7 +73,12 @@ def parse_and_validate_self_event(event: dict[str, Any]) -> dict[str, str]:
         "schemaVersion", "operationId", "action", "bindingFingerprint",
         "platform", "osVersion",
     }
-    if not isinstance(payload, dict) or set(payload) != expected or payload.get("schemaVersion") != 1:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != expected
+        or isinstance(payload.get("schemaVersion"), bool)
+        or payload.get("schemaVersion") != 1
+    ):
         raise _invalid_request("body", "Request fields do not match the self-recovery contract.")
     if payload.get("action") != "REPLACE_ACTIVE_BINDING":
         raise _invalid_request("action", "Only REPLACE_ACTIVE_BINDING is supported.")
