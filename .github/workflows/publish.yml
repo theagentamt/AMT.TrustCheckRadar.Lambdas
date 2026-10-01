@@ -158,10 +158,35 @@ jobs:
           set -euo pipefail
           cd dist
           sha256sum --check SHA256SUMS
-          [[ "$(find . -maxdepth 1 -type f -name '*.zip' | wc -l)" -eq 31 ]] || {
-            echo "Expected all 28 Lambda ZIP packages and three canonical contract packages" >&2
-            exit 2
+          python3 - <<'PYTHON'
+          from pathlib import Path
+
+          contract_packages = {
+              "campaign-contracts-1.0.0.zip",
+              "history-contracts-1.0.0.zip",
+              "device-recovery-contracts-1.0.0.zip",
           }
+          function_packages = {
+              f"{path.parent.name}.zip" for path in Path("../src").glob("*/app.py")
+          }
+          expected = function_packages | contract_packages
+          actual = {path.name for path in Path(".").glob("*.zip")}
+          manifest = {
+              line.partition("  ")[2]
+              for line in Path("SHA256SUMS").read_text(encoding="utf-8").splitlines()
+              if line.partition("  ")[1]
+          }
+          if actual != expected:
+              raise SystemExit(
+                  f"release ZIP inventory mismatch; missing={sorted(expected - actual)}, "
+                  f"unexpected={sorted(actual - expected)}"
+              )
+          if manifest != actual:
+              raise SystemExit(
+                  f"checksum inventory mismatch; missing={sorted(actual - manifest)}, "
+                  f"unexpected={sorted(manifest - actual)}"
+              )
+          PYTHON
           for artifact in *.zip; do
             if [[ "${artifact}" == campaign-contracts-1.0.0.zip || "${artifact}" == history-contracts-1.0.0.zip || "${artifact}" == device-recovery-contracts-1.0.0.zip ]]; then
               unzip -Z1 "${artifact}" contract-set.json | grep -Fxq contract-set.json || {

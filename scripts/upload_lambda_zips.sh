@@ -16,7 +16,40 @@ REQUIRED_FUNCTIONS=(
   entitlement_snapshot
   post_confirmation
 )
-OPTIONAL_FUNCTIONS=(account_data_api campaign_cluster_aggregator campaign_deletion_bridge campaign_lifecycle campaign_observation_publisher campaign_participation campaign_review campaign_trends demographic_research device_recovery history_account_deletion_bridge history_lifecycle history_mutation_api history_read_api url_redirect_resolver web_risk_communication)
+OPTIONAL_FUNCTIONS=(
+  support_account_deletion
+  account_data_api
+  account_export_api
+  campaign_cluster_aggregator
+  campaign_deletion_bridge
+  campaign_lifecycle
+  campaign_observation_publisher
+  campaign_participation
+  campaign_review
+  campaign_trends
+  demographic_research
+  device_recovery
+  history_account_deletion_bridge
+  history_lifecycle
+  history_mutation_api
+  history_read_api
+  message_consumer
+  message_evaluator
+  play_lifecycle_ingress
+  play_lifecycle_worker
+  play_token_deletion
+  recovery_consumer
+  recovery_evaluator
+  result_feedback
+  url_assessment
+  url_consumer
+  url_lease_recovery
+  url_redirect_resolver
+  v1_authority_deletion
+  v1_entitlements
+  v1_play_handoff
+  web_risk_communication
+)
 CONTRACT_ARTIFACT="campaign-contracts-1.0.0.zip"
 HISTORY_CONTRACT_ARTIFACT="history-contracts-1.0.0.zip"
 DEVICE_RECOVERY_CONTRACT_ARTIFACT="device-recovery-contracts-1.0.0.zip"
