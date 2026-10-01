@@ -29,7 +29,22 @@ jobs:
         run: python -m pip install --requirement requirements-dev.txt
 
       - name: Run tests
-        run: python -m pytest -q
+        # Several independently packaged Lambda suites install process-global
+        # AWS SDK and generic module-name stubs while importing their handlers.
+        # Run each top-level suite in a fresh Python process so those package
+        # namespaces cannot leak into another suite. Exit 5 is expected only for
+        # explicitly gated integration-only suites.
+        env:
+          AWS_EC2_METADATA_DISABLED: "true"
+          PYTHONPATH: src
+        run: |
+          while IFS= read -r suite; do
+            status=0
+            python -m pytest -q "$suite" || status=$?
+            if [ "$status" -ne 0 ] && [ "$status" -ne 5 ]; then
+              exit "$status"
+            fi
+          done < <(find tests -mindepth 1 -maxdepth 1 -type d ! -name '__pycache__' -print | sort)
 
       - name: Compile Python sources
         run: python -m compileall -q src tests
@@ -136,12 +151,14 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
       - name: Set up Python 3.14
         uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.14"
       - name: Install isolated emulator dependencies
-        run: python -m pip install --requirement tests/shared_check_authority/requirements.txt
+        run: python -m pip install --requirement requirements-dev.txt
       - name: Test atomic authority core without AWS
         env:
           AMT_AUTHORITY_INTEGRATION: "1"
