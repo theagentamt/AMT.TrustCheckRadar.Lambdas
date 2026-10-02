@@ -188,9 +188,10 @@ curl --fail-with-body --silent --show-error \
   "${SEC230_API_BASE}/v1/message-checks" \
   > "${SEC230_TMP_DIR}/sec230-submit-response.json"
 
-jq -e '.outcome.processingOutcome == "complete" and .outcome.verdict == "high_risk" and
+jq -e '.state == "settled" and .outcome.processingOutcome == "complete" and .outcome.verdict == "high_risk" and
   (.outcome.ruleIds | index("REQUEST_SECRET_DISCLOSURE")) != null and
-  (.outcome.limitationCodes | length) == 0 and .accounting.chargedChecks == 1' \
+  (.outcome.limitationCodes | length) == 0 and (.outcome.evidence | length) == 0 and
+  .accounting.chargedChecks == 1' \
   "${SEC230_TMP_DIR}/sec230-submit-response.json" >/dev/null
 ```
 
