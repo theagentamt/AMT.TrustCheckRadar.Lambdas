@@ -106,6 +106,9 @@ locally without writing the access token to a repository file:
 export SEC230_API_BASE='https://REVIEWED-DEV-API.example'
 export SEC230_ACCESS_TOKEN='REDACTED-COGNITO-ACCESS-TOKEN'
 export SEC230_DEVICE_FINGERPRINT='REVIEWED-ACTIVE-DEVICE-FINGERPRINT'
+umask 077
+SEC230_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sec230.XXXXXX")"
+trap 'rm -rf "$SEC230_TMP_DIR"; unset SEC230_ACCESS_TOKEN SEC230_DEVICE_FINGERPRINT' EXIT
 ```
 
 Read the current authority snapshot and explicitly activate the one-time trial if
@@ -115,7 +118,7 @@ the snapshot reports `trial.activationAvailable: true`:
 curl --fail-with-body --silent --show-error \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
-  "${SEC230_API_BASE}/v1/access" | tee /tmp/sec230-access-before.json
+  "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-before.json"
 
 curl --fail-with-body --silent --show-error \
   -X POST \
@@ -123,12 +126,16 @@ curl --fail-with-body --silent --show-error \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
   -H 'Content-Type: application/json' \
   --data-binary '{"schemaVersion":1,"activate":true}' \
-  "${SEC230_API_BASE}/v1/access/trial" | tee /tmp/sec230-trial.json
+  "${SEC230_API_BASE}/v1/access/trial" > "${SEC230_TMP_DIR}/sec230-trial.json"
 
 curl --fail-with-body --silent --show-error \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
-  "${SEC230_API_BASE}/v1/access" | tee /tmp/sec230-access-activated.json
+  "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-activated.json"
+
+jq -e '.access.basis == "trial" and .allowance.limit == 10 and
+  .allowance.completedUsed == 0 and .allowance.reserved == 0 and .allowance.remaining == 10' \
+  "${SEC230_TMP_DIR}/sec230-access-activated.json" >/dev/null
 ```
 
 The activated snapshot must report `basis: trial`, limit 10, used 0, reserved 0,
@@ -152,30 +159,35 @@ jq -n --arg check "${SEC230_CHECK_ID}" '{
     withheldLinks:false,
     reviewedLinks:[]
   }
-}' > /tmp/sec230-message.json
+}' > "${SEC230_TMP_DIR}/sec230-message.json"
 
 curl --fail-with-body --silent --show-error \
   -X POST \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
   -H 'Content-Type: application/json' \
-  --data-binary @/tmp/sec230-message.json \
+  --data-binary @"${SEC230_TMP_DIR}/sec230-message.json" \
   "${SEC230_API_BASE}/v1/message-checks/prepare" \
-  | tee /tmp/sec230-prepare.json
+  > "${SEC230_TMP_DIR}/sec230-prepare.json"
 
-export SEC230_OPERATION_PROOF="$(jq -er '.operationProof' /tmp/sec230-prepare.json)"
-jq --arg proof "${SEC230_OPERATION_PROOF}" \
-  '. + {operationProof:$proof}' /tmp/sec230-message.json \
-  > /tmp/sec230-submit.json
+jq --slurpfile prepared "${SEC230_TMP_DIR}/sec230-prepare.json" \
+  '. + {operationProof:$prepared[0].operationProof}' \
+  "${SEC230_TMP_DIR}/sec230-message.json" \
+  > "${SEC230_TMP_DIR}/sec230-submit.json"
 
 curl --fail-with-body --silent --show-error \
   -X POST \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
   -H 'Content-Type: application/json' \
-  --data-binary @/tmp/sec230-submit.json \
+  --data-binary @"${SEC230_TMP_DIR}/sec230-submit.json" \
   "${SEC230_API_BASE}/v1/message-checks" \
-  | tee /tmp/sec230-submit-response.json
+  > "${SEC230_TMP_DIR}/sec230-submit-response.json"
+
+jq -e '.outcome.processingOutcome == "complete" and .outcome.verdict == "high_risk" and
+  (.outcome.ruleIds | index("REQUEST_SECRET_DISCLOSURE")) != null and
+  (.outcome.limitationCodes | length) == 0 and .accounting.chargedChecks == 1' \
+  "${SEC230_TMP_DIR}/sec230-submit-response.json" >/dev/null
 ```
 
 The response must be settled and charged once, with `processingOutcome: complete`,
@@ -189,29 +201,38 @@ curl --fail-with-body --silent --show-error \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
   -H 'Content-Type: application/json' \
-  --data-binary @/tmp/sec230-submit.json \
+  --data-binary @"${SEC230_TMP_DIR}/sec230-submit.json" \
   "${SEC230_API_BASE}/v1/message-checks" \
-  | tee /tmp/sec230-submit-replay.json
+  > "${SEC230_TMP_DIR}/sec230-submit-replay.json"
 
-jq -n --arg check "${SEC230_CHECK_ID}" --arg proof "${SEC230_OPERATION_PROOF}" '{
+jq -n --arg check "${SEC230_CHECK_ID}" \
+  --slurpfile prepared "${SEC230_TMP_DIR}/sec230-prepare.json" '{
   transportVersion:"1.0.0-message-candidate.1",
   checkId:$check,
-  operationProof:$proof
-}' > /tmp/sec230-reconcile.json
+  operationProof:$prepared[0].operationProof
+}' > "${SEC230_TMP_DIR}/sec230-reconcile.json"
 
 curl --fail-with-body --silent --show-error \
   -X POST \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
   -H 'Content-Type: application/json' \
-  --data-binary @/tmp/sec230-reconcile.json \
+  --data-binary @"${SEC230_TMP_DIR}/sec230-reconcile.json" \
   "${SEC230_API_BASE}/v1/message-checks/reconcile" \
-  | tee /tmp/sec230-reconcile-response.json
+  > "${SEC230_TMP_DIR}/sec230-reconcile-response.json"
 
 curl --fail-with-body --silent --show-error \
   -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
   -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
-  "${SEC230_API_BASE}/v1/access" | tee /tmp/sec230-access-after.json
+  "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-after.json"
+
+jq -e --slurpfile replay "${SEC230_TMP_DIR}/sec230-submit-replay.json" \
+  --slurpfile reconcile "${SEC230_TMP_DIR}/sec230-reconcile-response.json" \
+  '.accounting == $replay[0].accounting and .accounting == $reconcile[0].accounting' \
+  "${SEC230_TMP_DIR}/sec230-submit-response.json" >/dev/null
+jq -e '.allowance.completedUsed == 1 and .allowance.reserved == 0 and .allowance.remaining == 9' \
+  "${SEC230_TMP_DIR}/sec230-access-after.json" >/dev/null
+echo 'SECUR4ALL-230 rule-only accounting assertions passed.'
 ```
 
 The original submit, replay and reconcile accounting objects must match exactly.
