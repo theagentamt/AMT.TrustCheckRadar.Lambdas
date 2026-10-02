@@ -9,7 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dataclasses import replace
 from test_transactions import world, ACCOUNT, failure
 from shared_check_authority.core import AuthorityError, TRIAL_SECONDS
-from shared_check_authority.entitlements import EntitlementWriter, TrustedOperator, VerifiedMonthlyDecision
+from shared_check_authority.entitlements import (COMPLIMENTARY_AUDIT_RETENTION_SECONDS,
+                                                 EntitlementWriter, TrustedOperator,
+                                                 VerifiedMonthlyDecision)
 
 ROLE = 'arn:aws:iam::123456789012:role/EntitlementOperator'
 OPERATOR = TrustedOperator(ROLE, 'synthetic-session')
@@ -28,7 +30,8 @@ def writer_world(world):
         return decision[0]
     writer = EntitlementWriter(a, approved_products=frozenset({('google_play', 'individual-monthly')}),
                                operator_principals=frozenset({ROLE}), store_verifier=verify,
-                               verification_max_age_seconds=60, trial_retention_approved=True)
+                               verification_max_age_seconds=60, trial_retention_approved=True,
+                               complimentary_audit_retention_seconds=COMPLIMENTARY_AUDIT_RETENTION_SECONDS)
     return writer, world, decision, calls
 
 
@@ -267,7 +270,55 @@ def test_operator_audit_is_transactional_and_avoids_tokens(writer_world):
     rows = a.ddb.Table('authority').scan()['Items']
     audits = [r for r in rows if r['recordType'] == 'V1_AUTHORITY_AUDIT']
     assert len(audits) == 1 and audits[0]['operatorPrincipalArn'] == ROLE and audits[0]['reasonCode'] == 'OWNER_GRANT'
+    assert 'expiresAt' not in audits[0]
     assert ACCOUNT not in str(rows) and 'synthetic-session' not in str(rows)
+
+
+def test_indefinite_grant_audit_expires_one_year_after_revoke(writer_world):
+    w, world, _, _ = writer_world
+    a, _, _, _, _, clock = world
+    w.set_complimentary(OPERATOR, ACCOUNT, 'grant', enabled=True, reason_code='OWNER_GRANT')
+    clock[0] += 10
+    w.set_complimentary(OPERATOR, ACCOUNT, 'revoke', enabled=False, reason_code='REVOKE')
+    audits = sorted((r for r in a.ddb.Table('authority').scan()['Items']
+                     if r['recordType'] == 'V1_AUTHORITY_AUDIT'), key=lambda row: row['recordedAtEpoch'])
+    assert len(audits) == 2
+    assert all(row['expiresAt'] == clock[0] + COMPLIMENTARY_AUDIT_RETENTION_SECONDS for row in audits)
+
+
+def test_expiring_grant_audit_uses_expiry_plus_one_year(writer_world):
+    w, world, _, _ = writer_world
+    a, _, _, _, _, clock = world
+    expiry = clock[0] + 60
+    w.set_complimentary(OPERATOR, ACCOUNT, 'grant', enabled=True,
+                        reason_code='SUPPORT_GRANT', expires_at=expiry)
+    audit = next(r for r in a.ddb.Table('authority').scan()['Items']
+                 if r['recordType'] == 'V1_AUTHORITY_AUDIT')
+    assert audit['expiresAt'] == expiry + COMPLIMENTARY_AUDIT_RETENTION_SECONDS
+
+
+def test_regrant_does_not_extend_prior_revoke_audit(writer_world):
+    w, world, _, _ = writer_world
+    a, _, _, _, _, clock = world
+    w.set_complimentary(OPERATOR, ACCOUNT, 'grant-1', enabled=True, reason_code='OWNER_GRANT')
+    clock[0] += 10
+    w.set_complimentary(OPERATOR, ACCOUNT, 'revoke-1', enabled=False, reason_code='REVOKE')
+    first_deadline = clock[0] + COMPLIMENTARY_AUDIT_RETENTION_SECONDS
+    clock[0] += 10
+    w.set_complimentary(OPERATOR, ACCOUNT, 'grant-2', enabled=True, reason_code='OWNER_GRANT')
+    audits = {row['reasonCode'] + '-' + str(row['recordedAtEpoch']): row
+              for row in a.ddb.Table('authority').scan()['Items']
+              if row['recordType'] == 'V1_AUTHORITY_AUDIT'}
+    assert audits[f'REVOKE-{clock[0] - 10}']['expiresAt'] == first_deadline
+
+
+def test_complimentary_retention_must_be_approved(writer_world):
+    w, world, _, _ = writer_world
+    w.complimentary_audit_retention_seconds = None
+    failure('COMPLIMENTARY_RETENTION_APPROVAL_REQUIRED',
+            lambda: w.set_complimentary(OPERATOR, ACCOUNT, 'grant', enabled=True,
+                                        reason_code='OWNER_GRANT'))
+    assert world[3]('ACCESS') is None
 
 
 def test_operation_id_reuse_with_changed_request_rejected(writer_world):

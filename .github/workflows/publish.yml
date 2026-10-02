@@ -148,7 +148,7 @@ jobs:
           assert manifest.get("schemaVersion") == 1
           assert manifest.get("headSha") == os.environ["SOURCE_SHA"]
           assert re.fullmatch("[0-9a-f]{40}", manifest.get("baseSha", ""))
-          assert manifest.get("scope") in {"resolver", "all", "contracts", "assessment_manual", "authority_manual"}
+          assert manifest.get("scope") in {"resolver", "entitlements", "all", "contracts", "assessment_manual", "authority_manual"}
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("value=" + manifest["scope"] + "\n")
           PYTHON
@@ -202,7 +202,7 @@ jobs:
           done
 
       - name: Configure short-lived AWS credentials
-        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'all'
+        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'entitlements' || steps.scope.outputs.value == 'all'
         id: aws
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
@@ -211,7 +211,7 @@ jobs:
           role-session-name: trustcheckradar-lambdas-${{ github.run_id }}
 
       - name: Verify AWS account and target bucket
-        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'all'
+        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'entitlements' || steps.scope.outputs.value == 'all'
         run: |
           set -euo pipefail
           expected_account_id="${AWS_ROLE_ARN#*::}"
@@ -241,6 +241,24 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      - name: Publish only the V1 entitlements artifact
+        if: steps.scope.outputs.value == 'entitlements'
+        env:
+          RELEASE_ID: ${{ steps.source.outputs.release_id }}
+        run: |
+          python3 scripts/publish_v1_entitlements.py --dist-dir dist \
+            --bucket "$ARTIFACT_BUCKET" --release "$RELEASE_ID" \
+            --region "$AWS_REGION" --output dist/v1-entitlements-publication.json
+
+      - name: Preserve V1 entitlements publication evidence
+        if: steps.scope.outputs.value == 'entitlements'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: v1-entitlements-publication
+          path: dist/v1-entitlements-publication.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Publish immutable Lambda ZIP release
         if: steps.scope.outputs.value == 'all'
         run: |
@@ -264,11 +282,11 @@ jobs:
             echo "- Environment: \`${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}\`"
             echo "- Source CI run: \`${SOURCE_RUN_ID}\`"
             echo "- Source commit/release: \`${RELEASE_ID}\`"
-            if [[ "$RELEASE_SCOPE" == "resolver" || "$RELEASE_SCOPE" == "all" ]]; then
+            if [[ "$RELEASE_SCOPE" == "resolver" || "$RELEASE_SCOPE" == "entitlements" || "$RELEASE_SCOPE" == "all" ]]; then
               echo "- ZIP location: \`s3://${ARTIFACT_BUCKET}/releases/${RELEASE_ID}/\`"
             fi
             echo
-            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip. Contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
+            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip; entitlements scope uploads only v1_entitlements.zip. Contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads. No scope deploys or updates a Lambda runtime or alias."
           } >> "${GITHUB_STEP_SUMMARY}"
 
 

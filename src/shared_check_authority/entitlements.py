@@ -14,6 +14,9 @@ from .core import (AuthorityError, OWNER_POLICY, PAID_COMPLETED_CHECKS,
                    TRIAL_COMPLETED_CHECKS, TRIAL_SECONDS, integral)
 
 
+COMPLIMENTARY_AUDIT_RETENTION_SECONDS = 365 * 24 * 60 * 60
+
+
 @dataclass(frozen=True)
 class VerifiedMonthlyDecision:
     """Only a server verifier with an account-bound store ledger may create this."""
@@ -55,7 +58,8 @@ def _json_integral(value):
 
 class EntitlementWriter:
     def __init__(self, authority, *, approved_products, operator_principals,
-                 store_verifier=None, verification_max_age_seconds, trial_retention_approved=False, lifecycle_principals=frozenset()):
+                 store_verifier=None, verification_max_age_seconds, trial_retention_approved=False,
+                 lifecycle_principals=frozenset(), complimentary_audit_retention_seconds=None):
         if (type(verification_max_age_seconds) is not int or verification_max_age_seconds <= 0
                 or not isinstance(approved_products, frozenset)
                 or any(not isinstance(x, tuple) or len(x) != 2 or x[0] not in ('google_play', 'app_store')
@@ -66,6 +70,8 @@ class EntitlementWriter:
             raise AuthorityError('WRITER_CONFIGURATION_UNAVAILABLE')
         if not isinstance(lifecycle_principals, frozenset) or any(not isinstance(x,str) or not re.fullmatch(r'arn:aws:iam::[0-9]{12}:role/[A-Za-z0-9_+=,.@/-]+',x) for x in lifecycle_principals):
             raise AuthorityError('WRITER_CONFIGURATION_UNAVAILABLE')
+        if complimentary_audit_retention_seconds not in (None, COMPLIMENTARY_AUDIT_RETENTION_SECONDS):
+            raise AuthorityError('WRITER_CONFIGURATION_UNAVAILABLE')
         self.lifecycle_principals = lifecycle_principals
         self.a = authority
         self.products = approved_products
@@ -73,6 +79,7 @@ class EntitlementWriter:
         self.verify_store = store_verifier
         self.verification_max_age = verification_max_age_seconds
         self.trial_retention_approved = trial_retention_approved is True
+        self.complimentary_audit_retention_seconds = complimentary_audit_retention_seconds
 
     def _read(self, account):
         self.a._assert_account(account)
@@ -129,7 +136,9 @@ class EntitlementWriter:
             elif basis == 'trial':
                 if set(source) != {'state'} | period_fields:
                     raise AuthorityError('AUTHORITY_STATE_INVALID')
-            elif set(source) != {'state', 'validFromEpoch', 'validUntilEpoch'}:
+            elif (set(source) != {'state', 'validFromEpoch', 'validUntilEpoch', 'auditOperationSK'}
+                  or not isinstance(source.get('auditOperationSK'), str)
+                  or not re.fullmatch(r'AUTHORITY_OP#[0-9a-f]{64}', source['auditOperationSK'])):
                 raise AuthorityError('AUTHORITY_STATE_INVALID')
             start, end = integral(source.get('validFromEpoch')), integral(source.get('validUntilEpoch'))
             if (start is None or start < 0 or (source.get('validUntilEpoch') is None and basis != 'complimentary')
@@ -211,11 +220,24 @@ class EntitlementWriter:
             break
         return row
 
-    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None, request_digest=None):
+    def _operation_sk(self, operation_id):
         if not isinstance(operation_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', operation_id):
             raise AuthorityError('WRITER_INPUT_REJECTED')
+        return 'AUTHORITY_OP#' + self.a._mac(self.a.s.active_key_id, 'authority-operation', operation_id)
+
+    def _expire_audit(self, pk, audit_sk, expires_at):
+        return {'Update': {'TableName': self.a.s.authority_table,
+                           'Key': {'PK': pk, 'SK': audit_sk},
+                           'UpdateExpression': 'SET expiresAt = :expires',
+                           'ConditionExpression': 'recordType = :type',
+                           'ExpressionAttributeValues': {
+                               ':expires': expires_at,
+                               ':type': 'V1_AUTHORITY_AUDIT'}}}
+
+    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None,
+                request_digest=None, audit_expires_at=None):
+        op_sk = self._operation_sk(operation_id)
         kid = self.a.s.active_key_id
-        op_sk = 'AUTHORITY_OP#' + self.a._mac(kid, 'authority-operation', operation_id)
         digest = self.a._mac(kid, 'authority-mutation', json.dumps(
             {'action': action, 'details': details, 'actor': actor}, sort_keys=True, separators=(',', ':'), default=_json_integral))
         def receipt():
@@ -244,6 +266,10 @@ class EntitlementWriter:
             audit['reasonCode'] = details['reasonCode']
             audit['complimentaryEnabled'] = details['enabled']
             audit['complimentaryExpiresAtEpoch'] = details['expiresAt']
+        if audit_expires_at is not None:
+            if integral(audit_expires_at) is None or audit_expires_at <= self.a.now():
+                raise AuthorityError('WRITER_INPUT_REJECTED')
+            audit['expiresAt'] = audit_expires_at
         condition = 'revision = :revision' if old else 'attribute_not_exists(PK)'
         values = {':revision': old['revision']} if old else None
         items = self.a._account_conditions(account)
@@ -482,6 +508,8 @@ class EntitlementWriter:
         return self._commit(account, pk, old, sources, operation_id, 'SYNC_PAID', details, extras=extras, request_digest=request_digest)
 
     def set_complimentary(self, operator, account, operation_id, *, enabled, reason_code, expires_at=None):
+        if self.complimentary_audit_retention_seconds != COMPLIMENTARY_AUDIT_RETENTION_SECONDS:
+            raise AuthorityError('COMPLIMENTARY_RETENTION_APPROVAL_REQUIRED')
         if (type(operator) is not TrustedOperator or operator.principal_arn not in self.operators
                 or not isinstance(operator.session_id, str) or not 1 <= len(operator.session_id) <= 256):
             raise AuthorityError('OPERATOR_AUTHORIZATION_REQUIRED')
@@ -492,12 +520,27 @@ class EntitlementWriter:
                 or (not enabled and reason_code in ('OWNER_GRANT', 'SUPPORT_GRANT'))):
             raise AuthorityError('WRITER_INPUT_REJECTED')
         pk, old, sources = self._read(account)
-        source = {'state': 'ACTIVE' if enabled else 'INACTIVE', 'validFromEpoch': self.a.now(), 'validUntilEpoch': expires_at}
+        now = self.a.now()
+        operation_sk = self._operation_sk(operation_id)
+        previous = sources.get('complimentary')
+        previous_audit_sk = previous.get('auditOperationSK') if previous else None
+        source = {'state': 'ACTIVE' if enabled else 'INACTIVE', 'validFromEpoch': now,
+                  'validUntilEpoch': expires_at, 'auditOperationSK': operation_sk}
         sources['complimentary'] = source
         actor = {'principal': operator.principal_arn,
                  'session': self.a._mac(self.a.s.active_key_id, 'operator-session', operator.session_id)}
+        extras = []
+        previous_was_active = (previous and previous.get('state') == 'ACTIVE'
+                               and (previous.get('validUntilEpoch') is None
+                                    or previous['validUntilEpoch'] > now))
+        if previous_was_active and previous_audit_sk != operation_sk:
+            extras.append(self._expire_audit(pk, previous_audit_sk,
+                                             now + self.complimentary_audit_retention_seconds))
+        audit_expires_at = ((expires_at if enabled else now) + self.complimentary_audit_retention_seconds
+                            if expires_at is not None or not enabled else None)
         return self._commit(account, pk, old, sources, operation_id, 'SET_COMPLIMENTARY',
-                            {'enabled': enabled, 'expiresAt': expires_at, 'reasonCode': reason_code}, actor=actor)
+                            {'enabled': enabled, 'expiresAt': expires_at, 'reasonCode': reason_code},
+                            extras=extras, actor=actor, audit_expires_at=audit_expires_at)
 
     def refresh_for_account(self, verified_event, operation_id):
         """Recompute expired overlay fallback; never extend/create underlying grants."""

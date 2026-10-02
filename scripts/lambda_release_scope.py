@@ -14,10 +14,25 @@ SHARED_REVIEWED_PATHS = {
     'tests/scripts/test_lambda_release_scope.py', 'tests/scripts/test_publish_url_resolver.py',
     'docs/GITHUB_PUBLISHING.md',
 }
+ENTITLEMENTS_PREFIXES = (
+    'src/v1_entitlements/', 'src/shared_check_authority/entitlements.py',
+    'tests/shared_check_authority/test_entitlement_http.py',
+    'tests/shared_check_authority/test_entitlements.py',
+    'tests/contracts/test_v1_complimentary_operator_contract.py',
+    'contracts/v1-complimentary-operator/',
+    'docs/v1-entitlement-',
+)
+ENTITLEMENTS_SUPPORT_PATHS = {
+    '.github/workflows/publish.yml', 'scripts/lambda_release_scope.py',
+    'scripts/publish_v1_entitlements.py', 'tests/scripts/test_lambda_release_scope.py',
+    'tests/scripts/test_publish_v1_entitlements.py', 'docs/GITHUB_PUBLISHING.md',
+    'contracts/v1-access/v1/README.md',
+}
 MESSAGE_PREFIXES = ('src/message_consumer/', 'src/message_evaluator/', 'src/shared_message_contract/', 'tests/message_consumer/', 'tests/message_evaluator/', 'contracts/message-consumer/', 'docs/sec229-message-', 'docs/message-consumer-')
 AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'tests/shared_check_authority/', 'docs/v1-check-authority',
     'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/',
-    'contracts/url-consumer/', 'contracts/v1-access/', 'docs/v1-entitlement-', 'docs/url-consumer-',
+    'contracts/url-consumer/', 'contracts/v1-access/', 'contracts/v1-complimentary-operator/',
+    'docs/v1-entitlement-', 'docs/url-consumer-',
     'src/url_assessment/', 'tests/url_assessment/')
 AUTHORITY_SUPPORT_PATHS = {
     'scripts/url_consumer_engineering_smoke.py', 'tests/scripts/test_url_consumer_engineering_smoke.py',
@@ -27,6 +42,8 @@ AUTHORITY_SUPPORT_PATHS = {
     'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py',
     'docs/GITHUB_PUBLISHING.md', 'scripts/build_lambda_zip.sh', 'docs/atcr120-next-message-binding-slice.md',
     'tests/scripts/authority_release_paths.json', 'scripts/verify_v1_packages.py', 'tests/contracts/test_v1_access_contract.py', 'tests/contracts/test_url_consumer_transport.py',
+    'scripts/publish_v1_entitlements.py', 'tests/scripts/test_publish_v1_entitlements.py',
+    'tests/contracts/test_v1_complimentary_operator_contract.py',
 }
 ASSESSMENT_PREFIXES = ('src/url_assessment/', 'tests/url_assessment/', 'docs/url-assessment-', 'scripts/url_assessment_')
 ASSESSMENT_SUPPORT_PATHS = {
@@ -45,6 +62,11 @@ RESOLVER_PREFIXES = ('src/url_redirect_resolver/', 'tests/url_redirect_resolver/
 
 def classify(paths):
     paths = list(paths)
+    entitlements = lambda path: path.startswith(ENTITLEMENTS_PREFIXES)
+    if paths and any(path.startswith(('src/v1_entitlements/', 'src/shared_check_authority/entitlements.py')) for path in paths) and all(
+        entitlements(path) or path in ENTITLEMENTS_SUPPORT_PATHS for path in paths
+    ):
+        return 'entitlements'
     authority = lambda path: path.startswith(AUTHORITY_PREFIXES)
     if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) for path in paths) and all(
         authority(path) or path in AUTHORITY_SUPPORT_PATHS for path in paths
