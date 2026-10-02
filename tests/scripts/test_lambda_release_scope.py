@@ -55,6 +55,27 @@ def test_unwired_authority_core_never_publishes_runtime_artifacts():
     assert module.classify(['src/shared_check_authority_evil/core.py']) == 'all'
 
 
+def test_reviewed_entitlements_change_publishes_only_entitlements():
+    paths = [
+        'src/shared_check_authority/entitlements.py',
+        'src/v1_entitlements/app.py',
+        'tests/shared_check_authority/test_entitlements.py',
+        'tests/shared_check_authority/test_entitlement_http.py',
+        'contracts/v1-access/v1/README.md',
+        'contracts/v1-complimentary-operator/v1/request.schema.json',
+        'tests/contracts/test_v1_complimentary_operator_contract.py',
+        'docs/v1-entitlement-writers.md',
+        'scripts/lambda_release_scope.py',
+        'scripts/publish_v1_entitlements.py',
+        'tests/scripts/test_lambda_release_scope.py',
+        'tests/scripts/test_publish_v1_entitlements.py',
+        '.github/workflows/publish.yml',
+    ]
+    assert module.classify(paths) == 'entitlements'
+    assert module.classify(paths + ['src/url_consumer/app.py']) == 'authority_manual'
+    assert module.classify(paths + ['src/conversation_analysis/app.py']) == 'all'
+
+
 def test_combined_consumer_writer_recovery_and_budget_release_is_manual():
     paths = [
         'src/url_consumer/app.py', 'src/url_lease_recovery/app.py',

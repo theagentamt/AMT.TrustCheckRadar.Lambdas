@@ -12,6 +12,10 @@ from v1_entitlements import app
 @pytest.fixture(autouse=True)
 def enabled(monkeypatch):
     monkeypatch.setenv('V1_ENTITLEMENTS_ENABLED', 'true')
+    monkeypatch.setenv('COMPLIMENTARY_OPERATOR_ENABLED', 'true')
+    monkeypatch.setenv('COMPLIMENTARY_AUDIT_RETENTION_SECONDS', '31536000')
+    monkeypatch.setenv('COMPLIMENTARY_OPERATOR_PRINCIPAL_ARNS_JSON',
+                       '["arn:aws:iam::123456789012:role/EntitlementOperator"]')
     # Handler protocol tests inject authority; the pre-AWS engineering gate has
     # separate real validation/no-network regressions in test_engineering.py.
     import shared_check_authority.engineering as engineering
@@ -24,6 +28,82 @@ def event_for(event, route='GET /v1/access', body=None):
     if body is not None:
         event['body'] = body
     return event
+
+
+def operator_event(body, role='EntitlementOperator', account='123456789012'):
+    return {
+        'version': '2.0',
+        'routeKey': 'POST /v1/operator/complimentary-access',
+        'rawQueryString': '',
+        'isBase64Encoded': False,
+        'body': body,
+        'requestContext': {
+            'http': {'method': 'POST'},
+            'authorizer': {'iam': {
+                'accountId': account,
+                'callerId': 'AROASYNTHETIC:operator-session',
+                'userArn': f'arn:aws:sts::{account}:assumed-role/{role}/operator-session'}}}}
+
+
+def complimentary_body(**changes):
+    body = {'schemaVersion': 1, 'operationId': 'owner-grant-1', 'accountId': ACCOUNT,
+            'action': 'grant', 'reasonCode': 'OWNER_GRANT', 'expiresAtEpoch': None}
+    body.update(changes)
+    return json.dumps(body, separators=(',', ':'))
+
+
+def test_operator_grant_uses_verified_iam_context(writer_world, monkeypatch):
+    writer, world, _, _ = writer_world
+    monkeypatch.setattr(app, '_writer', lambda *, operator=False: writer)
+    result = app.lambda_handler(operator_event(complimentary_body()), None)
+    assert result['statusCode'] == 200
+    assert json.loads(result['body']) == {
+        'schemaVersion': 1,
+        'access': {'revision': 1, 'state': 'ACTIVE', 'basis': 'complimentary'}}
+    assert world[3]('ACCESS')['basis'] == 'complimentary'
+
+
+@pytest.mark.parametrize('event', [
+    operator_event(complimentary_body(), role='OtherRole'),
+    operator_event(complimentary_body(), account='999999999999'),
+    event_for({'requestContext': {'authorizer': {'jwt': {'claims': {}}}}},
+              'POST /v1/operator/complimentary-access', complimentary_body()),
+])
+def test_operator_route_rejects_untrusted_or_non_iam_identity(writer_world, monkeypatch, event):
+    _, world, _, _ = writer_world
+    monkeypatch.setattr(app, '_writer', lambda *, operator=False: pytest.fail('authority loaded for untrusted operator'))
+    result = app.lambda_handler(event, None)
+    assert result['statusCode'] in (400, 403)
+    assert world[3]('ACCESS') is None
+
+
+@pytest.mark.parametrize('changes', [
+    {'operatorPrincipalArn': 'arn:aws:iam::123456789012:role/EntitlementOperator'},
+    {'accountId': 'not a stable account'},
+    {'action': 'revoke', 'reasonCode': 'REVOKE', 'expiresAtEpoch': 1800000001},
+    {'action': 'grant', 'reasonCode': 'REVOKE'},
+])
+def test_operator_request_is_strict_and_cannot_supply_identity(writer_world, monkeypatch, changes):
+    writer, world, _, _ = writer_world
+    monkeypatch.setattr(app, '_writer', lambda *, operator=False: writer)
+    result = app.lambda_handler(operator_event(complimentary_body(**changes)), None)
+    assert result['statusCode'] == 400, result
+    assert world[3]('ACCESS') is None
+
+
+@pytest.mark.parametrize('name,value', [
+    ('COMPLIMENTARY_OPERATOR_ENABLED', 'false'),
+    ('COMPLIMENTARY_AUDIT_RETENTION_SECONDS', '30'),
+    ('COMPLIMENTARY_OPERATOR_PRINCIPAL_ARNS_JSON', '[]'),
+])
+def test_operator_configuration_fails_closed_before_authority_secret(monkeypatch, name, value):
+    import shared_check_authority.runtime as runtime
+    monkeypatch.setenv(name, value)
+    monkeypatch.setattr(runtime, 'load_authority', lambda: pytest.fail('authority loaded before operator gate'))
+    result = app.lambda_handler(operator_event(complimentary_body()), None)
+    assert result['statusCode'] == 503
+    assert json.loads(result['body'])['error'] == {
+        'code': 'ACCESS_SERVICE_UNAVAILABLE', 'retryable': False}
 
 
 def test_trial_requires_explicit_boolean_not_string(writer_world, monkeypatch):
