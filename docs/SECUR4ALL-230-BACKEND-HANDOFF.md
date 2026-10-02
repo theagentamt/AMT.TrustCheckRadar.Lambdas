@@ -99,16 +99,23 @@ enforced by source. The test subject must already have an active registered devi
 an active age-verified profile and no deletion fence.
 
 After the reviewed infrastructure change exposes the installed routes, the
-following connected commands exercise the exact contract. Set the three variables
-locally without writing the access token to a repository file:
+following connected commands exercise the exact contract. Set the API base, then
+enter the token and device fingerprint through silent prompts. The commands keep
+both values out of shell history and process arguments:
 
 ```bash
 export SEC230_API_BASE='https://REVIEWED-DEV-API.example'
-export SEC230_ACCESS_TOKEN='REDACTED-COGNITO-ACCESS-TOKEN'
-export SEC230_DEVICE_FINGERPRINT='REVIEWED-ACTIVE-DEVICE-FINGERPRINT'
 umask 077
 SEC230_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sec230.XXXXXX")"
-trap 'rm -rf "$SEC230_TMP_DIR"; unset SEC230_ACCESS_TOKEN SEC230_DEVICE_FINGERPRINT' EXIT
+trap 'rm -rf "$SEC230_TMP_DIR"' EXIT
+read -rsp 'Dev Cognito access token: ' SEC230_ACCESS_TOKEN
+printf '\n'
+read -rsp 'Active device fingerprint: ' SEC230_DEVICE_FINGERPRINT
+printf '\n'
+printf 'Authorization: Bearer %s\nx-device-binding-fingerprint: %s\n' \
+  "$SEC230_ACCESS_TOKEN" "$SEC230_DEVICE_FINGERPRINT" \
+  > "${SEC230_TMP_DIR}/sec230-headers.txt"
+unset SEC230_ACCESS_TOKEN SEC230_DEVICE_FINGERPRINT
 ```
 
 Read the current authority snapshot and explicitly activate the one-time trial if
@@ -116,25 +123,24 @@ the snapshot reports `trial.activationAvailable: true`:
 
 ```bash
 curl --fail-with-body --silent --show-error \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-before.json"
 
 curl --fail-with-body --silent --show-error \
   -X POST \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   -H 'Content-Type: application/json' \
   --data-binary '{"schemaVersion":1,"activate":true}' \
   "${SEC230_API_BASE}/v1/access/trial" > "${SEC230_TMP_DIR}/sec230-trial.json"
 
 curl --fail-with-body --silent --show-error \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-activated.json"
 
 jq -e '.access.basis == "trial" and .allowance.limit == 10 and
-  .allowance.completedUsed == 0 and .allowance.reserved == 0 and .allowance.remaining == 10' \
+  .allowance.completedUsed == 0 and .allowance.reserved == 0 and .allowance.remaining == 10 and
+  (.trial.expiresAtEpoch - .trial.activatedAtEpoch) == 604800 and
+  .allowance.periodEndsAtEpoch == .trial.expiresAtEpoch' \
   "${SEC230_TMP_DIR}/sec230-access-activated.json" >/dev/null
 ```
 
@@ -163,8 +169,7 @@ jq -n --arg check "${SEC230_CHECK_ID}" '{
 
 curl --fail-with-body --silent --show-error \
   -X POST \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   -H 'Content-Type: application/json' \
   --data-binary @"${SEC230_TMP_DIR}/sec230-message.json" \
   "${SEC230_API_BASE}/v1/message-checks/prepare" \
@@ -177,8 +182,7 @@ jq --slurpfile prepared "${SEC230_TMP_DIR}/sec230-prepare.json" \
 
 curl --fail-with-body --silent --show-error \
   -X POST \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   -H 'Content-Type: application/json' \
   --data-binary @"${SEC230_TMP_DIR}/sec230-submit.json" \
   "${SEC230_API_BASE}/v1/message-checks" \
@@ -198,8 +202,7 @@ without sending message content:
 ```bash
 curl --fail-with-body --silent --show-error \
   -X POST \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   -H 'Content-Type: application/json' \
   --data-binary @"${SEC230_TMP_DIR}/sec230-submit.json" \
   "${SEC230_API_BASE}/v1/message-checks" \
@@ -214,16 +217,14 @@ jq -n --arg check "${SEC230_CHECK_ID}" \
 
 curl --fail-with-body --silent --show-error \
   -X POST \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   -H 'Content-Type: application/json' \
   --data-binary @"${SEC230_TMP_DIR}/sec230-reconcile.json" \
   "${SEC230_API_BASE}/v1/message-checks/reconcile" \
   > "${SEC230_TMP_DIR}/sec230-reconcile-response.json"
 
 curl --fail-with-body --silent --show-error \
-  -H "Authorization: Bearer ${SEC230_ACCESS_TOKEN}" \
-  -H "x-device-binding-fingerprint: ${SEC230_DEVICE_FINGERPRINT}" \
+  -H @"${SEC230_TMP_DIR}/sec230-headers.txt" \
   "${SEC230_API_BASE}/v1/access" > "${SEC230_TMP_DIR}/sec230-access-after.json"
 
 jq -e --slurpfile replay "${SEC230_TMP_DIR}/sec230-submit-replay.json" \
