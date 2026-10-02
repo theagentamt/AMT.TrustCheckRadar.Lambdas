@@ -58,3 +58,32 @@ def test_disabled_evaluator_does_not_touch_content(monkeypatch,capsys):
     monkeypatch.setattr(app,'evaluate',lambda *a,**k:pytest.fail('evaluated disabled request'))
     assert app.lambda_handler({'sensitive':'not logged'},None)=={'enabled':False}
     assert not capsys.readouterr().out
+
+
+def test_candidate1_rule_only_handler_needs_no_ai_proposer_or_url_provider(monkeypatch):
+    from shared_message_contract import POLICY, APPROVAL_SHA
+    monkeypatch.setenv('STAGE', 'dev')
+    monkeypatch.setenv('MESSAGE_EVALUATOR_ENABLED', 'true')
+    monkeypatch.setenv('MESSAGE_POLICY_VERSION', POLICY)
+    monkeypatch.setenv('MESSAGE_POLICY_APPROVAL_SHA256', APPROVAL_SHA)
+    monkeypatch.setenv('MESSAGE_AI_ENABLED', 'false')
+    monkeypatch.setenv('MESSAGE_PROPOSER_ENABLED', 'false')
+    monkeypatch.setattr(app, 'lookup', lambda _: pytest.fail('rule-only input called URL provider'))
+
+    class Context:
+        @staticmethod
+        def get_remaining_time_in_millis():
+            return 20000
+
+    outcome = app.lambda_handler({
+        'schemaVersion': 1,
+        'checkId': 'sec230-rule-only',
+        'policyVersion': POLICY,
+        'intent': intent('Send me your account password and the login code.'),
+        'executionBudgetMs': 18000,
+    }, Context())
+
+    assert outcome['processingOutcome'] == 'complete'
+    assert outcome['verdict'] == 'high_risk'
+    assert outcome['ruleIds'] == ['REQUEST_SECRET_DISCLOSURE']
+    assert outcome['limitationCodes'] == [] and outcome['evidence'] == []
