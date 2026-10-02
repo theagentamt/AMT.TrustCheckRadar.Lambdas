@@ -20,7 +20,7 @@ on:
           - research_candidate
           - message_candidate
       source_sha:
-        description: Exact release-V01 commit for a reviewed Dev candidate (must equal dispatch ref)
+        description: Exact dispatch-ref commit for a reviewed Dev candidate (must equal dispatch ref)
         required: false
         type: string
       environment:
@@ -403,7 +403,7 @@ jobs:
   message-candidate:
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      github.ref == 'refs/heads/release-V01' &&
+      (github.ref == 'refs/heads/release-V01' || github.ref == 'refs/heads/main') &&
       inputs.mode == 'message_candidate' && inputs.environment == 'dev'
     # The packages contain the ARM64 rpds native extension; execute the package
     # smoke on the same OS/architecture family used by Lambda.
@@ -419,13 +419,26 @@ jobs:
       AWS_EC2_METADATA_DISABLED: 'true'
     steps:
       - name: Validate exact release and Dev target
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ && "$SOURCE_SHA" == "$GITHUB_SHA" ]]
-          [[ -z "$SOURCE_RUN_ID" ]]
           [[ "$ARTIFACT_BUCKET" == 'trustcheckradar-dev-107827791950-artifacts' ]]
           [[ "$AWS_REGION" == 'us-east-1' ]]
           [[ "$AWS_ROLE_ARN" == 'arn:aws:iam::107827791950:role/trustcheckradar-dev-lambda-publisher' ]]
+          if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
+            [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+            run_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+            [[ "$(jq -r '.name' <<<"$run_json")" == 'CI' ]]
+            [[ "$(jq -r '.conclusion' <<<"$run_json")" == 'success' ]]
+            [[ "$(jq -r '.event' <<<"$run_json")" == 'push' ]]
+            [[ "$(jq -r '.head_branch' <<<"$run_json")" == 'main' ]]
+            [[ "$(jq -r '.head_sha' <<<"$run_json")" == "$SOURCE_SHA" ]]
+          else
+            [[ "$GITHUB_REF" == 'refs/heads/release-V01' ]]
+            [[ -z "$SOURCE_RUN_ID" ]]
+          fi
       - name: Check out exact reviewed release
         uses: actions/checkout@v7.0.1
         with:
@@ -497,6 +510,11 @@ jobs:
           {
             echo '## Governed-message Dev candidate artifacts published'
             echo "Source commit: $SOURCE_SHA"
+            if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
+              echo "Source CI run: $SOURCE_RUN_ID"
+            else
+              echo 'Source validation: reviewed release-V01 candidate gates in this run'
+            fi
             echo 'Two immutable ZIPs published; exact S3 versions and checksums are in message-candidate-publication.'
             echo 'No runtime, alias, route, IAM, data, secret or activation setting changed.'
           } >> "$GITHUB_STEP_SUMMARY"

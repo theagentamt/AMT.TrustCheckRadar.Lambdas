@@ -1,5 +1,12 @@
 # Governed message backend integration
 
+The reviewed `message_candidate` workflow may publish from `main` only when the
+caller supplies the exact successful `CI` push run for that same main commit. It
+publishes only the immutable message-consumer and message-evaluator artifacts;
+it does not update a Lambda runtime, alias, route, IAM policy, data, secret or
+activation setting. The existing reviewed `release-V01` candidate path remains
+available with its in-run validation boundary.
+
 ## Current implementation and provenance
 
 The separate message consumer/evaluator implement prepare, submit and proof-only

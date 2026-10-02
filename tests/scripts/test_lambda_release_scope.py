@@ -112,3 +112,20 @@ def test_deletion_integration_and_parent_completion_gate_remain_manual():
              '.github/workflows/ci.yml', 'docs/url-consumer-engineering-integration.md']
     assert module.classify(paths) == 'authority_manual'
     assert module.classify(['src/account_data_api/service.py']) == 'all'
+
+
+def test_main_message_candidate_requires_the_exact_successful_main_ci_run():
+    workflow = (Path(__file__).parents[2] / '.github/workflows/publish.yml').read_text()
+    assert "(github.ref == 'refs/heads/release-V01' || github.ref == 'refs/heads/main')" in workflow
+    assert '[[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]' in workflow
+    assert 'repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}' in workflow
+    assert '[[ "$(jq -r \'.name\' <<<"$run_json")" == \'CI\' ]]' in workflow
+    assert '[[ "$(jq -r \'.conclusion\' <<<"$run_json")" == \'success\' ]]' in workflow
+    assert '[[ "$(jq -r \'.event\' <<<"$run_json")" == \'push\' ]]' in workflow
+    assert '[[ "$(jq -r \'.head_branch\' <<<"$run_json")" == \'main\' ]]' in workflow
+    assert '[[ "$(jq -r \'.head_sha\' <<<"$run_json")" == "$SOURCE_SHA" ]]' in workflow
+    assert module.classify([
+        '.github/workflows/publish.yml',
+        'tests/scripts/test_lambda_release_scope.py',
+        'docs/message-consumer-handoff.md',
+    ]) == 'authority_manual'
