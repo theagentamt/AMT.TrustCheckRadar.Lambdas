@@ -279,7 +279,24 @@ class Authority:
         # Resource client performs native Python serialization. No automatic retry:
         # an uncertain commit requires a same-ID read, never a new provider call.
         try: self.client.transact_write_items(TransactItems=items)
-        except Exception:
+        except Exception as error:
+            # Keep the public result uncertain while emitting only bounded
+            # operational classification. Never log a table, key, item,
+            # expression value, message, proof, account, or provider payload.
+            response = getattr(error, 'response', {})
+            aws_error = response.get('Error', {}) if isinstance(response, dict) else {}
+            safe = lambda value: value if isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', value) else 'UNAVAILABLE'
+            reasons = response.get('CancellationReasons', []) if isinstance(response, dict) else []
+            action_types = sorted({next(iter(item)) for item in items if isinstance(item, dict) and len(item) == 1
+                                   and next(iter(item)) in ('ConditionCheck', 'Put', 'Update', 'Delete')})
+            print(json.dumps({
+                'event': 'authority_transaction_failure',
+                'exceptionType': safe(type(error).__name__),
+                'awsErrorCode': safe(aws_error.get('Code')),
+                'cancellationCodes': [safe(reason.get('Code')) for reason in reasons if isinstance(reason, dict)][:100],
+                'actionTypes': action_types,
+                'actionCount': len(items) if isinstance(items, list) and len(items) <= 100 else None,
+            }, separators=(',', ':')))
             raise AuthorityError('TRANSACTION_UNCERTAIN') from None
 
     def _attempt(self, account, partition):
