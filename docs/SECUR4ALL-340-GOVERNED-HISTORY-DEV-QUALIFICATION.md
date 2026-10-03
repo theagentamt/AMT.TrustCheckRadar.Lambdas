@@ -17,19 +17,40 @@ checksums are the input to the separately reviewed infrastructure plan.
 
 ## Synthetic HTTP runner
 
-Use one disposable, onboarded Dev account and a mode-0600 JSON file containing
-only `Authorization` and `x-device-binding-fingerprint`. The runner performs no
-network access without `--execute`; a fresh account also requires the explicit
-`--activate-trial` choice. Existing valid trial state is preserved and is never
-reset.
+Use one explicitly authorized, onboarded synthetic Dev account and a mode-0600
+JSON file containing only `Authorization` and
+`x-device-binding-fingerprint`. The runner performs no network access without
+`--execute`. Choose its lifecycle explicitly:
+
+- `disposable` permits explicit first trial activation and requires account
+  deletion through the approved cleanup path after evidence is recorded.
+- `dedicated_reusable` requires an existing trial, rejects
+  `--activate-trial`, preserves the account, and relies on each new governed
+  History receipt's fixed seven-day TTL. It never resets the trial clock or
+  counters.
+
+Disposable example:
 
 ```shell
 PYTHONPATH=src python3.14 scripts/qualify_dev_governed_history.py \
   --api-base https://api-dev.andmorethings.net \
   --headers-file /private/path/dev-headers.json \
   --language en \
+  --fixture-mode disposable \
   --execute --activate-trial \
-  --confirm-synthetic DISPOSABLE_SYNTHETIC_DEV_ACCOUNT
+  --confirm-synthetic AUTHORIZED_SYNTHETIC_DEV_ACCOUNT
+```
+
+Dedicated reusable fixture example:
+
+```shell
+PYTHONPATH=src python3.14 scripts/qualify_dev_governed_history.py \
+  --api-base https://api-dev.andmorethings.net \
+  --headers-file /private/path/dev-headers.json \
+  --language en \
+  --fixture-mode dedicated_reusable \
+  --execute \
+  --confirm-synthetic AUTHORIZED_SYNTHETIC_DEV_ACCOUNT
 ```
 
 Run the same bounded command again with `--language es`. The runner always reads
@@ -49,8 +70,10 @@ bodies.
 The infrastructure qualification must independently prove zero AI/provider
 invocations, exact artifact/configuration identity, and final rollback with
 routes, allowlists, engineering gates, and trial retention inactive. Delete the
-disposable account through the approved cleanup path after evidence is safely
-recorded. The runner does not delete accounts or change gates.
+account through the approved cleanup path only when `fixture-mode=disposable`.
+For `dedicated_reusable`, preserve the account and verify the new receipt
+deadlines remain the original fixed seven-day deadlines; do not renew them.
+The runner does not delete accounts, reset trials, or change gates.
 
 ATCR-163 remains the client release-test work. A successful backend run does
 not prove Android process restart, local cache clearing, or physical-device/UAT

@@ -2,7 +2,8 @@
 """Bounded synthetic Dev qualification for candidate.3 and governed History.
 
 The default mode validates private inputs without network access. ``--execute``
-uses one already-onboarded disposable Dev account. It never prints credentials,
+uses one explicitly authorized synthetic Dev account. The operator must choose
+whether it is disposable or a dedicated reusable fixture. It never prints credentials,
 check/result identifiers, proofs, message text, or response bodies.
 """
 from __future__ import annotations
@@ -32,7 +33,8 @@ ALLOWED_HOSTS = {"api-dev.andmorethings.net"}
 EXECUTE_API_HOST = "icuak34th9.execute-api.us-east-1.amazonaws.com"
 PROOF = re.compile(r"^v1_[A-Za-z0-9]{1,8}_[0-9a-f]{8}_[0-9a-f]{16}_[0-9a-f]{24}$")
 HEADERS = {"Authorization", "x-device-binding-fingerprint"}
-CONFIRMATION = "DISPOSABLE_SYNTHETIC_DEV_ACCOUNT"
+CONFIRMATION = "AUTHORIZED_SYNTHETIC_DEV_ACCOUNT"
+FIXTURE_MODES = {"disposable", "dedicated_reusable"}
 CASES = {
     "en": (
         ("inconclusive", "An unfamiliar request outside qualified coverage.", "inconclusive", 0),
@@ -201,11 +203,14 @@ def history_page(body):
 
 
 class Qualification:
-    def __init__(self, client, *, language="en", activate_trial=False, clock=lambda: int(time.time()), sleep=time.sleep,
-                 fresh_client=None):
-        need(language in CASES)
+    def __init__(self, client, *, language="en", activate_trial=False, fixture_mode="disposable",
+                 clock=lambda: int(time.time()), sleep=time.sleep, fresh_client=None):
+        need(language in CASES and fixture_mode in FIXTURE_MODES)
+        # A retained fixture must enter with an existing trial. The runner never
+        # offers to activate or reset its account-lifetime trial state.
+        need(fixture_mode != "dedicated_reusable" or activate_trial is False)
         self.client, self.activate_trial, self.clock, self.sleep = client, activate_trial, clock, sleep
-        self.language = language
+        self.language, self.fixture_mode = language, fixture_mode
         self.fresh_client = fresh_client or (lambda: client)
 
     def access(self):
@@ -311,16 +316,21 @@ class Qualification:
         completed, remaining = trial_snapshot(after, now=self.clock())
         need(completed == before + 1 and remaining == TRIAL_LIMIT - completed)
         need(self.client.budget.used <= MAX_REQUESTS)
+        disposable = self.fixture_mode == "disposable"
+        obligations = ["provider_invocations_zero", "rollback_gates_inactive",
+                       "disposable_account_cleanup" if disposable else "fixed_ttl_receipt_expiry"]
         return {"case": "SECUR4ALL-340_DEV_GOVERNED_HISTORY", "passed": True,
                 "syntheticOnly": True, "rulesOnly": True,
+                "fixtureMode": self.fixture_mode,
+                "accountCleanupRequired": disposable,
+                "accountPreserved": not disposable,
                 "language": self.language,
                 "requestCount": self.client.budget.used, "maxRequests": MAX_REQUESTS,
                 "trialLimit": TRIAL_LIMIT, "trialDurationSeconds": TRIAL_SECONDS,
                 "settledResults": 2, "chargedChecks": 1, "zeroChargeResults": 1,
                 "exactReplayAccounting": True, "proofOnlyReconciliation": True,
                 "historyReopen": True, "fixedRetention": True,
-                "requiresOperationalEvidence": ["provider_invocations_zero", "rollback_gates_inactive",
-                                                "disposable_account_cleanup"]}
+                "requiresOperationalEvidence": obligations}
 
 
 def main():
@@ -330,6 +340,7 @@ def main():
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--activate-trial", action="store_true")
     parser.add_argument("--language", choices=sorted(CASES), default="en")
+    parser.add_argument("--fixture-mode", choices=sorted(FIXTURE_MODES))
     parser.add_argument("--confirm-synthetic")
     args = parser.parse_args()
     values = private_headers(args.headers_file)
@@ -338,9 +349,11 @@ def main():
         print(json.dumps({"validatedLocally": True, "networkCalls": 0}, separators=(",", ":")))
         return
     need(args.confirm_synthetic == CONFIRMATION)
+    need(args.fixture_mode in FIXTURE_MODES)
     budget = Budget()
     client = Client(args.api_base, values, budget)
     print(json.dumps(Qualification(client, language=args.language, activate_trial=args.activate_trial,
+                                   fixture_mode=args.fixture_mode,
                                    fresh_client=lambda: Client(args.api_base, values, budget)).run(),
                      separators=(",", ":")))
 
