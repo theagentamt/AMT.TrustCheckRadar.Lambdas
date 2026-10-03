@@ -55,6 +55,25 @@ def test_unwired_authority_core_never_publishes_runtime_artifacts():
     assert module.classify(['src/shared_check_authority_evil/core.py']) == 'all'
 
 
+def test_governed_history_reader_writer_and_contract_require_manual_authority_release():
+    paths = [
+        'src/shared_check_authority/core.py',
+        'src/shared_governed_history/projection.py',
+        'src/governed_history/app.py',
+        'tests/shared_check_authority/test_governed_history.py',
+        'tests/governed_history/test_service.py',
+        'contracts/governed-history/1.0.0-candidate.1/list.schema.json',
+        'contracts/message-consumer/1.0.0-candidate.3-rules-only.1/profile.json',
+        'docs/SECUR4ALL-337-RULES-ONLY-CANDIDATE3.md',
+        'docs/SECUR4ALL-338-GOVERNED-HISTORY.md',
+        'scripts/build_lambda_zip.sh', 'scripts/upload_lambda_zips.sh',
+        'scripts/verify_v1_packages.py', 'scripts/lambda_release_scope.py',
+        'tests/scripts/test_lambda_release_scope.py', '.github/workflows/ci.yml',
+    ]
+    assert module.classify(paths) == 'authority_manual'
+    assert module.classify(paths + ['src/conversation_analysis/app.py']) == 'all'
+
+
 def test_reviewed_entitlements_change_publishes_only_entitlements():
     paths = [
         'src/shared_check_authority/entitlements.py',

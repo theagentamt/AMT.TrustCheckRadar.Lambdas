@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["transportVersion", "serverTimeEpoch", "result"],
+  "properties": {
+    "transportVersion": {"const": "1.0.0-governed-history-candidate.1"},
+    "serverTimeEpoch": {"type": "integer", "minimum": 0},
+    "result": {"$ref": "item.schema.json"}
+  }
+}

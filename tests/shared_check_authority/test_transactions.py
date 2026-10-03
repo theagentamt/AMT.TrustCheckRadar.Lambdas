@@ -23,7 +23,7 @@ def world():
     with mock_aws():
         ddb = boto3.resource('dynamodb', region_name='us-east-1', aws_access_key_id='synthetic', aws_secret_access_key='synthetic', config=Config(retries={'total_max_attempts':1}))
         for name in ('users', 'devices', 'deletion', 'authority'):
-            ddb.create_table(TableName=name, BillingMode='PAY_PER_REQUEST', KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}], AttributeDefinitions=[{'AttributeName': k, 'AttributeType': 'S'} for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK')], GlobalSecondaryIndexes=[{'IndexName':'GSI1','KeySchema':[{'AttributeName':'GSI1PK','KeyType':'HASH'},{'AttributeName':'GSI1SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}}])
+            ddb.create_table(TableName=name, BillingMode='PAY_PER_REQUEST', KeySchema=[{'AttributeName': 'PK', 'KeyType': 'HASH'}, {'AttributeName': 'SK', 'KeyType': 'RANGE'}], AttributeDefinitions=[{'AttributeName': k, 'AttributeType': 'S'} for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK', 'GSI2PK', 'GSI2SK')], GlobalSecondaryIndexes=[{'IndexName':'GSI1','KeySchema':[{'AttributeName':'GSI1PK','KeyType':'HASH'},{'AttributeName':'GSI1SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}},{'IndexName':'GSI2','KeySchema':[{'AttributeName':'GSI2PK','KeyType':'HASH'},{'AttributeName':'GSI2SK','KeyType':'RANGE'}],'Projection':{'ProjectionType':'ALL'}}])
         clock = [1800000000]
         settings = Settings('users','devices','deletion','authority','https://issuer.example','client','checks',OWNER_POLICY,'k1',{'k1': b'synthetic-not-secret-test-key-0000'},60,120,300,480,600,60,100,3,True)
         import hashlib

@@ -6,6 +6,7 @@ import os
 import re
 
 INVENTORY_KEY = {'PK': 'V1#CONTROL', 'SK': 'HMAC_KEY_INVENTORY'}
+INVENTORY_FIELDS = ('PK', 'SK', 'recordType', 'schemaVersion', 'revision', 'coverage', 'issuedKeys')
 
 
 def load_keyring():
@@ -29,9 +30,15 @@ def load_keyring():
     except Exception: raise AuthorityError('KEY_INVENTORY_UNAVAILABLE') from None
 
 
-def verified_inventory(resource, table, keys):
+def verified_inventory(resource, table, keys, *, projected=False):
     from .core import AuthorityError, integral
-    row=resource.Table(table).get_item(Key=INVENTORY_KEY,ConsistentRead=True).get('Item')
+    request={'Key':INVENTORY_KEY,'ConsistentRead':True}
+    if projected is True:
+        names={f'#field{index}':field for index,field in enumerate(INVENTORY_FIELDS)}
+        request.update(ProjectionExpression=', '.join(names),ExpressionAttributeNames=names)
+    elif projected is not False:
+        raise AuthorityError('KEY_INVENTORY_UNAVAILABLE')
+    row=resource.Table(table).get_item(**request).get('Item')
     expected={k:hashlib.sha256(v).hexdigest() for k,v in keys.items()}
     if (not row or set(row)!={'PK','SK','recordType','schemaVersion','revision','coverage','issuedKeys'}
             or row.get('recordType')!='V1_HMAC_KEY_INVENTORY' or integral(row.get('schemaVersion'))!=1

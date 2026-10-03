@@ -1,0 +1,199 @@
+{
+  "transportVersion": "1.0.0-governed-history-candidate.1",
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "list-mixed",
+      "route": "GET /v1/users/analysis-history",
+      "response": {
+        "transportVersion": "1.0.0-governed-history-candidate.1",
+        "serverTimeEpoch": 1800000010,
+        "items": [
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.1",
+            "resultId": "gh1_1800000005_9d24fa30d29e7517af26120a421bee02",
+            "resultType": "message",
+            "sourceType": "pasted_text",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000005,
+            "assessmentTransportVersion": "1.0.0-message-candidate.3",
+            "processingOutcome": "partial",
+            "accounting": {
+              "state": "not_charged",
+              "chargedChecks": 0,
+              "receiptId": "9d24fa30d29e7517af26120a421bee02"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "kind": "message_assessment",
+              "policyVersion": "message-ai-2026-09-21-v1",
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "limitationCodes": [
+                "INSUFFICIENT_EVIDENCE"
+              ],
+              "ruleIds": [],
+              "evidence": [
+                {
+                  "source": "google_web_risk_lookup",
+                  "outcome": "match",
+                  "targetScope": "observed_http_chain",
+                  "observedAt": "2027-01-15T08:00:00Z",
+                  "validUntil": "2027-01-15T08:00:20Z",
+                  "threatTypes": [
+                    "MALWARE"
+                  ],
+                  "freshness": "current"
+                }
+              ],
+              "nextAction": "avoid_link",
+              "messageKey": "message.partial_known_threat",
+              "assessmentBasis": [
+                "google_web_risk_lookup",
+                "ai_assessment"
+              ],
+              "aiAssessmentStatus": "warning",
+              "aiReasonCodes": [
+                "AI_PRETEXT"
+              ]
+            },
+            "expiresAtEpoch": 1800604805,
+            "presentation": {
+              "freshnessStatus": "current",
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "INSUFFICIENT_EVIDENCE"
+              ],
+              "messageKey": "message.partial_known_threat",
+              "nextAction": "avoid_link"
+            }
+          },
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.1",
+            "resultId": "gh1_1800000006_0123456789abcdef0123456789abcdef",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000001,
+            "settledAtEpoch": 1800000006,
+            "assessmentTransportVersion": "1.0.0-candidate.2",
+            "processingOutcome": "complete",
+            "accounting": {
+              "state": "charged",
+              "chargedChecks": 1,
+              "receiptId": "0123456789abcdef0123456789abcdef"
+            },
+            "outcome": {
+              "schemaVersion": 2,
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 1,
+              "scope": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": null
+            },
+            "expiresAtEpoch": 1800604806,
+            "presentation": {
+              "freshnessStatus": "not_applicable",
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          }
+        ],
+        "nextCursor": null
+      }
+    },
+    {
+      "name": "detail-message",
+      "route": "GET /v1/users/analysis-history/{resultId}",
+      "response": {
+        "transportVersion": "1.0.0-governed-history-candidate.1",
+        "serverTimeEpoch": 1800000010,
+        "result": {
+          "schemaVersion": 1,
+          "transportVersion": "1.0.0-governed-history-candidate.1",
+          "resultId": "gh1_1800000005_9d24fa30d29e7517af26120a421bee02",
+          "resultType": "message",
+          "sourceType": "pasted_text",
+          "acceptedAtEpoch": 1800000000,
+          "settledAtEpoch": 1800000005,
+          "assessmentTransportVersion": "1.0.0-message-candidate.3",
+          "processingOutcome": "partial",
+          "accounting": {
+            "state": "not_charged",
+            "chargedChecks": 0,
+            "receiptId": "9d24fa30d29e7517af26120a421bee02"
+          },
+          "outcome": {
+            "schemaVersion": 3,
+            "kind": "message_assessment",
+            "policyVersion": "message-ai-2026-09-21-v1",
+            "verdict": "high_risk",
+            "processingOutcome": "partial",
+            "coverage": "limited",
+            "limitationCodes": [
+              "INSUFFICIENT_EVIDENCE"
+            ],
+            "ruleIds": [],
+            "evidence": [
+              {
+                "source": "google_web_risk_lookup",
+                "outcome": "match",
+                "targetScope": "observed_http_chain",
+                "observedAt": "2027-01-15T08:00:00Z",
+                "validUntil": "2027-01-15T08:00:20Z",
+                "threatTypes": [
+                  "MALWARE"
+                ],
+                "freshness": "current"
+              }
+            ],
+            "nextAction": "avoid_link",
+            "messageKey": "message.partial_known_threat",
+            "assessmentBasis": [
+              "google_web_risk_lookup",
+              "ai_assessment"
+            ],
+            "aiAssessmentStatus": "warning",
+            "aiReasonCodes": [
+              "AI_PRETEXT"
+            ]
+          },
+          "expiresAtEpoch": 1800604805,
+          "presentation": {
+            "freshnessStatus": "current",
+            "verdict": "high_risk",
+            "processingOutcome": "partial",
+            "coverage": "limited",
+            "reasonCodes": [
+              "INSUFFICIENT_EVIDENCE"
+            ],
+            "messageKey": "message.partial_known_threat",
+            "nextAction": "avoid_link"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -36,6 +36,7 @@ FUNCTIONS=(
   history_lifecycle
   history_mutation_api
   history_read_api
+  governed_history
   purchase_handoff
   url_redirect_resolver
   url_assessment
@@ -114,7 +115,7 @@ needs_shared_campaign_contracts() {
 
 needs_shared_history() {
   case "$1" in
-    account_data_api|conversation_analysis|device_recovery|device_registration|history_lifecycle|history_mutation_api|history_read_api) return 0 ;;
+    account_data_api|conversation_analysis|device_recovery|device_registration|history_lifecycle|history_mutation_api|history_read_api|governed_history) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -180,7 +181,7 @@ build_function() {
   if [[ "$function_name" == "support_account_deletion" && -z "$PYTHON_VERSION" ]]; then
     python_version="3.14"
   fi
-  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "demographic_research" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
+  if [[ -z "$PYTHON_VERSION" && ( "$function_name" == "campaign_review" || "$function_name" == "demographic_research" || "$function_name" == "post_confirmation" || "$function_name" == "age_attestation" || "$function_name" == "account_export_api" || "$function_name" == "account_data_api" || "$function_name" == "result_feedback" || "$function_name" == "recovery_consumer" || "$function_name" == "recovery_evaluator" || "$function_name" == "message_consumer" || "$function_name" == "message_evaluator" || "$function_name" == "governed_history" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_assessment" || "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_play_handoff" || "$function_name" == "play_lifecycle_ingress" || "$function_name" == "play_lifecycle_worker" || "$function_name" == "play_token_deletion" || "$function_name" == "v1_authority_deletion" ) ]]; then
     python_version="3.14"
   fi
 
@@ -212,9 +213,15 @@ build_function() {
     printf 'from v1_play_handoff.app import lambda_handler\n' > "$build_dir/app.py"
     cp -R "$ROOT_DIR/src/shared_check_authority" "$ROOT_DIR/src/shared_history" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/shared_play_lifecycle" "$build_dir/"
   fi
-  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
+  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_lease_recovery" || "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" || "$function_name" == "governed_history" ]]; then
     cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
     cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
+  fi
+  if [[ "$function_name" == "governed_history" ]]; then
+    cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
+    cp -R "$ROOT_DIR/contracts/governed-history/1.0.0-candidate.1" "$build_dir/contract"
+    mkdir -p "$build_dir/message_evaluator"
+    cp "$ROOT_DIR/src/message_evaluator/__init__.py" "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
   fi
   if [[ "$function_name" == "v1_entitlements" || "$function_name" == "v1_authority_deletion" ]]; then
     mkdir -p "$build_dir/$function_name"
@@ -293,6 +300,9 @@ build_function() {
   fi
   if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
     cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
+  fi
+  if [[ -d "$build_dir/shared_check_authority" ]]; then
+    cp -R "$ROOT_DIR/src/shared_governed_history" "$build_dir/shared_governed_history"
   fi
 
   # Every shared-authority consumer can recover a recovery lease without the

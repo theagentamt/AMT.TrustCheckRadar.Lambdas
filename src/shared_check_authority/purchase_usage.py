@@ -251,7 +251,8 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                 continue
             if row.get('periodSK') != period['SK'] and row.get('purchaseUsageKey') != pointer:
                 continue
-            optional = {'urlTransportVersion', 'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'}
+            optional = {'urlTransportVersion', 'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion',
+                        'governedHistoryAcceptedAtEpoch', 'governedHistorySourceType', 'governedHistoryResultType'}
             if (not _PENDING_FIELDS <= set(row) or set(row) - _PENDING_FIELDS - optional
                     or row.get('PK') != partition or row.get('periodSK') != period['SK']
                     or row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY

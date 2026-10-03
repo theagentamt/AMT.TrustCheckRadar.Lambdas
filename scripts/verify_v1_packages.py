@@ -6,10 +6,14 @@ import tempfile
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-for name in ('url_consumer','url_lease_recovery','v1_entitlements','v1_authority_deletion'):
+for name in ('url_consumer','url_lease_recovery','v1_entitlements','v1_authority_deletion','governed_history'):
     with tempfile.TemporaryDirectory() as temp:
         with zipfile.ZipFile(ROOT/'dist'/f'{name}.zip') as archive:archive.extractall(temp)
         module=name+'.app' if name in ('v1_entitlements','v1_authority_deletion') else 'app'
+        incoming = ({'version':'2.0','routeKey':'GET /v1/users/analysis-history',
+                     'requestContext':{'http':{'method':'GET'}},'body':None,
+                     'queryStringParameters':None,'isBase64Encoded':False}
+                    if name == 'governed_history' else {})
         code=f'''
 import socket,json,sys
 # Host dependency preloaded because ARM64 wheels cannot execute on CI x86_64/macOS.
@@ -20,8 +24,8 @@ socket.create_connection=lambda *a,**kw: (_ for _ in ()).throw(AssertionError("n
 from {module} import lambda_handler
 class Context:
     def get_remaining_time_in_millis(self):return 29000
-result=lambda_handler({{}},Context())
+result=lambda_handler({incoming!r},Context())
 assert result.get('statusCode')==503 or result.get('enabled') is False,result
 '''
         subprocess.run([sys.executable,'-c',code],cwd=ROOT,env={'PATH':'/usr/bin:/bin','STAGE':'dev','AWS_EC2_METADATA_DISABLED':'true'},check=True)
-print('4 disabled V1 package handlers import from isolated archive layouts; host jsonschema used, no network; ARM64 runtime smoke remains required')
+print('5 disabled V1 package handlers import from isolated archive layouts; host jsonschema used, no network; ARM64 runtime smoke remains required')
