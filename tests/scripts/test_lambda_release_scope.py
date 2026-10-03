@@ -74,6 +74,24 @@ def test_governed_history_reader_writer_and_contract_require_manual_authority_re
     assert module.classify(paths + ['src/conversation_analysis/app.py']) == 'all'
 
 
+def test_source_current_evaluation_pin_correction_cannot_publish_aws_artifacts():
+    paths = [
+        'contracts/sanitizer/v1/evaluation-source-current.json',
+        'contracts/sanitizer/v1/README.md',
+        'contracts/sanitizer/v1/SHA256SUMS',
+        'tests/sanitizer_contract/test_fixtures.py',
+        'scripts/lambda_release_scope.py',
+        'tests/scripts/test_lambda_release_scope.py',
+    ]
+    assert module.classify(paths) == 'authority_manual'
+    # The exception is exact and cannot hide changes to the immutable sanitizer
+    # profile, fixtures, or historical evaluation identity record.
+    assert module.classify(paths + ['contracts/sanitizer/v1/profile.json']) == 'all'
+    assert module.classify(paths + ['contracts/sanitizer/v1/fixtures.json']) == 'all'
+    assert module.classify(paths + ['contracts/sanitizer/v1/evaluation-profile-identities.json']) == 'all'
+    assert module.classify(['contracts/sanitizer/v1/README.md']) == 'all'
+
+
 def test_reviewed_entitlements_change_publishes_only_entitlements():
     paths = [
         'src/shared_check_authority/entitlements.py',

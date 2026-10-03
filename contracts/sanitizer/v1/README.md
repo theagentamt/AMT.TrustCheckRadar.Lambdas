@@ -51,10 +51,13 @@ text. Replaying old raw content now rejected by this guard returns a privacy
 error with unknown accounting; recover using the original contentless reconcile
 identity. The stored outcome/charge is neither rewritten nor charged again.
 
-The guard changes executable evaluation profile hashes, not the prompt/schema.
-`evaluation-profile-identities.json` records the new pins. Historical playbook-r1
-and compatibility packets stay historical: regenerate any future experiment
-proposal from the integrated source. This artifact does not authorize execution:
+The guard and later candidate.3 rules-only policy change executable evaluation
+profile hashes, not the prompt/schema. The original published
+`evaluation-profile-identities.json` stays byte-for-byte unchanged as historical
+evidence. `evaluation-source-current.json` records the current source pins and
+marks that published record explicitly stale and unqualified. Historical
+playbook-r1 and compatibility packets stay historical: regenerate any future
+experiment proposal from the integrated source. This artifact does not authorize execution:
 SECUR4ALL-323 retains the owner-approved compatibility scope pending evidence and
 a concrete manifest. `paidExecutionAuthorized:false` applies to this artifact,
 not a revocation of that scope. No qualification is granted, and both

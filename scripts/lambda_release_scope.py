@@ -35,6 +35,9 @@ AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/sha
     'contracts/url-consumer/', 'contracts/v1-access/', 'contracts/v1-complimentary-operator/',
     'docs/v1-entitlement-', 'docs/url-consumer-',
     'src/url_assessment/', 'tests/url_assessment/', 'docs/SECUR4ALL-337-', 'docs/SECUR4ALL-338-')
+AUTHORITY_SOURCE_PROFILE_PATHS = {
+    'contracts/sanitizer/v1/evaluation-source-current.json',
+}
 AUTHORITY_SUPPORT_PATHS = {
     'scripts/url_consumer_engineering_smoke.py', 'tests/scripts/test_url_consumer_engineering_smoke.py',
     'src/account_data_api/config.py', 'src/account_data_api/service.py',
@@ -46,6 +49,8 @@ AUTHORITY_SUPPORT_PATHS = {
     'tests/scripts/authority_release_paths.json', 'scripts/verify_v1_packages.py', 'tests/contracts/test_v1_access_contract.py', 'tests/contracts/test_url_consumer_transport.py',
     'scripts/publish_v1_entitlements.py', 'tests/scripts/test_publish_v1_entitlements.py',
     'tests/contracts/test_v1_complimentary_operator_contract.py',
+    'contracts/sanitizer/v1/README.md', 'contracts/sanitizer/v1/SHA256SUMS',
+    'tests/sanitizer_contract/test_fixtures.py',
 }
 ASSESSMENT_PREFIXES = ('src/url_assessment/', 'tests/url_assessment/', 'docs/url-assessment-', 'scripts/url_assessment_')
 ASSESSMENT_SUPPORT_PATHS = {
@@ -69,8 +74,8 @@ def classify(paths):
         entitlements(path) or path in ENTITLEMENTS_SUPPORT_PATHS for path in paths
     ):
         return 'entitlements'
-    authority = lambda path: path.startswith(AUTHORITY_PREFIXES)
-    if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) for path in paths) and all(
+    authority = lambda path: path.startswith(AUTHORITY_PREFIXES) or path in AUTHORITY_SOURCE_PROFILE_PATHS
+    if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) or path in AUTHORITY_SOURCE_PROFILE_PATHS for path in paths) and all(
         authority(path) or path in AUTHORITY_SUPPORT_PATHS for path in paths
     ):
         return 'authority_manual'

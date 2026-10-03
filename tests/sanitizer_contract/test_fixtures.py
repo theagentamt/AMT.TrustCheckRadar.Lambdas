@@ -137,11 +137,26 @@ def test_published_supplement_checksums_and_current_evaluation_source_pins():
         for line in (directory/'SHA256SUMS').read_text().splitlines():
             checksum,name=line.split('  ')
             assert hashlib.sha256((directory/name).read_bytes()).hexdigest()==checksum
-    pins=json.loads((DIR/'evaluation-profile-identities.json').read_text())
-    for model,checksum in pins['controlledProfiles'].items():
+    historical_path=DIR/'evaluation-profile-identities.json'
+    historical=json.loads(historical_path.read_text())
+    pins=json.loads((DIR/'evaluation-source-current.json').read_text())
+    assert pins['sourceCommit']=='1edd0854c4f57574c1bf3896e2706b17f67e085d'
+    assert pins['historicalPublishedRecord']=={
+        'path':'evaluation-profile-identities.json',
+        'sha256':'b93ec210683b075ce9cc5f70b1fea7d0fa8254dc323e80d3e02c4244ba77bac0',
+        'status':'stale_source_identity_not_qualified',
+    }
+    assert hashlib.sha256(historical_path.read_bytes()).hexdigest()==pins['historicalPublishedRecord']['sha256']
+    for model,checksum in pins['sourceCurrentControlledProfiles'].items():
         current=profile(model)
         assert digest(current)==checksum
         assert current['promptSha256']==pins['promptSha256']
         assert current['schemaSha256']==pins['schemaSha256']
         assert 'src/shared_message_contract/privacy.py' in current['sourceSha256']
+    assert set(historical['controlledProfiles'])==set(pins['sourceCurrentControlledProfiles'])
+    assert all(historical['controlledProfiles'][model]!=pins['sourceCurrentControlledProfiles'][model]
+               for model in pins['sourceCurrentControlledProfiles'])
+    assert historical['qualification']=='none' and historical['paidExecutionAuthorized'] is False
     assert pins['qualification']=='none' and pins['paidExecutionAuthorized'] is False
+    assert json.loads((ROOT/'src/message_evaluator/ai_qualifications.json').read_text())=={}
+    assert json.loads((ROOT/'evaluation/message_ai/controlled/approved_experiments.json').read_text())=={}
