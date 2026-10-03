@@ -161,6 +161,36 @@ def test_valid_partially_used_trial_is_not_reactivated_or_reset():
     assert not any(path == "/v1/access/trial" for _, path, _ in fake.requests)
 
 
+def test_dedicated_fixture_is_preserved_and_requires_fixed_ttl_cleanup():
+    fake, budget = Fake(used=1), module.Budget()
+    value = module.Qualification(client(fake, budget), fixture_mode="dedicated_reusable",
+                                 clock=lambda: 1_800_000_001, sleep=lambda _: None,
+                                 fresh_client=lambda: client(fake, budget)).run()
+    assert value["fixtureMode"] == "dedicated_reusable"
+    assert value["accountPreserved"] is True
+    assert value["accountCleanupRequired"] is False
+    assert value["requiresOperationalEvidence"] == [
+        "provider_invocations_zero", "rollback_gates_inactive", "fixed_ttl_receipt_expiry"]
+    assert not any(path == "/v1/access/trial" for _, path, _ in fake.requests)
+
+
+def test_dedicated_fixture_rejects_trial_activation_or_reset_choice():
+    with pytest.raises(module.Refused, match="QUALIFICATION_UNVERIFIED"):
+        module.Qualification(client(Fake(used=1)), fixture_mode="dedicated_reusable",
+                             activate_trial=True)
+
+
+def test_disposable_fixture_retains_account_cleanup_obligation():
+    fake, budget = Fake(used=1), module.Budget()
+    value = module.Qualification(client(fake, budget), fixture_mode="disposable",
+                                 clock=lambda: 1_800_000_001, sleep=lambda _: None,
+                                 fresh_client=lambda: client(fake, budget)).run()
+    assert value["fixtureMode"] == "disposable"
+    assert value["accountPreserved"] is False
+    assert value["accountCleanupRequired"] is True
+    assert "disposable_account_cleanup" in value["requiresOperationalEvidence"]
+
+
 def test_one_remaining_check_finishes_with_an_exhausted_valid_snapshot():
     fake, budget = Fake(used=9), module.Budget()
     value = module.Qualification(client(fake, budget), clock=lambda: 1_800_000_001,

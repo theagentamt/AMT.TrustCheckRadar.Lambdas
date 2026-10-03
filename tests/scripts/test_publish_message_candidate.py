@@ -108,21 +108,32 @@ def test_package_smoke_imports_from_lambda_style_extracted_directory(packages, m
     monkeypatch.setattr(module.platform, "machine", lambda: "aarch64")
 
     def run(args, *, env, check):
-        directory = Path(args[-3])
+        directory = Path(args[-4])
         assert check is True and directory.is_dir()
         assert directory.suffix != ".zip" and (directory / "app.py").is_file()
         assert env["PYTHONDONTWRITEBYTECODE"] == "1"
         assert env["MESSAGE_CONSUMER_ENABLED"] == "false"
         assert env["MESSAGE_EVALUATOR_ENABLED"] == "false"
-        assert env["URL_CONSUMER_ENABLED"] == "false"
+        assert env["CONSUMER_ENABLED"] == "false"
+        assert "URL_CONSUMER_ENABLED" not in env
         assert env["GOVERNED_HISTORY_LIST_ENABLED"] == "false"
         assert env["GOVERNED_HISTORY_DETAIL_ENABLED"] == "false"
-        assert args[-1] in {value.removesuffix(".lambda_handler") for value in module.HANDLERS.values()}
+        assert args[-2] in {value.removesuffix(".lambda_handler") for value in module.HANDLERS.values()}
+        assert args[-1] in set(module.DISABLED_EXPECTATIONS.values())
         calls.append(directory.name)
 
     monkeypatch.setattr(module.subprocess, "run", run)
     module.smoke(packages)
     assert len(calls) == 4
+
+
+def test_disabled_smoke_expectations_match_each_handler_contract():
+    assert module.DISABLED_EXPECTATIONS == {
+        "message_consumer": "service_not_enabled",
+        "message_evaluator": "enabled_false",
+        "url_consumer": "service_unavailable",
+        "governed_history": "service_not_enabled",
+    }
 
 
 def test_concurrent_current_version_change_fails_closed(packages):

@@ -25,6 +25,12 @@ HANDLERS = {
     "url_consumer": "app.lambda_handler",
     "governed_history": "governed_history.app.lambda_handler",
 }
+DISABLED_EXPECTATIONS = {
+    "message_consumer": "service_not_enabled",
+    "message_evaluator": "enabled_false",
+    "url_consumer": "service_unavailable",
+    "governed_history": "service_not_enabled",
+}
 BUCKET = "trustcheckradar-dev-107827791950-artifacts"
 REGION = "us-east-1"
 
@@ -132,7 +138,7 @@ def smoke(dist):
                 STAGE="dev",
                 MESSAGE_CONSUMER_ENABLED="false",
                 MESSAGE_EVALUATOR_ENABLED="false",
-                URL_CONSUMER_ENABLED="false",
+                CONSUMER_ENABLED="false",
                 AUTHORITY_ENABLED="false",
                 GOVERNED_HISTORY_LIST_ENABLED="false",
                 GOVERNED_HISTORY_DETAIL_ENABLED="false",
@@ -147,11 +153,15 @@ def smoke(dist):
                 "import ast,importlib,json,sys; sys.path.insert(0,sys.argv[1]); "
                 "app=importlib.import_module(sys.argv[3]); "
                 "result=app.lambda_handler(ast.literal_eval(sys.argv[2]),None); "
-                "assert (result.get('enabled') is False) if 'enabled' in result else "
-                "(result.get('statusCode')==503 and (lambda body: body.get('errorCode')=='SERVICE_NOT_ENABLED' "
-                "or body.get('error',{}).get('code')=='SERVICE_NOT_ENABLED')(json.loads(result['body'])))"
+                "expect=sys.argv[4]; "
+                "body=(json.loads(result['body']) if 'body' in result else {}); "
+                "code=body.get('errorCode') or body.get('error',{}).get('code'); "
+                "assert ((expect=='enabled_false' and result.get('enabled') is False) or "
+                "(expect=='service_not_enabled' and result.get('statusCode')==503 and code=='SERVICE_NOT_ENABLED') or "
+                "(expect=='service_unavailable' and result.get('statusCode')==503 and code=='SERVICE_UNAVAILABLE'))"
             )
-            subprocess.run([sys.executable, "-c", code, directory, repr(incoming), module], env=env, check=True)
+            subprocess.run([sys.executable, "-c", code, directory, repr(incoming), module,
+                            DISABLED_EXPECTATIONS[function]], env=env, check=True)
         print(function + ": offline compile/import and disabled-handler smoke passed")
 
 
