@@ -13,6 +13,7 @@ from pathlib import Path
 MAX_BYTES = 8 * 1024 * 1024
 MAX_RECORDS = 10000
 CLASSIFIER_VERSION = 'legacy-preservation-v1'
+CLASSIFIER_VERSION_V2 = 'legacy-preservation-v2'
 REQUIRED_FAMILIES = {'request', 'consumption', 'entitlement', 'consent', 'consent_operation',
                     'consent_audit', 'withdrawal', 'purchase_token', 'purchase_binding',
                     'current_authority', 'deletion'}
@@ -74,7 +75,134 @@ def classify(family, row):
     return 'unknown_shape'
 
 
+CURRENT_RECORD_TYPES = {
+    'PURCHASE_OWNERSHIP_INVENTORY', 'V1_ACCESS_AUTHORITY', 'V1_ALLOWANCE_PERIOD',
+    'V1_ATTEMPT_COUNTER', 'V1_AUTHORITY_AUDIT', 'V1_CHECK_RECEIPT',
+    'V1_HMAC_KEY_INVENTORY', 'V1_MESSAGE_PROVIDER_BUDGET', 'V1_PREPARATION',
+    'V1_TRIAL_ELIGIBILITY',
+}
+
+
+def known_v2(family, row):
+    """Recognize only preservation-safe shapes; recognition never authorizes apply."""
+    bucket = classify(family, row)
+    if family != 'current_authority':
+        return bucket != 'unknown_shape'
+    return (isinstance(row, dict) and isinstance(row.get('PK'), str)
+            and isinstance(row.get('SK'), str)
+            and row.get('recordType') in CURRENT_RECORD_TYPES)
+
+
+def _request_identity(row, prefix):
+    if not isinstance(row, dict) or not isinstance(row.get('PK'), str) or not row['PK'].startswith(prefix):
+        return None
+    if not isinstance(row.get('SK'), str):
+        return None
+    return row['PK'][len(prefix):], row['SK']
+
+
+def _settlement_matches(request, receipt):
+    if not isinstance(receipt, dict):
+        return False
+    identity = _request_identity(request, 'ANALYSIS#REQUEST#')
+    consumed = _request_identity(receipt, 'ANALYSIS#CONSUMPTION#')
+    return (identity is not None and identity == consumed
+            and receipt.get('accountIdHash') == identity[0]
+            and receipt.get('consumptionType') in ('monthly', 'credit')
+            and exact_int(request.get('expiresAt'))
+            and exact_int(request.get('ttl'))
+            and exact_int(receipt.get('expiresAt'))
+            and exact_int(receipt.get('ttl'))
+            and request['expiresAt'] == request['ttl'] == receipt['expiresAt'] == receipt['ttl']
+            and isinstance(request.get('completedAt'), str)
+            and receipt.get('createdAt') == request['completedAt'])
+
+
+def plan_v2(value, *, raw_input_sha256=None):
+    if (not isinstance(value, dict) or set(value) != {'schemaVersion', 'observedAtEpoch', 'records'}
+            or type(value['schemaVersion']) is not int or value['schemaVersion'] != 2
+            or not exact_int(value['observedAtEpoch'])
+            or not isinstance(value['records'], list) or len(value['records']) > MAX_RECORDS):
+        raise ValueError('INVENTORY_INPUT_INVALID')
+    observed = int(value['observedAtEpoch'])
+    counts, seen = Counter(), set()
+    known = unknown = expired = 0
+    requests, receipts = [], {}
+    access = Counter({'legacyBonus': 0, 'legacyFree': 0, 'legacyPaid': 0,
+                      'currentAccess': 0, 'currentSupporting': 0, 'unknown': 0})
+    for entry in value['records']:
+        if not isinstance(entry, dict) or set(entry) != {'family', 'item'}:
+            counts['unknown_shape'] += 1; unknown += 1
+            continue
+        family, row = entry['family'], entry['item']
+        bucket = classify(family, row)
+        counts[bucket] += 1
+        if known_v2(family, row):
+            known += 1; seen.add(family)
+        else:
+            unknown += 1
+        if isinstance(row, dict) and exact_int(row.get('expiresAt')) and row['expiresAt'] <= observed:
+            expired += 1
+        if family == 'request':
+            requests.append(row)
+        elif family == 'consumption':
+            key = _request_identity(row, 'ANALYSIS#CONSUMPTION#')
+            if key is not None: receipts[key] = row
+        elif family == 'entitlement':
+            if bucket.startswith('legacy_free_'):
+                access['legacyBonus'] += int(row.get('monthlyScanLimit') == 15)
+                access['legacyFree'] += int(row.get('monthlyScanLimit') != 15)
+            elif bucket.startswith('legacy_pro_'):
+                access['legacyPaid'] += 1
+            else:
+                access['unknown'] += 1
+        elif family == 'current_authority':
+            current_known = known_v2(family, row)
+            access['currentAccess'] += int(current_known and row.get('recordType') == 'V1_ACCESS_AUTHORITY')
+            access['currentSupporting'] += int(current_known and row.get('recordType') != 'V1_ACCESS_AUTHORITY')
+            access['unknown'] += int(not current_known)
+    lifecycle = Counter({'neverDispatched': 0, 'inFlightAmbiguous': 0, 'settled': 0,
+                         'erased': 0, 'unknown': 0})
+    for row in requests:
+        if not isinstance(row, dict): lifecycle['unknown'] += 1; continue
+        status = row.get('status')
+        if status in ('PROCESSING', 'RETRYABLE', 'RESULT_READY'):
+            lifecycle['inFlightAmbiguous'] += 1
+        elif status == 'COMPLETED':
+            key = _request_identity(row, 'ANALYSIS#REQUEST#')
+            if key is not None and _settlement_matches(row, receipts.get(key)):
+                lifecycle['settled'] += 1
+            else:
+                lifecycle['unknown'] += 1
+        elif status == 'COMPLETED_ERASED':
+            lifecycle['erased'] += 1
+        else:
+            lifecycle['unknown'] += 1
+    def decimal(value):
+        if exact_int(value): return int(value)
+        raise TypeError('INVENTORY_INPUT_INVALID')
+    digest = raw_input_sha256 or hashlib.sha256(json.dumps(
+        value, sort_keys=True, separators=(',', ':'), allow_nan=False, default=decimal
+    ).encode()).hexdigest()
+    return {
+        'schemaVersion': 2, 'mode': 'dry_run_only', 'classifierVersion': CLASSIFIER_VERSION_V2,
+        'inputSha256': digest, 'digestKind': 'source_bytes' if raw_input_sha256 else 'canonical_json',
+        'observedAtEpoch': observed, 'inputRecordCount': len(value['records']),
+        'shapeClassifications': {'known': known, 'unknown': unknown},
+        'requestLifecycle': dict(lifecycle), 'expiredRecordCount': expired,
+        'legacyAccess': dict(sorted(access.items())),
+        'preservationClassifications': dict(sorted(counts.items())),
+        'missingRequiredFamilies': sorted(REQUIRED_FAMILIES - seen),
+        'neverDispatchedProofAvailable': False,
+        'unknownRecovery': 'preserve_source_and_require_explicit_review',
+        'applyAvailable': False, 'inventoryComplete': False,
+        'replayQualified': False, 'migrationApproved': False,
+    }
+
+
 def plan(value, *, raw_input_sha256=None):
+    if isinstance(value, dict) and value.get('schemaVersion') == 2:
+        return plan_v2(value, raw_input_sha256=raw_input_sha256)
     if (not isinstance(value, dict) or set(value) != {'schemaVersion', 'records'}
             or type(value['schemaVersion']) is not int or value['schemaVersion'] != 1
             or not isinstance(value['records'], list) or len(value['records']) > MAX_RECORDS):

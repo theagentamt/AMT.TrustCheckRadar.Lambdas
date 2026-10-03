@@ -45,7 +45,39 @@ It needs no writes, transactions, secrets, SSM, provider access or Lambda invoca
 
 The output contains aggregate preservation buckets, classifier version and SHA-256 of the exact input bytes. The included synthetic input/report uses no customer records. These are preliminary preservation classifications, **not schema qualification**: a `COMPLETED` classification still requires independent handler proof; current authority and audit records are deliberately not interpreted. Unknown fields and unrecognized families remain unknown or separately reviewed, never grants.
 
-Required coverage families are requests, consumption, entitlements, consent state, consent operations, consent audit, withdrawal commands, purchase tokens, purchase locators, current authority and deletion fences. Missing recognizable families are reported. Presence of one record cannot establish complete pagination or coverage: `inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable` are always false. The planner has no SDK, collector, credentials, apply command or mutation path. It does not inspect backups or prove a complete live inventory.
+Required coverage families are requests, consumption, entitlements, consent state, consent operations, consent audit, withdrawal commands, purchase tokens, purchase locators, current authority and deletion fences. Missing recognizable families are reported. Presence of one record cannot establish complete pagination or coverage: `inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable` are always false. The v1 planner has no SDK, credentials, apply command or mutation path. It does not inspect backups or prove a complete live inventory.
+
+### Additive v2 aggregate inventory
+
+The v2 envelope adds an explicit observation epoch and separates shape recognition,
+request lifecycle, logical expiry and legacy access. It keeps the v1 envelope and
+report compatible. `PROCESSING`, `RETRYABLE` and `RESULT_READY` are counted as
+ambiguous in-flight records. The legacy request schema has no durable
+provider-dispatch-start marker, so the report never infers `neverDispatched` from
+an expired lease, missing response or retryable state. `COMPLETED` is counted as
+settled only when its exact owner/request identity, completion timestamp, expiry
+and TTL match the original monthly/credit consumption receipt. Unknown evidence
+is retained for explicit review.
+
+`collect_dev.py` is restricted to table names containing `trustcheckradar-dev-`.
+It performs bounded paginated `Scan` calls with allowlisted projections, retains
+projected rows in memory only, and prints the v2 aggregate report. The report
+contains no resource names, record identifiers or user content. The collector has
+no put, update, delete, transaction or apply path. Its report still fixes
+`inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable`
+to false because a live table scan does not cover backups, restore copies, old
+credentials or every historical writer.
+
+The October 3 Dev evidence is
+[`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
+The retired request table was empty: there was no retained never-dispatched,
+in-flight, settled, erased or unknown request to migrate. The shared authority
+table contained two legacy FREE records with the historical 15-check bonus shape,
+zero legacy paid records and six untyped shapes. These stay source-preserved and
+cannot create V1 paid, trial or complimentary authority. The two existing current
+ACCESS rows and their supporting current records are classified separately; this
+inventory neither approves nor changes them. The observed old research-consent
+rows also remain review-only and do not authorize access or publication.
 
 ## Remaining rollout acceptance
 

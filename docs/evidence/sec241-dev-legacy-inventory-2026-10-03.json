@@ -1,0 +1,59 @@
+{
+  "applyAvailable": false,
+  "classifierVersion": "legacy-preservation-v2",
+  "contentIncluded": false,
+  "digestKind": "canonical_json",
+  "expiredRecordCount": 0,
+  "identifiersIncluded": false,
+  "inputRecordCount": 62,
+  "inputSha256": "17801d0cdb9eeb23290dc3e2103409c8cd32480e9d446e3aa48fac8421ffb498",
+  "inventoryComplete": false,
+  "legacyAccess": {
+    "currentAccess": 2,
+    "currentSupporting": 38,
+    "legacyBonus": 2,
+    "legacyFree": 0,
+    "legacyPaid": 0,
+    "unknown": 6
+  },
+  "migrationApproved": false,
+  "missingRequiredFamilies": [
+    "consumption",
+    "purchase_binding",
+    "purchase_token",
+    "request",
+    "withdrawal"
+  ],
+  "mode": "dry_run_only",
+  "neverDispatchedProofAvailable": false,
+  "observedAtEpoch": 1790986611,
+  "preservationClassifications": {
+    "consent_audit_preserve_review_separately": 2,
+    "consent_operation_preserve_exact_retry_identity": 2,
+    "current_authority_preserve_review_separately": 46,
+    "deletion_fence_preserve_precedence": 8,
+    "enrolled_requires_version_qualification": 2,
+    "legacy_free_preserve_no_grant_conversion": 2
+  },
+  "replayQualified": false,
+  "requestLifecycle": {
+    "erased": 0,
+    "inFlightAmbiguous": 0,
+    "neverDispatched": 0,
+    "settled": 0,
+    "unknown": 0
+  },
+  "shapeClassifications": {
+    "known": 56,
+    "unknown": 6
+  },
+  "sourceCoverage": {
+    "authority": {"pages": 1, "paginationComplete": true, "returnedCount": 48, "scannedCount": 48},
+    "consent": {"pages": 1, "paginationComplete": true, "returnedCount": 6, "scannedCount": 16},
+    "deletion": {"pages": 1, "paginationComplete": true, "returnedCount": 8, "scannedCount": 110},
+    "requests": {"pages": 1, "paginationComplete": true, "returnedCount": 0, "scannedCount": 0}
+  },
+  "sourceEnvironment": "dev",
+  "unknownRecovery": "preserve_source_and_require_explicit_review",
+  "writesPerformed": false
+}
