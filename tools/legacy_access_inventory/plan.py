@@ -5,11 +5,13 @@ Output is aggregate counts only. Unknown evidence is never normalized into grant
 """
 import argparse
 from collections import Counter
+from datetime import datetime
 from decimal import Decimal
 import json
 import hashlib
 from pathlib import Path
 import re
+import uuid
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_RECORDS = 10000
@@ -104,6 +106,10 @@ DELETION_FIELDS = {'PK', 'SK', 'accountId', 'completedAtEpoch', 'deleteByEpoch',
                    'eventType', 'occurredAtEpoch', 'operationId', 'recordVersion',
                    'retainUntilEpoch', 'schemaVersion', 'status'}
 HASH = re.compile(r'^[0-9a-f]{64}$')
+ACCOUNT = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$')
+MAX_SAFE_INTEGER = 9007199254740991
+AUDIT_RETENTION_SECONDS = 400 * 86400
+DELETION_RETENTION_SECONDS = 120 * 86400
 
 
 def _legacy_markers(row, record_type):
@@ -172,16 +178,133 @@ def _entitlement_shape(row):
             and isinstance(row.get('isAccessGranted'), bool))
 
 
+def _positive_int(value, maximum=MAX_SAFE_INTEGER):
+    return exact_int(value) and 1 <= value <= maximum
+
+
+def _uuid4(value):
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError, TypeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value
+
+
+def _timestamp(value):
+    if not isinstance(value, str) or len(value) > 40 or not value.endswith('Z'):
+        return False
+    try:
+        datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        return False
+    return True
+
+
+def _timestamp_epoch(value):
+    if not _timestamp(value):
+        return None
+    parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    epoch = parsed.timestamp()
+    return int(epoch) if epoch == int(epoch) else None
+
+
+def _version(value):
+    return isinstance(value, str) and 1 <= len(value.encode('utf-8')) <= 64
+
+
+def _user_owner(row):
+    pk = row.get('PK')
+    return pk.removeprefix('USER#') if isinstance(pk, str) and pk.startswith('USER#') else None
+
+
+def _account_owner(row):
+    pk = row.get('PK')
+    owner = pk.removeprefix('ACCOUNT#') if isinstance(pk, str) and pk.startswith('ACCOUNT#') else None
+    return owner if owner and ACCOUNT.fullmatch(owner) else None
+
+
+def _consent_shape(row):
+    if set(row) != CONSENT_FIELDS:
+        return False
+    owner = _user_owner(row)
+    effective, updated = _timestamp_epoch(row.get('effectiveFrom')), _timestamp_epoch(row.get('updatedAt'))
+    return (bool(owner) and row.get('SK') == 'CAMPAIGN_PARTICIPATION'
+            and row.get('schemaVersion') == 1 and type(row.get('schemaVersion')) is int
+            and row.get('recordVersion') == 1 and type(row.get('recordVersion')) is int
+            and row.get('environment') == 'dev' and row.get('state') == 'enrolled'
+            and _positive_int(row.get('stateVersion'))
+            and _uuid4(row.get('consentEpochId')) and _uuid4(row.get('lastOperationId'))
+            and _version(row.get('noticeVersion')) and _version(row.get('policyVersion'))
+            and effective is not None and updated is not None and updated >= effective)
+
+
+def _consent_operation_shape(row):
+    if set(row) != CONSENT_OPERATION_FIELDS:
+        return False
+    owner = _user_owner(row)
+    operation = row.get('operationId')
+    action = row.get('action')
+    occurred = _timestamp_epoch(row.get('occurredAt'))
+    return (bool(owner) and _uuid4(operation)
+            and row.get('SK') == 'CAMPAIGN_OPERATION#' + operation
+            and row.get('schemaVersion') == 1 and type(row.get('schemaVersion')) is int
+            and row.get('recordVersion') == 1 and type(row.get('recordVersion')) is int
+            and action in {'join', 'withdraw'} and _uuid4(row.get('consentEpochId'))
+            and row.get('resultingState') == {'join': 'enrolled', 'withdraw': 'withdrawal_pending'}[action]
+            and occurred is not None and row.get('expiresAt') == occurred + AUDIT_RETENTION_SECONDS)
+
+
+def _consent_audit_shape(row):
+    if set(row) != CONSENT_AUDIT_FIELDS:
+        return False
+    owner = _user_owner(row)
+    operation, epoch = row.get('operationId'), row.get('consentEpochId')
+    event = row.get('eventType')
+    resulting_state = {
+        'campaign.participation.joined': 'enrolled',
+        'campaign.participation.withdrawal_requested': 'withdrawal_pending',
+    }.get(event)
+    parts = row.get('SK', '').split('#') if isinstance(row.get('SK'), str) else []
+    occurred_epoch = int(parts[2]) if len(parts) == 4 and parts[2].isdigit() else None
+    occurred_at = _timestamp_epoch(row.get('occurredAt'))
+    return (bool(owner) and resulting_state is not None and _uuid4(epoch) and _uuid4(operation)
+            and parts == ['CAMPAIGN_CONSENT', epoch, str(occurred_epoch), operation]
+            and row.get('schemaVersion') == 1 and type(row.get('schemaVersion')) is int
+            and row.get('recordVersion') == 1 and type(row.get('recordVersion')) is int
+            and row.get('resultingState') == resulting_state
+            and _positive_int(row.get('effectiveMonthlyScanLimit'))
+            and _positive_int(row.get('stateVersion'))
+            and _version(row.get('noticeVersion')) and _version(row.get('policyVersion'))
+            and occurred_at == occurred_epoch and occurred_epoch is not None
+            and row.get('expiresAt') == occurred_epoch + AUDIT_RETENTION_SECONDS)
+
+
+def _deletion_shape(row):
+    if set(row) != DELETION_FIELDS:
+        return False
+    owner = _account_owner(row)
+    occurred = row.get('occurredAtEpoch')
+    completed = row.get('completedAtEpoch')
+    return (owner is not None and row.get('accountId') == owner and row.get('SK') == 'ACCOUNT_DELETION'
+            and row.get('schemaVersion') == 1 and type(row.get('schemaVersion')) is int
+            and row.get('recordVersion') == 1 and type(row.get('recordVersion')) is int
+            and row.get('environment') == 'dev' and row.get('eventType') == 'account.deletion.completed'
+            and row.get('status') == 'COMPLETE' and _uuid4(row.get('operationId'))
+            and _positive_int(occurred) and row.get('deleteByEpoch') == occurred + 86400
+            and _positive_int(completed) and completed >= occurred
+            and row.get('retainUntilEpoch') == completed + DELETION_RETENTION_SECONDS)
+
+
 def known_v2(family, row):
     """Recognize only preservation-safe shapes; recognition never authorizes apply."""
     if family == 'request': return _request_shape(row)
     if family == 'consumption': return _consumption_shape(row)
     if family == 'entitlement': return _entitlement_shape(row)
     if not isinstance(row, dict): return False
-    if family == 'consent': return set(row) == CONSENT_FIELDS and classify(family, row) != 'unknown_shape'
-    if family == 'consent_operation': return set(row) == CONSENT_OPERATION_FIELDS and classify(family, row) != 'unknown_shape'
-    if family == 'consent_audit': return set(row) == CONSENT_AUDIT_FIELDS and row.get('PK', '').startswith('USER#') and row.get('SK', '').startswith('CAMPAIGN_CONSENT#')
-    if family == 'deletion': return set(row) == DELETION_FIELDS and classify(family, row) != 'unknown_shape'
+    if family == 'consent': return _consent_shape(row)
+    if family == 'consent_operation': return _consent_operation_shape(row)
+    if family == 'consent_audit': return _consent_audit_shape(row)
+    if family == 'deletion': return _deletion_shape(row)
     # Current authority and remaining families are inventoried but deliberately
     # never schema-qualified by this legacy migration planner.
     return False

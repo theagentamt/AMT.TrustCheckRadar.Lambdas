@@ -7,7 +7,7 @@
   "expiredRecordCount": 0,
   "identifiersIncluded": false,
   "inputRecordCount": 62,
-  "inputSha256": "5f33ccb6c9042e8e2e649f846ffe6bd7cfa14164461373d5b6acab62c9410ba7",
+  "inputSha256": "ff64bc75dcc28ec78fff7eb9059542a5209eb52c25495245e7e3e2e67046592c",
   "inventoryComplete": false,
   "legacyAccess": {
     "currentAccess": 2,
@@ -33,7 +33,7 @@
   ],
   "mode": "dry_run_only",
   "neverDispatchedProofAvailable": false,
-  "observedAtEpoch": 1791001742,
+  "observedAtEpoch": 1791003670,
   "preservationClassifications": {"unknown_shape": 62},
   "projectedCandidates": {
     "legacyBonus": 2,
@@ -56,7 +56,7 @@
   },
   "sourceCoverage": {
     "authority": {"pages": 1, "paginationComplete": true, "returnedCount": 48, "scannedCount": 48},
-    "consent": {"pages": 1, "paginationComplete": true, "returnedCount": 6, "scannedCount": 20},
+    "consent": {"pages": 1, "paginationComplete": true, "returnedCount": 6, "scannedCount": 21},
     "deletion": {"pages": 1, "paginationComplete": true, "returnedCount": 8, "scannedCount": 110},
     "requests": {"pages": 1, "paginationComplete": true, "returnedCount": 0, "scannedCount": 0}
   },

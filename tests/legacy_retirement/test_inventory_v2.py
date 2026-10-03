@@ -18,6 +18,9 @@ NOW = 1_800_000_000
 OWNER = 'a' * 64
 PAYLOAD = 'b' * 64
 STAMP = '2026-01-01T00:00:00+00:00'
+ZSTAMP = '2026-01-01T00:00:00Z'
+EPOCH = '15c81ba4-2fa6-43c3-8895-889f08c931bf'
+OPERATION = '47debb73-444b-4bb1-9889-fb56885b7922'
 
 
 def request(status, suffix='one', **extra):
@@ -43,6 +46,38 @@ def entitlement():
             'entitlementTier':'FREE','isAccessGranted':False,'lastVerifiedAtUtc':None,
             'monthlyScanLimit':15,'platform':None,'productId':None,'remainingCredits':2,
             'remainingMonthlyScans':8,'subscriptionStatus':'expired','updatedAt':STAMP}
+
+
+def consent(**changes):
+    return {'PK':'USER#owner','SK':'CAMPAIGN_PARTICIPATION','schemaVersion':1,
+            'recordVersion':1,'environment':'dev','state':'enrolled','stateVersion':1,
+            'noticeVersion':'2026-09-07','policyVersion':'policy-1','consentEpochId':EPOCH,
+            'effectiveFrom':ZSTAMP,'updatedAt':ZSTAMP,'lastOperationId':OPERATION} | changes
+
+
+def consent_operation(**changes):
+    return {'PK':'USER#owner','SK':'CAMPAIGN_OPERATION#'+OPERATION,'schemaVersion':1,
+            'recordVersion':1,'operationId':OPERATION,'action':'join','consentEpochId':EPOCH,
+            'resultingState':'enrolled','occurredAt':ZSTAMP,
+            'expiresAt':1767225600+400*86400} | changes
+
+
+def consent_audit(**changes):
+    occurred = 1767225600
+    return {'PK':'USER#owner','SK':f'CAMPAIGN_CONSENT#{EPOCH}#{occurred}#{OPERATION}',
+            'schemaVersion':1,'recordVersion':1,'eventType':'campaign.participation.joined',
+            'occurredAt':ZSTAMP,'noticeVersion':'2026-09-07','policyVersion':'policy-1',
+            'consentEpochId':EPOCH,'operationId':OPERATION,'resultingState':'enrolled',
+            'stateVersion':1,'effectiveMonthlyScanLimit':15,
+            'expiresAt':occurred+400*86400} | changes
+
+
+def deletion(**changes):
+    return {'PK':'ACCOUNT#owner','SK':'ACCOUNT_DELETION','schemaVersion':1,'recordVersion':1,
+            'environment':'dev','eventType':'account.deletion.completed','accountId':'owner',
+            'operationId':OPERATION,'status':'COMPLETE','occurredAtEpoch':NOW-100,
+            'deleteByEpoch':NOW-100+86400,'completedAtEpoch':NOW-10,
+            'retainUntilEpoch':NOW-10+120*86400} | changes
 
 
 def test_v2_settlement_requires_exact_identity_and_accounting_and_is_idempotent():
@@ -140,6 +175,54 @@ def test_malformed_item_is_preserved_unknown_without_crash():
         {'family':'request','item':['not','a','map']} ]})
     assert report['shapeClassifications'] == {'known':0,'unknown':1}
     assert report['requestLifecycle']['unknown'] == 1
+
+
+def test_exact_documented_consent_and_deletion_shapes_are_preservation_known_only():
+    records = [('consent', consent()), ('consent_operation', consent_operation()),
+               ('consent_audit', consent_audit()), ('deletion', deletion())]
+    report = planner.plan({'schemaVersion':2,'observedAtEpoch':NOW,'records':[
+        {'family':family,'item':item} for family,item in records]})
+    assert report['shapeClassifications'] == {'known':4,'unknown':0}
+    assert not any(report[name] for name in ('applyAvailable','inventoryComplete',
+                                             'replayQualified','migrationApproved'))
+
+
+def test_consent_and_deletion_hostile_versions_keys_environment_and_states_stay_unknown():
+    fixtures = {
+        'consent': consent,
+        'consent_operation': consent_operation,
+        'consent_audit': consent_audit,
+        'deletion': deletion,
+    }
+    hostile = {
+        'consent': [
+            {'schemaVersion':999}, {'recordVersion':999}, {'PK':'ACCOUNT#other'},
+            {'SK':'CAMPAIGN_PARTICIPATION#other'}, {'environment':'prod'}, {'state':'withdrawn'},
+        ],
+        'consent_operation': [
+            {'schemaVersion':999}, {'recordVersion':999}, {'PK':'ACCOUNT#other'},
+            {'SK':'CAMPAIGN_OPERATION#'+EPOCH}, {'environment':'dev'}, {'resultingState':'withdrawn'},
+        ],
+        'consent_audit': [
+            {'schemaVersion':999}, {'recordVersion':999}, {'PK':'ACCOUNT#other'},
+            {'SK':f'CAMPAIGN_CONSENT#{EPOCH}#{1767225601}#{OPERATION}'},
+            {'environment':'dev'}, {'resultingState':'withdrawal_pending'},
+        ],
+        'deletion': [
+            {'schemaVersion':999}, {'recordVersion':999}, {'PK':'ACCOUNT#other'},
+            {'SK':'ACCOUNT_DELETION#other'}, {'environment':'prod'}, {'status':'REQUESTED'},
+        ],
+    }
+    for family, factory in fixtures.items():
+        missing_schema, missing_record = factory(), factory()
+        missing_schema.pop('schemaVersion'); missing_record.pop('recordVersion')
+        rows = [missing_schema, missing_record] + [factory(**change) for change in hostile[family]]
+        for row in rows:
+            report = planner.plan({'schemaVersion':2,'observedAtEpoch':NOW,
+                                   'records':[{'family':family,'item':row}]})
+            assert report['shapeClassifications'] == {'known':0,'unknown':1}
+            assert report['preservationClassifications'] == {'unknown_shape':1}
+            assert not report['migrationApproved'] and not report['applyAvailable']
 
 
 class FakeClient:

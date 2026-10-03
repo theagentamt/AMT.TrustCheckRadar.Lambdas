@@ -76,7 +76,7 @@ to false because a live table scan does not cover backups, restore copies, old
 credentials or every historical writer.
 
 The October 2 America/Chicago Dev evidence is
-[`evidence/sec241-dev-legacy-inventory-2026-10-02.json`](evidence/sec241-dev-legacy-inventory-2026-10-02.json).
+[`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
 The retired request table was empty: there was no retained never-dispatched,
 in-flight, settled, erased or unknown request to migrate. The shared authority
 table contained two projected legacy FREE candidates with the historical 15-check bonus fields,
