@@ -6,6 +6,7 @@ if os.environ.get('AMT_AUTHORITY_INTEGRATION') != '1':
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from copy import deepcopy
 from dataclasses import replace
 from test_transactions import world, ACCOUNT, failure
 from shared_check_authority.core import AuthorityError, TRIAL_SECONDS
@@ -70,6 +71,70 @@ def test_trial_expired_retry_does_not_reactivate(writer_world):
     e['requestContext']['authorizer']['jwt']['claims']['exp'] = str(clock[0] + 60)
     assert w.activate_trial(e)['validUntilEpoch'] == first['validUntilEpoch']
     assert row('ACCESS')['revision'] == 1
+
+
+def test_concurrent_first_activation_reconciles_one_trial_clock(writer_world, monkeypatch):
+    w, world, _, _ = writer_world
+    a, event, _, row, _, clock = world
+    original = a.client.transact_write_items
+    rival = []
+
+    def concurrent(**kwargs):
+        # Both callers have already observed no trial. Let the rival commit the
+        # same fixed activation operation before this stale transaction arrives.
+        monkeypatch.setattr(a.client, 'transact_write_items', original)
+        rival.append(w.activate_trial(event))
+        return original(**kwargs)
+
+    monkeypatch.setattr(a.client, 'transact_write_items', concurrent)
+    first = w.activate_trial(event)
+    period_id = row('ACCESS')['periodId']
+    audits = [item for item in a.ddb.Table('authority').scan()['Items']
+              if item.get('action') == 'ACTIVATE_TRIAL']
+
+    assert first['activatedAtEpoch'] == rival[0]['activatedAtEpoch'] == clock[0]
+    assert first['validUntilEpoch'] == rival[0]['validUntilEpoch'] == clock[0] + TRIAL_SECONDS
+    assert row('ACCESS')['revision'] == 1
+    assert row('TRIAL_HISTORY')['activatedAtEpoch'] == clock[0]
+    assert row('PERIOD#' + period_id)['limit'] == 10
+    assert row('PERIOD#' + period_id)['usedChecks'] == 0
+    assert row('PERIOD#' + period_id)['reservedChecks'] == 0
+    assert len(audits) == 1
+
+
+def test_research_state_fixture_join_withdraw_reenroll_never_resets_trial(writer_world):
+    w, world, _, _ = writer_world
+    a, event, _, row, _, clock = world
+    first = w.activate_trial(event)
+    period_id = row('ACCESS')['periodId']
+    before = {
+        'access': deepcopy(row('ACCESS')),
+        'history': deepcopy(row('TRIAL_HISTORY')),
+        'period': deepcopy(row('PERIOD#' + period_id)),
+    }
+    # This fixture changes only the independently owned research row. It does
+    # not mock an entitlement integration because no such integration exists.
+    transitions = [
+        ('enrolled', 'synthetic-epoch-1'),
+        ('withdrawal_pending', 'synthetic-epoch-1'),
+        ('withdrawn', 'synthetic-epoch-1'),
+        ('enrolled', 'synthetic-epoch-2'),
+    ]
+    for state, epoch in transitions:
+        a.ddb.Table('users').put_item(Item={
+            'PK': 'USER#' + ACCOUNT,
+            'SK': 'CAMPAIGN_PARTICIPATION',
+            'state': state,
+            'noticeVersion': 'research-consent-2026-09-21-v2',
+            'policyVersion': 'independent-research-v1',
+            'consentEpochId': epoch,
+        })
+        clock[0] += 60
+        event['requestContext']['authorizer']['jwt']['claims']['exp'] = str(clock[0] + 60)
+        assert w.activate_trial(event) == first | {'alreadyActivated': True}
+        assert row('ACCESS') == before['access']
+        assert row('TRIAL_HISTORY') == before['history']
+        assert row('PERIOD#' + period_id) == before['period']
 
 
 @pytest.mark.parametrize('mutation', [lambda e: e.clear(), lambda e: e['headers'].clear()])
