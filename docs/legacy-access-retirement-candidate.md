@@ -55,29 +55,39 @@ report compatible. `PROCESSING`, `RETRYABLE` and `RESULT_READY` are counted as
 ambiguous in-flight records. The legacy request schema has no durable
 provider-dispatch-start marker, so the report never infers `neverDispatched` from
 an expired lease, missing response or retryable state. `COMPLETED` is counted as
-settled only when its exact owner/request identity, completion timestamp, expiry
-and TTL match the original monthly/credit consumption receipt. Unknown evidence
-is retained for explicit review.
+settled only when its exact allowlisted historical shape, owner/request identity,
+completion timestamp, expiry and TTL match exactly one original monthly/credit
+consumption receipt with its exact allowlisted shape. Duplicate receipts are
+ambiguous in every input order. Unsupported schema versions, record types and
+unknown fields remain unknown. Unknown evidence is retained for explicit review.
 
-`collect_dev.py` is restricted to table names containing `trustcheckradar-dev-`.
-It performs bounded paginated `Scan` calls with allowlisted projections, retains
-projected rows in memory only, and prints the v2 aggregate report. The report
+`collect_dev.py` is pinned to AWS account `107827791950`, region `us-east-1` and
+the exact four Dev table identifiers. It validates arguments, SDK regions and an
+STS caller-identity read before its first scan. It performs bounded paginated
+`Scan` calls with an allowlist that excludes result/message content, retains the
+projected rows in memory only, and prints the v2 aggregate report. Because a
+projection cannot prove that an unrequested attribute is absent, live rows are
+reported as projected preservation candidates rather than exact qualified shapes.
+The report
 contains no resource names, record identifiers or user content. The collector has
 no put, update, delete, transaction or apply path. Its report still fixes
 `inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable`
 to false because a live table scan does not cover backups, restore copies, old
 credentials or every historical writer.
 
-The October 3 Dev evidence is
-[`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
+The October 2 America/Chicago Dev evidence is
+[`evidence/sec241-dev-legacy-inventory-2026-10-02.json`](evidence/sec241-dev-legacy-inventory-2026-10-02.json).
 The retired request table was empty: there was no retained never-dispatched,
 in-flight, settled, erased or unknown request to migrate. The shared authority
-table contained two legacy FREE records with the historical 15-check bonus shape,
+table contained two projected legacy FREE candidates with the historical 15-check bonus fields,
 zero legacy paid records and six untyped shapes. These stay source-preserved and
 cannot create V1 paid, trial or complimentary authority. The two existing current
-ACCESS rows and their supporting current records are classified separately; this
-inventory neither approves nor changes them. The observed old research-consent
+ACCESS rows and their supporting current records are counted separately but are
+not qualified as exact legacy migration shapes; this inventory neither approves nor
+changes them. The observed old research-consent
 rows also remain review-only and do not authorize access or publication.
+Accordingly, all 62 live projected rows are exact-shape unknown in the public
+evidence; the two bonus candidates are reported only under `projectedCandidates`.
 
 ## Remaining rollout acceptance
 

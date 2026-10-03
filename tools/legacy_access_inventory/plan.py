@@ -9,6 +9,7 @@ from decimal import Decimal
 import json
 import hashlib
 from pathlib import Path
+import re
 
 MAX_BYTES = 8 * 1024 * 1024
 MAX_RECORDS = 10000
@@ -82,15 +83,108 @@ CURRENT_RECORD_TYPES = {
     'V1_TRIAL_ELIGIBILITY',
 }
 
+REQUEST_COMMON = {'PK', 'SK', 'status', 'payloadHash', 'createdAt', 'updatedAt', 'expiresAt', 'ttl'}
+REQUEST_OPTIONAL = {'historyAuthorization', 'campaignAuthorization', 'statisticsEventId'}
+REQUEST_MARKERS = {'recordType', 'schemaVersion'}
+CONSUMPTION_FIELDS = {'PK', 'SK', 'accountIdHash', 'consumptionType', 'createdAt', 'expiresAt', 'ttl'}
+ENTITLEMENT_FIELDS = {'PK', 'SK', 'accountId', 'billingPeriodEndUtc', 'billingPeriodStartUtc',
+                      'createdAt', 'entitlementTier', 'isAccessGranted', 'lastVerifiedAtUtc',
+                      'monthlyScanLimit', 'platform', 'productId', 'remainingCredits',
+                      'remainingMonthlyScans', 'subscriptionStatus', 'updatedAt'}
+ENTITLEMENT_SCAN_FIELDS = {'lastScanAt', 'lastScanConsumptionType', 'lastScanRequestId'}
+CONSENT_FIELDS = {'PK', 'SK', 'consentEpochId', 'effectiveFrom', 'environment', 'lastOperationId',
+                  'noticeVersion', 'policyVersion', 'recordVersion', 'schemaVersion', 'state',
+                  'stateVersion', 'updatedAt'}
+CONSENT_OPERATION_FIELDS = {'PK', 'SK', 'action', 'consentEpochId', 'expiresAt', 'occurredAt',
+                            'operationId', 'recordVersion', 'resultingState', 'schemaVersion'}
+CONSENT_AUDIT_FIELDS = {'PK', 'SK', 'consentEpochId', 'effectiveMonthlyScanLimit', 'eventType',
+                        'expiresAt', 'noticeVersion', 'occurredAt', 'operationId', 'policyVersion',
+                        'recordVersion', 'resultingState', 'schemaVersion', 'stateVersion'}
+DELETION_FIELDS = {'PK', 'SK', 'accountId', 'completedAtEpoch', 'deleteByEpoch', 'environment',
+                   'eventType', 'occurredAtEpoch', 'operationId', 'recordVersion',
+                   'retainUntilEpoch', 'schemaVersion', 'status'}
+HASH = re.compile(r'^[0-9a-f]{64}$')
+
+
+def _legacy_markers(row, record_type):
+    present = REQUEST_MARKERS & set(row)
+    return (not present or present == REQUEST_MARKERS
+            and row.get('recordType') == record_type
+            and type(row.get('schemaVersion')) is int and row['schemaVersion'] == 1)
+
+
+def _request_shape(row):
+    if not isinstance(row, dict) or not _legacy_markers(row, 'LEGACY_ANALYSIS_REQUEST'):
+        return False
+    fields, status = set(row), row.get('status')
+    allowed = REQUEST_COMMON | REQUEST_OPTIONAL | REQUEST_MARKERS
+    required = REQUEST_COMMON.copy()
+    if status == 'PROCESSING':
+        required |= {'leaseToken', 'leaseExpiresAt'}; allowed |= {'leaseToken', 'leaseExpiresAt'}
+    elif status == 'RETRYABLE':
+        pass
+    elif status == 'RESULT_READY':
+        required |= {'response', 'resultReadyAt'}; allowed |= {'response', 'resultReadyAt'}
+    elif status == 'COMPLETED':
+        required |= {'response', 'resultReadyAt', 'completedAt'}
+        allowed |= {'response', 'resultReadyAt', 'completedAt'}
+    elif status == 'COMPLETED_ERASED':
+        # Redaction may leave original timestamps/authorization but never response.
+        allowed |= {'resultReadyAt', 'completedAt'}
+    else:
+        return False
+    if not required <= fields or not fields <= allowed or 'response' in row and not isinstance(row['response'], dict):
+        return False
+    if ('campaignAuthorization' in row) != ('statisticsEventId' in row):
+        return False
+    return (isinstance(row.get('PK'), str) and row['PK'].startswith('ANALYSIS#REQUEST#')
+            and HASH.fullmatch(row['PK'].removeprefix('ANALYSIS#REQUEST#')) is not None
+            and isinstance(row.get('SK'), str) and bool(row['SK'])
+            and isinstance(row.get('payloadHash'), str) and HASH.fullmatch(row['payloadHash']) is not None
+            and exact_int(row.get('expiresAt')) and row.get('ttl') == row['expiresAt']
+            and all(isinstance(row.get(name), str) for name in ('createdAt', 'updatedAt')))
+
+
+def _consumption_shape(row):
+    if not isinstance(row, dict) or not _legacy_markers(row, 'LEGACY_ANALYSIS_CONSUMPTION'):
+        return False
+    fields = set(row)
+    if fields not in (CONSUMPTION_FIELDS, CONSUMPTION_FIELDS | REQUEST_MARKERS):
+        return False
+    owner = row.get('PK', '').removeprefix('ANALYSIS#CONSUMPTION#') if isinstance(row.get('PK'), str) else ''
+    return (row.get('PK', '').startswith('ANALYSIS#CONSUMPTION#') and HASH.fullmatch(owner) is not None
+            and row.get('accountIdHash') == owner and isinstance(row.get('SK'), str) and bool(row['SK'])
+            and row.get('consumptionType') in ('monthly', 'credit')
+            and isinstance(row.get('createdAt'), str) and exact_int(row.get('expiresAt'))
+            and row.get('ttl') == row['expiresAt'])
+
+
+def _entitlement_shape(row):
+    if not isinstance(row, dict): return False
+    fields = set(row)
+    if fields not in (ENTITLEMENT_FIELDS, ENTITLEMENT_FIELDS | ENTITLEMENT_SCAN_FIELDS): return False
+    owner = row.get('PK', '').removeprefix('USER#') if isinstance(row.get('PK'), str) else ''
+    return (bool(owner) and row.get('accountId') == owner
+            and row.get('SK') in {'ENTITLEMENT', 'ENTITLEMENT#google_play#trustcheck_radar_pro_monthly'}
+            and row.get('entitlementTier') in ('FREE', 'PRO')
+            and all(exact_int(row.get(k)) for k in ('monthlyScanLimit', 'remainingMonthlyScans', 'remainingCredits'))
+            and row['remainingMonthlyScans'] <= row['monthlyScanLimit']
+            and isinstance(row.get('isAccessGranted'), bool))
+
 
 def known_v2(family, row):
     """Recognize only preservation-safe shapes; recognition never authorizes apply."""
-    bucket = classify(family, row)
-    if family != 'current_authority':
-        return bucket != 'unknown_shape'
-    return (isinstance(row, dict) and isinstance(row.get('PK'), str)
-            and isinstance(row.get('SK'), str)
-            and row.get('recordType') in CURRENT_RECORD_TYPES)
+    if family == 'request': return _request_shape(row)
+    if family == 'consumption': return _consumption_shape(row)
+    if family == 'entitlement': return _entitlement_shape(row)
+    if not isinstance(row, dict): return False
+    if family == 'consent': return set(row) == CONSENT_FIELDS and classify(family, row) != 'unknown_shape'
+    if family == 'consent_operation': return set(row) == CONSENT_OPERATION_FIELDS and classify(family, row) != 'unknown_shape'
+    if family == 'consent_audit': return set(row) == CONSENT_AUDIT_FIELDS and row.get('PK', '').startswith('USER#') and row.get('SK', '').startswith('CAMPAIGN_CONSENT#')
+    if family == 'deletion': return set(row) == DELETION_FIELDS and classify(family, row) != 'unknown_shape'
+    # Current authority and remaining families are inventoried but deliberately
+    # never schema-qualified by this legacy migration planner.
+    return False
 
 
 def _request_identity(row, prefix):
@@ -102,7 +196,7 @@ def _request_identity(row, prefix):
 
 
 def _settlement_matches(request, receipt):
-    if not isinstance(receipt, dict):
+    if not known_v2('request', request) or not known_v2('consumption', receipt):
         return False
     identity = _request_identity(request, 'ANALYSIS#REQUEST#')
     consumed = _request_identity(receipt, 'ANALYSIS#CONSUMPTION#')
@@ -135,9 +229,11 @@ def plan_v2(value, *, raw_input_sha256=None):
             counts['unknown_shape'] += 1; unknown += 1
             continue
         family, row = entry['family'], entry['item']
-        bucket = classify(family, row)
+        raw_bucket = classify(family, row)
+        is_known = known_v2(family, row)
+        bucket = raw_bucket if is_known else 'unknown_shape'
         counts[bucket] += 1
-        if known_v2(family, row):
+        if is_known:
             known += 1; seen.add(family)
         else:
             unknown += 1
@@ -147,30 +243,32 @@ def plan_v2(value, *, raw_input_sha256=None):
             requests.append(row)
         elif family == 'consumption':
             key = _request_identity(row, 'ANALYSIS#CONSUMPTION#')
-            if key is not None: receipts[key] = row
+            if key is not None: receipts.setdefault(key, []).append(row)
         elif family == 'entitlement':
-            if bucket.startswith('legacy_free_'):
+            if is_known and bucket.startswith('legacy_free_'):
                 access['legacyBonus'] += int(row.get('monthlyScanLimit') == 15)
                 access['legacyFree'] += int(row.get('monthlyScanLimit') != 15)
-            elif bucket.startswith('legacy_pro_'):
+            elif is_known and bucket.startswith('legacy_pro_'):
                 access['legacyPaid'] += 1
             else:
                 access['unknown'] += 1
         elif family == 'current_authority':
-            current_known = known_v2(family, row)
-            access['currentAccess'] += int(current_known and row.get('recordType') == 'V1_ACCESS_AUTHORITY')
-            access['currentSupporting'] += int(current_known and row.get('recordType') != 'V1_ACCESS_AUTHORITY')
-            access['unknown'] += int(not current_known)
+            record_type = row.get('recordType') if isinstance(row, dict) else None
+            access['currentAccess'] += int(record_type == 'V1_ACCESS_AUTHORITY')
+            access['currentSupporting'] += int(record_type in CURRENT_RECORD_TYPES - {'V1_ACCESS_AUTHORITY'})
+            access['unknown'] += int(record_type not in CURRENT_RECORD_TYPES)
     lifecycle = Counter({'neverDispatched': 0, 'inFlightAmbiguous': 0, 'settled': 0,
                          'erased': 0, 'unknown': 0})
     for row in requests:
         if not isinstance(row, dict): lifecycle['unknown'] += 1; continue
+        if not known_v2('request', row): lifecycle['unknown'] += 1; continue
         status = row.get('status')
         if status in ('PROCESSING', 'RETRYABLE', 'RESULT_READY'):
             lifecycle['inFlightAmbiguous'] += 1
         elif status == 'COMPLETED':
             key = _request_identity(row, 'ANALYSIS#REQUEST#')
-            if key is not None and _settlement_matches(row, receipts.get(key)):
+            candidates = receipts.get(key, []) if key is not None else []
+            if len(candidates) == 1 and _settlement_matches(row, candidates[0]):
                 lifecycle['settled'] += 1
             else:
                 lifecycle['unknown'] += 1
