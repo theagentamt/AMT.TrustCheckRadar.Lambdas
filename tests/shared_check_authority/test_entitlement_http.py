@@ -176,6 +176,37 @@ def test_snapshot_exhaustion_exposes_counters_and_denies_work(writer_world, monk
     assert body['allowance']['remaining'] == 0 and body['allowance']['reserved'] == 1
 
 
+def test_expired_trial_snapshot_stays_authenticated_and_cannot_reactivate(writer_world, monkeypatch):
+    writer, world, _, _ = writer_world
+    monkeypatch.setattr(app, '_writer', lambda: writer)
+    trial = writer.activate_trial(world[1])
+    world[5][0] = trial['validUntilEpoch'] + 1
+    world[1]['requestContext']['authorizer']['jwt']['claims']['exp'] = str(world[5][0] + 60)
+
+    result = app.lambda_handler(event_for(world[1]), None)
+    assert result['statusCode'] == 200
+    body = json.loads(result['body'])
+    assert body['activeDevice'] is True
+    assert body['access'] == {
+        'basis': 'none',
+        'externalChecksAllowed': False,
+        'reason': 'EXTERNAL_ACCESS_UNAVAILABLE',
+    }
+    assert body['allowance'] == {
+        'limit': None,
+        'completedUsed': None,
+        'reserved': None,
+        'remaining': None,
+        'periodEndsAtEpoch': None,
+    }
+    assert body['trial'] == {
+        'activationAvailable': False,
+        'activatedAtEpoch': trial['activatedAtEpoch'],
+        'expiresAtEpoch': trial['validUntilEpoch'],
+    }
+    assert result['headers']['Cache-Control'] == 'no-store'
+
+
 def test_snapshot_missing_active_device_does_not_switch(writer_world, monkeypatch):
     writer, world, _, _ = writer_world
     monkeypatch.setattr(app, '_writer', lambda: writer)
