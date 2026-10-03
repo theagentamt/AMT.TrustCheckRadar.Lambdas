@@ -75,7 +75,7 @@ no put, update, delete, transaction or apply path. Its report still fixes
 to false because a live table scan does not cover backups, restore copies, old
 credentials or every historical writer.
 
-The October 2 America/Chicago Dev evidence is
+The October 3 America/Chicago Dev evidence is
 [`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
 The retired request table was empty: there was no retained never-dispatched,
 in-flight, settled, erased or unknown request to migrate. The shared authority
@@ -97,6 +97,6 @@ A later concrete rollout must preserve exact in-flight retry identity and origin
 
 The source slice has focused ordinary handler/helper tests plus isolated real-SDK/Moto replay tests covering original consumption, expiry/shape mismatch, History erasure and account/device races with unchanged stored items. The offline CLI tests verify deterministic input binding, ambiguous/unknown preservation, missing families, bounded malformed input and fixed redacted errors. These tests use synthetic data; they are not a live Dev/production inventory or provider qualification.
 
-Validation on this isolated source branch: ordinary `python -m pytest -q` passed **1,753 tests and 238 subtests**, with 21 intentionally skipped optional SDK suites. The separately run `AMT_AUTHORITY_INTEGRATION=1 python -m pytest -q tests/legacy_retirement/test_boundary_dynamodb.py` passed **32** real-SDK/Moto cases. `tests/legacy_retirement/test_inventory_cli.py` passed **8** CLI cases (also included in the ordinary total). Changed Python source compiled successfully; `git diff --check` passed. Combined consent/pipeline package validation is owned by the integrating Lambda agent and must be reported separately.
+Validation on this isolated source branch: the focused inventory and hostile-shape suites passed **22** tests. The broader conversation-analysis, entitlement, purchase, participation, current-authority, and inventory selection passed **196 tests and 21 subtests**, with **18** intentionally skipped optional SDK cases. The separately run `AMT_AUTHORITY_INTEGRATION=1 python -m pytest -q tests/legacy_retirement/test_boundary_dynamodb.py` passed **32** real-SDK/Moto cases. Changed Python source compiled successfully; JSON validation and `git diff --check` passed.
 
 The retired analysis composition also pins `COGNITO_ISSUER`, `COGNITO_APP_CLIENT_ID`, `COGNITO_REQUIRED_SCOPE=aws.cognito.signin.user.admin`, `APP_ENVIRONMENT` and the original table names independently of whether a History deployment object is selected. Its existing assessment bounds are `HISTORY_MAX_SUMMARY_BYTES=4096`, `HISTORY_MAX_LIST_ITEMS=20`, and `HISTORY_MAX_TEXT_FIELD_BYTES=1024`; protect these from generic environment overrides. HistorySettings defaults those bounds when absent, but does not provide the issuer/client identity. The replay handler does not invoke paged History response/cursor processing or require activation flags. Infrastructure composition must supply the verified auth binding before replay can be called runnable.

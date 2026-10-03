@@ -265,7 +265,10 @@ def _consent_audit_shape(row):
         'campaign.participation.withdrawal_requested': 'withdrawal_pending',
     }.get(event)
     parts = row.get('SK', '').split('#') if isinstance(row.get('SK'), str) else []
-    occurred_epoch = int(parts[2]) if len(parts) == 4 and parts[2].isdigit() else None
+    epoch_text = parts[2] if len(parts) == 4 else ''
+    occurred_epoch = int(epoch_text) if re.fullmatch(r'[0-9]{1,16}', epoch_text) else None
+    if not _positive_int(occurred_epoch):
+        occurred_epoch = None
     occurred_at = _timestamp_epoch(row.get('occurredAt'))
     return (bool(owner) and resulting_state is not None and _uuid4(epoch) and _uuid4(operation)
             and parts == ['CAMPAIGN_CONSENT', epoch, str(occurred_epoch), operation]

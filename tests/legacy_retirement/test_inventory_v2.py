@@ -225,6 +225,15 @@ def test_consent_and_deletion_hostile_versions_keys_environment_and_states_stay_
             assert not report['migrationApproved'] and not report['applyAvailable']
 
 
+def test_oversized_ascii_consent_audit_epoch_is_unknown_without_integer_conversion_crash():
+    row = consent_audit(SK=f'CAMPAIGN_CONSENT#{EPOCH}#{"9" * 5000}#{OPERATION}')
+    report = planner.plan({'schemaVersion':2,'observedAtEpoch':NOW,
+                           'records':[{'family':'consent_audit','item':row}]})
+    assert report['shapeClassifications'] == {'known':0,'unknown':1}
+    assert report['preservationClassifications'] == {'unknown_shape':1}
+    assert not report['migrationApproved'] and not report['applyAvailable']
+
+
 class FakeClient:
     class Meta:
         def __init__(self, region): self.region_name = region
