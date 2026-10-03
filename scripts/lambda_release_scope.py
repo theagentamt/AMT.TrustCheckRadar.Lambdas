@@ -29,18 +29,20 @@ ENTITLEMENTS_SUPPORT_PATHS = {
     'contracts/v1-access/v1/README.md',
 }
 MESSAGE_PREFIXES = ('src/message_consumer/', 'src/message_evaluator/', 'src/shared_message_contract/', 'tests/message_consumer/', 'tests/message_evaluator/', 'contracts/message-consumer/', 'docs/sec229-message-', 'docs/message-consumer-')
-AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'tests/shared_check_authority/', 'docs/v1-check-authority',
+AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/shared_governed_history/', 'src/governed_history/',
+    'tests/shared_check_authority/', 'tests/governed_history/', 'contracts/governed-history/', 'docs/v1-check-authority',
     'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/',
     'contracts/url-consumer/', 'contracts/v1-access/', 'contracts/v1-complimentary-operator/',
     'docs/v1-entitlement-', 'docs/url-consumer-',
-    'src/url_assessment/', 'tests/url_assessment/')
+    'src/url_assessment/', 'tests/url_assessment/', 'docs/SECUR4ALL-337-', 'docs/SECUR4ALL-338-')
 AUTHORITY_SUPPORT_PATHS = {
     'scripts/url_consumer_engineering_smoke.py', 'tests/scripts/test_url_consumer_engineering_smoke.py',
     'src/account_data_api/config.py', 'src/account_data_api/service.py',
     'tests/account_data_api/test_service.py', 'tests/account_data_api/test_handler.py',
     '.github/workflows/ci.yml', '.github/workflows/publish.yml',
     'scripts/lambda_release_scope.py', 'tests/scripts/test_lambda_release_scope.py',
-    'docs/GITHUB_PUBLISHING.md', 'scripts/build_lambda_zip.sh', 'docs/atcr120-next-message-binding-slice.md',
+    'docs/GITHUB_PUBLISHING.md', 'scripts/build_lambda_zip.sh', 'scripts/upload_lambda_zips.sh',
+    'docs/atcr120-next-message-binding-slice.md',
     'tests/scripts/authority_release_paths.json', 'scripts/verify_v1_packages.py', 'tests/contracts/test_v1_access_contract.py', 'tests/contracts/test_url_consumer_transport.py',
     'scripts/publish_v1_entitlements.py', 'tests/scripts/test_publish_v1_entitlements.py',
     'tests/contracts/test_v1_complimentary_operator_contract.py',

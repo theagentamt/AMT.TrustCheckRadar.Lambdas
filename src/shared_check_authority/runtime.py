@@ -5,7 +5,7 @@ from shared_lookup_freshness import wall_clock
 from .core import Authority, AuthorityError, Settings
 
 
-def load_authority():
+def load_authority(*, projected_inventory=False):
     if os.environ.get('STAGE') != 'dev' or os.environ.get('AUTHORITY_ENABLED') != 'true':
         raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')
     try:
@@ -15,9 +15,12 @@ def load_authority():
         from .inventory import load_keyring, verified_inventory
         active_key_id, keys = load_keyring()
         resource = boto3.resource('dynamodb',region_name='us-east-1',config=config)
-        verified_inventory(resource, os.environ['AUTHORITY_TABLE_NAME'], keys)
+        verified_inventory(resource, os.environ['AUTHORITY_TABLE_NAME'], keys,
+                           projected=projected_inventory)
         text = lambda name: os.environ[name]
         positive = lambda name: int(os.environ[name])
+        history = os.environ.get('GOVERNED_HISTORY_SETTLEMENT_ENABLED', 'false')
+        if history not in ('true', 'false'): raise ValueError()
         settings = Settings(
             users_table=text('USERS_TABLE_NAME'), devices_table=text('DEVICE_BINDINGS_TABLE_NAME'),
             deletion_table=text('DELETION_LEDGER_TABLE_NAME'), authority_table=text('AUTHORITY_TABLE_NAME'),
@@ -28,7 +31,8 @@ def load_authority():
             worker_settlement_seconds=positive('WORKER_SETTLEMENT_SECONDS'), reconciliation_seconds=positive('RECONCILIATION_SECONDS'),
             receipt_retention_seconds=positive('RECEIPT_RETENTION_SECONDS'), counter_retention_seconds=positive('COUNTER_RETENTION_SECONDS'),
             attempt_window_seconds=positive('ATTEMPT_WINDOW_SECONDS'), attempts_per_window=positive('ATTEMPTS_PER_WINDOW'),
-            max_inflight=positive('MAX_INFLIGHT'), enabled=True)
+            max_inflight=positive('MAX_INFLIGHT'), enabled=True,
+            governed_history_settlement_enabled=history == 'true')
         settings.validate()
         if settings.receipt_retention_seconds != 7*86400 or settings.counter_retention_seconds != 7*86400:
             raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')

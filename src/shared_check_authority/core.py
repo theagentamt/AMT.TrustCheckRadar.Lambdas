@@ -57,6 +57,7 @@ class Settings:
     attempts_per_window: int
     max_inflight: int
     enabled: bool = False
+    governed_history_settlement_enabled: bool = False
 
     def validate(self):
         texts = (self.users_table, self.devices_table, self.deletion_table, self.authority_table,
@@ -67,6 +68,7 @@ class Settings:
                 self.attempts_per_window, self.max_inflight)
         if (self.enabled is not True or any(not isinstance(x, str) or not x.strip() for x in texts)
                 or self.policy_version != OWNER_POLICY
+                or type(self.governed_history_settlement_enabled) is not bool
                 or any(type(x) is not int or x <= 0 for x in nums)
                 or self.receipt_retention_seconds < (self.operation_validity_seconds + self.worker_settlement_seconds + self.reconciliation_seconds)
                 or self.counter_retention_seconds < self.receipt_retention_seconds
@@ -387,6 +389,7 @@ class Authority:
         device = self._device(event, account)
         grant, period = self._grant(partition)
         token = secrets.token_hex(16)
+        accepted_at = self.now()
         row = key | {'recordType': 'V1_CHECK_RECEIPT', 'checkId': check_id, 'payloadHmac': digest,
                      'clientCheckId': client_check_id, 'projectionScope': payload['target']['scope'],
                      'state': 'ADMITTED', 'chargedChecks': None, 'receiptId': None, 'processingOutcome': None,
@@ -396,7 +399,12 @@ class Authority:
                      'settleByEpoch': self.now() + self.s.worker_settlement_seconds,
                      'GSI1PK': 'V1_PENDING',
                      'GSI1SK': f'{self.now() + self.s.worker_settlement_seconds:012d}#{partition}#{check_id}',
-                     'retentionDeadlineEpoch': self.now() + self.s.receipt_retention_seconds}
+                     'retentionDeadlineEpoch': accepted_at + self.s.receipt_retention_seconds}
+        if getattr(self.s, 'governed_history_settlement_enabled', False):
+            try:
+                from shared_governed_history import admission_metadata
+                row.update(admission_metadata(payload, accepted_at))
+            except Exception: raise AuthorityError('INPUT_REJECTED') from None
         if grant['basis'] == 'paid':
             from .purchase_usage import effective_access_end
             row['purchaseUsageKey'] = dict(period['purchaseUsageKey'])
@@ -584,6 +592,16 @@ class Authority:
             if any(value is not None and epoch(value)>self.now() for value in observed_times):
                 raise AuthorityError('RESULT_SUMMARY_INVALID')
         receipt_id = self._mac(key_id, 'receipt', check_id)[:32]
+        settled_at = self.now()
+        history = {}
+        if getattr(self.s, 'governed_history_settlement_enabled', False):
+            try:
+                from shared_governed_history import settlement_fields
+                history = settlement_fields(row, result_summary, receipt_id=receipt_id, charged_checks=charge,
+                                            processing_outcome=processing_outcome, settled_at=settled_at,
+                                            retention_seconds=self.s.receipt_retention_seconds)
+            except Exception: raise AuthorityError('GOVERNED_HISTORY_INVALID') from None
+        deadline = history.get('retentionDeadlineEpoch', row['retentionDeadlineEpoch'])
         items = self._account_conditions(account)
         if row['basis'] == 'paid':
             from .purchase_usage import period_for_receipt, paired_counter_actions
@@ -597,12 +615,20 @@ class Authority:
         items.append({'Update': {'TableName': self.s.authority_table, 'Key': {'PK': partition, 'SK': 'INFLIGHT'},
             'UpdateExpression': 'ADD activeCount :minus_one', 'ConditionExpression': 'activeCount >= :one',
             'ExpressionAttributeValues': {':minus_one': -1, ':one': 1}}})
+        update_expression = 'SET #s = :settled, chargedChecks = :charge, receiptId = :receipt, processingOutcome = :outcome, expiresAt = :expiry, retentionDeadlineEpoch = :expiry, resultSummary = :summary, assessmentEpoch = :assessed, GSI1PK = :index, GSI1SK = :sort'
+        values = {':settled': 'SETTLED', ':charge': charge, ':receipt': receipt_id, ':outcome': processing_outcome,
+                  ':admitted': 'ADMITTED', ':token': execution_token, ':policy': OWNER_POLICY, ':now': settled_at,
+                  ':expiry': deadline, ':summary': result_summary, ':assessed': settled_at,
+                  ':index':'V1_EXPIRING', ':sort':f'{int(deadline):012d}#{partition}#{key["SK"]}'}
+        if history:
+            update_expression += ', governedHistory = :history, governedHistoryDigest = :historyDigest, GSI2PK = :historyPartition, GSI2SK = :historySort'
+            values.update({':history': history['governedHistory'], ':historyDigest': history['governedHistoryDigest'],
+                           ':historyPartition': history['GSI2PK'], ':historySort': history['GSI2SK']})
         items.append({'Update': {'TableName': self.s.authority_table, 'Key': key,
-            'UpdateExpression': 'SET #s = :settled, chargedChecks = :charge, receiptId = :receipt, processingOutcome = :outcome, expiresAt = :expiry, resultSummary = :summary, assessmentEpoch = :assessed, GSI1PK = :index, GSI1SK = :sort',
+            'UpdateExpression': update_expression,
             'ConditionExpression': '#s = :admitted AND executionToken = :token AND policyVersion = :policy AND settleByEpoch ' + ('<= :now' if expired_recovery else '> :now'),
             'ExpressionAttributeNames': {'#s': 'state'},
-            'ExpressionAttributeValues': {':settled': 'SETTLED', ':charge': charge, ':receipt': receipt_id, ':outcome': processing_outcome,
-                                          ':admitted': 'ADMITTED', ':token': execution_token, ':policy': OWNER_POLICY, ':now': self.now(), ':expiry': row['retentionDeadlineEpoch'], ':summary': result_summary, ':assessed': self.now(), ':index':'V1_EXPIRING', ':sort':f'{int(row["retentionDeadlineEpoch"]):012d}#{partition}#{key["SK"]}'}}})
+            'ExpressionAttributeValues': values}})
         if result_summary is not None:
             from shared_lookup_freshness import current
             observations = ([(result_summary['lookupObservedAt'], result_summary['lookupValidUntil'])]

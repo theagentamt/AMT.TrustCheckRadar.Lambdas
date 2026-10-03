@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "verdict", "processingOutcome", "coverage", "reasonCodes", "transportWarnings", "threatTypes", "lookupCount", "providerCallCount", "observedHopCount", "scope", "consumerAccessEnabled", "lookupObservedAt", "lookupValidUntil"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "verdict": {"enum": ["unknown", "high_risk", "no_known_threat_detected"]},
+    "processingOutcome": {"enum": ["invalid_input", "blocked", "unavailable", "partial", "complete"]},
+    "coverage": {"enum": ["not_assessed", "limited", "supported_checks_complete"]},
+    "reasonCodes": {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z_]{1,80}$"}},
+    "transportWarnings": {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z_]{1,80}$"}},
+    "threatTypes": {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"enum": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"]}},
+    "lookupCount": {"type": "integer", "minimum": 0, "maximum": 6},
+    "providerCallCount": {"type": "integer", "minimum": 0, "maximum": 6},
+    "observedHopCount": {"type": "integer", "minimum": 0, "maximum": 6},
+    "scope": {"const": "HTTP_REDIRECTS_AND_GOOGLE_LOOKUP"},
+    "consumerAccessEnabled": {"const": false},
+    "lookupObservedAt": {"type": ["string", "null"]},
+    "lookupValidUntil": {"type": ["string", "null"]}
+  }
+}

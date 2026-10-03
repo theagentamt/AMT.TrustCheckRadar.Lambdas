@@ -1,0 +1,19 @@
+{
+  "contractVersion": "1.0.0-governed-history-candidate.1",
+  "activationEnabled": false,
+  "routes": {
+    "GET /v1/users/analysis-history": {
+      "gate": "GOVERNED_HISTORY_LIST_ENABLED",
+      "responseSchema": "list.schema.json"
+    },
+    "GET /v1/users/analysis-history/{resultId}": {
+      "gate": "GOVERNED_HISTORY_DETAIL_ENABLED",
+      "responseSchema": "detail.schema.json"
+    }
+  },
+  "retentionSeconds": 604800,
+  "cursorTtlSeconds": 900,
+  "defaultPageSize": 20,
+  "maxPageSize": 50,
+  "maxResponseBytes": 262144
+}

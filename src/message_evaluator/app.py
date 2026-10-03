@@ -36,14 +36,23 @@ def lambda_handler(event,context):
     from shared_message_contract import validation_v2 as v2
     is_v3=type(event) is dict and event.get('schemaVersion')==3 and event.get('policyVersion')==v2.POLICY
     is_v2=type(event) is dict and event.get('schemaVersion')==2 and event.get('policyVersion')==v2.POLICY
-    if is_v2 or is_v3:
+    rules_only=(is_v3 and event.get('runtimeMode')=='rules_only')
+    if rules_only:
+        enabled=(os.environ.get('STAGE')=='dev' and os.environ.get('MESSAGE_EVALUATOR_ENABLED')=='true'
+                 and os.environ.get('MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED')=='true'
+                 and os.environ.get('MESSAGE_AI_ENABLED')!='true'
+                 and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY
+                 and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
+    elif is_v2 or is_v3:
         enabled=(os.environ.get('STAGE')=='dev' and os.environ.get('MESSAGE_EVALUATOR_ENABLED')=='true'
                  and os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY
                  and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
     else:enabled=policy_enabled('MESSAGE_EVALUATOR_ENABLED')
     if not enabled:return {'enabled':False}
     try:
-        require(type(event) is dict and set(event)=={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'})
+        expected={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'}|({'runtimeMode'} if rules_only else set())
+        require(type(event) is dict and set(event)==expected)
+        if rules_only:require(event['runtimeMode']=='rules_only')
         require(type(event['schemaVersion']) is int and event['schemaVersion']==(3 if is_v3 else (2 if is_v2 else 1)) and event['policyVersion']==(v2.POLICY if is_v2 or is_v3 else POLICY))
         require(type(event['checkId']) is str and re.fullmatch('[A-Za-z0-9_-]{1,64}',event['checkId']))
         require(type(event['executionBudgetMs']) is int and 1<=event['executionBudgetMs']<=18000)
@@ -54,6 +63,8 @@ def lambda_handler(event,context):
             from .policy_v2 import evaluate as evaluate_ai
             if is_v3:
                 from .policy_v3 import evaluate as evaluate_ai
+            if rules_only:
+                return evaluate_ai(event['checkId'],event['intent'],lookup=None,budget_ms=budget,ai=None,rules_only=True)
             from .ai_provider import assess
             return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,ai=assess)
         proposer = None
