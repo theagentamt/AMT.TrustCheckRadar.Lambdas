@@ -65,9 +65,13 @@ def lambda_handler(event,context):
         budget=ProviderBudget(authority,window_seconds=required_number('MESSAGE_PROVIDER_WINDOW_SECONDS'),
             max_attempts=required_number('MESSAGE_PROVIDER_ATTEMPTS_PER_WINDOW'),
             max_failures=required_number('MESSAGE_PROVIDER_FAILURES_PER_WINDOW'),circuit_open=circuit=='true')
+        allow_ai=(os.environ.get('MESSAGE_AI_ENABLED')=='true'
+            and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
+        allow_candidate3_rules_only=os.environ.get('MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED')=='true'
+        if allow_ai and allow_candidate3_rules_only:raise ValueError()
         consumer=Consumer(authority,provider,lambda event:writer.refresh_for_account(event,'message-'+secrets.token_hex(8)),budget,
-            remaining_ms=context.get_remaining_time_in_millis,allow_ai=(os.environ.get('MESSAGE_AI_ENABLED')=='true'
-            and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA))
+            remaining_ms=context.get_remaining_time_in_millis,allow_ai=allow_ai,
+            allow_candidate3_rules_only=allow_candidate3_rules_only)
         status,body=consumer.handle(event)
     except Exception:
         return response(503,unavailable_envelope(version=version))
