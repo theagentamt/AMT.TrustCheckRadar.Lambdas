@@ -151,9 +151,11 @@ def test_deletion_integration_and_parent_completion_gate_remain_manual():
     assert module.classify(['src/account_data_api/service.py']) == 'all'
 
 
-def test_main_message_candidate_requires_the_exact_successful_main_ci_run():
+def test_governed_history_candidate_requires_the_exact_successful_main_ci_run():
     workflow = (Path(__file__).parents[2] / '.github/workflows/publish.yml').read_text()
-    assert "(github.ref == 'refs/heads/release-V01' || github.ref == 'refs/heads/main')" in workflow
+    assert "inputs.mode == 'governed_history_candidate'" in workflow
+    assert "github.ref == 'refs/heads/main'" in workflow
+    assert "(github.ref == 'refs/heads/release-V01' || github.ref == 'refs/heads/main')" not in workflow
     assert '[[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]' in workflow
     assert 'repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}' in workflow
     assert '[[ "$(jq -r \'.name\' <<<"$run_json")" == \'CI\' ]]' in workflow
@@ -164,5 +166,13 @@ def test_main_message_candidate_requires_the_exact_successful_main_ci_run():
     assert module.classify([
         '.github/workflows/publish.yml',
         'tests/scripts/test_lambda_release_scope.py',
-        'docs/message-consumer-handoff.md',
+        'scripts/publish_message_candidate.py',
+        'tests/scripts/test_publish_message_candidate.py',
+        'scripts/qualify_dev_governed_history.py',
+        'tests/scripts/test_qualify_dev_governed_history.py',
     ]) == 'authority_manual'
+    assert module.classify([
+        '.github/workflows/publish.yml',
+        'scripts/publish_message_candidate.py',
+        'src/conversation_analysis/app.py',
+    ]) == 'all'

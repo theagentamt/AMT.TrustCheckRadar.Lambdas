@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 for name in ('url_consumer','url_lease_recovery','v1_entitlements','v1_authority_deletion','governed_history'):
     with tempfile.TemporaryDirectory() as temp:
         with zipfile.ZipFile(ROOT/'dist'/f'{name}.zip') as archive:archive.extractall(temp)
-        module=name+'.app' if name in ('v1_entitlements','v1_authority_deletion') else 'app'
+        module=name+'.app' if name in ('v1_entitlements','v1_authority_deletion','governed_history') else 'app'
         incoming = ({'version':'2.0','routeKey':'GET /v1/users/analysis-history',
                      'requestContext':{'http':{'method':'GET'}},'body':None,
                      'queryStringParameters':None,'isBase64Encoded':False}

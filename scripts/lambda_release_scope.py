@@ -38,6 +38,13 @@ AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/sha
 AUTHORITY_SOURCE_PROFILE_PATHS = {
     'contracts/sanitizer/v1/evaluation-source-current.json',
 }
+AUTHORITY_RELEASE_TOOL_PATHS = {
+    'docs/SECUR4ALL-340-GOVERNED-HISTORY-DEV-QUALIFICATION.md',
+    'scripts/publish_message_candidate.py',
+    'tests/scripts/test_publish_message_candidate.py',
+    'scripts/qualify_dev_governed_history.py',
+    'tests/scripts/test_qualify_dev_governed_history.py',
+}
 AUTHORITY_SUPPORT_PATHS = {
     'scripts/url_consumer_engineering_smoke.py', 'tests/scripts/test_url_consumer_engineering_smoke.py',
     'src/account_data_api/config.py', 'src/account_data_api/service.py',
@@ -74,8 +81,8 @@ def classify(paths):
         entitlements(path) or path in ENTITLEMENTS_SUPPORT_PATHS for path in paths
     ):
         return 'entitlements'
-    authority = lambda path: path.startswith(AUTHORITY_PREFIXES) or path in AUTHORITY_SOURCE_PROFILE_PATHS
-    if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) or path in AUTHORITY_SOURCE_PROFILE_PATHS for path in paths) and all(
+    authority = lambda path: path.startswith(AUTHORITY_PREFIXES) or path in AUTHORITY_SOURCE_PROFILE_PATHS or path in AUTHORITY_RELEASE_TOOL_PATHS
+    if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) or path in AUTHORITY_SOURCE_PROFILE_PATHS or path in AUTHORITY_RELEASE_TOOL_PATHS for path in paths) and all(
         authority(path) or path in AUTHORITY_SUPPORT_PATHS for path in paths
     ):
         return 'authority_manual'

@@ -18,7 +18,7 @@ on:
         options:
           - main_ci
           - research_candidate
-          - message_candidate
+          - governed_history_candidate
       source_sha:
         description: Exact dispatch-ref commit for a reviewed Dev candidate (must equal dispatch ref)
         required: false
@@ -400,11 +400,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
 
-  message-candidate:
+  governed-history-candidate:
     if: >-
       github.event_name == 'workflow_dispatch' &&
-      (github.ref == 'refs/heads/release-V01' || github.ref == 'refs/heads/main') &&
-      inputs.mode == 'message_candidate' && inputs.environment == 'dev'
+      github.ref == 'refs/heads/main' &&
+      inputs.mode == 'governed_history_candidate' && inputs.environment == 'dev'
     # The packages contain the ARM64 rpds native extension; execute the package
     # smoke on the same OS/architecture family used by Lambda.
     runs-on: ubuntu-24.04-arm
@@ -427,18 +427,14 @@ jobs:
           [[ "$ARTIFACT_BUCKET" == 'trustcheckradar-dev-107827791950-artifacts' ]]
           [[ "$AWS_REGION" == 'us-east-1' ]]
           [[ "$AWS_ROLE_ARN" == 'arn:aws:iam::107827791950:role/trustcheckradar-dev-lambda-publisher' ]]
-          if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
-            [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
-            run_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
-            [[ "$(jq -r '.name' <<<"$run_json")" == 'CI' ]]
-            [[ "$(jq -r '.conclusion' <<<"$run_json")" == 'success' ]]
-            [[ "$(jq -r '.event' <<<"$run_json")" == 'push' ]]
-            [[ "$(jq -r '.head_branch' <<<"$run_json")" == 'main' ]]
-            [[ "$(jq -r '.head_sha' <<<"$run_json")" == "$SOURCE_SHA" ]]
-          else
-            [[ "$GITHUB_REF" == 'refs/heads/release-V01' ]]
-            [[ -z "$SOURCE_RUN_ID" ]]
-          fi
+          [[ "$GITHUB_REF" == 'refs/heads/main' ]]
+          [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+          run_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}")"
+          [[ "$(jq -r '.name' <<<"$run_json")" == 'CI' ]]
+          [[ "$(jq -r '.conclusion' <<<"$run_json")" == 'success' ]]
+          [[ "$(jq -r '.event' <<<"$run_json")" == 'push' ]]
+          [[ "$(jq -r '.head_branch' <<<"$run_json")" == 'main' ]]
+          [[ "$(jq -r '.head_sha' <<<"$run_json")" == "$SOURCE_SHA" ]]
       - name: Check out exact reviewed release
         uses: actions/checkout@v7.0.1
         with:
@@ -453,19 +449,19 @@ jobs:
           python-version: '3.14'
       - name: Install local validation dependencies
         run: python -m pip install --requirement requirements-dev.txt 'moto[dynamodb]==5.2.3'
-      - name: Run governed-message source gates
+      - name: Run governed-History source gates
         env:
           AMT_AUTHORITY_INTEGRATION: '1'
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          python -m pytest -q tests/message_consumer tests/message_evaluator tests/shared_check_authority tests/scripts/test_publish_message_candidate.py
-          python -m compileall -q src/message_consumer src/message_evaluator src/shared_message_contract src/shared_check_authority scripts/publish_message_candidate.py
-      - name: Build exactly two full-dependency Python 3.14 ARM64 packages
+          python -m pytest -q tests/message_consumer tests/message_evaluator tests/shared_check_authority tests/governed_history tests/scripts/test_publish_message_candidate.py tests/scripts/test_qualify_dev_governed_history.py
+          python -m compileall -q src/message_consumer src/message_evaluator src/url_consumer src/governed_history src/shared_message_contract src/shared_governed_history src/shared_check_authority scripts/publish_message_candidate.py scripts/qualify_dev_governed_history.py
+      - name: Build exactly four full-dependency Python 3.14 ARM64 packages
         run: |
           set -euo pipefail
           rm -rf dist
           mkdir dist
-          for function in message_consumer message_evaluator; do
+          for function in message_consumer message_evaluator url_consumer governed_history; do
             bash scripts/build_lambda_zip.sh --function "$function" --python-version 3.14 --arch arm64 --output-dir dist
           done
           python - <<'PYTHON'
@@ -476,15 +472,15 @@ jobs:
               sha256(path.read_bytes()).hexdigest() + '  ' + path.name + '\n'
               for path in sorted(dist.glob('*.zip'))))
           PYTHON
-          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/message-candidate-build.json
+          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/governed-history-candidate-build.json
       - name: Preserve candidate build evidence
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: message-candidate-packages
+          name: governed-history-candidate-packages
           path: |
             dist/*.zip
             dist/SHA256SUMS
-            dist/message-candidate-build.json
+            dist/governed-history-candidate-build.json
           if-no-files-found: error
           retention-days: 90
       - name: Configure scoped short-lived publisher credentials
@@ -492,29 +488,25 @@ jobs:
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: message-candidate-${{ github.run_id }}
+          role-session-name: governed-history-candidate-${{ github.run_id }}
       - name: Verify account and publish immutable Dev objects
         run: |
           set -euo pipefail
           [[ "$(aws sts get-caller-identity --query Account --output text)" == '107827791950' ]]
-          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/message-candidate-publication.json
+          python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/governed-history-candidate-publication.json
       - name: Preserve exact S3 versions and checksums
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: message-candidate-publication
-          path: dist/message-candidate-publication.json
+          name: governed-history-candidate-publication
+          path: dist/governed-history-candidate-publication.json
           if-no-files-found: error
           retention-days: 90
       - name: Record publication boundary
         run: |
           {
-            echo '## Governed-message Dev candidate artifacts published'
+            echo '## Governed-History Dev candidate artifacts published'
             echo "Source commit: $SOURCE_SHA"
-            if [[ "$GITHUB_REF" == 'refs/heads/main' ]]; then
-              echo "Source CI run: $SOURCE_RUN_ID"
-            else
-              echo 'Source validation: reviewed release-V01 candidate gates in this run'
-            fi
-            echo 'Two immutable ZIPs published; exact S3 versions and checksums are in message-candidate-publication.'
+            echo "Source CI run: $SOURCE_RUN_ID"
+            echo 'Four immutable ZIPs published; exact S3 versions and checksums are in governed-history-candidate-publication.'
             echo 'No runtime, alias, route, IAM, data, secret or activation setting changed.'
           } >> "$GITHUB_STEP_SUMMARY"
