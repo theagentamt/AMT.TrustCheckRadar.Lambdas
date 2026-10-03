@@ -45,7 +45,49 @@ It needs no writes, transactions, secrets, SSM, provider access or Lambda invoca
 
 The output contains aggregate preservation buckets, classifier version and SHA-256 of the exact input bytes. The included synthetic input/report uses no customer records. These are preliminary preservation classifications, **not schema qualification**: a `COMPLETED` classification still requires independent handler proof; current authority and audit records are deliberately not interpreted. Unknown fields and unrecognized families remain unknown or separately reviewed, never grants.
 
-Required coverage families are requests, consumption, entitlements, consent state, consent operations, consent audit, withdrawal commands, purchase tokens, purchase locators, current authority and deletion fences. Missing recognizable families are reported. Presence of one record cannot establish complete pagination or coverage: `inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable` are always false. The planner has no SDK, collector, credentials, apply command or mutation path. It does not inspect backups or prove a complete live inventory.
+Required coverage families are requests, consumption, entitlements, consent state, consent operations, consent audit, withdrawal commands, purchase tokens, purchase locators, current authority and deletion fences. Missing recognizable families are reported. Presence of one record cannot establish complete pagination or coverage: `inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable` are always false. The v1 planner has no SDK, credentials, apply command or mutation path. It does not inspect backups or prove a complete live inventory.
+
+### Additive v2 aggregate inventory
+
+The v2 envelope adds an explicit observation epoch and separates shape recognition,
+request lifecycle, logical expiry and legacy access. It keeps the v1 envelope and
+report compatible. `PROCESSING`, `RETRYABLE` and `RESULT_READY` are counted as
+ambiguous in-flight records. The legacy request schema has no durable
+provider-dispatch-start marker, so the report never infers `neverDispatched` from
+an expired lease, missing response or retryable state. `COMPLETED` is counted as
+settled only when its exact allowlisted historical shape, owner/request identity,
+completion timestamp, expiry and TTL match exactly one original monthly/credit
+consumption receipt with its exact allowlisted shape. Duplicate receipts are
+ambiguous in every input order. Unsupported schema versions, record types and
+unknown fields remain unknown. Unknown evidence is retained for explicit review.
+
+`collect_dev.py` is pinned to AWS account `107827791950`, region `us-east-1` and
+the exact four Dev table identifiers. It validates arguments, SDK regions and an
+STS caller-identity read before its first scan. It performs bounded paginated
+`Scan` calls with an allowlist that excludes result/message content, retains the
+projected rows in memory only, and prints the v2 aggregate report. Because a
+projection cannot prove that an unrequested attribute is absent, live rows are
+reported as projected preservation candidates rather than exact qualified shapes.
+The report
+contains no resource names, record identifiers or user content. The collector has
+no put, update, delete, transaction or apply path. Its report still fixes
+`inventoryComplete`, `replayQualified`, `migrationApproved` and `applyAvailable`
+to false because a live table scan does not cover backups, restore copies, old
+credentials or every historical writer.
+
+The October 3 America/Chicago Dev evidence is
+[`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
+The retired request table was empty: there was no retained never-dispatched,
+in-flight, settled, erased or unknown request to migrate. The shared authority
+table contained two projected legacy FREE candidates with the historical 15-check bonus fields,
+zero legacy paid records and six untyped shapes. These stay source-preserved and
+cannot create V1 paid, trial or complimentary authority. The two existing current
+ACCESS rows and their supporting current records are counted separately but are
+not qualified as exact legacy migration shapes; this inventory neither approves nor
+changes them. The observed old research-consent
+rows also remain review-only and do not authorize access or publication.
+Accordingly, all 62 live projected rows are exact-shape unknown in the public
+evidence; the two bonus candidates are reported only under `projectedCandidates`.
 
 ## Remaining rollout acceptance
 
@@ -55,6 +97,6 @@ A later concrete rollout must preserve exact in-flight retry identity and origin
 
 The source slice has focused ordinary handler/helper tests plus isolated real-SDK/Moto replay tests covering original consumption, expiry/shape mismatch, History erasure and account/device races with unchanged stored items. The offline CLI tests verify deterministic input binding, ambiguous/unknown preservation, missing families, bounded malformed input and fixed redacted errors. These tests use synthetic data; they are not a live Dev/production inventory or provider qualification.
 
-Validation on this isolated source branch: ordinary `python -m pytest -q` passed **1,753 tests and 238 subtests**, with 21 intentionally skipped optional SDK suites. The separately run `AMT_AUTHORITY_INTEGRATION=1 python -m pytest -q tests/legacy_retirement/test_boundary_dynamodb.py` passed **32** real-SDK/Moto cases. `tests/legacy_retirement/test_inventory_cli.py` passed **8** CLI cases (also included in the ordinary total). Changed Python source compiled successfully; `git diff --check` passed. Combined consent/pipeline package validation is owned by the integrating Lambda agent and must be reported separately.
+Validation on this isolated source branch: the focused inventory and hostile-shape suites passed **22** tests. The broader conversation-analysis, entitlement, purchase, participation, current-authority, and inventory selection passed **196 tests and 21 subtests**, with **18** intentionally skipped optional SDK cases. The separately run `AMT_AUTHORITY_INTEGRATION=1 python -m pytest -q tests/legacy_retirement/test_boundary_dynamodb.py` passed **32** real-SDK/Moto cases. Changed Python source compiled successfully; JSON validation and `git diff --check` passed.
 
 The retired analysis composition also pins `COGNITO_ISSUER`, `COGNITO_APP_CLIENT_ID`, `COGNITO_REQUIRED_SCOPE=aws.cognito.signin.user.admin`, `APP_ENVIRONMENT` and the original table names independently of whether a History deployment object is selected. Its existing assessment bounds are `HISTORY_MAX_SUMMARY_BYTES=4096`, `HISTORY_MAX_LIST_ITEMS=20`, and `HISTORY_MAX_TEXT_FIELD_BYTES=1024`; protect these from generic environment overrides. HistorySettings defaults those bounds when absent, but does not provide the issuer/client identity. The replay handler does not invoke paged History response/cursor processing or require activation flags. Infrastructure composition must supply the verified auth binding before replay can be called runnable.
