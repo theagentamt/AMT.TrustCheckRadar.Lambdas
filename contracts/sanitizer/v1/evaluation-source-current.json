@@ -1,0 +1,18 @@
+{
+  "reason": "candidate3_rules_only_source_reconciliation",
+  "sourceCommit": "1edd0854c4f57574c1bf3896e2706b17f67e085d",
+  "promptSha256": "a2593d45e096b7bc257662ceda066e69abce1bbebf51f8ad2012ea4cfeb6d63f",
+  "schemaSha256": "fbe75bac1c21b9b9bffe6159587f59ec55a2bbc19932763ff02c56bc23dedd45",
+  "sourceCurrentControlledProfiles": {
+    "gpt-4.1-mini-2025-04-14": "8a3a9ae0c354b3d4db5af338ed43adbaed1d749dac783a0135a74e29800a3485",
+    "gpt-5.4-nano-2026-03-17": "92a4f0f34b3f8fb24c49650cc8eeeb223e3a739c8c13b48da0f934f4a3632295",
+    "gpt-5.4-mini-2026-03-17": "55e2e16eefee5444d7ef4752c4f634d2eec47411e3a63255f8d2a92b3db01970"
+  },
+  "historicalPublishedRecord": {
+    "path": "evaluation-profile-identities.json",
+    "sha256": "b93ec210683b075ce9cc5f70b1fea7d0fa8254dc323e80d3e02c4244ba77bac0",
+    "status": "stale_source_identity_not_qualified"
+  },
+  "qualification": "none",
+  "paidExecutionAuthorized": false
+}
