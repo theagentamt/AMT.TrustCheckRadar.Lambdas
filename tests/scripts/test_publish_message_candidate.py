@@ -21,6 +21,9 @@ def packages(tmp_path):
     for function in module.FUNCTIONS:
         with zipfile.ZipFile(tmp_path / (function + ".zip"), "w") as archive:
             archive.writestr("app.py", "def lambda_handler(event, context): return None\n")
+            handler_source = module.HANDLERS[function].removesuffix(".lambda_handler").replace(".", "/") + ".py"
+            if handler_source != "app.py":
+                archive.writestr(handler_source, "def lambda_handler(event, context): return None\n")
     checksums(tmp_path)
     return tmp_path
 
@@ -61,15 +64,20 @@ def cloud(path, *, existing=False, replace=False):
     return call, calls
 
 
-def test_two_versioned_puts_are_conditional_and_never_deploy(packages):
+def test_four_versioned_puts_are_conditional_and_never_deploy(packages):
     call, calls = cloud(packages)
     result = module.publish(packages, module.BUCKET, SHA, module.REGION, call)
-    assert len(result["artifacts"]) == 2
+    assert len(result["artifacts"]) == 4
+    assert result["scope"] == "governed_history_candidate"
     assert result["publicationComplete"] is True
     assert result["runtimeUpdated"] is False
     assert result["routesUpdated"] is False
     assert result["activationApproved"] is False
-    assert len(calls) == 6
+    assert result["providerCallsAuthorized"] is False
+    assert result["paidCallsAuthorized"] is False
+    assert {row["function"] for row in result["artifacts"]} == set(module.FUNCTIONS)
+    assert {row["handler"] for row in result["artifacts"]} == set(module.HANDLERS.values())
+    assert len(calls) == 12
     assert {operation for operation, _ in calls} == {"head-object", "put-object"}
     for operation, args in calls:
         assert args[args.index("--key") + 1].startswith("releases/" + SHA + "/")
@@ -83,7 +91,7 @@ def test_two_versioned_puts_are_conditional_and_never_deploy(packages):
 def test_exact_retry_reuses_matching_versions_without_put(packages):
     call, calls = cloud(packages, existing=True)
     module.publish(packages, module.BUCKET, SHA, module.REGION, call)
-    assert len(calls) == 4
+    assert len(calls) == 8
     assert all(operation == "head-object" for operation, _ in calls)
 
 
@@ -100,15 +108,21 @@ def test_package_smoke_imports_from_lambda_style_extracted_directory(packages, m
     monkeypatch.setattr(module.platform, "machine", lambda: "aarch64")
 
     def run(args, *, env, check):
-        directory = Path(args[-1])
+        directory = Path(args[-3])
         assert check is True and directory.is_dir()
         assert directory.suffix != ".zip" and (directory / "app.py").is_file()
         assert env["PYTHONDONTWRITEBYTECODE"] == "1"
+        assert env["MESSAGE_CONSUMER_ENABLED"] == "false"
+        assert env["MESSAGE_EVALUATOR_ENABLED"] == "false"
+        assert env["URL_CONSUMER_ENABLED"] == "false"
+        assert env["GOVERNED_HISTORY_LIST_ENABLED"] == "false"
+        assert env["GOVERNED_HISTORY_DETAIL_ENABLED"] == "false"
+        assert args[-1] in {value.removesuffix(".lambda_handler") for value in module.HANDLERS.values()}
         calls.append(directory.name)
 
     monkeypatch.setattr(module.subprocess, "run", run)
     module.smoke(packages)
-    assert len(calls) == 2
+    assert len(calls) == 4
 
 
 def test_concurrent_current_version_change_fails_closed(packages):
@@ -120,7 +134,7 @@ def test_concurrent_current_version_change_fails_closed(packages):
 
 @pytest.mark.parametrize(
     "mutation",
-    ["corrupt", "extra", "missing", "duplicate_checksum", "traversal", "no_handler"],
+    ["corrupt", "extra", "missing", "duplicate_checksum", "traversal", "no_handler", "no_declared_handler"],
 )
 def test_entire_scope_is_validated_before_any_aws_call(packages, mutation):
     first = packages / (module.FUNCTIONS[0] + ".zip")
@@ -133,11 +147,15 @@ def test_entire_scope_is_validated_before_any_aws_call(packages, mutation):
     elif mutation == "duplicate_checksum":
         manifest = packages / "SHA256SUMS"
         manifest.write_text(manifest.read_text() * 2)
-    else:
+    elif mutation in ("traversal", "no_handler"):
         with zipfile.ZipFile(first, "w") as archive:
             archive.writestr("../app.py" if mutation == "traversal" else "other.py", "pass")
             if mutation == "traversal":
                 archive.writestr("app.py", "pass")
+        checksums(packages)
+    else:
+        with zipfile.ZipFile(first, "w") as archive:
+            archive.writestr("app.py", "pass")
         checksums(packages)
 
     def no_cloud(*args):

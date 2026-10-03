@@ -218,6 +218,9 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
   fi
   if [[ "$function_name" == "governed_history" ]]; then
+    mkdir -p "$build_dir/governed_history"
+    cp -R "$source_dir"/. "$build_dir/governed_history/"
+    printf 'from governed_history.app import lambda_handler\n' > "$build_dir/app.py"
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp -R "$ROOT_DIR/contracts/governed-history/1.0.0-candidate.1" "$build_dir/contract"
     mkdir -p "$build_dir/message_evaluator"

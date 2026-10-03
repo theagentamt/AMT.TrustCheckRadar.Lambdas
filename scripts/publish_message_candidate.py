@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and immutably publish the two governed-message Dev artifacts.
+"""Validate and immutably publish the governed-History Dev artifact set.
 
 This tool can write versioned objects to the approved Dev artifact bucket. It has
 no Lambda, IAM, API Gateway, DynamoDB, secret, or activation operation.
@@ -18,7 +18,13 @@ import tempfile
 import zipfile
 
 
-FUNCTIONS = ("message_consumer", "message_evaluator")
+FUNCTIONS = ("message_consumer", "message_evaluator", "url_consumer", "governed_history")
+HANDLERS = {
+    "message_consumer": "message_consumer.app.lambda_handler",
+    "message_evaluator": "message_evaluator.app.lambda_handler",
+    "url_consumer": "app.lambda_handler",
+    "governed_history": "governed_history.app.lambda_handler",
+}
 BUCKET = "trustcheckradar-dev-107827791950-artifacts"
 REGION = "us-east-1"
 
@@ -46,7 +52,7 @@ def inspect_packages(dist, source_sha):
     dist = Path(dist)
     expected = {name + ".zip" for name in FUNCTIONS}
     if {path.name for path in dist.glob("*.zip")} != expected:
-        raise ValueError("Exactly the two governed-message packages are required")
+        raise ValueError("Exactly the four governed-History packages are required")
 
     entries = {}
     for line in (dist / "SHA256SUMS").read_text().splitlines():
@@ -55,7 +61,7 @@ def inspect_packages(dist, source_sha):
             raise ValueError("Invalid checksum manifest")
         entries[name] = digest
     if set(entries) != expected:
-        raise ValueError("Checksum scope does not match governed-message scope")
+        raise ValueError("Checksum scope does not match governed-History scope")
 
     artifacts = []
     for function in FUNCTIONS:
@@ -66,7 +72,8 @@ def inspect_packages(dist, source_sha):
             raise ValueError("Package checksum mismatch")
         with zipfile.ZipFile(path) as archive:
             names = archive.namelist()
-            if "app.py" not in names or len(names) != len(set(names)):
+            handler_source = HANDLERS[function].removesuffix(".lambda_handler").replace(".", "/") + ".py"
+            if "app.py" not in names or handler_source not in names or len(names) != len(set(names)):
                 raise ValueError("Invalid handler or duplicate archive entries")
             if any(name.startswith("/") or ".." in Path(name).parts for name in names):
                 raise ValueError("Invalid archive path")
@@ -84,18 +91,20 @@ def inspect_packages(dist, source_sha):
                 "bytes": len(content),
                 "runtime": "python3.14",
                 "architecture": "arm64",
-                "handler": f"{function}.app.lambda_handler",
+                "handler": HANDLERS[function],
                 "bundledDependencies": dependencies,
             }
         )
     return {
         "schemaVersion": 1,
-        "scope": "message_candidate",
+        "scope": "governed_history_candidate",
         "sourceSha": source_sha,
         "environment": "dev",
         "runtimeUpdated": False,
         "routesUpdated": False,
         "activationApproved": False,
+        "providerCallsAuthorized": False,
+        "paidCallsAuthorized": False,
         "artifacts": artifacts,
     }
 
@@ -123,14 +132,26 @@ def smoke(dist):
                 STAGE="dev",
                 MESSAGE_CONSUMER_ENABLED="false",
                 MESSAGE_EVALUATOR_ENABLED="false",
+                URL_CONSUMER_ENABLED="false",
+                AUTHORITY_ENABLED="false",
+                GOVERNED_HISTORY_LIST_ENABLED="false",
+                GOVERNED_HISTORY_DETAIL_ENABLED="false",
             )
+            incoming = ({"version": "2.0", "routeKey": "GET /v1/users/analysis-history",
+                         "requestContext": {"http": {"method": "GET"}},
+                         "queryStringParameters": None, "body": None,
+                         "isBase64Encoded": False}
+                        if function == "governed_history" else {})
+            module = HANDLERS[function].removesuffix(".lambda_handler")
             code = (
-                "import json,sys; sys.path.insert(0,sys.argv[1]); import app; "
-                "result=app.lambda_handler({},None); "
+                "import ast,importlib,json,sys; sys.path.insert(0,sys.argv[1]); "
+                "app=importlib.import_module(sys.argv[3]); "
+                "result=app.lambda_handler(ast.literal_eval(sys.argv[2]),None); "
                 "assert (result.get('enabled') is False) if 'enabled' in result else "
-                "(result.get('statusCode')==503 and json.loads(result['body'])['errorCode']=='SERVICE_NOT_ENABLED')"
+                "(result.get('statusCode')==503 and (lambda body: body.get('errorCode')=='SERVICE_NOT_ENABLED' "
+                "or body.get('error',{}).get('code')=='SERVICE_NOT_ENABLED')(json.loads(result['body'])))"
             )
-            subprocess.run([sys.executable, "-c", code, directory], env=env, check=True)
+            subprocess.run([sys.executable, "-c", code, directory, repr(incoming), module], env=env, check=True)
         print(function + ": offline compile/import and disabled-handler smoke passed")
 
 

@@ -1,11 +1,11 @@
 # Governed message backend integration
 
-The reviewed `message_candidate` workflow may publish from `main` only when the
+The reviewed `governed_history_candidate` workflow may publish from `main` only when the
 caller supplies the exact successful `CI` push run for that same main commit. It
-publishes only the immutable message-consumer and message-evaluator artifacts;
+publishes only the immutable message-consumer, message-evaluator, URL-consumer,
+and governed-History artifacts;
 it does not update a Lambda runtime, alias, route, IAM policy, data, secret or
-activation setting. The existing reviewed `release-V01` candidate path remains
-available with its in-run validation boundary.
+activation setting. The retired `release-V01` publication path is unavailable.
 
 ## Current implementation and provenance
 
@@ -102,14 +102,16 @@ not evidence of AWS activation or paid-store lifecycle verification.
 
 ## Reviewed Dev artifact publication
 
-The `Publish Lambda release` workflow has a manual `message_candidate` mode for
-`release-V01`. It accepts only the exact dispatch commit, Dev account and reviewed
-artifact bucket; builds exactly `message_consumer.zip` and
-`message_evaluator.zip` for Python 3.14 ARM64; runs the governed-message,
-authority and publication tests; and imports the final packages on a Linux ARM64
-runner. Publication uses conditional S3 writes under the exact source SHA and
-records object versions, checksums and sizes. It cannot update Lambda, API
-Gateway, IAM, DynamoDB, secrets or any activation flag.
+The `Publish Lambda release` workflow has a manual
+`governed_history_candidate` mode on `main`. It accepts only the exact dispatch
+commit with its successful main CI push run, the Dev account, and reviewed
+artifact bucket. It builds exactly `message_consumer.zip`,
+`message_evaluator.zip`, `url_consumer.zip`, and `governed_history.zip` for
+Python 3.14 ARM64; runs the governed-message, authority, governed-History, runner,
+and publication tests; and imports the final packages on a Linux ARM64 runner.
+Publication uses conditional S3 writes under the exact source SHA and records
+object versions, checksums, and sizes. It cannot update Lambda, API Gateway, IAM,
+DynamoDB, secrets, or any activation flag.
 
 Disabled responses preserve every supported transport version, including
 candidate.3, so a provisioned closed route remains contract-decodable before any
