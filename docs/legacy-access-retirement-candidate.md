@@ -75,6 +75,26 @@ no put, update, delete, transaction or apply path. Its report still fixes
 to false because a live table scan does not cover backups, restore copies, old
 credentials or every historical writer.
 
+`review_plan.py` is the protected review gate after inventory. It binds every
+supplied record to a deterministic canonical digest and emits only preservation
+or review-required dispositions. Unknown, duplicate and in-flight evidence stays
+preserved. Erased requests retain an explicit suppression disposition; completed
+requests with missing, duplicate or conflicting accounting evidence receive an
+explicit reconciliation blocker. Exact historical access may be named as a retirement candidate, but
+the tool proposes no mutation and has no AWS client or executor. Proposal
+validation requires the exact unedited inventory and review plan plus source and
+plan digests pinned outside those files, complete decision coverage, and a
+matching before-image digest for every record. Snapshot order is part of both
+digests: reordering produces new pins even when preservation counts are unchanged. Consent
+and account-deletion evidence can only be preserved. Granting access, resetting
+allowance, charging, provider dispatch, deleting unknown evidence and synthesizing
+History are forbidden outcomes. A reviewed retirement rollback may restore a
+protected quarantined before-image as evidence only; it cannot restore the old
+row as active authority or remove consent/account-deletion fences. Rollback readiness, migration approval and apply
+availability remain false until a separately reviewed protected before-image
+vault and executor exist. Live record references are protected evidence and must
+not be committed, published or copied into diagnostics.
+
 The October 3 America/Chicago Dev evidence is
 [`evidence/sec241-dev-legacy-inventory-2026-10-03.json`](evidence/sec241-dev-legacy-inventory-2026-10-03.json).
 The retired request table was empty: there was no retained never-dispatched,
