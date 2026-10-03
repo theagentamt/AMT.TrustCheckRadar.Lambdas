@@ -1,4 +1,6 @@
 from pathlib import Path
+import hashlib
+import json
 import sys
 from types import SimpleNamespace
 
@@ -10,6 +12,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from message_evaluator import app
 from message_evaluator.policy_v3 import evaluate
 from shared_message_contract import validation_v2 as v2
+
+PROFILE = ROOT / "contracts/message-consumer/1.0.0-candidate.3-rules-only.1"
 
 
 def intent(text="An unfamiliar request outside qualified coverage.", *, reviewed=False):
@@ -81,3 +85,36 @@ def test_rules_only_internal_shape_is_exact(monkeypatch):
              "unexpected": True}
     value = app.lambda_handler(event, SimpleNamespace(get_remaining_time_in_millis=lambda: 20000))
     assert value == {"enabled": True, "errorCode": "EVALUATOR_UNAVAILABLE"}
+
+
+def test_immutable_rules_only_profile_fixtures_match_runtime_without_providers():
+    for line in (PROFILE / "SHA256SUMS").read_text().splitlines():
+        digest, name = line.split("  ")
+        assert hashlib.sha256((PROFILE / name).read_bytes()).hexdigest() == digest
+    profile = json.loads((PROFILE / "profile.json").read_text())
+    assert profile == {
+        "schemaVersion": 1,
+        "profileVersion": "1.0.0-message-candidate.3-rules-only.1",
+        "transportVersion": "1.0.0-message-candidate.3",
+        "activationEnabled": False,
+        "runtimeMode": "rules_only",
+        "aiEnabled": False,
+        "externalReputationEnabled": False,
+        "providerCallsAllowed": False,
+        "secretAccessAllowed": False,
+        "supportedLanguages": ["en", "es"],
+    }
+    fixtures = json.loads((PROFILE / "evaluation-fixtures.json").read_text())
+    assert {row["name"] for row in fixtures["fixtures"]} == {
+        "complete_en_secret_request", "complete_es_secret_request",
+        "partial_en_secret_request_withheld_link",
+        "inconclusive_unsupported", "inconclusive_withheld_link", "blocked_hostile_input",
+    }
+    for row in fixtures["fixtures"]:
+        request = row["request"]
+        actual = evaluate(request["checkId"], request["intent"],
+                          lookup=lambda *_: pytest.fail("Google called"),
+                          ai=lambda *_: pytest.fail("AI called"), rules_only=True)
+        assert actual == row["expectedOutcome"]
+        assert row["expectedChargedChecks"] == int(actual["processingOutcome"] == "complete")
+        assert row["providerCalls"] == row["aiCalls"] == 0

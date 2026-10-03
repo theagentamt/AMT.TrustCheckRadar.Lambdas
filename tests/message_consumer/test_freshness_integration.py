@@ -60,6 +60,31 @@ def test_candidate3_rules_only_settlement_never_uses_provider_budget(world,text,
     assert len(calls)==1 and budget.attempts==0
     assert row('PERIOD#p1')['usedChecks']==charge
 
+
+def test_rules_only_profile_closed_and_retry_states_use_real_authority(world):
+    profile=json.loads((ROOT/'contracts/message-consumer/1.0.0-candidate.3-rules-only.1/transport-state-fixtures.json').read_text())
+    expected={item['name']:item for item in profile['fixtures']}
+    a,e,_,_,_,_=world;req=request();calls=[];budget=helpers.Budget()
+    closed=Consumer(a,lambda value:calls.append(value),lambda _:None,budget)
+    status,body=closed.handle(helpers.event(e,'POST /v1/message-checks/prepare',req))
+    case=expected['closed_without_both_scoped_gates']
+    assert (status,body['errorCode'],body['state'],body['accounting']['chargedChecks']) == (
+        case['expectedHttpStatus'],case['expectedErrorCode'],case['expectedState'],case['chargedChecks'])
+    assert calls==[] and budget.attempts==case['providerCalls']==0
+
+    bound={k:req[k] for k in ('entryPoint','language','target')}|{'messageTransportVersion':v3.VERSION}
+    proof=a.prepare(e,bound,req['checkId'],client_check_id=req['checkId'],count_attempt=False)
+    a.admit(e,bound,proof,client_check_id=req['checkId'],count_attempt=False)
+    retry=Consumer(a,lambda value:calls.append(value),lambda _:None,budget,allow_candidate3_rules_only=True)
+    status,body=retry.handle(helpers.event(e,'POST /v1/message-checks/reconcile',{
+        'transportVersion':v3.VERSION,'checkId':req['checkId'],'operationProof':proof}))
+    case=expected['retry_pending_reconcile_only']
+    assert (status,body['errorCode'],body['state'],body['accounting']['chargedChecks'],
+            body['accounting']['requiresReconciliation']) == (
+        case['expectedHttpStatus'],case['expectedErrorCode'],case['expectedState'],case['chargedChecks'],
+        case['requiresReconciliation'])
+    assert calls==[] and budget.attempts==case['providerCalls']==0
+
 @pytest.mark.parametrize('legacy',['1.0.0-message-candidate.1','1.0.0-message-candidate.2'])
 def test_legacy_replay_never_returns_unverified_current_google(world,legacy):
     from shared_check_authority.core import TrustedWorkerContext

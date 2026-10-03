@@ -30,6 +30,13 @@ empty until the separate scoped Dev qualification is approved. The evaluator
 role needs no provider secret and no URL-assessment invoke permission for this
 mode.
 
+The immutable source profile is
+`contracts/message-consumer/1.0.0-candidate.3-rules-only.1`. It binds the
+existing candidate.3 transport to this server runtime mode without changing the
+public transport version. Its synthetic English/Spanish evaluation fixtures
+cover complete, unsupported, withheld-link, and hostile outcomes. Its transport
+fixtures bind default-closed and proof-only pending reconciliation behavior.
+
 ## Reproducible source checks
 
 Run with Python 3.14 and the pinned authority test dependencies:
