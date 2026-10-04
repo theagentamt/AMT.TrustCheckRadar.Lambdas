@@ -1,0 +1,1060 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andmorethings.com/contracts/operations/1.0.0-candidate.1/event.schema.json",
+  "title": "Privacy-safe operations event proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventType",
+    "eventId",
+    "eventTimeEpoch",
+    "environment",
+    "trafficClass",
+    "service",
+    "inputKind",
+    "logicalCheckRef",
+    "lifecycleRevision",
+    "processingOutcome",
+    "accountingState",
+    "chargedChecks",
+    "accessClass",
+    "reasonCode",
+    "attemptRef",
+    "attemptKind",
+    "component",
+    "attemptOrdinal",
+    "providerFamily",
+    "attemptOutcome",
+    "durationBucket",
+    "providerRequestUnits",
+    "estimatedCostMicrousd"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0-operations-candidate.1"
+    },
+    "eventType": {
+      "enum": [
+        "check_accepted",
+        "check_terminal",
+        "attempt_started",
+        "attempt_finished"
+      ]
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^op1_[0-9a-f]{32}$"
+    },
+    "eventTimeEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "environment": {
+      "enum": [
+        "dev",
+        "uat",
+        "prod"
+      ]
+    },
+    "trafficClass": {
+      "const": "customer"
+    },
+    "service": {
+      "enum": [
+        "message_check",
+        "url_check",
+        "recovery_clarification"
+      ]
+    },
+    "inputKind": {
+      "enum": [
+        "pasted_text",
+        "ocr",
+        "mixed",
+        "standalone_url",
+        "message_url",
+        "qr_url",
+        "recovery_clarification",
+        "unknown"
+      ]
+    },
+    "logicalCheckRef": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^lc1_[0-9a-f]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lifecycleRevision": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "processingOutcome": {
+      "enum": [
+        null,
+        "complete",
+        "partial",
+        "inconclusive",
+        "failed",
+        "blocked",
+        "invalid_input",
+        "unsupported",
+        "unavailable"
+      ]
+    },
+    "accountingState": {
+      "enum": [
+        null,
+        "pending",
+        "charged",
+        "not_charged",
+        "unknown",
+        "not_started"
+      ]
+    },
+    "chargedChecks": {
+      "enum": [
+        null,
+        0,
+        1
+      ]
+    },
+    "accessClass": {
+      "enum": [
+        null,
+        "trial",
+        "paid",
+        "complimentary"
+      ]
+    },
+    "reasonCode": {
+      "enum": [
+        "NONE",
+        "AUTHENTICATION",
+        "ACCOUNT_UNAVAILABLE",
+        "DEVICE_REQUIRED",
+        "ACCESS_UNAVAILABLE",
+        "ALLOWANCE_EXHAUSTED",
+        "INPUT_REJECTED",
+        "PRIVACY_REVIEW_REQUIRED",
+        "CONTRACT_UNSUPPORTED",
+        "RATE_LIMITED",
+        "CHECK_ID_CONFLICT",
+        "OPERATION_EXPIRED",
+        "OPERATION_PENDING",
+        "TRANSACTION_UNCERTAIN",
+        "RECONCILIATION_REQUIRED",
+        "SERVICE_DISABLED",
+        "SERVICE_UNAVAILABLE",
+        "PROVIDER_UNAVAILABLE",
+        "PROVIDER_AUTHORIZATION_FAILED",
+        "PROVIDER_RATE_LIMITED",
+        "PROVIDER_RESPONSE_INVALID",
+        "TIME_BUDGET_EXHAUSTED",
+        "RESULT_INCONCLUSIVE",
+        "COVERAGE_PARTIAL",
+        "RESULT_BLOCKED",
+        "RESULT_UNSUPPORTED",
+        "RESULT_INVALID",
+        "SETTLED_FAILED"
+      ]
+    },
+    "attemptRef": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^at1_[0-9a-f]{32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attemptKind": {
+      "enum": [
+        null,
+        "internal_component",
+        "provider_call"
+      ]
+    },
+    "component": {
+      "enum": [
+        null,
+        "message_consumer",
+        "message_evaluator",
+        "url_consumer",
+        "url_assessment",
+        "redirect_resolver",
+        "recovery_consumer",
+        "recovery_evaluator"
+      ]
+    },
+    "attemptOrdinal": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "providerFamily": {
+      "enum": [
+        null,
+        "google_web_risk",
+        "openai"
+      ]
+    },
+    "attemptOutcome": {
+      "enum": [
+        null,
+        "succeeded",
+        "failed",
+        "denied"
+      ]
+    },
+    "durationBucket": {
+      "enum": [
+        null,
+        "lt_250ms",
+        "250_999ms",
+        "1_4s",
+        "5_14s",
+        "15s_plus"
+      ]
+    },
+    "providerRequestUnits": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "estimatedCostMicrousd": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "logicalCheckRef": {
+            "type": "string"
+          },
+          "lifecycleRevision": {
+            "const": 1
+          },
+          "processingOutcome": {
+            "type": "null"
+          },
+          "accountingState": {
+            "const": "pending"
+          },
+          "chargedChecks": {
+            "type": "null"
+          },
+          "accessClass": {
+            "enum": [
+              "trial",
+              "paid",
+              "complimentary"
+            ]
+          },
+          "reasonCode": {
+            "const": "NONE"
+          },
+          "attemptRef": {
+            "type": "null"
+          },
+          "attemptKind": {
+            "type": "null"
+          },
+          "component": {
+            "type": "null"
+          },
+          "attemptOrdinal": {
+            "type": "null"
+          },
+          "providerFamily": {
+            "type": "null"
+          },
+          "attemptOutcome": {
+            "type": "null"
+          },
+          "durationBucket": {
+            "type": "null"
+          },
+          "providerRequestUnits": {
+            "type": "null"
+          },
+          "estimatedCostMicrousd": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "logicalCheckRef": {
+            "type": "string"
+          },
+          "lifecycleRevision": {
+            "const": 2
+          },
+          "processingOutcome": {
+            "enum": [
+              "complete",
+              "partial",
+              "inconclusive",
+              "failed",
+              "blocked",
+              "invalid_input",
+              "unsupported",
+              "unavailable"
+            ]
+          },
+          "accountingState": {
+            "enum": [
+              "charged",
+              "not_charged"
+            ]
+          },
+          "chargedChecks": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "accessClass": {
+            "enum": [
+              "trial",
+              "paid",
+              "complimentary"
+            ]
+          },
+          "attemptRef": {
+            "type": "null"
+          },
+          "attemptKind": {
+            "type": "null"
+          },
+          "component": {
+            "type": "null"
+          },
+          "attemptOrdinal": {
+            "type": "null"
+          },
+          "providerFamily": {
+            "type": "null"
+          },
+          "attemptOutcome": {
+            "type": "null"
+          },
+          "durationBucket": {
+            "type": "null"
+          },
+          "providerRequestUnits": {
+            "type": "null"
+          },
+          "estimatedCostMicrousd": {
+            "type": "null"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "accountingState": {
+                  "const": "charged"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "chargedChecks": {
+                  "const": 1
+                },
+                "processingOutcome": {
+                  "const": "complete"
+                },
+                "accessClass": {
+                  "enum": [
+                    "trial",
+                    "paid"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "accountingState": {
+                  "const": "not_charged"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "chargedChecks": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "processingOutcome": {
+                  "enum": [
+                    "partial",
+                    "inconclusive",
+                    "failed",
+                    "blocked",
+                    "invalid_input",
+                    "unsupported",
+                    "unavailable"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "accountingState": {
+                  "const": "not_charged"
+                },
+                "chargedChecks": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "accessClass": {
+                  "const": "complimentary"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "accountingState": {
+                  "const": "not_charged"
+                },
+                "chargedChecks": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "processingOutcome": {
+                  "const": "complete"
+                },
+                "accessClass": {
+                  "enum": [
+                    "trial",
+                    "paid"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "accountingState": {
+                  "const": "charged"
+                },
+                "chargedChecks": {
+                  "const": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "partial"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "COVERAGE_PARTIAL",
+              "PROVIDER_UNAVAILABLE",
+              "PROVIDER_AUTHORIZATION_FAILED",
+              "PROVIDER_RATE_LIMITED",
+              "PROVIDER_RESPONSE_INVALID",
+              "TIME_BUDGET_EXHAUSTED"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "inconclusive"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "RESULT_INCONCLUSIVE"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "SETTLED_FAILED",
+              "OPERATION_EXPIRED",
+              "SERVICE_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "blocked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "RESULT_BLOCKED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "invalid_input"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "RESULT_INVALID"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "unsupported"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "RESULT_UNSUPPORTED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "check_terminal"
+          },
+          "processingOutcome": {
+            "const": "unavailable"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "PROVIDER_UNAVAILABLE",
+              "PROVIDER_AUTHORIZATION_FAILED",
+              "PROVIDER_RATE_LIMITED",
+              "PROVIDER_RESPONSE_INVALID",
+              "TIME_BUDGET_EXHAUSTED",
+              "SERVICE_DISABLED",
+              "SERVICE_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "enum": [
+              "attempt_started",
+              "attempt_finished"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "logicalCheckRef": {
+            "type": "string"
+          },
+          "lifecycleRevision": {
+            "type": "null"
+          },
+          "processingOutcome": {
+            "type": "null"
+          },
+          "accountingState": {
+            "type": "null"
+          },
+          "chargedChecks": {
+            "type": "null"
+          },
+          "accessClass": {
+            "type": "null"
+          },
+          "reasonCode": {
+            "not": {
+              "enum": [
+                "AUTHENTICATION",
+                "ACCOUNT_UNAVAILABLE",
+                "DEVICE_REQUIRED",
+                "ACCESS_UNAVAILABLE",
+                "ALLOWANCE_EXHAUSTED",
+                "INPUT_REJECTED",
+                "PRIVACY_REVIEW_REQUIRED",
+                "CONTRACT_UNSUPPORTED",
+                "RATE_LIMITED"
+              ]
+            }
+          },
+          "attemptRef": {
+            "type": "string"
+          },
+          "attemptKind": {
+            "enum": [
+              "internal_component",
+              "provider_call"
+            ]
+          },
+          "component": {
+            "not": {
+              "type": "null"
+            }
+          },
+          "attemptOrdinal": {
+            "type": "integer"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "attemptKind": {
+                  "const": "provider_call"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "providerFamily": {
+                  "enum": [
+                    "google_web_risk",
+                    "openai"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "attemptKind": {
+                  "const": "internal_component"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "providerFamily": {
+                  "type": "null"
+                },
+                "providerRequestUnits": {
+                  "type": "null"
+                },
+                "estimatedCostMicrousd": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "properties": {
+        "inputKind": {
+          "not": {
+            "const": "unknown"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "service": {
+            "const": "message_check"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "inputKind": {
+            "enum": [
+              "pasted_text",
+              "ocr",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "component": {
+            "enum": [
+              null,
+              "message_consumer",
+              "message_evaluator"
+            ]
+          },
+          "providerFamily": {
+            "enum": [
+              null,
+              "openai"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "service": {
+            "const": "url_check"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "inputKind": {
+            "enum": [
+              "standalone_url",
+              "message_url",
+              "qr_url",
+              "unknown"
+            ]
+          },
+          "component": {
+            "enum": [
+              null,
+              "url_consumer",
+              "url_assessment",
+              "redirect_resolver"
+            ]
+          },
+          "providerFamily": {
+            "enum": [
+              null,
+              "google_web_risk"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "service": {
+            "const": "recovery_clarification"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "inputKind": {
+            "enum": [
+              "recovery_clarification",
+              "unknown"
+            ]
+          },
+          "component": {
+            "enum": [
+              null,
+              "recovery_consumer",
+              "recovery_evaluator"
+            ]
+          },
+          "providerFamily": {
+            "enum": [
+              null,
+              "openai"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "NONE"
+          },
+          "attemptOutcome": {
+            "type": "null"
+          },
+          "durationBucket": {
+            "type": "null"
+          },
+          "providerRequestUnits": {
+            "type": "null"
+          },
+          "estimatedCostMicrousd": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_finished"
+          },
+          "attemptOutcome": {
+            "const": "succeeded"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "NONE"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_finished"
+          },
+          "attemptOutcome": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "enum": [
+              "PROVIDER_UNAVAILABLE",
+              "PROVIDER_AUTHORIZATION_FAILED",
+              "PROVIDER_RATE_LIMITED",
+              "PROVIDER_RESPONSE_INVALID",
+              "TIME_BUDGET_EXHAUSTED",
+              "SERVICE_UNAVAILABLE"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_finished"
+          },
+          "attemptOutcome": {
+            "const": "denied"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "reasonCode": {
+            "const": "SERVICE_DISABLED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_finished"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attemptOutcome": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "denied"
+            ]
+          },
+          "durationBucket": {
+            "not": {
+              "type": "null"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "attempt_finished"
+          },
+          "attemptKind": {
+            "const": "provider_call"
+          },
+          "attemptOutcome": {
+            "const": "denied"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "providerRequestUnits": {
+            "const": 0
+          },
+          "estimatedCostMicrousd": {
+            "enum": [
+              null,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
