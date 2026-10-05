@@ -199,6 +199,99 @@ def test_unknown_token_cannot_guess_initial_account_or_claim_ownership(lifecycle
  assert h.client.calls>calls
 
 
+def test_scoped_unknown_token_is_rejected_before_provider_discovery(lifecycle):
+ h,w,p,r=lifecycle;calls=h.client.calls
+ scoped=Reconciler(h.writer,h.ownership,h.client,TrustedLifecycleWorker(ROLE),token_table='play-tokens',
+     token_cipher=h.token_cipher,allowed_subjects=frozenset({ACCOUNT}),allow_initial_background=False)
+ assert scoped.refresh('unknown-token-123456','unknown-scoped-event')=={'state':'unresolved','reason':'OWNERSHIP_NOT_ESTABLISHED'}
+ assert h.client.calls==calls
+
+
+def test_scoped_other_account_owner_is_rejected_before_provider(lifecycle):
+ h,w,p,r=lifecycle;calls=h.client.calls
+ scoped=Reconciler(h.writer,h.ownership,h.client,TrustedLifecycleWorker(ROLE),token_table='play-tokens',
+     token_cipher=h.token_cipher,allowed_subjects=frozenset({'other-synthetic-account'}),allow_initial_background=False)
+ with pytest.raises(AuthorityError,match='ENGINEERING_ACCESS_UNAVAILABLE'):
+  scoped.refresh(p['purchaseToken'],'other-account-scoped-event')
+ assert h.client.calls==calls
+
+
+def test_scoped_deleted_account_is_rejected_before_provider(lifecycle):
+ h,w,p,r=lifecycle;a,e,put,_,_,_=w;calls=h.client.calls
+ put('deletion','ACCOUNT_DELETION',status='REQUESTED')
+ scoped=Reconciler(h.writer,h.ownership,h.client,TrustedLifecycleWorker(ROLE),token_table='play-tokens',
+     token_cipher=h.token_cipher,allowed_subjects=frozenset({ACCOUNT}),allow_initial_background=False)
+ with pytest.raises(AuthorityError,match='ACCOUNT_UNAVAILABLE'):
+  scoped.refresh(p['purchaseToken'],'deleted-account-scoped-event')
+ assert h.client.calls==calls
+
+
+def test_scoped_target_reads_only_exact_allowlisted_current_head(lifecycle,monkeypatch):
+ from shared_play_lifecycle import runtime
+ from shared_check_authority import engineering
+ from shared_play_lifecycle.tokens import key
+ h,w,p,r=lifecycle;a,*_=w
+ monkeypatch.setattr(engineering,'allowed_subjects',lambda:frozenset({ACCOUNT}))
+ monkeypatch.setattr('shared_check_authority.runtime.load_authority',lambda:a)
+ monkeypatch.setattr(runtime,'token_table',lambda:'play-tokens')
+ monkeypatch.setenv('PURCHASE_OWNERSHIP_TABLE_NAME','ownership')
+ target=runtime.scoped_target()
+ assert target.row==a._get('play-tokens',key(a._partition(ACCOUNT,'k1'),target.row['tokenDigest']))
+ assert len(target.guards)==7
+
+
+def test_scoped_target_requires_exactly_one_subject(lifecycle,monkeypatch):
+ from shared_play_lifecycle import runtime
+ from shared_check_authority import engineering
+ monkeypatch.setattr(engineering,'allowed_subjects',lambda:frozenset({ACCOUNT,'other-synthetic-account'}))
+ with pytest.raises(AuthorityError,match='LIFECYCLE_CONFIGURATION_REQUIRED'):runtime.scoped_target()
+
+
+def test_scoped_target_requires_exact_owned_head(lifecycle,monkeypatch):
+ from shared_play_lifecycle import runtime
+ from shared_check_authority import engineering
+ from shared_purchase_ownership.service import owner_key,token_hash
+ h,w,p,r=lifecycle;a,*_=w
+ monkeypatch.setattr(engineering,'allowed_subjects',lambda:frozenset({ACCOUNT}))
+ monkeypatch.setattr('shared_check_authority.runtime.load_authority',lambda:a)
+ monkeypatch.setattr(runtime,'token_table',lambda:'play-tokens')
+ monkeypatch.setenv('PURCHASE_OWNERSHIP_TABLE_NAME','ownership')
+ h.ownership.table.delete_item(Key=owner_key(token_hash(p['purchaseToken'])))
+ with pytest.raises(AuthorityError,match='LIFECYCLE_OBSERVATION_REQUIRED'):runtime.scoped_target()
+
+
+@pytest.mark.parametrize('race',['deletion','access','ownership','retained_access'])
+def test_scoped_expiry_mutation_is_fenced_to_selected_current_owned_head(lifecycle,monkeypatch,race):
+ from shared_play_lifecycle import runtime
+ from shared_check_authority import engineering
+ from shared_play_lifecycle.tokens import key
+ from shared_purchase_ownership.service import owner_key
+ from play_lifecycle_worker.service import Worker
+ h,w,p,r=lifecycle;a,e,put,row,change,clock=w
+ monkeypatch.setattr(engineering,'allowed_subjects',lambda:frozenset({ACCOUNT}))
+ monkeypatch.setattr('shared_check_authority.runtime.load_authority',lambda:a)
+ monkeypatch.setattr(runtime,'token_table',lambda:'play-tokens')
+ monkeypatch.setenv('PURCHASE_OWNERSHIP_TABLE_NAME','ownership')
+ retained_partition='V1#retained#'+'f'*64
+ if race=='retained_access':
+  current_partition=a._partition(ACCOUNT,'k1')
+  monkeypatch.setattr(a,'deletion_partitions',lambda account:(current_partition,retained_partition))
+ access=row('ACCESS');digest=access['sources']['paid']['headTokenDigest'];token_key=key(a._partition(ACCOUNT,'k1'),digest)
+ retained=a._get('play-tokens',token_key);retained.update(verifiedAccessUntilEpoch=clock[0]-604800,
+     expiresAt=clock[0],nextAttemptAtEpoch=clock[0]-1,GSI1SK=f'{clock[0]-1:012d}#{retained["PK"]}#{retained["SK"]}')
+ a.ddb.Table('play-tokens').put_item(Item=retained)
+ selected=runtime.scoped_target()
+ if race=='deletion':put('deletion','ACCOUNT_DELETION',status='REQUESTED')
+ elif race=='access':
+  changed=dict(access);changed['revision']+=1;a.ddb.Table('authority').put_item(Item=changed)
+ elif race=='retained_access':a.ddb.Table('authority').put_item(Item={**access,'PK':retained_partition})
+ else:h.ownership.table.delete_item(Key=owner_key(digest))
+ outcome=Worker(a.ddb,'play-tokens',now=a.now,remaining_ms=lambda:29000,
+     reconciler_factory=lambda:pytest.fail('expired row must not load provider'),lifecycle_enabled=True).run_scoped(lambda:selected)
+ assert outcome['failed']==1 and outcome['expiredDeleted']==0
+ assert a._get('play-tokens',token_key)==retained
+
+
 def test_worker_identity_required_before_provider(lifecycle):
  h,w,p,r=lifecycle
  with pytest.raises(AuthorityError):Reconciler(h.writer,h.ownership,h.client,TrustedLifecycleWorker('arn:aws:iam::107827791950:role/other'),token_table='play-tokens',token_cipher=Cipher())

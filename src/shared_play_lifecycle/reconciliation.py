@@ -15,12 +15,14 @@ from .bindings import Bindings,conditions as binding_conditions
 
 
 class Reconciler:
-    def __init__(self,writer,ownership,client,worker,*,token_table,token_cipher,require_test=True,allowed_subjects=None):
+    def __init__(self,writer,ownership,client,worker,*,token_table,token_cipher,require_test=True,allowed_subjects=None,
+                 allow_initial_background=True):
         if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in writer.lifecycle_principals or not isinstance(token_table,str) or not token_table or token_table==writer.a.s.authority_table:
             raise AuthorityError('LIFECYCLE_CONFIGURATION_REQUIRED')
         self.w,self.a,self.ownership,self.client,self.worker=writer,writer.a,ownership,client,worker
         self.token_table,self.cipher,self.require_test=token_table,token_cipher,require_test
         self.allowed_subjects=allowed_subjects
+        self.allow_initial_background=allow_initial_background is True
         self.bindings=Bindings(writer,token_table)
 
     def refresh(self,purchase_token,operation_id):
@@ -29,6 +31,11 @@ class Reconciler:
         owner=self.ownership._get(owner_key(digest));initial=owner is None;mapping=None
         discovered=None
         if initial:
+            # Scoped Dev lifecycle accepts only an already-owned foreground
+            # purchase head. It must not spend a provider call discovering an
+            # account that has not yet passed the engineering allowlist.
+            if not self.allow_initial_background:
+                return {'state':'unresolved','reason':'OWNERSHIP_NOT_ESTABLISHED'}
             head={}
             def discover_head(token):
                 row=self.client.subscription(token)

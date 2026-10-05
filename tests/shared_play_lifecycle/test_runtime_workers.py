@@ -7,6 +7,7 @@ ROOT=Path(__file__).resolve().parents[2];sys.path[:0]=[str(ROOT/'src'),str(ROOT/
 from test_transactions import world,ACCOUNT
 from test_deletion import setup
 from shared_play_lifecycle.tokens import prepare_put,key
+from shared_play_lifecycle.scoped import ScopedTarget
 from shared_play_lifecycle.deletion import TokenDeletion
 from shared_play_lifecycle.checkpoint import KEY,Checkpoint
 from play_lifecycle_worker.service import Worker
@@ -28,6 +29,54 @@ def put_token(a,partition,token,end,due):
 
 def worker(a):
  return Worker(a.ddb,'play-tokens',now=a.now,remaining_ms=lambda:29000,reconciler_factory=lambda:pytest.fail('provider disabled'),lifecycle_enabled=False)
+
+
+def test_scoped_worker_deletes_only_selected_expired_head_without_query_or_checkpoint(tokens,monkeypatch):
+ a,e,_,_,_,clock=tokens;now=clock[0]
+ selected=a._partition(ACCOUNT,'k1');other=a._partition('other-synthetic-account','k1')
+ own=put_token(a,selected,'scoped-expired',now-604801,now-604802)
+ foreign=put_token(a,other,'foreign-expired',now-604801,now-604802)
+ class NoReadResource:
+  meta=a.ddb.meta
+  def Table(self,_):pytest.fail('scoped worker must not read or query after exact target selection')
+ # The worker receives the exact strong-read current head from the selector.
+ outcome=Worker(NoReadResource(),'play-tokens',now=a.now,remaining_ms=lambda:29000,
+     reconciler_factory=lambda:pytest.fail('provider disabled'),lifecycle_enabled=True).run_scoped(lambda:ScopedTarget(own,()))
+ assert outcome['expiredDeleted']==1 and outcome['examined']==1 and outcome['failed']==0
+ assert a._get('play-tokens',key(selected,own['tokenDigest'])) is None
+ assert a._get('play-tokens',key(other,foreign['tokenDigest']))==foreign
+ assert a._get('play-tokens',KEY) is None
+
+
+def test_scoped_worker_refreshes_one_selected_head_and_never_touches_other_due_row(tokens,monkeypatch):
+ from types import SimpleNamespace
+ import play_lifecycle_worker.service as service_module
+ a,e,_,_,_,clock=tokens;now=clock[0]
+ selected=a._partition(ACCOUNT,'k1');other=a._partition('other-synthetic-account','k1')
+ own=put_token(a,selected,'scoped-due',now+1000,now-1)
+ foreign=put_token(a,other,'foreign-due',now+1000,now-1)
+ seen=[]
+ class Ownership:
+  def _get(self,_):return {'accountId':ACCOUNT}
+ class Close:
+  def close(self):pass
+ fake=SimpleNamespace(allowed_subjects=frozenset({ACCOUNT}),ownership=Ownership(),a=a,cipher=SimpleNamespace(client=Close()),client=Close(),
+     refresh=lambda token,operation:(seen.append((token,operation)) or {'state':'committed','acknowledgment':'acknowledged'}))
+ monkeypatch.setattr(service_module,'load_owned',lambda *args,**kwargs:('synthetic-token',own))
+ outcome=Worker(a.ddb,'play-tokens',now=a.now,remaining_ms=lambda:29000,reconciler_factory=lambda:fake,lifecycle_enabled=True).run_scoped(lambda:ScopedTarget(own,()))
+ assert outcome['reconciled']==1 and outcome['examined']==1 and outcome['failed']==0 and len(seen)==1
+ assert a._get('play-tokens',key(other,foreign['tokenDigest']))==foreign
+ assert a._get('play-tokens',KEY) is None
+
+
+def test_scoped_worker_pre_provider_failure_preserves_selected_row(tokens):
+ a,e,_,_,_,clock=tokens;pk=a._partition(ACCOUNT,'k1');now=clock[0]
+ own=put_token(a,pk,'scoped-preserved',now+1000,now-1)
+ outcome=Worker(a.ddb,'play-tokens',now=a.now,remaining_ms=lambda:29000,
+     reconciler_factory=lambda:(_ for _ in ()).throw(AuthorityError('ACCOUNT_UNAVAILABLE')),
+     lifecycle_enabled=True).run_scoped(lambda:ScopedTarget(own,()))
+ assert outcome['failed']==1 and outcome['exhausted']==0
+ assert a._get('play-tokens',key(pk,own['tokenDigest']))==own
 
 def test_fair_cleanup_after_more_than_fifty_due_live_rows(tokens):
  a,e,_,_,_,clock=tokens;pk=a._partition(ACCOUNT,'k1');now=clock[0]
