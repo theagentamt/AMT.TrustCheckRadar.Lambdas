@@ -7,12 +7,17 @@ from shared_play_lifecycle import runtime
 
 
 def lambda_handler(event,context):
-    if os.environ.get('STAGE')!='dev' or os.environ.get('PLAY_TOKEN_CLEANUP_ENABLED')!='true' or os.environ.get('PLAY_CHECKPOINT_POLICY_APPROVED')!='true':return {'enabled':False}
+    if os.environ.get('STAGE')!='dev':return {'enabled':False}
+    scoped=os.environ.get('PLAY_SCOPED_LIFECYCLE_WORKER_ENABLED')=='true'
+    global_enabled=os.environ.get('PLAY_TOKEN_CLEANUP_ENABLED')=='true' and os.environ.get('PLAY_CHECKPOINT_POLICY_APPROVED')=='true'
+    if not scoped and not global_enabled:return {'enabled':False}
+    if scoped and (os.environ.get('PLAY_LIFECYCLE_ENABLED')!='true' or os.environ.get('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED')!='true'):
+        return {'enabled':False}
     try:
         if event!={'schemaVersion':1,'operation':'reconcile-play-lifecycle'} or context is None:raise ValueError()
         worker=Worker(runtime.resource(),runtime.token_table(),now=lambda:int(time.time()),remaining_ms=context.get_remaining_time_in_millis,
             reconciler_factory=runtime.load,lifecycle_enabled=os.environ.get('PLAY_LIFECYCLE_ENABLED')=='true')
-        counts=worker.run()
+        counts=worker.run_scoped(runtime.scoped_target) if scoped else worker.run()
     except Exception:
         counts=dict(heartbeat=1,examined=0,reconciled=0,ackPending=0,expiredDeleted=0,failed=1,unresolved=0,exhausted=0,oldestDueSeconds=0)
     print(json.dumps({'event':'play_lifecycle_worker',**counts},separators=(',',':')))
