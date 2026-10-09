@@ -27,6 +27,7 @@ ENTITLEMENTS_SUPPORT_PATHS = {
     'scripts/publish_v1_entitlements.py', 'tests/scripts/test_lambda_release_scope.py',
     'tests/scripts/test_publish_v1_entitlements.py', 'docs/GITHUB_PUBLISHING.md',
     'contracts/v1-access/v1/README.md',
+    'tests/shared_check_authority/test_snapshot_extra_subject.py',
 }
 MESSAGE_PREFIXES = ('src/message_consumer/', 'src/message_evaluator/', 'src/shared_message_contract/', 'tests/message_consumer/', 'tests/message_evaluator/', 'contracts/message-consumer/', 'docs/sec229-message-', 'docs/message-consumer-')
 AUTHORITY_PREFIXES = MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/shared_governed_history/', 'src/governed_history/',

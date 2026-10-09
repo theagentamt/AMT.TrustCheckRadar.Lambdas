@@ -37,6 +37,31 @@ No Scan, Query, GSI, S3 or public paid/operator route is needed. Package the
 `v1_entitlements`, `shared_check_authority` and `shared_history` modules; use
 Python 3.14/ARM64. Legacy Web Risk remains unchanged.
 
+### Dev snapshot-only engineering selection
+
+SECUR4ALL-195 adds the optional `DEV_ACCESS_SNAPSHOT_EXTRA_SUBJECTS_JSON` to the
+entitlements function only. Missing/empty selection admits no additional subject.
+A configured additional selection must contain exactly one canonical UUID;
+invalid, duplicate, multiple or wildcard selections never admit an extra subject.
+The original `DEV_SUBJECT_ALLOWLIST_JSON` must remain valid and unchanged. Its
+subjects retain their original behavior even if the additional selection is invalid.
+
+Only the exact `GET /v1/access` route with HTTP method GET may admit the extra
+subject. It still requires the validated Cognito access-token context, active
+adult account and deletion/device fences. A missing or mismatched fingerprint
+remains a snapshot with `activeDevice=false`; this does not register or switch a
+device. The existing access schema, policy version and error codes are unchanged.
+For an extra-only subject, `trial.activationAvailable` is always false, without
+removing existing trial dates or usage. `POST /v1/access/trial`, the operator route
+and every other engineering-gated service retain their original authorization.
+
+This selection creates no trial, paid grant, allowance reset, History eligibility
+or device registration. Snapshot refresh may still maintain existing effective
+ACCESS after an approved grant expires; the endpoint is not a promise of zero
+authority writes. It invokes no store or analysis provider. Runtime activation
+requires a separately reviewed exact Dev plan and preserves the original History
+selection; UAT/Production and background billing remain outside this increment.
+
 ## Transactional authority
 
 `EntitlementWriter` uses disjoint V1 keys in the existing authority table.

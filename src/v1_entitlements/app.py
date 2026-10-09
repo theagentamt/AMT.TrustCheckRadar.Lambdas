@@ -89,9 +89,15 @@ def lambda_handler(event, _context):
         if os.environ.get('V1_ENTITLEMENTS_ENABLED') != 'true':
             raise AuthorityError('ACCESS_SERVICE_UNAVAILABLE')
         route = event.get('routeKey') if isinstance(event, dict) else None
+        trial_activation_permitted = True
         if route != 'POST /v1/operator/complimentary-access':
-            from shared_check_authority.engineering import require_engineering_subject
-            require_engineering_subject(event)
+            if (route == 'GET /v1/access'
+                    and event.get('requestContext', {}).get('http', {}).get('method') == 'GET'):
+                from v1_entitlements.snapshot_gate import trial_access_for_snapshot
+                trial_activation_permitted = trial_access_for_snapshot(event)
+            else:
+                from shared_check_authority.engineering import require_engineering_subject
+                require_engineering_subject(event)
         if not isinstance(event, dict) or event.get('version') != '2.0' or event.get('isBase64Encoded') is True:
             raise AuthorityError('INPUT_REJECTED')
         request = event.get('requestContext')
@@ -123,7 +129,8 @@ def lambda_handler(event, _context):
             writer = _writer()
         else:
             raise AuthorityError('INPUT_REJECTED')
-        return _response(200, access_snapshot(writer, event))
+        return _response(200, access_snapshot(writer, event,
+                                             trial_activation_permitted=trial_activation_permitted))
     except AuthorityError as error:
         statuses = {'AUTHENTICATION_REQUIRED': 401, 'ACCOUNT_UNAVAILABLE': 403, 'ACTIVE_DEVICE_REQUIRED': 409,
                     'TRIAL_NOT_ELIGIBLE': 409, 'INPUT_REJECTED': 400, 'INVALID_ACCOUNT': 400,
