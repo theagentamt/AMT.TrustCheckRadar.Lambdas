@@ -113,6 +113,23 @@ def test_reviewed_entitlements_change_publishes_only_entitlements():
     assert module.classify(paths + ['src/conversation_analysis/app.py']) == 'all'
 
 
+def test_snapshot_extra_subject_candidate_publishes_only_entitlements():
+    # Exact candidate path set, including its narrowly reviewed regression file.
+    paths = [
+        'docs/v1-entitlement-writers.md',
+        'scripts/lambda_release_scope.py',
+        'src/v1_entitlements/app.py',
+        'src/v1_entitlements/service.py',
+        'src/v1_entitlements/snapshot_gate.py',
+        'tests/scripts/test_lambda_release_scope.py',
+        'tests/shared_check_authority/test_snapshot_extra_subject.py',
+    ]
+    assert module.classify(paths) == 'entitlements'
+    assert module.classify(paths + ['src/shared_check_authority/engineering.py']) == 'authority_manual'
+    assert module.classify(paths + ['tests/shared_check_authority/test_snapshot_extra_subject_evil.py']) == 'authority_manual'
+    assert module.classify(paths + ['src/conversation_analysis/app.py']) == 'all'
+
+
 def test_combined_consumer_writer_recovery_and_budget_release_is_manual():
     paths = [
         'src/url_consumer/app.py', 'src/url_lease_recovery/app.py',

@@ -3,7 +3,7 @@ from shared_check_authority.core import AuthorityError, OWNER_POLICY, TRIAL_SECO
 from shared_check_authority.purchase_usage import effective_access_end
 
 
-def access_snapshot(writer, event):
+def access_snapshot(writer, event, *, trial_activation_permitted=True):
     authority = writer.a
     account = authority._account(event)
     pk, old, sources = writer._read(account)
@@ -61,6 +61,6 @@ def access_snapshot(writer, event):
     return {'schemaVersion': 1, 'policyVersion': OWNER_POLICY, 'activeDevice': active_device,
             'access': {'basis': basis, 'externalChecksAllowed': reason == 'AVAILABLE', 'reason': reason},
             'allowance': allowance,
-            'trial': {'activationAvailable': writer.trial_retention_approved and active_device and activated is None and basis == 'none',
+            'trial': {'activationAvailable': trial_activation_permitted is True and writer.trial_retention_approved and active_device and activated is None and basis == 'none',
                       'activatedAtEpoch': activated,
                       'expiresAtEpoch': activated + TRIAL_SECONDS if activated is not None else None}}
