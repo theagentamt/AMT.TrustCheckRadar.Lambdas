@@ -1,0 +1,121 @@
+{
+  "rollout": {
+    "IAMAnd14DayLogRetentionUnchanged": true,
+    "accessAdmission": {
+      "baseSubjectCount": 1,
+      "extraGetOnlySubjectCount": 1,
+      "selectedTesterGetAdmitted": true,
+      "selectedTesterTrialAdmissionExpanded": false
+    },
+    "alias": "live",
+    "aliasUpdateConfirmed": true,
+    "candidateSha256": "b56547ef6ad6c16da94ba2bcae866a0f3301c11474a0858ad15420ef5d14acd5",
+    "codePublicationConfirmed": true,
+    "endpointInvoked": false,
+    "fourProtectedRoutesUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-entitlements",
+    "live503CauseEstablished": false,
+    "liveCodeAndUnweightedAliasVerified": true,
+    "liveVersion": "16",
+    "mutationRetried": false,
+    "observedAtUtc": "2026-10-13T04:09:01.759532+00:00",
+    "paymentVerificationLifecycleRTDNRemainDisabled": true,
+    "previousVersion": "15",
+    "protectedOtherRuntimeCount": 12,
+    "releaseMergeCommit": "616c2f084e180b3e08c7bef43f90136492f6a7bb",
+    "rollbackExecuted": false,
+    "rollbackVersion15VerifiedAvailable": true,
+    "secretValuesRead": false,
+    "sourceCommit": "addf795ffc472a7db69d2d139f4653e4779d1c8b",
+    "sourceIntegrated": true,
+    "targetConfigurationAndCapacityUnchanged": true
+  },
+  "actualObservation": {
+    "observedAtUtc": "2026-10-13T04:13:52.770261+00:00",
+    "windowStartUtc": "2026-10-13T04:11:20Z",
+    "windowEndExclusiveUtc": "2026-10-13T04:13:00Z",
+    "accessHttpStatusCounts": [
+      {
+        "status": 503,
+        "count": 1
+      }
+    ],
+    "fixedFailureClassificationCounts": [
+      {
+        "stage": "GET_ADMISSION",
+        "authorityCode": "ENGINEERING_ACCESS_UNAVAILABLE",
+        "providerCode": "NONE",
+        "causeCategory": "VALIDATION",
+        "count": 1
+      }
+    ],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "authorizerContract": {
+    "observedAtUtc": "2026-10-13T04:13:53.391425+00:00",
+    "routes": [
+      {
+        "route": "POST /v1/purchases/google-play/prepare",
+        "authorizationType": "JWT",
+        "authorizerType": "JWT",
+        "payloadVersion": "2.0",
+        "integrationType": "AWS_PROXY",
+        "issuerMatchesAccessReader": true,
+        "accessClientInAuthorizerAudience": true,
+        "requiredScopeEnforcedAtRoute": true,
+        "identitySourceAuthorizationHeader": true
+      },
+      {
+        "route": "POST /device-registration",
+        "authorizationType": "JWT",
+        "authorizerType": "JWT",
+        "payloadVersion": "2.0",
+        "integrationType": "AWS_PROXY",
+        "issuerMatchesAccessReader": true,
+        "accessClientInAuthorizerAudience": true,
+        "requiredScopeEnforcedAtRoute": false,
+        "identitySourceAuthorizationHeader": true
+      },
+      {
+        "route": "GET /v1/access",
+        "authorizationType": "JWT",
+        "authorizerType": "JWT",
+        "payloadVersion": "2.0",
+        "integrationType": "AWS_PROXY",
+        "issuerMatchesAccessReader": true,
+        "accessClientInAuthorizerAudience": true,
+        "requiredScopeEnforcedAtRoute": true,
+        "identitySourceAuthorizationHeader": true
+      }
+    ],
+    "rawConfigurationPrinted": false,
+    "endpointInvoked": false,
+    "runtimeChanged": false
+  },
+  "androidActualWindow": {
+    "startUtc": "2026-10-13T04:11:29.889120Z",
+    "endUtc": "2026-10-13T04:12:26.354492Z",
+    "action": "Single Pricing route-entry automatic GET; no additional Refresh balance tap",
+    "result": "Plan and allowance unavailable",
+    "checkoutAttempted": false,
+    "authPromptObserved": false,
+    "additionalRefreshAuthorized": false
+  },
+  "interpretation": {
+    "failureBeforeAuthorityStorage": true,
+    "fixedStage": "GET_ADMISSION",
+    "exactFailingPredicateKnown": false,
+    "actualRequestSubjectKnown": false,
+    "configuredSelectedTesterGetAdmissionQualified": true,
+    "configurationProbeDoesNotProveActualRequestClaimsOrSubject": true,
+    "initialBaseExpansion": "WITHDRAWN_DO_NOT_APPLY",
+    "story114Complete": false,
+    "checkoutStillHeld": true
+  }
+}

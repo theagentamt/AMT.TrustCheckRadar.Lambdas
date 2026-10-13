@@ -135,4 +135,49 @@ CI or deployment workflow was dispatched.
 ATCR-114 remains open for actual backend resolution and healthy snapshot evidence.
 Android ATCR-177's independently completed startup fix is separate. ATCR-175/112
 remain open; no preparation, checkout, purchase or Restore acceptance is claimed.
-This source preparation is not a runtime apply or an entitlement grant.
+The original source preparation was not a runtime apply or an entitlement grant.
+
+## Actual Dev rollout and single supported observation
+
+Under the existing owner authorization for reviewed minimal-cost Dev fixes and
+the parent's released provenance hold, the exact package was published once and
+the existing unweighted `live` alias moved from immutable version 15 to the
+provider-returned version 16. Readback at `2026-10-13T04:09:01.759532Z` verified
+the candidate hash, ready immutable code and unchanged target configuration,
+capacity, admission, IAM and 14-day log retention. Twelve other runtime and four
+route fingerprints were preserved. Verification, lifecycle and RTDN stayed
+disabled; authority and preparation retained their prior settings. Version 15
+remains qualified for an authorized rollback; none was executed. There were no
+mutation retries, new resources, direct endpoint calls or secret-value reads.
+
+Source `addf795ffc472a7db69d2d139f4653e4779d1c8b` was integrated into
+`release-V01` by [PR 114](https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/114),
+merge `616c2f084e180b3e08c7bef43f90136492f6a7bb`. The execution script received
+independent static review and seven focused mutation/privacy/journal guard tests.
+
+Android used one supported Pricing route-entry automatic GET on already signed-in
+Store version 10, emulator 5558, from `04:11:29.889120Z` to
+`04:12:26.354492Z`. It did not additionally tap Refresh balance. The actual UI
+still reported unavailable plan and allowances; no authentication prompt occurred.
+No registration, sign-in/OTP action, prepare, checkout, payment, Restore or install
+was performed in this observation. Emulator 5556 remained untouched.
+
+The closed aggregate window `04:11:20Z`–`04:13:00Z` contains one GET 503 and one
+fixed classification: `GET_ADMISSION`, `ENGINEERING_ACCESS_UNAVAILABLE`, provider
+`NONE`, category `VALIDATION`. This establishes an admission-stage failure before
+authority storage. It does not identify the exact predicate or actual request
+subject. Log aggregates have no account attribution. The separate configured
+selected-tester GET admission probe cannot establish the claims or subject of the
+actual request.
+
+Read-only API contract qualification confirms GET uses JWT authorization,
+AWS_PROXY payload 2.0, the configured issuer/client, Authorization header and
+required scope. The successful registration route shares the issuer/client and
+payload format but does not enforce that scope at the route. No configuration
+was changed. The withdrawn base-list expansion remains **DO NOT APPLY**.
+
+Sanitized rollout, observation and contract evidence is retained in
+[the live evidence record](evidence/atcr114-access-safe-diagnostics-live.json).
+ATCR-114 remains open: actual access still fails, the exact failed admission
+predicate needs qualification, and checkout remains held. The one observation
+is exhausted; this record does not authorize another app request or rollout.
