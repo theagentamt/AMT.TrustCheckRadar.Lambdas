@@ -1,0 +1,256 @@
+{
+  "schemaVersion": 1,
+  "scope": "Real Dev preparation/open-cancel evidence; read-only next verification plan, NOT activation/payment acceptance",
+  "androidImplementationCommit": "d0a8c36a8262b1144456797daf2fb41bc717febb",
+  "androidPullRequest": "https://github.com/theagentamt/AMT.Android.TrustCheckRadar/pull/79",
+  "androidReleaseIntegration": "62a9d1b53dc9cbf7cadb18ac5b28687248e572fe",
+  "package": "com.andmorethings.trustcheckradar",
+  "installedPlayVersion": 11,
+  "signedUploadedAabSha256": "1624e5fa8e9c30555625793936faba8990ee209035feae70ab1101593f34ee0e",
+  "selectedIdentityMatched": true,
+  "supportedAccessSnapshot": {
+    "basis": "none",
+    "reason": "EXTERNAL_ACCESS_UNAVAILABLE",
+    "activeDevice": true,
+    "allowance": {
+      "limit": null,
+      "completedUsed": null,
+      "reserved": null,
+      "remaining": null,
+      "periodEndsAt": null
+    },
+    "rawResponseInspected": false
+  },
+  "realCatalog": {
+    "name": "TrustCheck Radar Pro Monthly",
+    "formattedPrice": "$4.99",
+    "billingPeriod": "Monthly",
+    "strictCanonicalProductAndBasePlanSourceQualified": true
+  },
+  "realCheckout": {
+    "package": "com.android.vending",
+    "subscriptionName": "TrustCheck Radar Pro Monthly",
+    "formattedPrice": "$4.99/month",
+    "subscribeControlVisible": true,
+    "billingNotConfiguredErrorVisible": false,
+    "testCardOrSubscriptionMarkerObserved": false
+  },
+  "getProAttemptAtUtc": "2026-10-13T22:09:04.341016Z",
+  "cancelAtUtc": "2026-10-13T22:09:29.590276Z",
+  "returnedAppLabels": [
+    "Purchase cancelled",
+    "No access change was made."
+  ],
+  "getProAttemptCount": 1,
+  "paymentControlTapped": false,
+  "safeBillingResultCodes": {
+    "CONNECT": 0,
+    "PRODUCT_QUERY": 0,
+    "LAUNCH": 0,
+    "PURCHASE_CALLBACK": 1
+  },
+  "serverWindows": {
+    "startup": {
+      "observedAtUtc": "2026-10-13T22:07:14.621975+00:00",
+      "windowStartUtc": "2026-10-13T22:05:00Z",
+      "windowEndExclusiveUtc": "2026-10-13T22:06:10Z",
+      "windowClosedAtObservation": true,
+      "routes": [
+        {
+          "route": "GET /v1/access",
+          "statusCounts": [
+            {
+              "status": 200,
+              "count": 2
+            }
+          ]
+        },
+        {
+          "route": "POST /device-registration",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/prepare",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/verify",
+          "statusCounts": []
+        }
+      ],
+      "accountOrRequestAttributionAvailable": false,
+      "noEventsIsNotProofOfNoCallsOrWrites": true,
+      "noEndpointInvocation": true,
+      "noRuntimeMutation": true,
+      "noRawIdentityTokenProofPayloadOutputOrRetention": true
+    },
+    "pricing": {
+      "observedAtUtc": "2026-10-13T22:10:27.300184+00:00",
+      "windowStartUtc": "2026-10-13T22:06:50Z",
+      "windowEndExclusiveUtc": "2026-10-13T22:08:20Z",
+      "windowClosedAtObservation": true,
+      "routes": [
+        {
+          "route": "GET /v1/access",
+          "statusCounts": [
+            {
+              "status": 200,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "route": "POST /device-registration",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/prepare",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/verify",
+          "statusCounts": []
+        }
+      ],
+      "accountOrRequestAttributionAvailable": false,
+      "noEventsIsNotProofOfNoCallsOrWrites": true,
+      "noEndpointInvocation": true,
+      "noRuntimeMutation": true,
+      "noRawIdentityTokenProofPayloadOutputOrRetention": true
+    },
+    "prepareCancel": {
+      "observedAtUtc": "2026-10-13T22:10:56.119659+00:00",
+      "windowStartUtc": "2026-10-13T22:08:50Z",
+      "windowEndExclusiveUtc": "2026-10-13T22:10:10Z",
+      "windowClosedAtObservation": true,
+      "routes": [
+        {
+          "route": "GET /v1/access",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /device-registration",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/prepare",
+          "statusCounts": [
+            {
+              "status": 200,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "route": "POST /v1/purchases/google-play/verify",
+          "statusCounts": []
+        }
+      ],
+      "accountOrRequestAttributionAvailable": false,
+      "noEventsIsNotProofOfNoCallsOrWrites": true,
+      "noEndpointInvocation": true,
+      "noRuntimeMutation": true,
+      "noRawIdentityTokenProofPayloadOutputOrRetention": true
+    }
+  },
+  "fixedFailureClassifiersInAllWindows": [],
+  "aggregateRequestAccountAttributionAvailable": false,
+  "postObservationReadinessAtUtc": "2026-10-13T22:11:07.289615+00:00",
+  "authorityPreparationEnabled": true,
+  "verificationLifecycleRTDNDisabled": true,
+  "cleanupAndProtectedFingerprintsPreserved": true,
+  "testPaymentInstrumentObserved": false,
+  "purchaseAckEntitlementRestoreLifecycleAccepted": false,
+  "nextVerificationStageReadOnly": {
+    "observedAtUtc": "2026-10-13T22:17:45.693443+00:00",
+    "stage": "READ_ONLY_PLAN_NOT_APPLIED",
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "actualLiveVersion": "6",
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "unweightedAlias": true,
+    "sameSoleCurrentDevTesterAdmitted": true,
+    "flags": {
+      "PLAY_PREPARATION_ENABLED": "true",
+      "PLAY_HANDOFF_ENABLED": "false",
+      "PLAY_LIFECYCLE_ENABLED": "false",
+      "AUTHORITY_ENABLED": "true",
+      "PLAY_REQUIRE_TEST_PURCHASES": "true",
+      "PLAY_CATALOG_P1M_VERIFIED": "true"
+    },
+    "catalogConfiguration": {
+      "GOOGLE_PLAY_PACKAGE_NAME": "com.andmorethings.trustcheckradar",
+      "GOOGLE_PLAY_PRODUCT_ID": "trustcheck_radar_pro_monthly",
+      "GOOGLE_PLAY_BASE_PLAN_ID": "pro-monthly",
+      "GOOGLE_PLAY_BILLING_PERIOD": "P1M"
+    },
+    "actualCatalog": {
+      "package": "com.andmorethings.trustcheckradar",
+      "productId": "trustcheck_radar_pro_monthly",
+      "basePlanId": "pro-monthly",
+      "basePlanPresent": true,
+      "state": "ACTIVE",
+      "billingPeriodDuration": "P1M",
+      "USConfigured": true,
+      "USNewSubscriberAvailability": true,
+      "USPrice": {
+        "currencyCode": "USD",
+        "units": "4",
+        "nanos": 990000000
+      }
+    },
+    "catalogHttpStatus": 200,
+    "ownershipInventoryVerifiedComplete": true,
+    "googleCredentialReferenceCurrentMetadataVerified": true,
+    "existingGoogleSdkAuthenticationAndCatalogReadSucceeded": true,
+    "googleProofOrderAckPermissionOrRuntimeBehaviorVerified": false,
+    "apiDiscoveryHttpStatus": 200,
+    "supportedProofOrderAckApiContractsPresent": {
+      "purchases.subscriptionsv2.get": true,
+      "orders.get": true,
+      "purchases.subscriptions.acknowledge": true
+    },
+    "licenseTestingMethodsFound": [],
+    "supportedTesterMethods": [
+      {
+        "name": "edits.testers.patch",
+        "method": "PATCH",
+        "path": "androidpublisher/v3/applications/{packageName}/edits/{editId}/testers/{track}"
+      },
+      {
+        "name": "edits.testers.get",
+        "method": "GET",
+        "path": "androidpublisher/v3/applications/{packageName}/edits/{editId}/testers/{track}"
+      },
+      {
+        "name": "edits.testers.update",
+        "method": "PUT",
+        "path": "androidpublisher/v3/applications/{packageName}/edits/{editId}/testers/{track}"
+      }
+    ],
+    "internalTrackAndLicenseTestingAreDifferentScopes": true,
+    "licenseTestingMembershipIndependentlyEnumerated": false,
+    "zeroChargeInstrumentObservedInActualSheet": false,
+    "zeroChargeStatusVerified": false,
+    "proposedOnlyEnvironmentDelta": {
+      "PLAY_HANDOFF_ENABLED": "true"
+    },
+    "proposedUpdateScope": "One existing handoff Lambda configuration, publish immutable version, update live alias; no code/resource/IAM/capacity/other route change",
+    "foregroundAckRequiresLifecycleActivation": false,
+    "verificationFlagAlsoAdmitsRestoreIntentAndAutomaticCurrentOwnerTestProofReconciliation": true,
+    "testProofRequiredBeforeAuthorityGrantOrAcknowledgment": true,
+    "clientAckPermitted": false,
+    "purchaseTokenOrOrderOrProofRead": false,
+    "noAppEndpointCheckoutPurchaseOrRestoreAction": true,
+    "noGoogleTesterOrGrantOrRuntimeMutation": true,
+    "recurringServiceOrScheduleActivationRequired": false,
+    "ownerApprovedCurrentTesterEvidenceAccepted": true
+  },
+  "accountLabelsNotPersisted": true,
+  "privateJournalPlanTokensCredentialsAndResponsesNotPublished": true,
+  "followups": [
+    "https://andmorethings.youtrack.cloud/issue/ATCR-112",
+    "https://andmorethings.youtrack.cloud/issue/ATCR-114",
+    "https://andmorethings.youtrack.cloud/issue/ATCR-148"
+  ],
+  "billingConfigurationBlocker": "https://andmorethings.youtrack.cloud/issue/ATCR-175"
+}
