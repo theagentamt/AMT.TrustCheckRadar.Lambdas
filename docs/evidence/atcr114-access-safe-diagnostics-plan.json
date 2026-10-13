@@ -1,0 +1,58 @@
+{
+  "accessAdmission": {
+    "baseSubjectCount": 1,
+    "extraGetOnlySubjectCount": 1,
+    "selectedTesterGetAdmitted": true,
+    "selectedTesterTrialAdmissionExpanded": false
+  },
+  "alias": "live",
+  "applied": false,
+  "baselineSha256": "90b006ddee49e19b57d2fb5f3d2a9c89137b4593e837ba284cc56958ee7ff531",
+  "behavioralQualification": false,
+  "candidateSha256": "b56547ef6ad6c16da94ba2bcae866a0f3301c11474a0858ad15420ef5d14acd5",
+  "configurationAndAccessAdmissionChanged": false,
+  "currentVersion": "15",
+  "existingLogRetentionDays": 14,
+  "functionName": "trustcheckradar-dev-v1-entitlements",
+  "iamAndLogRetentionChangesPlanned": false,
+  "identityOrCredentialOutput": false,
+  "newInfrastructureOrCapacity": false,
+  "observedAtUtc": "2026-10-13T03:39:30.177355+00:00",
+  "paymentVerificationLifecycleRTDNRemainDisabled": true,
+  "planDigest": "cb8fe448be21be799b6b3742f7bf1e570c1eef59b2613234fe36a26dcceb0a7c",
+  "plannedUpdates": [
+    "existing function code, Publish=true, CAS on latest revision",
+    "existing unweighted live alias15 to the exact returned qualified version, CAS on alias revision"
+  ],
+  "protectedRouteCount": 4,
+  "protectedRuntimeCount": 12,
+  "reviewedSourcePublicationRequiredBeforeRuntimeApply": true,
+  "rollback": "CAS live alias from the recorded diagnostic version back to existing version15; preserve configuration and both allowlists.",
+  "scope": "dev-existing-access-function-safe-diagnostics-only",
+  "sourcePublicationStatus": "Reviewed source prepared for draft PR; no runtime apply",
+  "sourceProvenance": {
+    "baselineSource": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+    "baselineEntriesVerifiedAgainstGitHubSource": [
+      "v1_entitlements/app.py",
+      "v1_entitlements/snapshot_gate.py",
+      "v1_entitlements/service.py"
+    ],
+    "overlayBaseRelease": "3423979f7c08ad7c392ed6e4acc28b64da4b902e",
+    "recipe": "scripts/prepare_access_snapshot_diagnostics.py",
+    "genericReleaseBuildPermitted": false
+  },
+  "independentSourceAndArtifactReview": "PASS; protected inventory exact12 with complete pagination and fixture included",
+  "localValidation": {
+    "isolatedAuthorityMessagePassed": 850,
+    "focusedAuthorityPassed": 82,
+    "focusedAuthoritySubtests": 12,
+    "scriptsPassed": 161,
+    "scriptsSkipped": 1,
+    "scriptsSubtests": 21,
+    "hostActualDeployedResponsePrivacyChecks": 13,
+    "compile": "PASS",
+    "shellcheck": "PASS",
+    "singleProcessMakeCheck": "Existing baseline SDK/global-stub collisions; checked-in CI uses separate suite processes",
+    "liveCauseEstablished": false
+  }
+}
