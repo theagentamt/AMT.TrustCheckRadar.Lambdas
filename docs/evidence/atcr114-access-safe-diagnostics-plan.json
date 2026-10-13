@@ -53,6 +53,13 @@
     "compile": "PASS",
     "shellcheck": "PASS",
     "singleProcessMakeCheck": "Existing baseline SDK/global-stub collisions; checked-in CI uses separate suite processes",
-    "liveCauseEstablished": false
+    "liveCauseEstablished": false,
+    "isolatedDefaultCI": {
+      "suites": 55,
+      "passed": 2237,
+      "skipped": 72,
+      "expectedIntegrationGateSkipsRemainVisible": true,
+      "noLiveAcceptanceInferred": true
+    }
   }
 }

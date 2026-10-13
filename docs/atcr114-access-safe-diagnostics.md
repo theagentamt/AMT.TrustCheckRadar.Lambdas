@@ -124,7 +124,9 @@ entries/metadata and read-only scope/conflict rejection.
 Focused local authority checks: 82 passed plus 12 subtests; the complete isolated
 authority/message job passed 850 tests. Script-suite checks:
 161 passed, one existing optional skip, 21 subtests. Compile and shellcheck pass.
-The repository's single-process `make check` hits existing global AWS/module stub
+All applicable checked-in default CI suites pass in separate processes: 2,237
+passed, 72 existing integration/optional skips. Those skips are not acceptance
+passes. The repository's single-process `make check` hits existing global AWS/module stub
 collisions; the unchanged baseline reproduces those SDK collection errors. The
 checked-in CI instead runs suites in isolated processes. Applicable isolated-suite
 results and final source/publication metadata are recorded with the PR; no main

@@ -19,7 +19,7 @@ SELECTED = str(UUID(int=2))
 
 
 def candidate():
-    return package.build((ROOT / 'tests/fixtures/dev-access-reader-8ecc.zip').read_bytes(),
+    return package.build((ROOT / 'tests/shared_check_authority/fixtures/dev-access-reader-8ecc.zip').read_bytes(),
                          (ROOT / 'src/v1_entitlements/diagnostics.py').read_bytes())
 
 

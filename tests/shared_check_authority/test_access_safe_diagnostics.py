@@ -19,7 +19,7 @@ from botocore.exceptions import ClientError
 spec = importlib.util.spec_from_file_location('diagnostic_package', ROOT / 'scripts/prepare_access_snapshot_diagnostics.py')
 package = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(package)
-BASELINE = (ROOT / 'tests/fixtures/dev-access-reader-8ecc.zip').read_bytes()
+BASELINE = (ROOT / 'tests/shared_check_authority/fixtures/dev-access-reader-8ecc.zip').read_bytes()
 CLASSIFIER = (ROOT / 'src/v1_entitlements/diagnostics.py').read_bytes()
 GET = {'routeKey': 'GET /v1/access', 'requestContext': {'http': {'method': 'GET'}}}
 PRIVATE_MARKER = 'test-private-identity-token-payload-marker'
