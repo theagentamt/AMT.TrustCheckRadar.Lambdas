@@ -1,0 +1,96 @@
+{
+  "deployedGateQualification": {
+    "observedAtUtc": "2026-10-13T04:19:08.802650+00:00",
+    "functionName": "trustcheckradar-dev-v1-entitlements",
+    "liveVersion": "16",
+    "unweightedLiveAlias": true,
+    "handler": "v1_entitlements.app.lambda_handler",
+    "deployedCodeMatchesExactReviewedDiagnosticCandidate": true,
+    "gateAndJwtParserUnchangedFromVersion15": {
+      "v1_entitlements/snapshot_gate.py": true,
+      "shared_check_authority/engineering.py": true,
+      "shared_history/security.py": true
+    },
+    "selectedMetadataUserEnabled": true,
+    "selectedMetadataUserConfirmed": true,
+    "selectedMetadataSubMatchesPrivateSelection": true,
+    "selectedPoolMatchesReaderIssuer": true,
+    "baseCount": 1,
+    "extraGetOnlyCount": 1,
+    "selectedTesterInBase": false,
+    "selectedTesterInExtra": true,
+    "extraIsCanonicalUuid": true,
+    "extraRawLengthWithin128": true,
+    "syntheticSelectedGetAdmittedWithoutTrial": true,
+    "syntheticPreservedBaseGetAndTrialAdmitted": true,
+    "syntheticOtherSubjectDenied": true,
+    "syntheticIdTokenClaimsDenied": true,
+    "actualRequestClaimsOrSubjectInspected": false,
+    "actualRequestIdentityEstablished": false,
+    "syntheticProbeIsNotLiveAcceptance": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "credentialsTokensSecretsPrinted": false
+  },
+  "supportedVisibleIdentity": {
+    "serial": "emulator-5558",
+    "versionCode": 10,
+    "result": "mismatch",
+    "comparisonKind": "supported Settings Signed in as display identifier",
+    "identityTextOrScreenshotRetained": false,
+    "credentialsCodesTokensOrSessionCopied": false,
+    "manualRefreshTapped": false,
+    "signinOrOtpAction": false,
+    "registration": false,
+    "checkout": false,
+    "existing5556Changed": false,
+    "startUtc": "2026-10-13T04:23:58.947733+00:00",
+    "settingsNavigations": 1,
+    "matchedReferenceKinds": [],
+    "source": "Visible Settings Signed in as; salted in-memory equality against selected Cognito reference",
+    "reason": "Exact visible display-identifier comparison; this is not inspection or proof of actual JWT claims",
+    "authenticationPromptObserved": false,
+    "sameRouteScrolls": 0,
+    "endUtc": "2026-10-13T04:24:01.002355+00:00",
+    "newAccessRequestScope": "One automatic GET incidental to parent-authorized Settings entry; no manual refresh"
+  },
+  "incidentalGetServerObservation": {
+    "observedAtUtc": "2026-10-13T04:25:49.520008+00:00",
+    "windowStartUtc": "2026-10-13T04:23:50Z",
+    "windowEndExclusiveUtc": "2026-10-13T04:24:30Z",
+    "accessHttpStatusCounts": [
+      {
+        "status": 503,
+        "count": 1
+      }
+    ],
+    "fixedFailureClassificationCounts": [
+      {
+        "stage": "GET_ADMISSION",
+        "authorityCode": "ENGINEERING_ACCESS_UNAVAILABLE",
+        "providerCode": "NONE",
+        "causeCategory": "VALIDATION",
+        "count": 1
+      }
+    ],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "disposition": {
+    "supportedVisibleAccountMatchesSelectedTester": false,
+    "actualJwtClaimsOrSubjectRead": false,
+    "sourceInference": "Configured selected tester passes exact gate; supported current-user display identifier differs; real gate diagnostics strongly support rejection of a different authenticated subject. Exact JWT subject or failing traceback line was not logged.",
+    "inferenceReviewLimitation": "Malformed Unicode-digit or excessively long expiration strings can also produce ValueError/VALIDATION in the JWT parser; ordinary Cognito expiry claims should exclude these, but raw actual claims were not inspected.",
+    "baseAllowlistExpansion": "WITHDRAWN_DO_NOT_APPLY",
+    "eitherAdmissionListChanged": false,
+    "accountOrOtpActionPerformed": false,
+    "checkoutHeld": true,
+    "additionalAndroidRequestAuthorizedByRecord": false,
+    "nextPrerequisite": "Parent/owner resolves approved Dev app tester account identity through supported user-entered account workflow before another coordinated access test; do not broaden lists to compensate."
+  }
+}

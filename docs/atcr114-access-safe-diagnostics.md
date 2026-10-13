@@ -181,3 +181,50 @@ Sanitized rollout, observation and contract evidence is retained in
 ATCR-114 remains open: actual access still fails, the exact failed admission
 predicate needs qualification, and checkout remains held. The one observation
 is exhausted; this record does not authorize another app request or rollout.
+
+## Supported current-user reconciliation
+
+The parent subsequently authorized one bounded Settings navigation specifically
+to reconcile the visible signed-in account, including its incidental automatic
+GET. This was performed once at `04:23:58.947733Z`–`04:24:01.002355Z`; no manual
+refresh or authentication action occurred. The supported Settings account display
+identifier matched none of the selected tester's Cognito email, username or
+subject references. Comparison used salted local equality and retained only
+**mismatch** and metadata. No identity text, screenshot, token, code, session or
+comparison digest was retained in the evidence. Android qualified the supported
+source mapping: the display identifier comes from
+`Amplify.Auth.getCurrentUser().username`; its stable account identifier comes from
+`user.userId`. This visible comparison does not inspect actual JWT claims.
+
+Fresh read-only qualification confirms the deployed handler
+`v1_entitlements.app.lambda_handler`, unweighted live version 16 and exact reviewed
+package. Snapshot gate, engineering gate and JWT parser are byte-identical to
+version 15. The selected Cognito user is enabled and confirmed, and its metadata
+subject and pool match the private selection and reader issuer. The unchanged
+base list contains one preserved subject; the extra GET-only list contains the
+selected tester, is a valid canonical UUID and satisfies its length bound.
+Executing the exact gate locally with synthetic claims admits that selected
+tester with trial permission false, preserves original base behavior and rejects
+an unrelated subject. These local checks do not establish live acceptance.
+
+The incidental GET's closed `04:23:50Z`–`04:24:30Z` window again contains one
+503 and one `GET_ADMISSION` / `ENGINEERING_ACCESS_UNAVAILABLE` / `NONE` /
+`VALIDATION` classification, with no account attribution. Synthetic wrong-subject
+claims produce this classification; wrong client, token type, expiry and missing
+scope instead produce `TYPED_AUTHORITY`. Together with the supported identity
+mismatch, this strongly supports rejection of a different authenticated subject.
+It is a source-based inference: the exact failing traceback line and JWT subject
+were not logged. Independent review identified a parser edge case in which
+malformed Unicode-digit or excessively long expiration strings also raise
+`ValueError`; no raw actual claims were inspected to exclude it directly.
+
+The confirmed reconciliation gap is the supported signed-in identifier differing
+from the approved tester. Neither admission list changed. Parent/owner must
+resolve that Dev app account selection through a supported user-entered workflow
+before another coordinated access test. Do not expand the base/trial gate, grant
+access, activate verification/RTDN, clear data or request authentication codes to
+compensate. No logout, sign-in, OTP, account switch, registration or checkout was
+performed here. ATCR-114 and billing acceptance remain open.
+
+The privacy-minimized source, metadata, identity comparison and server evidence is
+[recorded here](evidence/atcr114-access-visible-identity-reconciliation.json).
