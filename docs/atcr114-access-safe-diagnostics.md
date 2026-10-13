@@ -228,3 +228,44 @@ performed here. ATCR-114 and billing acceptance remain open.
 
 The privacy-minimized source, metadata, identity comparison and server evidence is
 [recorded here](evidence/atcr114-access-visible-identity-reconciliation.json).
+
+## Reported corrected sign-in: retained identity limit
+
+After the owner reported corrected Dev app sign-in completion, Android performed
+only its authorized identity-first Settings observation, at
+`04:35:02.825965Z`–`04:35:05.011242Z`. It still reported **mismatch** against the
+same selected references and stopped. No manual refresh, authentication, OTP,
+account change, registration or checkout was performed by agents. The closed
+`04:34:50Z`–`04:35:30Z` server window again contains one GET 503 and the same fixed
+admission/validation classification, with no request/account attribution.
+
+Fresh readback at `04:35:28Z` confirms exact diagnostic live 16, pinned handoff 5,
+preparation/authority true, verification/lifecycle false and RTDN closed. Cleanup
+16 retains the two-subject union, prior coverage and unchanged stream/schedule.
+The selected tester has a consistent ACTIVE authoritative binding. That read
+does not establish that emulator 5558 owns it; registration necessity must use
+the supported app's current-device state rather than repeat registration blindly.
+
+The private reference's three salted comparisons agree with selected email,
+username and subject metadata. Static audit found no demonstrated prefix,
+suffix or normalization bug in the comparator. It selects a unique separate text
+node next to the exact label, consistent with the source's direct InfoRow values;
+malformed or ambiguous extraction reports unknown. Two limits remain: selection
+uses geometry rather than structural sibling proof, and the displayed identifier
+is remembered UI state. It is **not a fresh SDK/JWT identity read**, so this
+observation alone cannot prove what the latest owner sign-in changed.
+
+Selected Cognito metadata independently confirms enabled/CONFIRMED state,
+verified email and exactly one matching email account in the Dev pool. The pool
+uses email usernames, no alias attributes and case-insensitive usernames.
+`AdminGetUser` by the approved email resolves to the selected canonical username
+and subject. This is read-only metadata, not authentication; it excludes a wrong
+or ambiguous selected-email lookup as a current metadata hypothesis.
+
+Do not ask for another blind same-email sign-in or expand admission based on the
+remembered display. The actual current SDK/JWT identity and exact failing request
+predicate remain unqualified. Android stays held pending supported session/state
+qualification coordinated by the parent. No session copying, token/process/private
+database extraction, credential/code request or financial activation is justified.
+This record authorizes no further app request. Sanitized evidence is retained in
+[the post-sign-in qualification record](evidence/atcr114-post-signin-readonly-qualification.json).
