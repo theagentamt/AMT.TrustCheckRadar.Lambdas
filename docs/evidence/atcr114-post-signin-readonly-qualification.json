@@ -176,5 +176,15 @@
     "checkoutHeld": true,
     "noAuthOtpAccountOrRuntimeMutationPerformed": true,
     "story114RemainsOpen": true
+  },
+  "androidTokenSourceContract": {
+    "source": "UrlAuthenticatedHttpClient.kt AmplifyUrlAccessTokenSource.forAccount; exact unchanged runtime source qualified by Android",
+    "currentSdkUserIdMatchesExpectedBeforeFetch": true,
+    "fetchedCognitoSessionUserSubMatchesExpectedBeforeTokenAcceptance": true,
+    "currentSdkUserIdMatchesExpectedAfterFetch": true,
+    "sourceIsAccountFenced": true,
+    "noLiveSdkTokenOrSubjectResultInspected": true,
+    "staleUiDefectProven": false,
+    "currentSdkSubjectDifferenceProven": false
   }
 }

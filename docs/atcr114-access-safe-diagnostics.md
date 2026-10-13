@@ -255,6 +255,14 @@ uses geometry rather than structural sibling proof, and the displayed identifier
 is remembered UI state. It is **not a fresh SDK/JWT identity read**, so this
 observation alone cannot prove what the latest owner sign-in changed.
 
+The exact Android source also fences each access-token operation to its expected
+stable account: current SDK `userId` must match before session fetch, the Cognito
+session's `userSubResult` must match before accepting its access token, and current
+SDK `userId` must still match afterward. Therefore the source does not show an
+unguarded session drifting to another owner. No live SDK result or token was
+inspected. Remembered display state alone is neither a proven stale-UI defect nor
+proof of a different current SDK subject.
+
 Selected Cognito metadata independently confirms enabled/CONFIRMED state,
 verified email and exactly one matching email account in the Dev pool. The pool
 uses email usernames, no alias attributes and case-insensitive usernames.
