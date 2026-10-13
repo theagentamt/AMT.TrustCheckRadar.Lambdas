@@ -1,0 +1,190 @@
+{
+  "freshRuntimeReadiness": {
+    "observedAtUtc": "2026-10-13T04:35:28.971975+00:00",
+    "diagnosticReader": {
+      "observedAtUtc": "2026-10-13T04:35:28.084512+00:00",
+      "functionName": "trustcheckradar-dev-v1-entitlements",
+      "alias": "live",
+      "previousVersion": "15",
+      "liveVersion": "16",
+      "candidateSha256": "b56547ef6ad6c16da94ba2bcae866a0f3301c11474a0858ad15420ef5d14acd5",
+      "sourceCommit": "addf795ffc472a7db69d2d139f4653e4779d1c8b",
+      "releaseMergeCommit": "616c2f084e180b3e08c7bef43f90136492f6a7bb",
+      "sourceIntegrated": true,
+      "codePublicationConfirmed": true,
+      "aliasUpdateConfirmed": true,
+      "liveCodeAndUnweightedAliasVerified": true,
+      "targetConfigurationAndCapacityUnchanged": true,
+      "accessAdmission": {
+        "baseSubjectCount": 1,
+        "extraGetOnlySubjectCount": 1,
+        "selectedTesterGetAdmitted": true,
+        "selectedTesterTrialAdmissionExpanded": false
+      },
+      "protectedOtherRuntimeCount": 12,
+      "fourProtectedRoutesUnchanged": true,
+      "IAMAnd14DayLogRetentionUnchanged": true,
+      "paymentVerificationLifecycleRTDNRemainDisabled": true,
+      "rollbackVersion15VerifiedAvailable": true,
+      "rollbackExecuted": false,
+      "endpointInvoked": false,
+      "secretValuesRead": false,
+      "live503CauseEstablished": false,
+      "mutationRetried": false
+    },
+    "handoff": {
+      "liveVersion": "5",
+      "pinnedPackageVerified": true,
+      "selectedTesterOnlyAdmitted": true,
+      "flags": {
+        "PLAY_HANDOFF_ENABLED": "false",
+        "PLAY_LIFECYCLE_ENABLED": "false",
+        "PLAY_PREPARATION_ENABLED": "true",
+        "AUTHORITY_ENABLED": "true"
+      }
+    },
+    "cleanup": {
+      "liveVersion": "16",
+      "pinnedPackageVerified": true,
+      "selectedTesterCovered": true,
+      "priorSubjectsPreserved": true,
+      "unionCount": 2,
+      "scheduleAndStreamUnchanged": true
+    },
+    "selectedTesterBinding": {
+      "authoritativePointerValid": true,
+      "bindingActiveAndAccountConsistent": true,
+      "matchesCurrentEmulatorNotEstablished": true,
+      "registrationNecessityMustUseSupportedAppCurrentDeviceState": true
+    },
+    "actualAppIdentityVerificationRequired": true,
+    "healthyRealAccessNotYetEstablished": true,
+    "noEndpointInvocation": true,
+    "noRuntimeOrAccountChange": true,
+    "noSecretTokenIdentityProofOutput": true
+  },
+  "reportedCorrectedSigninVisibleComparison": {
+    "serial": "emulator-5558",
+    "versionCode": 10,
+    "result": "mismatch",
+    "comparisonKind": "supported Settings Signed in as display identifier",
+    "identityTextOrScreenshotRetained": false,
+    "credentialsCodesTokensOrSessionCopied": false,
+    "manualRefreshTapped": false,
+    "signinOrOtpAction": false,
+    "registration": false,
+    "checkout": false,
+    "existing5556Changed": false,
+    "startUtc": "2026-10-13T04:35:02.825965+00:00",
+    "settingsNavigations": 1,
+    "matchedReferenceKinds": [],
+    "source": "Visible Settings Signed in as; salted in-memory equality against selected Cognito reference",
+    "reason": "Exact visible display-identifier comparison; this is not inspection or proof of actual JWT claims",
+    "authenticationPromptObserved": false,
+    "sameRouteScrolls": 0,
+    "endUtc": "2026-10-13T04:35:05.011242+00:00",
+    "newAccessRequestScope": "One automatic GET incidental to parent-authorized Settings entry; no manual refresh"
+  },
+  "actualClosedServerWindow": {
+    "observedAtUtc": "2026-10-13T04:37:32.294547+00:00",
+    "windowStartUtc": "2026-10-13T04:34:50Z",
+    "windowEndExclusiveUtc": "2026-10-13T04:35:30Z",
+    "accessHttpStatusCounts": [
+      {
+        "status": 503,
+        "count": 1
+      }
+    ],
+    "fixedFailureClassificationCounts": [
+      {
+        "stage": "GET_ADMISSION",
+        "authorityCode": "ENGINEERING_ACCESS_UNAVAILABLE",
+        "providerCode": "NONE",
+        "causeCategory": "VALIDATION",
+        "count": 1
+      }
+    ],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "privateComparisonReferenceConsistency": {
+    "trustedReferenceMatchesSelectedMetadata": {
+      "email": true,
+      "username": true,
+      "subject": true
+    },
+    "owned0600PrivateReference": true,
+    "normalization": "strip/casefold UTF8; HMAC-SHA256",
+    "saltLength32": true,
+    "identityValuesPrinted": false,
+    "actualUIExtractionIndependentlyVerified": false
+  },
+  "selectedLoginAliasMetadata": {
+    "observedAtUtc": "2026-10-13T04:39:52.072109+00:00",
+    "selectedEnabled": true,
+    "selectedConfirmed": true,
+    "selectedEmailVerified": true,
+    "selectedUsernameMatchesRetainedMetadata": true,
+    "emailMatchingAccountCount": 1,
+    "selectedAccountPresentInEmailFilter": true,
+    "emailUniqueWithinPool": true,
+    "poolUsernameAttributes": [
+      "email"
+    ],
+    "poolAliasAttributes": [],
+    "poolUsernameCaseSensitive": false,
+    "actualSignedInAppIdentityEstablished": false,
+    "noSigninOtpAccountMutationOrEndpointCall": true,
+    "noIdentityValuesOutput": true
+  },
+  "approvedEmailDirectResolution": {
+    "observedAtUtc": "2026-10-13T04:41:51.811200+00:00",
+    "approvedEmailAdminLookupSucceeded": true,
+    "resolvedSubjectMatchesSelected": true,
+    "resolvedCanonicalUsernameMatchesSelected": true,
+    "resolvedEmailMatchesApprovedLabel": true,
+    "resolvedEmailVerified": true,
+    "resolvedUserEnabledConfirmed": true,
+    "noAuthenticationOrOtp": true,
+    "noActualAppClaimsOrSessionRead": true,
+    "noIdentityValuesPrinted": true,
+    "noEndpointInvocationOrMutation": true
+  },
+  "staticComparatorReview": {
+    "result": "No demonstrated extraction/normalization bug",
+    "scriptExecutedByReviewer": false,
+    "limits": [
+      "Geometric selector does not independently establish structural sibling identity from removed UI hierarchy",
+      "Displayed identifier is remembered UI state, not a fresh SDK/JWT subject read"
+    ],
+    "sourceMapping": "Settings InfoRow direct separate Texts; cached authenticatedAccountIdentifier from AuthUser.username"
+  },
+  "disposition": {
+    "actualCurrentSdkOrJwtIdentityEstablished": false,
+    "confirmedSupportedUiComparison": "MISMATCH",
+    "emailAliasResolvesSelectedUser": true,
+    "wrongOrAmbiguousSelectedEmailMetadataHypothesisExcluded": true,
+    "actualAccessStill503": true,
+    "doNotAskBlindSameEmailRetry": true,
+    "doNotExpandEitherAdmissionList": true,
+    "noFurtherAndroidRequestsAuthorized": true,
+    "checkoutHeld": true,
+    "noAuthOtpAccountOrRuntimeMutationPerformed": true,
+    "story114RemainsOpen": true
+  },
+  "androidTokenSourceContract": {
+    "source": "UrlAuthenticatedHttpClient.kt AmplifyUrlAccessTokenSource.forAccount; exact unchanged runtime source qualified by Android",
+    "currentSdkUserIdMatchesExpectedBeforeFetch": true,
+    "fetchedCognitoSessionUserSubMatchesExpectedBeforeTokenAcceptance": true,
+    "currentSdkUserIdMatchesExpectedAfterFetch": true,
+    "sourceIsAccountFenced": true,
+    "noLiveSdkTokenOrSubjectResultInspected": true,
+    "staleUiDefectProven": false,
+    "currentSdkSubjectDifferenceProven": false
+  }
+}
