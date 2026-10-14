@@ -115,5 +115,49 @@ unapproved status, not any transaction gate. Read-only readiness at
 2026-10-14T01:15:06.301506Z retained existing live7 and all protected flags/state;
 no deployment or configuration was repeated. Google-account comparison uses prior
 owner-confirmed Google metadata, independent of Dev Cognito identity, and emits
-only match/mismatch/unknown. Corrective observation is currently pending; its
-results must not be inferred from the first limited capture.
+only match/mismatch/unknown. The corrective observation is complete and cancelled; its results below are
+separate from the first limited capture.
+
+## Completed corrective observation and current prerequisite
+
+One corrective Get Pro at 2026-10-14T01:26:38Z reached the main sheet, read at
+01:27:19Z. It showed `$4.99/month plus tax`, “Starting today,” a saved VISA method,
+automatic renewal until cancelled and price-change notification, cancellation in
+Google Play, and a temporary authorization hold up to two days before renewal.
+No ISO currency code was displayed. Card details and account values are not retained.
+
+After independent review of the visually and structurally qualified payment-summary
+chevron, Android opened that dropdown once at 01:32:06Z and read the picker at
+01:32:18Z. Purchasing Google account MATCH was qualified at 01:32:55Z using the
+Payment methods header email, a direct sibling of the title, compared only in
+memory against the separate owner-confirmed Google reference. This is account
+qualification, not proof of license-testing membership.
+
+Visible picker methods were saved VISA choices including a family method, an
+insufficient Google Play balance and an unavailable Google Pay balance. No visible
+test card or no-charge notice was observed. No scrollable container was reported
+on the sheet/current picker; no scroll/expansion, Add card, +more or new-payment
+flow was performed. Unseen options and actual license configuration remain unproven.
+No instrument/account choice, Subscribe, credentials, new terms or Restore occurred.
+Back exited the picker at 01:33:21Z and cancelled the sheet at 01:33:28Z. Safe SDK
+CONNECT/PRODUCT_QUERY/LAUNCH codes were 0; PURCHASE_CALLBACK was 1. Returned app at
+01:33:40Z displayed cancellation/no access change and no auth prompt. All further
+app actions are held.
+
+Closed server window 01:26:20–01:34:00Z, split into nonoverlapping bounded parts,
+corroborates one prepare HTTP200, empty other route counts and empty qualified
+access failure classifiers. Collection completed after window closure at
+01:34:47–49Z. Aggregate attribution/absence limits apply. Full post-observation
+readback at 01:34:43.289590Z preserves enabled live7/test-only/catalog/preparation/
+authority, closed lifecycle/RTDN, selected metadata/complete inventory, protected
+12 runtimes/four routes/security/capacity/schedules/streams/cleanup/trial state and
+closed rollback6; no deployment, mutation or rollback was performed for this readback.
+
+The next prerequisite is read-only qualification of the existing Google account's
+actual Play Console license-testing configuration through an already authenticated
+supported session. The API absence is established; do not infer wrong configuration
+from these UI results or request a repeated membership assertion. No tester/settings
+edit, account change or another checkout is authorized. A zero-charge transaction
+still requires positive test-payment qualification and separate explicit owner
+transaction approval. Real proof/order/acknowledgment/paid authority acceptance
+and broader release/physical follow-ups remain open.
