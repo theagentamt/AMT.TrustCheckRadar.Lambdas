@@ -161,3 +161,13 @@ edit, account change or another checkout is authorized. A zero-charge transactio
 still requires positive test-payment qualification and separate explicit owner
 transaction approval. Real proof/order/acknowledgment/paid authority acceptance
 and broader release/physical follow-ups remain open.
+
+
+## Subsequent owner Console selection and actual test-UI qualification
+
+After the owner saved the existing QA Tester License testing selection, one
+separately approved no-purchase recheck positively observed the explicit no-charge
+test subscription notice, provider-preselected always-approves test card and expected
+Google account. See [actual test-UI evidence and conditional transaction plan](play-v11-license-test-ui-and-transaction-handoff.md).
+The earlier incomplete and corrective observations remain historical. No transaction
+has occurred; owner approval for one test subscription/cancellation is still pending.
