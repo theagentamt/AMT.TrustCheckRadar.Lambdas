@@ -54,8 +54,13 @@ the real Google sheet, observed at 01:04:49.578087Z. The canonical monthly item
 showed `$4.99/month`, “Starting today” and “Cancel anytime in Subscriptions on Google
 Play.” Only the dollar symbol was visible; an ISO currency code was not displayed
 and is not inferred. No explicit test/no-charge notice or test instrument was
-observed. A bounded supported control probe found no dedicated change-payment
-method affordance and stopped before any tap or instrument selection. Exact selected
+observed in the captured portion. The strict exact-label selector helper stopped
+before tapping; zero recognized controls do not prove a selector unavailable. The
+selector was not opened, the sheet was not scrolled or expanded, and purchasing
+Google account visibility/identity was not qualified. Four unrecognized relevant
+texts were omitted by the fixed parser along with identity text; full-sheet coverage
+was incomplete. This is not evidence of missing test instruments or wrong license
+settings. Exact selected
 instrument and additional renewal details remain unknown. Back at 01:07:47.788527Z
 cancelled without subscribing. Safe SDK codes were CONNECT0, PRODUCT_QUERY0,
 LAUNCH0 and PURCHASE_CALLBACK1. Returned Pricing at 01:08:28.406617Z displayed
@@ -77,9 +82,14 @@ and immutable closed rollback6. No rollback was requested or performed. Initial
 activation evidence was verified integrated through Lambda PR119, release merge
 `81c50d2658bb2725d7990249788a9f09c4bf6937`, with zero outstanding completion commits.
 
-The concrete remaining payment prerequisite is a qualified supported test/no-charge
-notice and test instrument; track eligibility or the owner's license-test membership
-statement cannot substitute for that actual payment observation. Do not repeat
+The concrete remaining prerequisite is completing the supported payment inspection:
+full-sheet/account/dropdown coverage and qualification of the test/no-charge notice
+and instrument. Track eligibility or the owner's accepted license-test membership
+statement cannot substitute for actual payment observation; this limited inspection
+does not disprove that membership. The smallest proposed later action is one
+coordinated full-sheet/account/dropdown inspection and cancel, with no Subscribe,
+credentials, new terms or account changes. It is a proposal, not authorization to
+reopen checkout. Do not repeat
 checkout or ask for a purchase under the exhausted inspection scope. Paid entitlement,
 actual provider proof/order/acknowledgment, receipt replay, renewal and background
 processing remain unperformed acceptance, never passes. Keep [ATCR-112](https://andmorethings.youtrack.cloud/issue/ATCR-112),

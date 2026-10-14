@@ -137,5 +137,6 @@ owner's 2026-10-14 approval: selected verifier activation and one payment-detail
 inspection, stopping before subscribing. See the [dated activation/inspection
 record](play-v11-verifier-step1-activation.md). No new transaction was authorized.
 Live7 and test-only enforcement are verified; the sheet was cancelled without a
-purchase. Test/no-charge notice and instrument remain unqualified, so transaction
-acceptance remains open. Historical closed-verifier observations are unchanged.
+purchase. The bounded viewport inspection never opened the selector or scrolled:
+test/no-charge notice/instrument and purchasing account remain unqualified, not
+proved absent or misconfigured. Transaction acceptance remains open. Historical closed-verifier observations are unchanged.

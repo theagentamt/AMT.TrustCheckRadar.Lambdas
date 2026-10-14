@@ -102,7 +102,15 @@
         "atUtc": "2026-10-14T01:07:47.529Z"
       }
     ],
-    "oneGetProOneBackConfirmed": true
+    "oneGetProOneBackConfirmed": true,
+    "paymentSelectorOpened": false,
+    "sheetScrolledOrExpanded": false,
+    "fullSheetCoverageQualified": false,
+    "purchasingGoogleAccountQualified": false,
+    "unrecognizedRelevantTextsOmittedByFixedParser": 4,
+    "paymentSelectorAvailability": "UNKNOWN",
+    "limitation": "Incomplete supported visible-sheet inspection; no proof of missing instruments or wrong license settings",
+    "smallestProposedFollowup": "Separately coordinated one full-sheet/account/dropdown inspection then cancel; no Subscribe, credentials, terms or account changes"
   },
   "releasePromotion": false,
   "physicalFollowup": "ATCR-148",
