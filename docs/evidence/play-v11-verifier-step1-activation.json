@@ -54,10 +54,55 @@
     "revisionRotationCauseEstablished": false
   },
   "uiInspection": {
-    "status": "PENDING_ANDROID_OBSERVATION",
+    "status": "SHEET_INSPECTED_CANCELLED_NO_TRANSACTION",
+    "versionCode": 11,
+    "emulator": "5558",
+    "getProAtUtc": "2026-10-14T01:04:36.277342Z",
+    "sheetObservedAtUtc": "2026-10-14T01:04:49.578087Z",
+    "canonicalItemObserved": true,
+    "displayedPrice": "$4.99/month",
+    "displayedCurrencySymbol": "$",
+    "displayedIsoCurrencyCode": null,
+    "startTerm": "Starting today",
+    "cancellationTerm": "Cancel anytime in Subscriptions on Google Play",
+    "explicitTestNoChargeNoticeObserved": false,
+    "testInstrumentObserved": false,
+    "instrumentSelectionAttempted": false,
+    "dedicatedChangePaymentAffordanceObserved": false,
+    "exactSelectedInstrument": "UNKNOWN",
+    "additionalRenewalDetails": "UNKNOWN",
+    "cancelBackAtUtc": "2026-10-14T01:07:47.788527Z",
+    "returnedAppCancellationQualification": "Purchase cancelled / No access change was made; no auth prompt",
     "transactionAuthorized": false,
+    "transactionPerformed": false,
     "restoreExecutionAuthorized": false,
-    "zeroChargeStatusVerified": false
+    "newTermsCredentialsAccountsChanged": false,
+    "zeroChargeStatusVerified": false,
+    "furtherCheckoutAuthorized": false,
+    "returnedAppObservedAtUtc": "2026-10-14T01:08:28.406617Z",
+    "billingSdkResults": [
+      {
+        "event": "CONNECT",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:44.124Z"
+      },
+      {
+        "event": "PRODUCT_QUERY",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:45.316Z"
+      },
+      {
+        "event": "LAUNCH",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:45.324Z"
+      },
+      {
+        "event": "PURCHASE_CALLBACK",
+        "code": 1,
+        "atUtc": "2026-10-14T01:07:47.529Z"
+      }
+    ],
+    "oneGetProOneBackConfirmed": true
   },
   "releasePromotion": false,
   "physicalFollowup": "ATCR-148",
@@ -67,5 +112,93 @@
     "ATCR-175",
     "ATCR-148",
     "SECUR4ALL-195"
-  ]
+  ],
+  "serverCorroboration": {
+    "observedAtUtc": "2026-10-14T01:08:54.206435+00:00",
+    "windowStartUtc": "2026-10-14T01:04:20Z",
+    "windowEndExclusiveUtc": "2026-10-14T01:08:30Z",
+    "windowClosedAtObservation": true,
+    "routes": [
+      {
+        "route": "GET /v1/access",
+        "statusCounts": []
+      },
+      {
+        "route": "POST /device-registration",
+        "statusCounts": []
+      },
+      {
+        "route": "POST /v1/purchases/google-play/prepare",
+        "statusCounts": [
+          {
+            "status": 200,
+            "count": 1
+          }
+        ]
+      },
+      {
+        "route": "POST /v1/purchases/google-play/verify",
+        "statusCounts": []
+      }
+    ],
+    "accountOrRequestAttributionAvailable": false,
+    "noEventsIsNotProofOfNoCallsOrWrites": true,
+    "noEndpointInvocation": true,
+    "noRuntimeMutation": true,
+    "noRawIdentityTokenProofPayloadOutputOrRetention": true
+  },
+  "fixedAccessDiagnostics": {
+    "observedAtUtc": "2026-10-14T01:08:55.053847+00:00",
+    "windowStartUtc": "2026-10-14T01:04:20Z",
+    "windowEndExclusiveUtc": "2026-10-14T01:08:30Z",
+    "accessHttpStatusCounts": [],
+    "fixedFailureClassificationCounts": [],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "postInspectionReadback": {
+    "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+    "authorityPreparationRemainEnabled": true,
+    "catalogQualified": true,
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "enabled": true,
+    "exactDelta": {
+      "PLAY_HANDOFF_ENABLED": {
+        "after": "true",
+        "before": "false"
+      }
+    },
+    "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "immutableClosedRollbackVersion6Available": true,
+    "lifecycleRTDNRemainDisabled": true,
+    "liveVersion": "7",
+    "mutationRetried": false,
+    "noCodeUploadNewInfrastructureOrRecurringService": true,
+    "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+    "observedAtUtc": "2026-10-14T01:08:27.774235+00:00",
+    "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "previousVersion": "6",
+    "priorCleanupCoveragePreserved": true,
+    "purchaseOwnershipInventoryVerifiedComplete": true,
+    "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+    "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+    "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+    "testOnlyEnforcementRetained": true,
+    "trialAdmissionUnchanged": true,
+    "unweightedAliasVerified": true,
+    "zeroChargeStatusNotYetVerified": true
+  },
+  "activationEvidenceReleaseIntegration": {
+    "pullRequest": 119,
+    "headCommit": "a059a6a74d22e778aba530ca2c69f307729f7bdd",
+    "mergeCommit": "81c50d2658bb2725d7990249788a9f09c4bf6937",
+    "outstandingCompletionCommits": 0
+  }
 }

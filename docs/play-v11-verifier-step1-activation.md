@@ -47,9 +47,42 @@ this is disclosed configuration scope, not permission to execute Restore.
 Test-only backend enforcement cannot prevent a Google charge if a real payment
 method is confirmed. Zero-charge status is not yet independently verified.
 
-The inspection is awaiting actual Android observation. Paid entitlement, actual
-provider proof/order/acknowledgment, receipt replay, renewal and background processing
-are unperformed acceptance, never passes. Keep [ATCR-112](https://andmorethings.youtrack.cloud/issue/ATCR-112),
+## Actual single inspection and payment blocker
+
+One Get Pro at 2026-10-14T01:04:36.277342Z on already-open Store11 Pricing reached
+the real Google sheet, observed at 01:04:49.578087Z. The canonical monthly item
+showed `$4.99/month`, “Starting today” and “Cancel anytime in Subscriptions on Google
+Play.” Only the dollar symbol was visible; an ISO currency code was not displayed
+and is not inferred. No explicit test/no-charge notice or test instrument was
+observed. A bounded supported control probe found no dedicated change-payment
+method affordance and stopped before any tap or instrument selection. Exact selected
+instrument and additional renewal details remain unknown. Back at 01:07:47.788527Z
+cancelled without subscribing. Safe SDK codes were CONNECT0, PRODUCT_QUERY0,
+LAUNCH0 and PURCHASE_CALLBACK1. Returned Pricing at 01:08:28.406617Z displayed
+“Purchase cancelled / No access change was made,” with no auth prompt. The action
+audit confirms one Get Pro and one Back only. No new terms, credentials or account changes occurred.
+No further checkout, payment or Restore is authorized by this completed inspection.
+
+Closed server window 01:04:20–01:08:30Z, collected at 01:08:54/55Z, contains exactly
+one prepare HTTP200. Access, registration and verify status counts are empty;
+qualified fixed access failure classifiers are empty. These are unattributed
+aggregates; no events do not prove no calls or writes elsewhere. Combined with the
+strict preparation source and actual sheet, this corroborates real preparation
+and opening the provider UI, not purchase verification.
+
+Post-cancel readback at 01:08:27.774235Z retains live7/test-only/catalog/authority/
+preparation, closed lifecycle/RTDN, the same selected actor/ownership inventory,
+all protected runtime/routes/security/capacity/schedules/streams/cleanup/trial state
+and immutable closed rollback6. No rollback was requested or performed. Initial
+activation evidence was verified integrated through Lambda PR119, release merge
+`81c50d2658bb2725d7990249788a9f09c4bf6937`, with zero outstanding completion commits.
+
+The concrete remaining payment prerequisite is a qualified supported test/no-charge
+notice and test instrument; track eligibility or the owner's license-test membership
+statement cannot substitute for that actual payment observation. Do not repeat
+checkout or ask for a purchase under the exhausted inspection scope. Paid entitlement,
+actual provider proof/order/acknowledgment, receipt replay, renewal and background
+processing remain unperformed acceptance, never passes. Keep [ATCR-112](https://andmorethings.youtrack.cloud/issue/ATCR-112),
 [ATCR-114](https://andmorethings.youtrack.cloud/issue/ATCR-114) and
 [ATCR-175](https://andmorethings.youtrack.cloud/issue/ATCR-175) open; physical-only cases
 remain in [ATCR-148](https://andmorethings.youtrack.cloud/issue/ATCR-148).
