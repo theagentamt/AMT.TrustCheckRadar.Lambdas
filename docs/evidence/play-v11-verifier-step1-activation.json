@@ -298,7 +298,7 @@
     "restoreExecuted": false,
     "pickerExitBackAtUtc": "2026-10-14T01:33:21Z",
     "checkoutCancelBackAtUtc": "2026-10-14T01:33:28Z",
-    "returnedAppObservedAtUtc": "2026-10-14T01:33:40Z",
+    "returnedAppObservedAtUtc": "2026-10-14T01:33:40.157590Z",
     "returnedAppLabels": [
       "Purchase cancelled",
       "No access change was made."
