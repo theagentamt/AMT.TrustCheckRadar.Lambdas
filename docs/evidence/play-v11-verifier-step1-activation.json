@@ -208,5 +208,47 @@
     "headCommit": "a059a6a74d22e778aba530ca2c69f307729f7bdd",
     "mergeCommit": "81c50d2658bb2725d7990249788a9f09c4bf6937",
     "outstandingCompletionCommits": 0
+  },
+  "correctiveInspection": {
+    "authorizationSource": "Parent explicitly authorized one corrective full supported sheet/scroll/account/dropdown inspection within unchanged step1, cancellation before Subscribe",
+    "status": "PENDING_ANDROID_OBSERVATION",
+    "existingAttemptAndJournalPreserved": true,
+    "transactionAuthorized": false,
+    "paymentDataAccountTermsCredentialsChangesAuthorized": false,
+    "preInspectionReadiness": {
+      "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+      "authorityPreparationRemainEnabled": true,
+      "catalogQualified": true,
+      "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+      "enabled": true,
+      "exactDelta": {
+        "PLAY_HANDOFF_ENABLED": {
+          "after": "true",
+          "before": "false"
+        }
+      },
+      "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+      "functionName": "trustcheckradar-dev-v1-play-handoff",
+      "immutableClosedRollbackVersion6Available": true,
+      "lifecycleRTDNRemainDisabled": true,
+      "liveVersion": "7",
+      "mutationRetried": false,
+      "noCodeUploadNewInfrastructureOrRecurringService": true,
+      "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+      "observedAtUtc": "2026-10-14T01:15:06.301506+00:00",
+      "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+      "other12RuntimeFingerprintsUnchanged": true,
+      "previousVersion": "6",
+      "priorCleanupCoveragePreserved": true,
+      "purchaseOwnershipInventoryVerifiedComplete": true,
+      "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+      "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+      "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+      "testOnlyEnforcementRetained": true,
+      "trialAdmissionUnchanged": true,
+      "unweightedAliasVerified": true,
+      "zeroChargeStatusNotYetVerified": true
+    },
+    "googleAccountComparisonReferenceSource": "Prior owner-confirmed Google Play account, independent of selected Dev Cognito identity; local salted comparison only, no license-membership proof"
   }
 }

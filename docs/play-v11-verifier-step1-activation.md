@@ -101,3 +101,19 @@ UAT/Production readiness. Private identity, credentials, proofs, payloads and jo
 remain outside the repository.
 
 Privacy-safe evidence: [step 1 activation JSON](evidence/play-v11-verifier-step1-activation.json).
+
+
+## One corrective coverage observation subsequently authorized
+
+After the incomplete coverage was clarified, the parent explicitly authorized one
+corrective supported full-sheet expansion/scroll, purchasing-account qualification
+and payment-dropdown inspection within unchanged step 1. Android retains the first
+attempt/journal and uses a distinct one-shot corrective journal. Cancel before
+Subscribe; no transaction, instrument selection, credentials, new terms, payment
+or account changes, or Restore. This supersedes only the earlier proposal's
+unapproved status, not any transaction gate. Read-only readiness at
+2026-10-14T01:15:06.301506Z retained existing live7 and all protected flags/state;
+no deployment or configuration was repeated. Google-account comparison uses prior
+owner-confirmed Google metadata, independent of Dev Cognito identity, and emits
+only match/mismatch/unknown. Corrective observation is currently pending; its
+results must not be inferred from the first limited capture.
