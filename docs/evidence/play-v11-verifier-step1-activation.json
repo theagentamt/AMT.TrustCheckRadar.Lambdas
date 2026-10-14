@@ -54,10 +54,63 @@
     "revisionRotationCauseEstablished": false
   },
   "uiInspection": {
-    "status": "PENDING_ANDROID_OBSERVATION",
+    "status": "SHEET_INSPECTED_CANCELLED_NO_TRANSACTION",
+    "versionCode": 11,
+    "emulator": "5558",
+    "getProAtUtc": "2026-10-14T01:04:36.277342Z",
+    "sheetObservedAtUtc": "2026-10-14T01:04:49.578087Z",
+    "canonicalItemObserved": true,
+    "displayedPrice": "$4.99/month",
+    "displayedCurrencySymbol": "$",
+    "displayedIsoCurrencyCode": null,
+    "startTerm": "Starting today",
+    "cancellationTerm": "Cancel anytime in Subscriptions on Google Play",
+    "explicitTestNoChargeNoticeObserved": false,
+    "testInstrumentObserved": false,
+    "instrumentSelectionAttempted": false,
+    "dedicatedChangePaymentAffordanceObserved": false,
+    "exactSelectedInstrument": "UNKNOWN",
+    "additionalRenewalDetails": "UNKNOWN",
+    "cancelBackAtUtc": "2026-10-14T01:07:47.788527Z",
+    "returnedAppCancellationQualification": "Purchase cancelled / No access change was made; no auth prompt",
     "transactionAuthorized": false,
+    "transactionPerformed": false,
     "restoreExecutionAuthorized": false,
-    "zeroChargeStatusVerified": false
+    "newTermsCredentialsAccountsChanged": false,
+    "zeroChargeStatusVerified": false,
+    "furtherCheckoutAuthorized": false,
+    "returnedAppObservedAtUtc": "2026-10-14T01:08:28.406617Z",
+    "billingSdkResults": [
+      {
+        "event": "CONNECT",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:44.124Z"
+      },
+      {
+        "event": "PRODUCT_QUERY",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:45.316Z"
+      },
+      {
+        "event": "LAUNCH",
+        "code": 0,
+        "atUtc": "2026-10-14T01:04:45.324Z"
+      },
+      {
+        "event": "PURCHASE_CALLBACK",
+        "code": 1,
+        "atUtc": "2026-10-14T01:07:47.529Z"
+      }
+    ],
+    "oneGetProOneBackConfirmed": true,
+    "paymentSelectorOpened": false,
+    "sheetScrolledOrExpanded": false,
+    "fullSheetCoverageQualified": false,
+    "purchasingGoogleAccountQualified": false,
+    "unrecognizedRelevantTextsOmittedByFixedParser": 4,
+    "paymentSelectorAvailability": "UNKNOWN",
+    "limitation": "Incomplete supported visible-sheet inspection; no proof of missing instruments or wrong license settings",
+    "smallestProposedFollowup": "Separately coordinated one full-sheet/account/dropdown inspection then cancel; no Subscribe, credentials, terms or account changes"
   },
   "releasePromotion": false,
   "physicalFollowup": "ATCR-148",
@@ -67,5 +120,309 @@
     "ATCR-175",
     "ATCR-148",
     "SECUR4ALL-195"
-  ]
+  ],
+  "serverCorroboration": {
+    "observedAtUtc": "2026-10-14T01:08:54.206435+00:00",
+    "windowStartUtc": "2026-10-14T01:04:20Z",
+    "windowEndExclusiveUtc": "2026-10-14T01:08:30Z",
+    "windowClosedAtObservation": true,
+    "routes": [
+      {
+        "route": "GET /v1/access",
+        "statusCounts": []
+      },
+      {
+        "route": "POST /device-registration",
+        "statusCounts": []
+      },
+      {
+        "route": "POST /v1/purchases/google-play/prepare",
+        "statusCounts": [
+          {
+            "status": 200,
+            "count": 1
+          }
+        ]
+      },
+      {
+        "route": "POST /v1/purchases/google-play/verify",
+        "statusCounts": []
+      }
+    ],
+    "accountOrRequestAttributionAvailable": false,
+    "noEventsIsNotProofOfNoCallsOrWrites": true,
+    "noEndpointInvocation": true,
+    "noRuntimeMutation": true,
+    "noRawIdentityTokenProofPayloadOutputOrRetention": true
+  },
+  "fixedAccessDiagnostics": {
+    "observedAtUtc": "2026-10-14T01:08:55.053847+00:00",
+    "windowStartUtc": "2026-10-14T01:04:20Z",
+    "windowEndExclusiveUtc": "2026-10-14T01:08:30Z",
+    "accessHttpStatusCounts": [],
+    "fixedFailureClassificationCounts": [],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "postInspectionReadback": {
+    "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+    "authorityPreparationRemainEnabled": true,
+    "catalogQualified": true,
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "enabled": true,
+    "exactDelta": {
+      "PLAY_HANDOFF_ENABLED": {
+        "after": "true",
+        "before": "false"
+      }
+    },
+    "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "immutableClosedRollbackVersion6Available": true,
+    "lifecycleRTDNRemainDisabled": true,
+    "liveVersion": "7",
+    "mutationRetried": false,
+    "noCodeUploadNewInfrastructureOrRecurringService": true,
+    "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+    "observedAtUtc": "2026-10-14T01:08:27.774235+00:00",
+    "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "previousVersion": "6",
+    "priorCleanupCoveragePreserved": true,
+    "purchaseOwnershipInventoryVerifiedComplete": true,
+    "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+    "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+    "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+    "testOnlyEnforcementRetained": true,
+    "trialAdmissionUnchanged": true,
+    "unweightedAliasVerified": true,
+    "zeroChargeStatusNotYetVerified": true
+  },
+  "activationEvidenceReleaseIntegration": {
+    "pullRequest": 119,
+    "headCommit": "a059a6a74d22e778aba530ca2c69f307729f7bdd",
+    "mergeCommit": "81c50d2658bb2725d7990249788a9f09c4bf6937",
+    "outstandingCompletionCommits": 0
+  },
+  "correctiveInspection": {
+    "authorizationSource": "Parent explicitly authorized one corrective full supported sheet/scroll/account/dropdown inspection within unchanged step1, cancellation before Subscribe",
+    "status": "COMPLETE_CANCELLED_NO_TRANSACTION",
+    "existingAttemptAndJournalPreserved": true,
+    "transactionAuthorized": false,
+    "paymentDataAccountTermsCredentialsChangesAuthorized": false,
+    "preInspectionReadiness": {
+      "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+      "authorityPreparationRemainEnabled": true,
+      "catalogQualified": true,
+      "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+      "enabled": true,
+      "exactDelta": {
+        "PLAY_HANDOFF_ENABLED": {
+          "after": "true",
+          "before": "false"
+        }
+      },
+      "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+      "functionName": "trustcheckradar-dev-v1-play-handoff",
+      "immutableClosedRollbackVersion6Available": true,
+      "lifecycleRTDNRemainDisabled": true,
+      "liveVersion": "7",
+      "mutationRetried": false,
+      "noCodeUploadNewInfrastructureOrRecurringService": true,
+      "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+      "observedAtUtc": "2026-10-14T01:15:06.301506+00:00",
+      "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+      "other12RuntimeFingerprintsUnchanged": true,
+      "previousVersion": "6",
+      "priorCleanupCoveragePreserved": true,
+      "purchaseOwnershipInventoryVerifiedComplete": true,
+      "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+      "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+      "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+      "testOnlyEnforcementRetained": true,
+      "trialAdmissionUnchanged": true,
+      "unweightedAliasVerified": true,
+      "zeroChargeStatusNotYetVerified": true
+    },
+    "googleAccountComparisonReferenceSource": "Prior owner-confirmed Google Play account, independent of selected Dev Cognito identity; local salted comparison only, no license-membership proof",
+    "getProAtUtc": "2026-10-14T01:26:38Z",
+    "mainSheetObservedAtUtc": "2026-10-14T01:27:19Z",
+    "mainSheet": {
+      "displayedPrice": "$4.99/month plus tax",
+      "displayedCurrencySymbol": "$",
+      "displayedIsoCurrencyCode": null,
+      "startTerm": "Starting today",
+      "savedInstrumentType": "VISA",
+      "instrumentDetailsRetained": false,
+      "automaticRenewalUntilCancelledObserved": true,
+      "priceChangeNotificationObserved": true,
+      "cancellationInGooglePlayObserved": true,
+      "temporaryAuthorizationHoldTerm": "up to 2 days before renewal",
+      "purchasingGoogleAccountComparison": "UNKNOWN",
+      "testNoChargeQualification": "UNKNOWN",
+      "paymentSummaryDropdownVisuallyStructurallyQualified": true,
+      "dropdownOpenedAtThisCheckpoint": false,
+      "transactionPerformed": false
+    },
+    "dropdownOpenedAtUtc": "2026-10-14T01:32:06Z",
+    "pickerObservedAtUtc": "2026-10-14T01:32:18Z",
+    "purchasingGoogleAccountComparison": {
+      "result": "MATCH",
+      "observedAtUtc": "2026-10-14T01:32:55Z",
+      "source": "Payment methods header email, direct structural sibling of title; compared in memory to separate owner-confirmed Google HMAC reference",
+      "identityOrDigestRetained": false,
+      "notCognitoDerived": true,
+      "licenseMembershipProven": false
+    },
+    "visiblePickerMethods": [
+      "Saved VISA methods",
+      "Family payment method",
+      "Google Play balance insufficient",
+      "Google Pay balance unavailable"
+    ],
+    "visibleTestCardObserved": false,
+    "visibleNoChargeNoticeObserved": false,
+    "unseenOptionsEnumerated": false,
+    "scrollOrExpansionPerformed": false,
+    "scrollReason": "No scrollable container reported on sheet or current picker; Add card/+more are new-payment flows and were not opened",
+    "instrumentSelected": false,
+    "accountOrPaymentDataChanged": false,
+    "subscribeTapped": false,
+    "transactionPerformed": false,
+    "newTermsOrCredentialsEntered": false,
+    "restoreExecuted": false,
+    "pickerExitBackAtUtc": "2026-10-14T01:33:21Z",
+    "checkoutCancelBackAtUtc": "2026-10-14T01:33:28Z",
+    "returnedAppObservedAtUtc": "2026-10-14T01:33:40.157590Z",
+    "returnedAppLabels": [
+      "Purchase cancelled",
+      "No access change was made."
+    ],
+    "authPromptObserved": false,
+    "furtherCheckoutAuthorized": false,
+    "billingSdkResults": [
+      {
+        "phase": "CONNECT",
+        "responseCode": 0,
+        "atUtc": "2026-10-14T01:26:43.932000+00:00"
+      },
+      {
+        "phase": "PRODUCT_QUERY",
+        "responseCode": 0,
+        "atUtc": "2026-10-14T01:26:43.936000+00:00"
+      },
+      {
+        "phase": "LAUNCH",
+        "responseCode": 0,
+        "atUtc": "2026-10-14T01:26:43.943000+00:00"
+      },
+      {
+        "phase": "PURCHASE_CALLBACK",
+        "responseCode": 1,
+        "atUtc": "2026-10-14T01:33:28.378000+00:00"
+      }
+    ],
+    "serverCorroboration": {
+      "observedAtUtc": "2026-10-14T01:35:59.121365+00:00",
+      "windowStartUtc": "2026-10-14T01:26:20Z",
+      "windowEndExclusiveUtc": "2026-10-14T01:34:00Z",
+      "nonOverlappingBoundedParts": [
+        {
+          "startUtc": "2026-10-14T01:26:20Z",
+          "endExclusiveUtc": "2026-10-14T01:31:20Z",
+          "observedAtUtc": "2026-10-14T01:34:48.905520+00:00"
+        },
+        {
+          "startUtc": "2026-10-14T01:31:20Z",
+          "endExclusiveUtc": "2026-10-14T01:34:00Z",
+          "observedAtUtc": "2026-10-14T01:34:47.516584+00:00"
+        }
+      ],
+      "routes": [
+        {
+          "route": "GET /v1/access",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /device-registration",
+          "statusCounts": []
+        },
+        {
+          "route": "POST /v1/purchases/google-play/prepare",
+          "statusCounts": [
+            {
+              "status": 200,
+              "count": 1
+            }
+          ]
+        },
+        {
+          "route": "POST /v1/purchases/google-play/verify",
+          "statusCounts": []
+        }
+      ],
+      "fixedFailureClassificationCounts": [],
+      "unqualifiedDiagnosticRecordsDiscarded": 0,
+      "accountOrRequestAttributionAvailable": false,
+      "noEventsIsNotProofOfNoCallsOrWrites": true,
+      "noEndpointInvocation": true,
+      "noRuntimeMutation": true,
+      "noRawIdentityTokenProofPayloadOutputOrRetention": true
+    },
+    "postInspectionReadback": {
+      "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+      "authorityPreparationRemainEnabled": true,
+      "catalogQualified": true,
+      "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+      "enabled": true,
+      "exactDelta": {
+        "PLAY_HANDOFF_ENABLED": {
+          "after": "true",
+          "before": "false"
+        }
+      },
+      "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+      "functionName": "trustcheckradar-dev-v1-play-handoff",
+      "immutableClosedRollbackVersion6Available": true,
+      "lifecycleRTDNRemainDisabled": true,
+      "liveVersion": "7",
+      "mutationRetried": false,
+      "noCodeUploadNewInfrastructureOrRecurringService": true,
+      "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+      "observedAtUtc": "2026-10-14T01:34:43.289590+00:00",
+      "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+      "other12RuntimeFingerprintsUnchanged": true,
+      "previousVersion": "6",
+      "priorCleanupCoveragePreserved": true,
+      "purchaseOwnershipInventoryVerifiedComplete": true,
+      "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+      "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+      "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+      "testOnlyEnforcementRetained": true,
+      "trialAdmissionUnchanged": true,
+      "unweightedAliasVerified": true,
+      "zeroChargeStatusNotYetVerified": true
+    },
+    "publicSummary": {
+      "purchasingGoogleAccountMatch": true,
+      "visiblePrice": "$4.99/month plus tax",
+      "currencySymbol": "$",
+      "isoCurrencyCode": null,
+      "visiblePaymentMethods": "Saved VISA choices and insufficient/unavailable balances",
+      "visibleTestCardOrNoChargeNotice": false,
+      "unseenOptionEnumerationAndLicenseMembershipProven": false,
+      "instrumentSelectedOrSubscribed": false,
+      "sdkLaunch": 0,
+      "sdkCancellation": 1,
+      "returnedAppCancellationAndNoAccessChangeUi": true,
+      "prepare200Count": 1,
+      "backgroundClosedTestOnlyLiveVersion": 7,
+      "allAppActionsHeld": true
+    }
+  }
 }

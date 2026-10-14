@@ -128,3 +128,23 @@ This evidence does not promote main or establish UAT/Production release readines
 The privacy-safe machine evidence is
 [evidence/play-v11-connected-verification.json](evidence/play-v11-connected-verification.json).
 Private actor references, edit journals, credentials and raw responses are not committed.
+
+
+## Subsequent step 1 approval and observation
+
+The historical proposed sequence above was superseded only for step 1 by the
+owner's 2026-10-14 approval: selected verifier activation and one payment-details
+inspection, stopping before subscribing. See the [dated activation/inspection
+record](play-v11-verifier-step1-activation.md). No new transaction was authorized.
+Live7 and test-only enforcement are verified; the sheet was cancelled without a
+purchase. The bounded viewport inspection never opened the selector or scrolled:
+test/no-charge notice/instrument and purchasing account remain unqualified, not
+proved absent or misconfigured. Transaction acceptance remains open. Historical closed-verifier observations are unchanged.
+
+
+The subsequently authorized corrective inspection opened the actual picker,
+qualified purchasing-account MATCH, and cancelled without selecting/subscribing.
+Its visible saved-card/balance choices did not qualify a test card/no-charge notice;
+unseen options and license configuration remain unproven. Existing live7/test-only
+and closed background state are retained. Read the dated step1 record for exact
+SDK/server/UI evidence and the next read-only Console prerequisite.
