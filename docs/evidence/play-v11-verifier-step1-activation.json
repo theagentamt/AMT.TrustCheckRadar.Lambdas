@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "scope": "Owner-approved Dev step1 verification activation and one payment-details inspection; no subscription transaction",
+  "ownerApprovalAtUtc": "2026-10-14T00:46:29Z",
+  "activationReadback": {
+    "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+    "authorityPreparationRemainEnabled": true,
+    "catalogQualified": true,
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "enabled": true,
+    "exactDelta": {
+      "PLAY_HANDOFF_ENABLED": {
+        "after": "true",
+        "before": "false"
+      }
+    },
+    "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "immutableClosedRollbackVersion6Available": true,
+    "lifecycleRTDNRemainDisabled": true,
+    "liveVersion": "7",
+    "mutationRetried": false,
+    "noCodeUploadNewInfrastructureOrRecurringService": true,
+    "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+    "observedAtUtc": "2026-10-14T01:02:04.370058+00:00",
+    "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "previousVersion": "6",
+    "priorCleanupCoveragePreserved": true,
+    "purchaseOwnershipInventoryVerifiedComplete": true,
+    "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+    "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+    "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+    "testOnlyEnforcementRetained": true,
+    "trialAdmissionUnchanged": true,
+    "unweightedAliasVerified": true,
+    "zeroChargeStatusNotYetVerified": true
+  },
+  "validation": {
+    "focusedGuardTests": 20,
+    "focusedGuardTestsPassed": true,
+    "independentStaticReviewPassed": true,
+    "sourceSha256": "df8d559f8be85c77aa8bc890e86da20bd92b8b3c9190ca089649a8483024af12",
+    "guardsSha256": "bfecfe271586f61584b7758db90e1e3050926d974e7efc5e35d67b3dcb4decba"
+  },
+  "sequence": {
+    "configurationConfirmedOnce": true,
+    "immutableVersion7PublishedOnce": true,
+    "preAliasRevisionMetadataDriftStoppedBeforeAlias": true,
+    "exactDesiredCodeConfigAndProtectedStateReconciled": true,
+    "boundedAliasOnlyContinuationIndependentlyReviewed": true,
+    "firstAliasAttemptConfirmedOnce": true,
+    "mutationReplay": false,
+    "revisionRotationCauseEstablished": false
+  },
+  "uiInspection": {
+    "status": "PENDING_ANDROID_OBSERVATION",
+    "transactionAuthorized": false,
+    "restoreExecutionAuthorized": false,
+    "zeroChargeStatusVerified": false
+  },
+  "releasePromotion": false,
+  "physicalFollowup": "ATCR-148",
+  "openAcceptance": [
+    "ATCR-112",
+    "ATCR-114",
+    "ATCR-175",
+    "ATCR-148",
+    "SECUR4ALL-195"
+  ]
+}
