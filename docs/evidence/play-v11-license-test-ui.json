@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "scope": "Owner-approved one no-purchase post-License-testing-save recheck; future transaction approval pending",
+  "sourceCommit": "d0a8c36a8262b1144456797daf2fb41bc717febb",
+  "installedVersion": 11,
+  "ownerConsoleEvidence": {
+    "source": "Parent inspected owner screenshots and relayed explicit saved confirmation",
+    "selectionSavedAtUtc": "2026-10-14T03:36:13Z",
+    "existingListSelection": "QA Tester checked and saved",
+    "licenseResponse": "RESPOND_NORMALLY unchanged",
+    "rootIndependentlyReadConsole": false,
+    "rootChangedConsoleOrAccounts": false,
+    "notSoleHistoricalBillingErrorCauseProof": true
+  },
+  "preinspectionReadback": {
+    "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+    "authorityPreparationRemainEnabled": true,
+    "catalogQualified": true,
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "enabled": true,
+    "exactDelta": {
+      "PLAY_HANDOFF_ENABLED": {
+        "after": "true",
+        "before": "false"
+      }
+    },
+    "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "immutableClosedRollbackVersion6Available": true,
+    "lifecycleRTDNRemainDisabled": true,
+    "liveVersion": "7",
+    "mutationRetried": false,
+    "noCodeUploadNewInfrastructureOrRecurringService": true,
+    "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+    "observedAtUtc": "2026-10-14T03:37:18.735716+00:00",
+    "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "previousVersion": "6",
+    "priorCleanupCoveragePreserved": true,
+    "purchaseOwnershipInventoryVerifiedComplete": true,
+    "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+    "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+    "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+    "testOnlyEnforcementRetained": true,
+    "trialAdmissionUnchanged": true,
+    "unweightedAliasVerified": true,
+    "zeroChargeStatusNotYetVerified": true
+  },
+  "actualGoogleUi": {
+    "getProAtUtc": "2026-10-14T03:39:44.719314Z",
+    "mainSheetAtUtc": "2026-10-14T03:40:18.833695Z",
+    "canonicalItem": "TrustCheck Radar Pro Monthly",
+    "displayedPrice": "$4.99/5 min",
+    "extraTaxLabel": "+ tax",
+    "currencySymbol": "$",
+    "isoCurrencyCode": null,
+    "testNotice": "This is a test subscription. It will recur according to this schedule. You will not be charged.",
+    "providerPreselectedInstrument": "Test card, always approves",
+    "operatorChangedInstrument": false,
+    "visibleTestChoices": [
+      "Test card, always approves",
+      "Test card, always declines",
+      "Test card, approves then charges back"
+    ],
+    "starts": "Starting today",
+    "renewalTerm": "Subscription automatically renews until canceled; price change notification per Google Play Terms of Service",
+    "cancellationTerm": "Cancel anytime in Subscriptions on Google Play",
+    "dropdownOpenedAtUtc": "2026-10-14T03:40:50.735452Z",
+    "purchasingGoogleAccountMatch": true,
+    "accountComparisonSource": "Google Payment methods header structural sibling; private HMAC to independent owner Google reference",
+    "rawIdentityOrDigestRetained": false,
+    "pickerExitAtUtc": "2026-10-14T03:41:30.191873Z",
+    "sheetCancelAtUtc": "2026-10-14T03:41:33.382564Z",
+    "returnedAppAtUtc": "2026-10-14T03:41:39.480590Z",
+    "returnedLabels": [
+      "Purchase cancelled",
+      "No access change was made."
+    ],
+    "authPromptObserved": false,
+    "safeSdkResults": [
+      {
+        "observedAtUtc": "2026-10-14T03:39:50.278000+00:00",
+        "phase": "CONNECT",
+        "responseCode": 0
+      },
+      {
+        "observedAtUtc": "2026-10-14T03:39:51.529000+00:00",
+        "phase": "PRODUCT_QUERY",
+        "responseCode": 0
+      },
+      {
+        "observedAtUtc": "2026-10-14T03:39:51.544000+00:00",
+        "phase": "LAUNCH",
+        "responseCode": 0
+      },
+      {
+        "observedAtUtc": "2026-10-14T03:41:33.094000+00:00",
+        "phase": "PURCHASE_CALLBACK",
+        "responseCode": 1
+      }
+    ],
+    "transactionPerformed": false,
+    "restorePerformed": false,
+    "extraCheckoutRetry": false,
+    "allAppActionsHeld": true
+  },
+  "serverCorroboration": {
+    "observedAtUtc": "2026-10-14T03:43:38.115982+00:00",
+    "windowStartUtc": "2026-10-14T03:38:50Z",
+    "windowEndExclusiveUtc": "2026-10-14T03:42:00Z",
+    "windowClosedAtObservation": true,
+    "routes": [
+      {
+        "route": "GET /v1/access",
+        "statusCounts": [
+          {
+            "status": 200,
+            "count": 1
+          }
+        ]
+      },
+      {
+        "route": "POST /device-registration",
+        "statusCounts": []
+      },
+      {
+        "route": "POST /v1/purchases/google-play/prepare",
+        "statusCounts": [
+          {
+            "status": 200,
+            "count": 1
+          }
+        ]
+      },
+      {
+        "route": "POST /v1/purchases/google-play/verify",
+        "statusCounts": []
+      }
+    ],
+    "accountOrRequestAttributionAvailable": false,
+    "noEventsIsNotProofOfNoCallsOrWrites": true,
+    "noEndpointInvocation": true,
+    "noRuntimeMutation": true,
+    "noRawIdentityTokenProofPayloadOutputOrRetention": true
+  },
+  "fixedAccessDiagnostics": {
+    "observedAtUtc": "2026-10-14T03:43:37.006108+00:00",
+    "windowStartUtc": "2026-10-14T03:38:50Z",
+    "windowEndExclusiveUtc": "2026-10-14T03:42:00Z",
+    "accessHttpStatusCounts": [
+      {
+        "status": 200,
+        "count": 1
+      }
+    ],
+    "fixedFailureClassificationCounts": [],
+    "unqualifiedDiagnosticRecordsDiscarded": 0,
+    "accountAttributionAvailable": false,
+    "aggregateCountsNotAccountProof": true,
+    "endpointInvoked": false,
+    "runtimeChanged": false,
+    "rawMessagesRetained": false,
+    "identitiesTokensProofsPayloadsPrinted": false
+  },
+  "postinspectionBackendReadback": {
+    "actualGoogleProofOrderAckRuntimeBehaviorStillUnverified": true,
+    "authorityPreparationRemainEnabled": true,
+    "catalogQualified": true,
+    "codeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+    "enabled": true,
+    "exactDelta": {
+      "PLAY_HANDOFF_ENABLED": {
+        "after": "true",
+        "before": "false"
+      }
+    },
+    "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "immutableClosedRollbackVersion6Available": true,
+    "lifecycleRTDNRemainDisabled": true,
+    "liveVersion": "7",
+    "mutationRetried": false,
+    "noCodeUploadNewInfrastructureOrRecurringService": true,
+    "noPurchaseRestoreOrAppEndpointExecutedByInfra": true,
+    "observedAtUtc": "2026-10-14T03:43:49.406617+00:00",
+    "onlyApprovedNewUiAction": "One payment-details inspection then CANCEL; STOP before subscription transaction",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "previousVersion": "6",
+    "priorCleanupCoveragePreserved": true,
+    "purchaseOwnershipInventoryVerifiedComplete": true,
+    "restoreIntentSharesGateButOperatorRestoreNotApproved": true,
+    "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+    "startupExistingTestProofReconciliationEntitlementAndServerAckAdmitted": true,
+    "testOnlyEnforcementRetained": true,
+    "trialAdmissionUnchanged": true,
+    "unweightedAliasVerified": true,
+    "backendReadbackDoesNotAssessPaymentUi": true,
+    "legacyUiStatusFieldOmittedForScopeAccuracy": true
+  },
+  "readbackScopeNote": "The backend-only helper does not inspect payment UI; its legacy static zeroChargeStatusNotYetVerified field was omitted from this normalized post-snapshot. Original raw-safe runtime-readback-original.json retained locally; all actual backend fields unchanged. UI readiness is separately qualified by actualGoogleUi.",
+  "actualNoChargeTestUiQualified": true,
+  "actualPurchaseGoogleProofOrderAckPaidEntitlementCancellationIntegration": "UNPERFORMED",
+  "futureTransactionApproval": "PENDING",
+  "futurePlanExecutionAuthorized": false,
+  "physicalFollowup": "ATCR-148",
+  "noLifecycleOrRtdnExpansion": true
+}
