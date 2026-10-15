@@ -88,7 +88,7 @@ def decode_http(raw):
         response.close()
 
 
-def lookup(uri, api_key, parent_budget):
+def lookup(uri, api_key, parent_budget, *, before_send=None):
     # No URL supplied by an event can override this origin, path, method or key.
     budget = Budget(parent_budget.remaining(4.0))
     sock = None
@@ -110,6 +110,8 @@ def lookup(uri, api_key, parent_budget):
         sock.settimeout(budget.remaining(2.0))
         sock = ssl.create_default_context().wrap_socket(sock, server_hostname=HOST)
         sock.settimeout(budget.remaining(2.0))
+        if before_send is not None:before_send()
+        budget.remaining()
         sock.sendall(headers)
         data = bytearray()
         while True:

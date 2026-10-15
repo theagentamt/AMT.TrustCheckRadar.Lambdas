@@ -34,16 +34,32 @@ def _provider(event):
 
 
 def lambda_handler(event,context):
-    if os.environ.get('STAGE')!='dev' or os.environ.get('CONSUMER_ENABLED')!='true':
-        return _response(503,unavailable_envelope())
     try:
-        from shared_check_authority.engineering import require_engineering_subject
-        require_engineering_subject(event)
+        from shared_url_qualification import configured, require_subject, load_policy, Closed
+        reconcile = isinstance(event,dict) and event.get('routeKey') == 'POST /v1/url-checks/reconcile'
+        recovery = reconcile and os.environ.get('URL_RECONCILIATION_ENABLED') == 'true'
+        qualification = None
+        if os.environ.get('STAGE') != 'dev':
+            raise Closed('DEV_ONLY')
+        if configured() or recovery:
+            require_subject(event)
+            if reconcile:
+                if not recovery:raise Closed('RECONCILIATION_CLOSED')
+            else:
+                from shared_url_qualification.store import load_store
+                policy = load_policy()
+                policy.active()
+                if not policy.admission:raise Closed('ADMISSION_CLOSED')
+                qualification = load_store(policy)
+        else:
+            if os.environ.get('CONSUMER_ENABLED') != 'true':raise Closed('CONSUMER_CLOSED')
+            from shared_check_authority.engineering import require_engineering_subject
+            require_engineering_subject(event)
         from shared_check_authority.runtime import load_authority
         from shared_check_authority.entitlements import EntitlementWriter
         authority=load_authority()
         writer=EntitlementWriter(authority,approved_products=frozenset(),operator_principals=frozenset(),verification_max_age_seconds=1)
-        consumer=Consumer(authority,_mapper(),_provider,lambda event:writer.refresh_for_account(event,'consumer-'+secrets.token_hex(8)))
+        consumer=Consumer(authority,_mapper(),_provider,lambda event:writer.refresh_for_account(event,'consumer-'+secrets.token_hex(8)),qualification=qualification)
         status,body=consumer.handle(event)
     except Exception:
         # No inference about an uncertain transaction; no raw exception or request.

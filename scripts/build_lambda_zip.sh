@@ -40,6 +40,7 @@ FUNCTIONS=(
   purchase_handoff
   url_redirect_resolver
   url_assessment
+  url_qualification_cleanup
   url_consumer
   url_lease_recovery
   v1_entitlements
@@ -301,7 +302,7 @@ build_function() {
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp -R "$ROOT_DIR/src/shared_play_lifecycle" "$ROOT_DIR/src/shared_play_verification" "$ROOT_DIR/src/v1_play_handoff" "$build_dir/"
   fi
-  if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
+  if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" || "$function_name" == "url_redirect_resolver" ]]; then
     cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
   fi
   if [[ -d "$build_dir/shared_check_authority" ]]; then
@@ -313,6 +314,10 @@ build_function() {
   if [[ -d "$build_dir/shared_check_authority" && ! -d "$build_dir/shared_recovery_contract" ]]; then
     mkdir -p "$build_dir/shared_recovery_contract"
     cp "$ROOT_DIR/src/shared_recovery_contract/__init__.py" "$ROOT_DIR/src/shared_recovery_contract/constants.py" "$ROOT_DIR/src/shared_recovery_contract/usage.py" "$build_dir/shared_recovery_contract/"
+  fi
+
+  if [[ "$function_name" == "url_consumer" || "$function_name" == "url_assessment" || "$function_name" == "url_redirect_resolver" || "$function_name" == "url_qualification_cleanup" ]]; then
+    cp -R "$ROOT_DIR/src/shared_url_qualification" "$build_dir/shared_url_qualification"
   fi
 
   if [[ "$function_name" == "url_assessment" ]]; then

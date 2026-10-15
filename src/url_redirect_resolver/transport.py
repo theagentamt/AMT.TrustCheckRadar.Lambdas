@@ -57,6 +57,14 @@ def read_headers(sock, deadline):
 
 
 class Transport:
+    def __init__(self, *, authorize=None):
+        self.authorize = authorize
+
+    def _authorize(self, url):
+        if self.authorize is not None:
+            try:self.authorize(url)
+            except Exception:raise ResolutionStop('QUALIFICATION_CLOSED', 'blocked') from None
+
     def addresses(self, host, deadline):
         try:
             return [str(ipaddress.ip_address(host))]
@@ -88,6 +96,7 @@ class Transport:
         sock = None
         connection = None
         try:
+            self._authorize(target.url)
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(deadline.remaining(2.0))
             sock.connect((address, target.port))  # Numeric address: no second DNS lookup.
@@ -97,6 +106,8 @@ class Transport:
             connection = http.client.HTTPConnection(target.host, target.port)
             connection.sock = sock
             sock.settimeout(deadline.remaining(2.0))
+            self._authorize(target.url)
+            deadline.remaining()
             connection.request("GET", target.request_target, headers={
                 "Host": target.host,
                 "User-Agent": "AMT-LinkResolver/1.0",

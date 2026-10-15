@@ -162,7 +162,7 @@ def parse_target(raw):
         raise ResolutionStop("INVALID_URL", "invalid_input") from None
 
 
-def resolve(url, transport, deadline=None):
+def resolve(url, transport, deadline=None, *, authorize=None):
     deadline = deadline or Deadline()
     result = {
         "schemaVersion": 1, "resolutionStatus": "partial", "hops": [],
@@ -177,6 +177,9 @@ def resolve(url, transport, deadline=None):
         while True:
             deadline.remaining()
             target = parse_target(current)
+            if authorize is not None:
+                try:authorize(target.url)
+                except Exception:raise ResolutionStop("QUALIFICATION_CLOSED", "blocked") from None
             if target.url in visited:
                 raise ResolutionStop("REDIRECT_LOOP")
             visited.add(target.url)

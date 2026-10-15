@@ -6,6 +6,7 @@ import time
 
 from resolver import Deadline, resolve
 from transport import Transport
+from shared_url_qualification import configured, load_policy
 
 
 def lambda_handler(event, context):
@@ -28,7 +29,16 @@ def lambda_handler(event, context):
         check_id = event["checkId"]
         remaining = min(10.0, max(0, context.get_remaining_time_in_millis() / 1000 - 0.5))
         try:
-            result = resolve(event["url"], Transport(), Deadline(remaining))
+            policy = load_policy() if configured() else None
+            authorize = None
+            if policy:
+                from shared_url_qualification.store import load_store
+                store = load_store(policy)
+                remaining = min(remaining, policy.end - policy.now())
+                def authorize(url):
+                    policy.require_provider(url)
+                    store.healthy()
+            result = resolve(event["url"], Transport(authorize=authorize) if authorize else Transport(), Deadline(remaining), authorize=authorize)
         except Exception:
             # Do not expose network/library exceptions containing raw input.
             result["resolutionStatus"] = "partial"

@@ -5,6 +5,7 @@ import time
 
 from assessment_dependencies import Dependencies
 from assessment_service import Budget, assess, base_result
+from shared_url_qualification import configured, load_policy, Closed
 
 
 def lambda_handler(event, context):
@@ -17,7 +18,15 @@ def lambda_handler(event, context):
         requested = event.get('executionBudgetMs') if isinstance(event, dict) else None
         if type(requested) is int and 1000 <= requested <= 18000:
             remaining = min(remaining, requested / 1000)
-        result = assess(event, Dependencies(), Budget(remaining))
+        try:
+            if configured():
+                policy = load_policy()
+                policy.require_provider(event.get('url') if isinstance(event,dict) else None)
+                remaining = min(remaining, policy.end - policy.now())
+            result = assess(event, Dependencies(), Budget(remaining))
+        except Closed:
+            result = base_result()
+            result.update(processingOutcome='unavailable', reasonCodes=['CONFIGURATION_UNAVAILABLE'])
     # Allowlisted operational counts only. Never raw URL/key/checkId/exception.
     print(json.dumps({'event': 'private_url_assessment', 'status': result['processingOutcome'],
                       'verdict': result['verdict'], 'reason': result['reasonCodes'][0],

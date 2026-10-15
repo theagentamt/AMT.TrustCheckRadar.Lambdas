@@ -373,7 +373,7 @@ class Authority:
     def _receipt_public(self, row):
         return ({'urlTransportVersion':row['urlTransportVersion']} if 'urlTransportVersion' in row else {}) | ({'recoveryTransportVersion':row['recoveryTransportVersion']} if 'recoveryTransportVersion' in row else {}) | ({'messageTransportVersion':row['messageTransportVersion']} if 'messageTransportVersion' in row else {}) | {k: row.get(k) for k in ('checkId', 'clientCheckId', 'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome', 'resultSummary', 'assessmentEpoch')} | {'expiresAt': row.get('retentionDeadlineEpoch', row.get('expiresAt'))}
 
-    def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True):
+    def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True, admission_actions=None):
         account = self._account(event)
         key_id, _, _, _ = self._token_parts(check_id)
         partition = self._partition(account, key_id)
@@ -430,6 +430,11 @@ class Authority:
             'ConditionExpression': 'attribute_not_exists(activeCount) OR activeCount < :cap',
             'ExpressionAttributeValues': {':one': 1, ':cap': self.s.max_inflight}}})
         items.append({'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}})
+        if admission_actions is not None:
+            # Trusted URL adapter only; executed after the prior-receipt check.
+            # This budget action shares all account/device/allowance guards and
+            # receipt creation, so conflict/replay cannot consume a second slot.
+            items.extend(admission_actions())
         try: self._transact(items)
         except AuthorityError:
             prior = self._get(self.s.authority_table, key)

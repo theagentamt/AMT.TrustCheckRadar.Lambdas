@@ -56,9 +56,10 @@ def unique_pairs(pairs):
 
 
 class Consumer:
-    def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic):
+    def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic,qualification=None):
         self.a,self.mapper,self.provider,self.refresh,self.clock=authority,mapper,provider,refresh,clock
         self.legacy_mapper=mapper;self.version=VERSION
+        self.qualification=qualification
 
     def access(self,event):
         observed=timestamp(self.a.now())
@@ -138,6 +139,11 @@ class Consumer:
             except Exception:raise AuthorityError('INPUT_REJECTED') from None
             intent={k:request[k] for k in ('entryPoint','language','target')}
             if self.version==FRESH_VERSION:intent['urlTransportVersion']=FRESH_VERSION
+            if self.qualification is not None:
+                try:
+                    self.qualification.p.require_admission(intent['target']['url'])
+                    self.qualification.healthy()
+                except Exception:raise AuthorityError('QUALIFICATION_CLOSED') from None
             self.refresh(event)
             if route.endswith('/prepare'):
                 if proof is not None or 'operationProof' in body:raise AuthorityError('INPUT_REJECTED')
@@ -149,13 +155,14 @@ class Consumer:
                 result=self.envelope(event,client,proof,'prepared',row={'expiresAt':self.a._token_parts(proof)[1]})
                 return 200,result
             admission_uncertain=True
-            admitted=self.a.admit(event,intent,proof,client_check_id=client,count_attempt=False)
+            extra={} if self.qualification is None else {'admission_actions':lambda:self.qualification.admission_actions(intent['target']['url'])}
+            admitted=self.a.admit(event,intent,proof,client_check_id=client,count_attempt=False,**extra)
             if not admitted['admitted']:
                 row=admitted['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000))
             result=None
-            if budget_ms>=14000:
+            if budget_ms>=14000 and (self.qualification is None or self.qualification.p.provider):
                 try:result=self.provider({'schemaVersion':1,'checkId':client,'url':intent['target']['url'],'scope':intent['target']['scope'],'executionBudgetMs':budget_ms})
                 except Exception:pass
             outcome='failed'

@@ -78,3 +78,11 @@ def test_provider_wire_response_cap(monkeypatch):
 ])
 def test_malformed_provider_framing_not_no_match(raw):
     with pytest.raises(Unavailable): module.decode_http(raw)
+
+
+def test_qualification_rechecked_after_dns_tls_before_google_get(monkeypatch):
+    sock, _, _ = transport(monkeypatch, [])
+    def closed():raise ValueError('synthetic window closed')
+    with pytest.raises(Unavailable):
+        module.lookup('https://example.com/', 'synthetic', Budget(32), before_send=closed)
+    assert sock.data is None and sock.closed

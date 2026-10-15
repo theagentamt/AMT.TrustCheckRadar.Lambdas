@@ -1,4 +1,4 @@
-"""AWS clients are created only after local input validation; no persistent cache."""
+"""AWS clients are created only after local input validation; synthetic qualification gates before any egress."""
 import json
 import os
 import re
@@ -11,8 +11,16 @@ class Dependencies:
     def __init__(self):
         self.key = None
         self.provider_call_count = 0
+        from shared_url_qualification import configured, load_policy
+        self.qualification = load_policy() if configured() else None
+        self.store = None
 
     def resolve(self, check_id, url, budget):
+        if self.qualification is not None:
+            self.qualification.require_provider(url)
+            from shared_url_qualification.store import load_store
+            if self.store is None:self.store = load_store(self.qualification)
+            self.store.healthy()
         import boto3
         from botocore.config import Config
         arn = os.environ.get('URL_RESOLVER_FUNCTION_ARN', '')
@@ -38,6 +46,18 @@ class Dependencies:
             client.close()
 
     def lookup(self, url, budget):
+        if self.qualification is not None:
+            from shared_url_qualification.store import load_store
+            from shared_url_qualification import Closed
+            try:
+                self.qualification.require_provider(url)
+                if self.store is None:self.store = load_store(self.qualification)
+                return self.store.lookup(url, budget, lambda:self._uncached_lookup(url,budget))
+            except Closed:
+                raise Unavailable('CONFIGURATION_UNAVAILABLE') from None
+        return self._uncached_lookup(url,budget)
+
+    def _uncached_lookup(self, url, budget):
         if self.key is None:
             import boto3
             from botocore.config import Config
@@ -66,4 +86,9 @@ class Dependencies:
                 client.close()
         budget.remaining()
         self.provider_call_count += 1
+        if self.qualification is not None:
+            def guard():
+                self.qualification.require_provider(url)
+                self.store.healthy()
+            return lookup(url, self.key, budget, before_send=guard)
         return lookup(url, self.key, budget)
