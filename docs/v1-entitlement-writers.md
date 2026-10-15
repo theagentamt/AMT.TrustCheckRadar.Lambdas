@@ -37,6 +37,31 @@ No Scan, Query, GSI, S3 or public paid/operator route is needed. Package the
 `v1_entitlements`, `shared_check_authority` and `shared_history` modules; use
 Python 3.14/ARM64. Legacy Web Risk remains unchanged.
 
+### Dev snapshot-only engineering selection
+
+SECUR4ALL-195 adds the optional `DEV_ACCESS_SNAPSHOT_EXTRA_SUBJECTS_JSON` to the
+entitlements function only. Missing/empty selection admits no additional subject.
+A configured additional selection must contain exactly one canonical UUID;
+invalid, duplicate, multiple or wildcard selections never admit an extra subject.
+The original `DEV_SUBJECT_ALLOWLIST_JSON` must remain valid and unchanged. Its
+subjects retain their original behavior even if the additional selection is invalid.
+
+Only the exact `GET /v1/access` route with HTTP method GET may admit the extra
+subject. It still requires the validated Cognito access-token context, active
+adult account and deletion/device fences. A missing or mismatched fingerprint
+remains a snapshot with `activeDevice=false`; this does not register or switch a
+device. The existing access schema, policy version and error codes are unchanged.
+For an extra-only subject, `trial.activationAvailable` is always false, without
+removing existing trial dates or usage. `POST /v1/access/trial`, the operator route
+and every other engineering-gated service retain their original authorization.
+
+This selection creates no trial, paid grant, allowance reset, History eligibility
+or device registration. Snapshot refresh may still maintain existing effective
+ACCESS after an approved grant expires; the endpoint is not a promise of zero
+authority writes. It invokes no store or analysis provider. Runtime activation
+requires a separately reviewed exact Dev plan and preserves the original History
+selection; UAT/Production and background billing remain outside this increment.
+
 ## Transactional authority
 
 `EntitlementWriter` uses disjoint V1 keys in the existing authority table.
@@ -52,13 +77,27 @@ clock. Research/legacy FREE/PRO balances are never consulted. Account deletion
 and device changes racing activation cancel the complete transaction.
 
 A complimentary grant requires a trusted operator context whose exact IAM role
-is in the configured allowlist. The future IAM adapter must derive that context
-from authenticated AWS identity, never body claims. The source supports an
+is in the configured allowlist. `POST /v1/operator/complimentary-access` derives
+that context only from API Gateway HTTP API v2 `authorizer.iam` identity, converts
+the exact same-account assumed-role ARN to its configured IAM role ARN and hashes
+the signed caller/session identity. Request fields cannot supply or override the
+actor. The source supports an
 optional expiry, represented by explicit null for no expiry. Grant/revoke creates
 an audit row in the same transaction, recording allowlisted principal, HMAC of
 session identity, reason code and revision. Revocation restores the actual
 underlying period/usage, including exhausted or expired states. Mobile cannot
-call this library interface. No administrative endpoint is deployed by this PR.
+call this library interface. Infrastructure must expose only the exact AWS_IAM
+route to its restricted operator role; direct Lambda invocation is not an
+operator transport.
+
+The owner-approved audit policy is enforced as exactly 31,536,000 seconds. An
+active no-expiry grant has no audit TTL. A fixed-expiry grant expires one year
+after its grant expiry. Revocation or replacement of a still-active grant sets
+the prior audit and new action audit to one year after that transition, in the
+same transaction. Later re-grants do not extend an already-retained revoke
+record. Account deletion removes the authority partition, including these audit
+rows; disclosed DynamoDB backups may retain historical copies up to 35 days.
+Missing or changed retention configuration fails closed.
 
 `refresh_for_account` updates effective authority after an overlay expires,
 without extending or creating a trial or paid period. Snapshot and future

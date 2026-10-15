@@ -8,7 +8,9 @@ from shared_play_lifecycle import runtime
 
 
 def lambda_handler(event,_context):
-    if os.environ.get('STAGE')!='dev' or os.environ.get('PLAY_LIFECYCLE_ENABLED')!='true':return {'statusCode':503,'body':''}
+    if (os.environ.get('STAGE')!='dev' or os.environ.get('PLAY_LIFECYCLE_ENABLED')!='true'
+            or os.environ.get('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED')!='true'):
+        return {'statusCode':503,'body':''}
     counts=dict(heartbeat=1,accepted=0,testNotification=0,rejected=0,failed=0,unresolved=0);service=None
     try:
         if (type(event) is not dict or event.get('version')!='2.0' or event.get('requestContext',{}).get('http',{}).get('method')!='POST'

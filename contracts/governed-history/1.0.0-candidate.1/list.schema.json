@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object", "additionalProperties": false,
+  "required": ["transportVersion", "serverTimeEpoch", "items", "nextCursor"],
+  "properties": {
+    "transportVersion": {"const": "1.0.0-governed-history-candidate.1"},
+    "serverTimeEpoch": {"type": "integer", "minimum": 0},
+    "items": {"type": "array", "maxItems": 50, "items": {"$ref": "item.schema.json"}},
+    "nextCursor": {"type": ["string", "null"], "maxLength": 2048}
+  }
+}

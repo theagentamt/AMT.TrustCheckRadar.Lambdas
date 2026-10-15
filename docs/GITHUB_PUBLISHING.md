@@ -88,6 +88,20 @@ Broader releases retain the existing all-functions uploader. CI runs created bef
 
 The publisher uses existing `s3:GetObject` and `s3:PutObject` permissions. It does not request `GetObjectVersion`; a concurrent latest-version replacement fails verification. Infrastructure independently verifies pinned-version bytes with its existing deploy permissions before rollout.
 
+## Independent V1 entitlements publication
+
+A change limited to the V1 entitlement handler, its entitlement writer, strict
+operator/access contracts, tests, documentation and the enumerated release
+support files receives `scope=entitlements`. After successful main CI, the
+publisher uploads only `v1_entitlements.zip` with
+`scripts/publish_v1_entitlements.py` and preserves the exact bucket, key,
+version, checksum and source-code hash as `v1-entitlements-publication.json`.
+
+The publisher never updates a Lambda function or alias. Infrastructure must pin
+the recorded immutable object before deployment. Any URL consumer, recovery,
+deletion or unrelated runtime change prevents this narrow scope. This keeps an
+operator-control change from publishing unrelated Lambda packages.
+
 
 Contract-only changes under `contracts/url-assessment/v1-draft/` and their tests, with narrowly listed release-scope support files, receive `scope=contracts`. The publishing workflow validates the main CI evidence but skips AWS credential assumption and every upload step. These draft handoffs are versioned in Git only; they do not publish or activate runtime artifacts. Any runtime-code change prevents contract-only scope.
 

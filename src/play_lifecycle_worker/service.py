@@ -4,6 +4,7 @@ from shared_check_authority.core import AuthorityError
 from shared_check_authority.purchase_usage import exact_condition
 from shared_purchase_ownership.service import owner_key
 from shared_play_lifecycle.tokens import validate,key,retry_action,load_owned
+from shared_play_lifecycle.scoped import ScopedTarget
 
 
 class Worker:
@@ -64,7 +65,46 @@ class Worker:
             if service is not None:
                 service.client.close();service.cipher.client.close()
 
-    def _retry(self,row,counts):
+    def run_scoped(self,target_factory):
+        """Process only one preselected current head; never query or checkpoint."""
+        counts=dict(heartbeat=1,examined=0,reconciled=0,ackPending=0,expiredDeleted=0,failed=0,unresolved=0,exhausted=0,oldestDueSeconds=0)
+        row=None;service=None
+        try:
+            selected=target_factory()
+            if selected is None:return counts
+            if type(selected) is not ScopedTarget:raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+            row=selected.row
+            validate(row,{k:row[k] for k in ('PK','SK')},self.now(),allow_expired=True)
+            if row['nextAttemptAtEpoch']>self.now():return counts
+            counts['examined']=1;counts['oldestDueSeconds']=max(0,self.now()-int(row['nextAttemptAtEpoch']))
+            target={k:row[k] for k in ('PK','SK')}
+            if self.now()>=row['expiresAt']:
+                self.ddb.meta.client.transact_write_items(TransactItems=list(selected.guards)+[{'Delete':{'TableName':self.table,'Key':target,**exact_condition(row)}}])
+                counts['expiredDeleted']=1;return counts
+            if not self.enabled or self.remaining()<24000:return counts
+            service=self.factory()
+            if not isinstance(service.allowed_subjects,frozenset) or len(service.allowed_subjects)!=1:
+                raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+            account=next(iter(service.allowed_subjects))
+            owner=service.ownership._get(owner_key(row['tokenDigest']))
+            if not owner or owner.get('accountId')!=account:raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+            if service.a._partition(account,service.a.s.active_key_id)!=row['PK']:raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+            token,observed=load_owned(service.a,account,row['tokenDigest'],service.cipher,token_table=self.table)
+            if observed!=row:raise AuthorityError('PLAY_TOKEN_OBSERVATION_CHANGED')
+            operation=hashlib.sha256(('scheduled\0'+row['PK']+'\0'+row['SK']+'\0'+str(row['revision'])).encode()).hexdigest()
+            result=service.refresh(token,operation)
+            if result['state']!='committed':counts['unresolved']=1;self._retry(row,counts,selected.guards)
+            else:
+                counts['reconciled']=1;counts['ackPending']=int(result['acknowledgment']=='pending')
+            return counts
+        except Exception:
+            counts['failed']=1
+            return counts
+        finally:
+            if service is not None:
+                service.client.close();service.cipher.client.close()
+
+    def _retry(self,row,counts,guards=()):
         action=retry_action(self.table,row,now=self.now())
-        self.ddb.meta.client.transact_write_items(TransactItems=[action])
+        self.ddb.meta.client.transact_write_items(TransactItems=list(guards)+[action])
         counts['exhausted']+=int(action.get('Put',{}).get('Item',{}).get('lastOutcome')=='exhausted')

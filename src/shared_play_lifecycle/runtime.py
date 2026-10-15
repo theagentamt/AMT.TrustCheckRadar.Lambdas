@@ -33,9 +33,56 @@ def load():
     if not re.fullmatch(r'arn:aws:iam::107827791950:role/[A-Za-z0-9+=,.@_/-]{1,128}',principal):raise AuthorityError('LIFECYCLE_CONFIGURATION_REQUIRED')
     handoff=_runtime()
     handoff.writer.lifecycle_principals=frozenset({principal})
-    try:return Reconciler(handoff.writer,handoff.ownership,handoff.client,TrustedLifecycleWorker(principal),token_table=token_table(),token_cipher=handoff.token_cipher or cipher(),require_test=True,allowed_subjects=allowed)
+    try:return Reconciler(handoff.writer,handoff.ownership,handoff.client,TrustedLifecycleWorker(principal),token_table=token_table(),token_cipher=handoff.token_cipher or cipher(),require_test=True,allowed_subjects=allowed,
+        allow_initial_background=os.environ.get('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED')!='true')
     except Exception:
         handoff.client.close();raise
+
+
+def scoped_target():
+    """Return the one allowlisted account's exact current retained Play head.
+
+    This is the scoped Dev worker selector. It deliberately performs no GSI
+    query and creates no global cursor. Missing authority/token state means
+    there is no scheduled work; malformed or changing state fails closed.
+    """
+    from shared_check_authority.engineering import allowed_subjects
+    from shared_check_authority.entitlements import EntitlementWriter
+    from shared_check_authority.runtime import load_authority
+    from shared_check_authority.purchase_usage import exact_condition
+    from shared_purchase_ownership.service import OwnershipStore,OwnershipError
+    from shared_play_verification.proof import PRODUCT
+    from .scoped import ScopedTarget
+    from .tokens import key,validate
+    allowed=allowed_subjects()
+    if len(allowed)!=1:raise AuthorityError('LIFECYCLE_CONFIGURATION_REQUIRED')
+    account=next(iter(allowed));authority=load_authority()
+    writer=EntitlementWriter(authority,approved_products=frozenset(),operator_principals=frozenset(),verification_max_age_seconds=20)
+    pk,access,sources=writer._read(account);paid=sources.get('paid')
+    if paid is None:return None
+    digest=paid.get('headTokenDigest')
+    if not isinstance(digest,str):raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+    ownership_table=os.environ['PURCHASE_OWNERSHIP_TABLE_NAME']
+    ownership=OwnershipStore(table=authority.ddb.Table(ownership_table),ledger=authority.ddb.Table(authority.s.deletion_table),
+        users_table_name=authority.s.users_table,table_name=ownership_table,ledger_table_name=authority.s.deletion_table,
+        client=authority.ddb.meta.client,environment='dev',now=authority.now)
+    try:observed=ownership.observe_claim(account,(digest,),product_id=PRODUCT)
+    except OwnershipError:raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED') from None
+    if any(value is None for value in observed.owners+observed.locators):raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+    target=key(pk,digest);row=authority._get(token_table(),target)
+    if row is None:return None
+    validate(row,target,authority.now(),allow_expired=True)
+    authority._assert_account(account)
+    if writer._read(account)!=(pk,access,sources):raise AuthorityError('LIFECYCLE_OBSERVATION_REQUIRED')
+    guards=authority._account_conditions(account)
+    guards.append({'ConditionCheck':{'TableName':authority.s.authority_table,'Key':{'PK':pk,'SK':'ACCESS'},**exact_condition(access)}})
+    for retained_partition in authority.deletion_partitions(account):
+        if retained_partition!=pk:
+            guards.append({'ConditionCheck':{'TableName':authority.s.authority_table,
+                'Key':{'PK':retained_partition,'SK':'ACCESS'},'ConditionExpression':'attribute_not_exists(PK)'}})
+    for value in (observed.inventory,)+observed.owners+observed.locators:
+        guards.append({'ConditionCheck':{'TableName':ownership_table,'Key':{k:value[k] for k in ('PK','SK')},**exact_condition(value)}})
+    return ScopedTarget(row,tuple(guards))
 
 
 def close(service):

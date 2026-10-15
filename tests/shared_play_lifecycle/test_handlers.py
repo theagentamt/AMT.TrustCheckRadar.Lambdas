@@ -14,6 +14,30 @@ def test_worker_checkpoint_policy_gate_blocks_even_when_cleanup_enabled(monkeypa
  monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_TOKEN_CLEANUP_ENABLED','true');monkeypatch.setenv('PLAY_CHECKPOINT_POLICY_APPROVED','false')
  assert lambda_handler({'schemaVersion':1,'operation':'reconcile-play-lifecycle'},None)=={'enabled':False}
 
+def test_scoped_worker_requires_lifecycle_and_owned_head_gates(monkeypatch):
+ from play_lifecycle_worker.app import lambda_handler
+ monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_SCOPED_LIFECYCLE_WORKER_ENABLED','true')
+ monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','false');monkeypatch.setenv('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED','true')
+ assert lambda_handler({'schemaVersion':1,'operation':'reconcile-play-lifecycle'},None)=={'enabled':False}
+ monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','true');monkeypatch.setenv('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED','false')
+ assert lambda_handler({'schemaVersion':1,'operation':'reconcile-play-lifecycle'},None)=={'enabled':False}
+
+def test_scoped_worker_handler_selects_direct_mode_and_logs_fixed_counters(monkeypatch,capsys):
+ from play_lifecycle_worker import app
+ monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_SCOPED_LIFECYCLE_WORKER_ENABLED','true')
+ monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','true');monkeypatch.setenv('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED','true')
+ monkeypatch.setattr(app.runtime,'resource',lambda:object());monkeypatch.setattr(app.runtime,'token_table',lambda:'tokens')
+ target=lambda:object();monkeypatch.setattr(app.runtime,'scoped_target',target)
+ expected=dict(heartbeat=1,examined=0,reconciled=0,ackPending=0,expiredDeleted=0,failed=0,unresolved=0,exhausted=0,oldestDueSeconds=0)
+ class Direct:
+  def __init__(self,*args,**kwargs):pass
+  def run(self):pytest.fail('global checkpoint worker must stay unused')
+  def run_scoped(self,selector):assert selector is target;return expected
+ monkeypatch.setattr(app,'Worker',Direct)
+ context=type('Context',(),{'get_remaining_time_in_millis':lambda self:29000})()
+ assert app.lambda_handler({'schemaVersion':1,'operation':'reconcile-play-lifecycle'},context)==expected
+ assert json.loads(capsys.readouterr().out)=={'event':'play_lifecycle_worker',**expected}
+
 def test_preparation_enabled_composition_and_exact_response(monkeypatch):
  from shared_play_lifecycle import preparation
  from shared_check_authority import engineering,runtime,entitlements
@@ -36,7 +60,7 @@ def test_preparation_enabled_composition_and_exact_response(monkeypatch):
 def test_ingress_logs_only_fixed_counters_and_test_delivery_avoids_provider(monkeypatch,capsys):
  from play_lifecycle_ingress import app
  from types import SimpleNamespace
- monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','true')
+ monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','true');monkeypatch.setenv('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED','true')
  for name in ('PLAY_PUBSUB_AUDIENCE','PLAY_PUBSUB_SERVICE_ACCOUNT_EMAIL','PLAY_PUBSUB_SERVICE_ACCOUNT_SUBJECT','PLAY_PUBSUB_SUBSCRIPTION'):monkeypatch.setenv(name,'synthetic-config')
  monkeypatch.setattr(app,'parse_delivery',lambda *a,**k:SimpleNamespace(kind='test'))
  monkeypatch.setattr(app.runtime,'load',lambda:pytest.fail('provider must not load'))
@@ -44,6 +68,12 @@ def test_ingress_logs_only_fixed_counters_and_test_delivery_avoids_provider(monk
  assert response['statusCode']==204
  line=json.loads(capsys.readouterr().out)
  assert line==dict(event='play_lifecycle_ingress',heartbeat=1,accepted=0,testNotification=1,rejected=0,failed=0,unresolved=0)
+
+def test_ingress_requires_explicit_owned_head_scope(monkeypatch):
+ from play_lifecycle_ingress.app import lambda_handler
+ monkeypatch.setenv('STAGE','dev');monkeypatch.setenv('PLAY_LIFECYCLE_ENABLED','true')
+ monkeypatch.setenv('PLAY_SCOPED_OWNED_HEAD_ONLY_ENABLED','false')
+ assert lambda_handler({},None)=={'statusCode':503,'body':''}
 
 
 def test_new_contract_fixtures_and_immutable_predecessor_versions():

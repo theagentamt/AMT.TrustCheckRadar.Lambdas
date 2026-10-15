@@ -1,7 +1,8 @@
 # V1 access and explicit trial contract
 
 Candidate deployment contract, schema version 1. Routes are implemented but default
-disabled; trial additionally requires explicit retention approval; no public paid/complimentary write operation is supplied.
+disabled; trial additionally requires explicit retention approval. Complimentary
+writes use the separate private operator contract and are never a mobile operation.
 
 - `GET /v1/access`: empty body/query; verified Cognito access JWT. Send the raw
   registered fingerprint in `x-device-binding-fingerprint` to establish this

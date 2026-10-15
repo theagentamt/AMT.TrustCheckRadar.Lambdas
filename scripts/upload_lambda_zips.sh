@@ -33,6 +33,7 @@ OPTIONAL_FUNCTIONS=(
   history_lifecycle
   history_mutation_api
   history_read_api
+  governed_history
   message_consumer
   message_evaluator
   play_lifecycle_ingress
