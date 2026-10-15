@@ -174,24 +174,28 @@ not the authorization design. Exact IAM is owned by the infrastructure slice.
 
 ## Local evidence and remaining gates
 
+The final broad impacted suite passed **715 tests in 47.59 seconds** against
+implementation head `a83d5b208949c17c709759bcae561b6254bb0f4b`. This rerun
+includes all cleanup retention/alarm fixes and real authority-loading rollback
+coverage; it supersedes the earlier 701-test evidence. Shellcheck, compileall and
+whitespace checks also passed against this source. Source stories remain open;
+owner retention approval has not been granted.
+
+The 715-test suite includes the 44 scoped tests: absent/false/malformed retention
+consent prevents cleanup SDK/client creation; incomplete or missing sweep
+completion raises the fixed alarm error without exposing response data; original
+proof reconciliation works with mode OFF/authority ON and retention/provider/new
+admission OFF; and the real keyring, inventory, Settings validation and Authority
+loader accept that rollback configuration using read-only fake SDKs. No account
+or table write occurs in the loader test.
+
 An isolated Python environment `/tmp/sec233-offline-venv` points to already cached
-Python dependencies. No network install was performed. Moto intercepts AWS in
-fixture tests; provider/DNS/HTTP tests use local fakes. The initial broad run had
-681 passes and five subprocess failures because the base interpreter lacked
-`jsonschema/cryptography`; isolated cached dependencies resolved those failures.
-The final broad impacted run passed **701 tests in 47.53 seconds**, including
-explicit-OFF/partial configuration, fractional provider expiry and the one-subject
-gate. Cached versions: pytest 9.1.1, Moto 5.2.3, boto3 1.43.108, jsonschema
-4.26.0, dnspython 2.8.0. Shellcheck, compileall and diff whitespace checks passed.
-The packaged files are source archives built with `--skip-dependencies`, not a
-claim that deployment artifacts or Lambda runtime acceptance have been qualified.
-The cleanup retention-gate follow-up passed all **38 scoped tests**, including
-seven absent/false/malformed approval denials before any SDK factory, an approved
-handler fixture, and explicit mode-OFF/authority-ON reconciliation. The subsequent
-cleanup alarm/real-loader follow-up passed **44 scoped tests**: false/missing or
-malformed completion raises the fixed alarm error, and the real keyring, inventory,
-Settings validation and Authority loader accept rollback configuration using only
-read-only fake SDKs (no account or table writes).
+Python dependencies. No network install was performed. Cached versions: pytest
+9.1.1, Moto 5.2.3, boto3 1.43.108, jsonschema 4.26.0, dnspython 2.8.0. Moto
+intercepts AWS in fixture tests; provider/DNS/HTTP tests use local fakes. Four
+source-archive imports are included in the passing suite. The packaged files use
+`--skip-dependencies`; neither those archives nor these tests establish deployment
+artifact or live Lambda runtime readiness.
 
 Representative commands:
 
