@@ -38,3 +38,17 @@ def test_approved_cleanup_handler_preserves_bounded_sweep_without_runtime_mode(m
     assert cleanup.lambda_handler({'ignored':'synthetic'},None)=={'deleted':2,'complete':True}
     sweep.assert_called_once_with(resource,'synthetic-table',1800000000)
     assert factory.call_args.kwargs['config'].retries['total_max_attempts']==1
+
+
+@pytest.mark.parametrize('result',[{'complete':False},{},{'complete':1},{'complete':'true'},None])
+def test_incomplete_or_missing_sweep_completion_fails_for_errors_alarm(monkeypatch,capsys,result):
+    for key,value in {'STAGE':'dev','URL_CLEANUP_ENABLED':'true','URL_RETENTION_APPROVED':'true',
+        'URL_QUALIFICATION_TABLE_NAME':'synthetic-table'}.items():monkeypatch.setenv(key,value)
+    monkeypatch.setattr(boto3,'resource',Mock(return_value=object()))
+    if isinstance(result,dict):result=result|{'privateFixture':'SYNTHETIC_NOT_FOR_LOGS'}
+    monkeypatch.setattr(cleanup,'sweep',Mock(return_value=result))
+    with pytest.raises(RuntimeError) as error:
+        cleanup.lambda_handler({'privateFixture':'SYNTHETIC_NOT_FOR_LOGS'},None)
+    assert str(error.value)=='URL_QUALIFICATION_CLEANUP_INCOMPLETE'
+    assert 'SYNTHETIC_NOT_FOR_LOGS' not in str(error.value)
+    assert capsys.readouterr().out==''

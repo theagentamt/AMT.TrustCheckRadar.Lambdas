@@ -46,4 +46,9 @@ def lambda_handler(event, context):
     resource = boto3.resource('dynamodb', region_name='us-east-1',
                              config=Config(connect_timeout=0.2, read_timeout=0.3, retries={'total_max_attempts': 1}))
     # An exception never advances the freshness heartbeat. No raw event/log data.
-    return sweep(resource, os.environ['URL_QUALIFICATION_TABLE_NAME'], int(time.time()))
+    result = sweep(resource, os.environ['URL_QUALIFICATION_TABLE_NAME'], int(time.time()))
+    if not isinstance(result, dict) or result.get('complete') is not True:
+        # Fixed error activates Lambda Errors alarms without serializing any
+        # sweep response, key or event. Incomplete sweeps never advance heartbeat.
+        raise RuntimeError('URL_QUALIFICATION_CLEANUP_INCOMPLETE')
+    return result

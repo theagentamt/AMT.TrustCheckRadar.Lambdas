@@ -135,7 +135,10 @@ The intended schedule is every five minutes, disabled by default. It queries up
 to four pages of 50 expired rows with `Select=SPECIFIC_ATTRIBUTES`, never scans,
 and deletes only if the observed expiry still matches and is due. It advances
 `CONTROL/CLEANUP.lastSweepEpoch` only after a complete sweep with no uncertain
-conditional deletion; backlog/exception keeps the heartbeat stale. No unexpired
+conditional deletion; backlog/exception keeps the heartbeat stale. The enabled
+handler raises the fixed content-free `URL_QUALIFICATION_CLEANUP_INCOMPLETE`
+error unless sweep completion is exactly boolean true, so existing Lambda Errors
+alarms detect repeated incomplete sweeps without extra metrics or record logs. No unexpired
 lock can be deleted to reopen a target within a run. TTL alone is not the promised
 15-minute cleanup mechanism.
 
@@ -184,7 +187,11 @@ The packaged files are source archives built with `--skip-dependencies`, not a
 claim that deployment artifacts or Lambda runtime acceptance have been qualified.
 The cleanup retention-gate follow-up passed all **38 scoped tests**, including
 seven absent/false/malformed approval denials before any SDK factory, an approved
-handler fixture, and explicit mode-OFF/authority-ON reconciliation.
+handler fixture, and explicit mode-OFF/authority-ON reconciliation. The subsequent
+cleanup alarm/real-loader follow-up passed **44 scoped tests**: false/missing or
+malformed completion raises the fixed alarm error, and the real keyring, inventory,
+Settings validation and Authority loader accept rollback configuration using only
+read-only fake SDKs (no account or table writes).
 
 Representative commands:
 
