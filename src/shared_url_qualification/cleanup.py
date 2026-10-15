@@ -38,7 +38,8 @@ def sweep(resource, table_name, now):
 
 
 def lambda_handler(event, context):
-    if os.environ.get('STAGE') != 'dev' or os.environ.get('URL_CLEANUP_ENABLED') != 'true':
+    if (os.environ.get('STAGE') != 'dev' or os.environ.get('URL_CLEANUP_ENABLED') != 'true'
+            or os.environ.get('URL_RETENTION_APPROVED') != 'true'):
         return {'enabled': False}
     import boto3
     from botocore.config import Config

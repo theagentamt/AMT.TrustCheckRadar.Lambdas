@@ -40,7 +40,7 @@ qualification configuration preserves the retained legacy URL behavior; explicit
 | `URL_SUBJECT_ALLOWLIST_JSON` | Separate validated JWT UUID list, exactly one scoped actor; never broadens engineering/Message/History gates |
 | `URL_QUALIFICATION_MANIFEST_JSON` | Trusted public synthetic manifest below; no client override |
 | `URL_QUALIFICATION_TABLE_NAME` | Dedicated store, never identity/authority tables |
-| `URL_CLEANUP_ENABLED` | Scheduled cleanup only; defaults `false` |
+| `URL_CLEANUP_ENABLED` | Scheduled cleanup only; defaults `false`; also requires exact `URL_RETENTION_APPROVED=true` |
 
 Existing `STAGE=dev` and authority configuration remain required. Existing
 `CONSUMER_ENABLED` remains a legacy gate and is not needed for explicitly enabled
@@ -142,8 +142,12 @@ lock can be deleted to reopen a target within a run. TTL alone is not the promis
 Consumer/assessment/resolver strongly read the heartbeat and close new
 admission/provider work when it is missing, in the future or older than 900
 seconds. Startup needs one successful enabled cleanup sweep before runtime can
-open. Reconciliation never reads this store. Cleanup remains independently
-available during rollback and does not need the runtime window/provider controls.
+open. Reconciliation never reads this store. Cleanup requires exact
+`URL_RETENTION_APPROVED=true` before any SDK client or sweep, and remains
+independent of runtime mode/window/provider controls during rollback. Retain
+retention approval for authorized cleanup of existing data; revoking it closes
+cleanup as well as new/provider operations and needs an explicit retention
+disposition, while original-proof reconciliation remains available.
 Future deployment/retention approval must authorize its operational heartbeat
 writes and validate observed deletion lag/alarms; these checks were not performed
 against AWS.
@@ -178,6 +182,9 @@ gate. Cached versions: pytest 9.1.1, Moto 5.2.3, boto3 1.43.108, jsonschema
 4.26.0, dnspython 2.8.0. Shellcheck, compileall and diff whitespace checks passed.
 The packaged files are source archives built with `--skip-dependencies`, not a
 claim that deployment artifacts or Lambda runtime acceptance have been qualified.
+The cleanup retention-gate follow-up passed all **38 scoped tests**, including
+seven absent/false/malformed approval denials before any SDK factory, an approved
+handler fixture, and explicit mode-OFF/authority-ON reconciliation.
 
 Representative commands:
 

@@ -101,7 +101,7 @@ def test_http_rollback_reconciles_owning_proof_without_window_retention_device_t
     monkeypatch.setattr(qualification,'load_policy',lambda:pytest.fail('rollback required active window/retention'))
     monkeypatch.setattr(runtime,'load_authority',lambda:world[0])
     monkeypatch.setattr(module,'_mapper',lambda:mapper)
-    for key,value in {'STAGE':'dev','CONSUMER_ENABLED':'false','URL_QUALIFICATION_ENABLED':'false',
+    for key,value in {'STAGE':'dev','AUTHORITY_ENABLED':'true','CONSUMER_ENABLED':'false','URL_QUALIFICATION_ENABLED':'false',
         'URL_NEW_ADMISSION_ENABLED':'false','URL_PROVIDER_ENABLED':'false','URL_RETENTION_APPROVED':'false',
         'URL_RECONCILIATION_ENABLED':'true'}.items():monkeypatch.setenv(key,value)
     response=module.lambda_handler(event(e,'POST /v1/url-checks/reconcile',{'transportVersion':request()['transportVersion'],'checkId':'client-1','operationProof':proof}),None)
