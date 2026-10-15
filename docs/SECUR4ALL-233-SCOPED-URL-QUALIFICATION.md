@@ -1,10 +1,21 @@
 # SECUR4ALL-233: scoped synthetic Dev URL qualification
 
-Status: local implementation and synthetic/offline validation only. No deployment,
-AWS write, provider/endpoint contact, workflow dispatch, push, merge into release,
+Status: feature source published with synthetic/offline validation. Tested source
+was published only to `codex/sec233-scoped-url-qualification`, initially at
+`ed83d9c28c9f95a9319cbe74ab8f51f0a10bef1d`; this documentation update follows
+on the same branch. Publication and its verified final remote SHA are tracked
+separately in SECUR4ALL-233 by the coordinating infrastructure agent. No deployment,
+AWS write, provider/endpoint contact, workflow dispatch, main/release integration,
 identity creation/sign-in, device/trial/allowance change, or runtime activation was
-performed. This is not full SECUR4ALL-233 completion or live readiness. SEC334
-and ITCR-98 remain the existing release-test follow-ups; no duplicate was created.
+performed. Feature publication does not mark the story Done or establish live
+readiness. SEC334 and ITCR-98 remain the existing release-test follow-ups; no
+duplicate was created.
+
+Before publication, repository workflow inspection confirmed CI triggers only on
+pushes to `main`, while automatic publication requires successful main CI via
+`workflow_run`; explicit dispatch remains a separate operation. Feature publication
+used an ordinary non-force push of the exact feature ref, with no dispatch or PR
+merge. Existing main/release branch heads were retained.
 
 Source: feature branch `codex/sec233-scoped-url-qualification`, initially based on
 `release-V01` `8cfa4c1a395942778a64f35d3dac566e6e8920e1`; current main
@@ -218,7 +229,7 @@ onboarding and explicit GET/trial/access admission under SEC230; existing
 `v1_entitlements` live17/current-source compatibility (unchanged here); independent
 URL subject approval; approved public synthetic manifest/run window; strict IAM
 and service conformance; startup cleanup/actual deletion lag; future explicit
-publication/deployment/provider/endpoint approval; release integration and linked
+main/release promotion/deployment/provider/endpoint approval; release integration and linked
 release-test evidence. Existing single-subject appreview trial/History gates
 cannot be replaced or widened to prepare the new actor. Physical-device work is
 not performed, per the standing instruction. Nothing here waives those gates.
