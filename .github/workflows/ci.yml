@@ -63,7 +63,7 @@ jobs:
         run: python scripts/lambda_release_scope.py --base "$BEFORE_SHA" --head "$SOURCE_SHA" --output dist/release-scope.json
 
       - name: Upload packages for inspection
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: lambda-packages
           path: |
