@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T03:02:57.493316+00:00",
+  "baseReleaseCommit": "8cfa4c1a395942778a64f35d3dac566e6e8920e1",
+  "scope": "Dev source-only fixed failure diagnostics; runtime policy and non-Dev behavior preserved",
+  "tracking": [
+    "ATCR-112",
+    "ATCR-114"
+  ],
+  "trackingRemainsOpen": true,
+  "sourceAndTestPins": {
+    "src/v1_play_handoff/app.py": "b9a8769ce71ced58e07d81d222d4f0983fefcb9c333ade30519e3ef7f7ca8482",
+    "src/v1_play_handoff/diagnostics.py": "586433f53166de9d25553ea8666215384fbd86118dd06f723e9d3a248bfefe13",
+    "src/v1_entitlements/snapshot_gate.py": "db2a1c55fff1afeda93cc0d75e8f33ee4da456ce9dfc974c5049ebf28bba952a",
+    "src/v1_entitlements/admission_diagnostics.py": "338c312d695735fa7b950ebc12c5bfab3bc2232791e8dce23a9801cd4127a66b",
+    "scripts/prepare_dev_failure_diagnostics.py": "0dd0ddd1757f1cf415a989c097091546d39af0887cee3b430dc0994efe4e29e9",
+    "tests/v1_play_handoff/test_safe_diagnostics.py": "ac0af93f20118e728ac3bdeef9d7bb20b93e5fe88bebb39fa1a2810aac962d0b",
+    "tests/shared_check_authority/test_admission_branch_diagnostics.py": "31b1dad1228b2b73a67d38fa84334e3a153a309c854532e18674644b341bfee3",
+    "tests/scripts/test_dev_failure_diagnostics_overlay.py": "3dc1be019c352beebf416c59e5377e8f7f95661fd2aa14ab15db61065c95a298",
+    "tests/v1_play_handoff/fixtures/dev-live7-app.py": "cb0ff4f737b6abe051339ed90c15b2c4d759c6f2656d91c1e37c6d41c21f4404",
+    "docs/dev-purchase-admission-diagnostics.md": "8ec43cd10d34616d3627f48d72ddd7a8d8ebd302bdf34d9c5894315a36bb7f56"
+  },
+  "validation": {
+    "focusedIncludingContracts": {
+      "tests": 82,
+      "failures": 0,
+      "errors": 0
+    },
+    "repositoryIsolatedSuites": {
+      "suiteCount": 55,
+      "tests": 2663,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 72,
+      "passed": 2591,
+      "allSuitesPassed": true
+    },
+    "affectedIntegration": {
+      "tests": 665,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0
+    },
+    "compileAll": "PASS",
+    "shellcheckAllShellScripts": "PASS",
+    "diffWhitespace": "PASS",
+    "sourceOnlyPackagesBuilt": 41,
+    "fourDisabledPackageImportsNoNetwork": "PASS",
+    "exactOverlayImportSmokeNonDev": [
+      {
+        "component": "verification",
+        "exitCode": 0,
+        "safeResult": "closed handler and non-Dev logging boundary pass"
+      },
+      {
+        "component": "admission",
+        "exitCode": 0,
+        "safeResult": "non-Dev gate outcome and logging boundary pass"
+      }
+    ],
+    "genericEntitlementsAppByteUnchanged": true,
+    "syntheticTestsDoNotProveLiveProviderBehavior": true
+  },
+  "artifacts": [
+    {
+      "component": "verification",
+      "targetDevFunction": "trustcheckradar-dev-v1-play-handoff",
+      "baselineLiveVersion": "7",
+      "baselineSha256": "95194969560e208386aa942697f1ec175572cae09eb5a917a0574f1ad513f42d",
+      "candidateSha256": "ae22d0ddbc2c52bf791cf2728c2be2642a8f7e6968ca81b9d794e3b9cb268c06",
+      "candidateBytes": 6276366,
+      "candidateCodeSha256": "riLQ3bwsUr95HPJyjCviZCqPfmloyoG515TjucsmjAY=",
+      "localOnlyNotUploaded": true,
+      "changedOriginalEntryCount": 1,
+      "newDiagnosticModuleCount": 1,
+      "otherEntriesBytePreserved": true
+    },
+    {
+      "component": "admission",
+      "targetDevFunction": "trustcheckradar-dev-v1-entitlements",
+      "baselineLiveVersion": "17",
+      "baselineSha256": "b56547ef6ad6c16da94ba2bcae866a0f3301c11474a0858ad15420ef5d14acd5",
+      "candidateSha256": "ba9d1efbe25cdf2e6854e43da1a3c1df0d74462a2275f3d58355038a5255865a",
+      "candidateBytes": 65528,
+      "candidateCodeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+      "localOnlyNotUploaded": true,
+      "changedOriginalEntryCount": 1,
+      "newDiagnosticModuleCount": 1,
+      "otherEntriesBytePreserved": true
+    }
+  ],
+  "deployment": {
+    "performed": false,
+    "authorizedByThisSourceTask": false,
+    "proposedLaterScope": "Only exact two Dev code overlays after separate approval and fresh protected baseline readback. No configuration/IAM/route/capacity/schedule/retention change; no cleanup artifact, UAT/Production/main change.",
+    "gatesAndPoliciesChanged": false,
+    "newPurchaseOrProofReplayAuthorized": false
+  },
+  "historicalCause": {
+    "verifier409": "UNKNOWN",
+    "laterAggregateVerify409Count": 2,
+    "threeAccess503": "GET_ADMISSION/ENGINEERING_ACCESS_UNAVAILABLE/VALIDATION; not account attributed",
+    "newEnumsCannotRetroactivelyResolveCause": true
+  },
+  "independentReviewRecord": "dev-purchase-admission-diagnostics-review.json"
+}

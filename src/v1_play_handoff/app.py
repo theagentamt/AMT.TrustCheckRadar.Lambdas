@@ -26,6 +26,13 @@ def _code(error):
     if code in {'TRANSACTION_UNCERTAIN','STORE_OBSERVATION_CHANGED','PLAY_OBSERVATION_CHANGED','PURCHASE_OBSERVATION_CHANGED','PURCHASE_TRANSACTION_UNCONFIRMED','PLAY_OWNERSHIP_UNCONFIRMED','STORE_AUTHORITY_MIGRATION_REQUIRED','AUTHORITY_OPERATION_CONFLICT','OVERLAPPING_STORE_PERIOD','IMMUTABLE_PERIOD_CONFLICT','PURCHASE_USAGE_UNAVAILABLE','PURCHASE_USAGE_MISMATCH','PURCHASE_USAGE_RECONCILIATION_REQUIRED','PURCHASE_USAGE_INVALID'}:return 'PURCHASE_RECONCILIATION_REQUIRED'
     return 'PURCHASE_SERVICE_UNAVAILABLE'
 
+def _record_failure(event,code,status,stage):
+    try:
+        from .diagnostics import record_failure
+        record_failure(event,code,status,stage)
+    except Exception:
+        pass  # Logging cannot alter the response or trigger a retry.
+
 def _runtime():
     if (os.environ.get('PLAY_CATALOG_P1M_VERIFIED')!='true' or os.environ.get('GOOGLE_PLAY_PACKAGE_NAME')!=PACKAGE
         or os.environ.get('GOOGLE_PLAY_PRODUCT_ID')!=PRODUCT or os.environ.get('GOOGLE_PLAY_BASE_PLAN_ID')!=BASE_PLAN
@@ -55,21 +62,24 @@ def lambda_handler(event,_context):
     if isinstance(event,dict) and event.get('routeKey')=='POST /v1/purchases/google-play/prepare':
         from shared_play_lifecycle.preparation import handle
         return handle(event)
-    request_id=None;handoff=None
+    request_id=None;handoff=None;diagnostic_stage='ADMISSION'
     try:
         if os.environ.get('STAGE')!='dev' or os.environ.get('PLAY_HANDOFF_ENABLED')!='true':raise PlayVerificationError('PURCHASE_SERVICE_UNAVAILABLE')
         from shared_check_authority.engineering import require_engineering_subject
         require_engineering_subject(event)
+        diagnostic_stage='REQUEST_VALIDATION'
         if (type(event) is not dict or event.get('version')!='2.0' or event.get('routeKey')!='POST /v1/purchases/google-play/verify' or event.get('requestContext',{}).get('http',{}).get('method')!='POST' or event.get('isBase64Encoded') is True or event.get('rawQueryString') or event.get('queryStringParameters')):raise PlayVerificationError('INPUT_REJECTED')
         raw=event.get('body')
         if not isinstance(raw,str) or len(raw.encode())>5120:raise PlayVerificationError('INPUT_REJECTED')
         from shared_play_verification.client import unique
         try:payload=request_payload(json.loads(raw,object_pairs_hook=unique))
         except (ValueError,TypeError):raise PlayVerificationError('INPUT_REJECTED') from None
-        request_id=payload['requestId'];handoff=_runtime()
+        request_id=payload['requestId'];diagnostic_stage='RUNTIME_INITIALIZATION';handoff=_runtime()
+        diagnostic_stage='VERIFICATION'
         return _response(200,handoff.handle(event,payload))
     except Exception as error:
         code=_code(error);status,retryable=ERRORS[code]
+        _record_failure(event,code,status,diagnostic_stage)
         return _response(status,{'schemaVersion':1,'contractVersion':CONTRACT,'requestId':request_id,'error':{'code':code,'retryable':retryable}})
     finally:
         if handoff is not None:
