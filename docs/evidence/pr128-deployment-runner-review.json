@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T04:06:55.953812+00:00",
+  "result": "PASS_GUARDED_CODE_ONLY_DEPLOYMENT_RUNNER",
+  "reviewScope": "Independent static and local mocked offline guard review; no SDK/AWS/network/device calls",
+  "runnerPath": "/tmp/amt-pr128-prepare-auth-rollout.py",
+  "runnerSha256": "a6d503c2cf6255481c62617616f5d89a59eaa074cc79802fb0170d8f9b0510f5",
+  "priorAuditedRunnerSha256": "5acf50dbc6acb1e9c292a26078a93f354e26d44f2a192dbd60de1b75f7b11e7a",
+  "implementationReviewSha256": "a418e333d2bd2654f7c22d7254469946d84b81d413d1cdd895c85ecb398d6b4f",
+  "sourceCommit": "38500849a18d231a27c536adeb89cd20baf89df5",
+  "releaseMerge": "9ff94866163e03ceb36d09c12686bb5e4d772d77",
+  "ownerApprovalId": "Sentinel_7b16043a492c8191a9f54d1dfa6959be",
+  "proposalId": "Sentinel_e9c5f572ab8481918fc86bc31daa3a71",
+  "checkedPlanDigest": "5ade1c76cfd0d6cbe9eed92c2243f7714ad556ce6bf181bb21484f13da59de6e",
+  "singleMutationTarget": "trustcheckradar-dev-v1-play-handoff",
+  "baselineLiveVersion": "8",
+  "artifactSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+  "artifactBytes": 6277526,
+  "expectedMaximumMutationCalls": 2,
+  "permittedOperations": [
+    "update_function_code(Publish=True, exact artifact, latest RevisionId)",
+    "update_alias(live, returned new immutable version, empty weights, alias RevisionId)"
+  ],
+  "sourceGuardFindings": [],
+  "outstandingBlockers": [],
+  "guardChecks": {
+    "exactSourceManifestReviewAndArtifactHashes": true,
+    "onlyOneFixedDevTargetNoConfigurationOrIamMutation": true,
+    "fullApprovedPr126PostBaselineAndExtrasChecked": true,
+    "allTwelveOtherRuntimesAccess18Cleanup17ConfigAdmissionCapacityRoutesIamLogsSchedulesStreamsProtected": true,
+    "sourceAndPlanDigestRecheckedBeforeCalls": true,
+    "fsyncedExclusiveJournalAndAttemptBeforeEachSdkCall": true,
+    "casCodePublishAndUnweightedAlias": true,
+    "sdkTotalMaxAttemptsOne": true,
+    "anyExistingJournalRefusesApplyReplay": true,
+    "uncertainResponseIsUnconfirmedAndNeedsReadOnlyReconciliationNotRetry": true,
+    "raceLoserCannotRewriteJournal": true,
+    "readbackNeverRewritesJournal": true,
+    "finiteErrorMetadataNoPrivateExceptionOutput": true,
+    "rollback8QualifiedNoAutomaticRollback": true,
+    "boundedMonotonicReadOnlyReadinessLoops": true,
+    "noEndpointPurchaseProofOrAuthFlow": true
+  },
+  "independentOfflineProbes": {
+    "count": 9,
+    "allPassed": true,
+    "checks": [
+      "journal_before_single_code_call",
+      "uncertain_call_no_replay",
+      "wrong_function_artifact_config_revision_refused",
+      "failed_journal_prevents_call",
+      "exact_revision_unweighted_alias",
+      "local_source_artifact_review_and_baseline_pins",
+      "exclusive_journal_loser_no_rewrite",
+      "readback_failure_no_journal_rewrite_nonstrings_suppressed",
+      "provider_nonstrings_suppressed"
+    ],
+    "allSdkCallsMocked": true,
+    "realSdkCalls": 0
+  },
+  "actualDeploymentStatus": "NOT_PERFORMED_BY_REVIEWER; approval and plan are not deployment evidence",
+  "runtimeAndEndpointAcceptance": "Unperformed; historical401 predicate unknown until separately authorized observation."
+}
