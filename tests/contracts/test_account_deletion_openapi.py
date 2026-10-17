@@ -205,7 +205,7 @@ def test_bearer_scheme_matches_source_verified_access_token_checks():
     tree = ast.parse(path.read_text())
     pattern = next(n.value.args[0].value for n in tree.body if isinstance(n, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == "SUBJECT_PATTERN" for t in n.targets))
-    auth = source_helpers(path, ["jwt_subject", "_exact_epoch"], {
+    auth = source_helpers(path, ["jwt_subject", "_exact_epoch", "_jwt_rejection"], {
         "HistoryError": AppError, "time": time, "SUBJECT_PATTERN": re.compile(pattern),
     })
     current = 1800000000

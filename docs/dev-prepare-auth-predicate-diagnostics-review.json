@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T04:00:46.744582+00:00",
+  "result": "PASS_SOURCE_AND_HANDOFF",
+  "reviewType": "Independent read-only source/artifact/test/handoff review; no implementation edits",
+  "sourceRoot": "/tmp/amt-dev-prepare-auth-diagnostics",
+  "reviewedFileSha256": {
+    "src/shared_history/security.py": "f7267a73326bc47b64ed2d6122f39bd81cd6ddce443821a47d03d038c0f7f7df",
+    "src/shared_check_authority/core.py": "9659234bbcf6f9e5ae54f6a5cac0393852b2c57acd7ff14e3cf88f85aa88d4c3",
+    "src/shared_check_authority/prepare_auth_diagnostics.py": "b843a7423f4413255498f56c2ea7d56241f77761547299cec998d7e8c29534d0",
+    "scripts/prepare_dev_prepare_auth_diagnostics.py": "99b29385df00dd2d0971d338f9b41765c2d025830968e100c1df8e17ce2295c1",
+    "tests/shared_history/test_jwt_predicate_diagnostics.py": "d499ff23f8cfc4e6e9f4ec2de215809374a1a39b1f7c829ab2610542c15c32f2",
+    "tests/shared_history/fixtures/dev-live8-security.py": "71d562ee364c7a91bba0a10694316cfb1f70a552861554f19bed0a613492c5d8",
+    "tests/shared_check_authority/test_prepare_auth_diagnostics.py": "389045705a466c720bf5bf5233b6cdcccdb1685174b98ce9ad446051197c21f6",
+    "tests/shared_check_authority/fixtures/dev-live8-core.py": "883b6ece99bb476e952645e4922f4ebc95bb3533556a5ac723b400de176a6324",
+    "tests/scripts/test_prepare_auth_diagnostics_overlay.py": "b2f250a2dca860c2579b91a67b590b050c93e51681974b73a8664a9f520122da",
+    "tests/contracts/test_account_deletion_openapi.py": "e62c17e2daf4dd6baf43d9a7269d427747de677a9b7c564c3b07519492fbdf88",
+    "docs/dev-prepare-auth-predicate-diagnostics.md": "c25806362bd9c67a17c26825af2f3d872db315ee22633cd11d6521b46654b3cd",
+    "docs/dev-prepare-auth-predicate-diagnostics.json": "513da3d3952fffe87400a94bcf41f35bd486ef328ef4627ca69fa85102acf638"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "medium",
+      "status": "RESOLVED",
+      "component": "offline overlay normalizer",
+      "originalFinding": "AST stripping accepted side-effecting diagnostic hook argument expressions; independent negative probe confirmed acceptance without execution.",
+      "resolution": "Exact call AST, one hook, _account location and caught error name now mandatory; side-effect arguments, duplicate hooks and raise-cause side effects are rejected by negative fixtures. Actual original diagnostic hook never contained the side effect."
+    },
+    {
+      "id": "R2",
+      "severity": "test compatibility",
+      "status": "RESOLVED",
+      "component": "existing pure contract helper extraction",
+      "originalFinding": "Account-deletion source_helpers omitted new _jwt_rejection helper, causing rejection cases to raise NameError in isolated test namespace.",
+      "resolution": "Helper extraction list includes _jwt_rejection; independent focused rerun passes."
+    }
+  ],
+  "outstandingBlockers": [],
+  "checks": {
+    "authOrderClockAndErrorSemanticsPreserved": true,
+    "exactDevPrepareAuthorityPreparationGates": true,
+    "fixedEnumsOnlyNoClaimsIdentitiesTokensProofPayloadOrExceptionText": true,
+    "hookAndLoggerFailuresCannotChangeResponse": true,
+    "apiHandlerContract": "Distinct validation boundaries; no demonstrated static contract inconsistency. Both handler checks use same configured issuer/client/scope and same event but separately sampled clocks around authority loading. Expiry-between-gates is synthetic hypothesis only.",
+    "historical401Predicate": "UNKNOWN",
+    "noLoginForcedRefreshReplayOrAuthRelaxationRemedyProven": true,
+    "independentOriginalCandidateDifferential": {
+      "syntheticCases": 10126,
+      "returnOrExceptionClassCodeMessageRetryDetailsEqual": true,
+      "nowCallCountsEqual": true
+    },
+    "independentFocusedTests": {
+      "topLevelPassed": 101,
+      "subtestsPassed": 12,
+      "failures": 0,
+      "errors": 0,
+      "log": "/tmp/amt-prepare-auth-independent-final.log"
+    },
+    "producerRetainedReportsIndependentlyRecounted": {
+      "suiteCount": 55,
+      "tests": 2731,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 72,
+      "gatedSkipsNotLivePasses": true
+    },
+    "actualRetainedLive8OverlayIndependentlyBuiltInMemory": {
+      "baselineSha256": "ae22d0ddbc2c52bf791cf2728c2be2642a8f7e6968ca81b9d794e3b9cb268c06",
+      "sha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+      "bytes": 6277526,
+      "originalEntries": 608,
+      "changedOriginalEntries": [
+        "shared_check_authority/core.py",
+        "shared_history/security.py"
+      ],
+      "addedEntry": "shared_check_authority/prepare_auth_diagnostics.py",
+      "allUnrelatedPayloadAndDeclaredZipMetadataPreserved": true,
+      "deployedCoreRuntimeOverlaysNotReplacedByRepositoryGenericFiles": true
+    },
+    "manifestSourceAndArtifactPinsExact": true,
+    "documentationSeparatesSourceFromDeploymentAndLiveAcceptance": true
+  },
+  "minimalFutureDeploymentScope": {
+    "authorizedNow": false,
+    "onlyFunction": "trustcheckradar-dev-v1-play-handoff",
+    "baselineLiveVersion": "8",
+    "artifactSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+    "newImmutableVersionNotSelected": true,
+    "unweightedCasLiveAliasSeparateApprovalAndFreshReadbackRequired": true,
+    "allTwelveOtherLiveRuntimesIncludingAccess18Cleanup17Unchanged": true,
+    "noConfigIamRoutesLogsCapacityRetentionSchedulesStreamsLifecycleOrRtdnChange": true
+  },
+  "reviewerActions": {
+    "sourceInspection": true,
+    "localIsolatedTests": true,
+    "inMemoryOfflineArtifactBuild": true,
+    "implementationEdits": false,
+    "networkAwsEmulatorEndpointsAuthOrRuntimeActions": false
+  },
+  "liveAcceptance": "Unperformed; ATCR-112/ATCR-114 and SECUR4ALL-195 acceptance/state gates remain unchanged."
+}

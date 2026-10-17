@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T04:00:00.421417+00:00",
+  "baseReleaseCommit": "789b6862a0dcf167d15f510653600b5b57a5a679",
+  "scope": "Dev-only late prepare JWT predicate observability; source-only, auth and response semantics unchanged",
+  "tracking": [
+    "ATCR-112",
+    "ATCR-114",
+    "SECUR4ALL-195"
+  ],
+  "broadAcceptanceStatesUnchanged": true,
+  "sourceAndTestSha256": {
+    "src/shared_history/security.py": "f7267a73326bc47b64ed2d6122f39bd81cd6ddce443821a47d03d038c0f7f7df",
+    "src/shared_check_authority/core.py": "9659234bbcf6f9e5ae54f6a5cac0393852b2c57acd7ff14e3cf88f85aa88d4c3",
+    "src/shared_check_authority/prepare_auth_diagnostics.py": "b843a7423f4413255498f56c2ea7d56241f77761547299cec998d7e8c29534d0",
+    "scripts/prepare_dev_prepare_auth_diagnostics.py": "99b29385df00dd2d0971d338f9b41765c2d025830968e100c1df8e17ce2295c1",
+    "tests/shared_history/test_jwt_predicate_diagnostics.py": "d499ff23f8cfc4e6e9f4ec2de215809374a1a39b1f7c829ab2610542c15c32f2",
+    "tests/shared_history/fixtures/dev-live8-security.py": "71d562ee364c7a91bba0a10694316cfb1f70a552861554f19bed0a613492c5d8",
+    "tests/shared_check_authority/test_prepare_auth_diagnostics.py": "389045705a466c720bf5bf5233b6cdcccdb1685174b98ce9ad446051197c21f6",
+    "tests/shared_check_authority/fixtures/dev-live8-core.py": "883b6ece99bb476e952645e4922f4ebc95bb3533556a5ac723b400de176a6324",
+    "tests/scripts/test_prepare_auth_diagnostics_overlay.py": "b2f250a2dca860c2579b91a67b590b050c93e51681974b73a8664a9f520122da",
+    "tests/contracts/test_account_deletion_openapi.py": "e62c17e2daf4dd6baf43d9a7269d427747de677a9b7c564c3b07519492fbdf88",
+    "docs/dev-prepare-auth-predicate-diagnostics.md": "c25806362bd9c67a17c26825af2f3d872db315ee22633cd11d6521b46654b3cd"
+  },
+  "diagnosticContract": {
+    "event": "dev_play_prepare_auth_failure",
+    "schemaVersion": 1,
+    "stage": "AUTHORITY_ACCOUNT_JWT",
+    "predicateEnums": [
+      "CLAIMS_UNAVAILABLE",
+      "SUBJECT_INVALID",
+      "ISSUER_MISMATCH",
+      "CLIENT_MISMATCH",
+      "TOKEN_USE_MISMATCH",
+      "EXPIRY_INVALID",
+      "EXPIRY_NOT_FUTURE",
+      "SCOPE_MISSING",
+      "UNKNOWN"
+    ],
+    "noClaimValuesIdentitiesTokensBodiesPayloadsRequestIdsExceptionText": true,
+    "devExactPrepareExistingGatesOnly": true
+  },
+  "validation": {
+    "focused": {
+      "tests": 125,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "junitReportedTestsIncludeSubtests": true,
+      "topLevelPassed": 111,
+      "subtestsPassed": 14
+    },
+    "repositoryIsolatedSuites": {
+      "suiteCount": 55,
+      "tests": 2731,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 72,
+      "allSuitesPassed": true,
+      "junitReportedTestsIncludeSubtests": true
+    },
+    "affectedSyntheticSdkIntegration": {
+      "tests": 750,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "junitReportedTestsIncludeSubtests": true
+    },
+    "exactOverlayNetworkForbiddenSmoke": {
+      "exactOverlaySmokeCases": 5,
+      "devExactFixedPredicate": "PASS",
+      "uatProductionAndClosedLoggingSilence": "PASS",
+      "authenticationUnchanged": "PASS",
+      "sdkCalls": 0,
+      "runtimeApplied": false
+    },
+    "sourceOnlyPackagesBuilt": 41,
+    "fourDisabledPackageImportSmoke": "PASS",
+    "compileAllShellcheckDiffAndScopedSecretsScan": "PASS",
+    "optimizedPythonInvalidBaselineRejectedWithNoArtifact": true,
+    "initialPackageBuildTestBuildDirectoryRace": "Initial concurrent tests/scripts packaging collided with all-package build; serialized full suite and all41 source packages subsequently passed. No build/source policy change."
+  },
+  "artifact": {
+    "localPath": "/tmp/amt-dev-prepare-auth-diagnostics-verified.zip",
+    "sha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+    "bytes": 6277526,
+    "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+    "baselineLiveVersion": "8",
+    "baselineCodeSha256": "riLQ3bwsUr95HPJyjCviZCqPfmloyoG515TjucsmjAY=",
+    "changedOriginalEntries": [
+      "shared_history/security.py",
+      "shared_check_authority/core.py"
+    ],
+    "addedEntry": "shared_check_authority/prepare_auth_diagnostics.py",
+    "allUnrelatedDeployedPayloadBytesAndMetadataPreserved": true,
+    "genericRepositoryCoreRuntimeNotSubstituted": true,
+    "deterministicSecondBuildMatches": true,
+    "uploaded": false,
+    "deployed": false
+  },
+  "sourceContractAssessment": {
+    "apiAndHandlerDifferentValidationBoundaries": true,
+    "qualifiedJwtAuthorizersEqualConfigurationScopeDifferentIds": true,
+    "noStaticContractInconsistencyDemonstrated": true,
+    "observedPrepare401IntegratedBackendResponseUnattributed": true,
+    "lateAccountJwt401PathQualified": true,
+    "expiryBetweenChecksHypothesisOnly": true,
+    "historicalExactFailedPredicate": "UNKNOWN",
+    "noLoginForcedRefreshPostReplayOrAuthRelaxationRemedyEstablished": true
+  },
+  "futureDeploymentScope": {
+    "authorizedNow": false,
+    "onlyFunction": "trustcheckradar-dev-v1-play-handoff",
+    "baselineLiveVersion": "8",
+    "newImmutableVersionNotSelected": true,
+    "unweightedCasAliasAfterSeparateApprovalAndFreshReadback": true,
+    "unchangedAllTwelveOtherLiveRuntimesIncludingAccess18Cleanup17": true,
+    "noEnvironmentIamRouteCapacityRetentionScheduleLifecycleOrRtdnChange": true,
+    "noEndpointReproductionPurchaseProofReplayOrAuthAction": true
+  },
+  "independentReviewRecord": "dev-prepare-auth-predicate-diagnostics-review.json"
+}
