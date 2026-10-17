@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual direct-owner-approved PR126 two-function Dev diagnostic deployment; no live purchase acceptance",
+  "ownerApproval": {
+    "proposalId": "Sentinel_ec752b96f8bc819182dc86ba9a3001a3",
+    "responseId": "Sentinel_4929ccce42288191adbc21f3e2ba5752",
+    "response": "approvd",
+    "scope": "Only exact two existing Dev diagnostic code overlays; existing per-use execution/logging charges acknowledged; no new infrastructure/purchase/replay/policy change"
+  },
+  "implementationPullRequest": "https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/126",
+  "implementationSourceCommit": "94f0f448661d69798f7621cb777262e029a8814e",
+  "implementationReleaseMerge": "f66f06e18f075f90d32caeae7e92143a45be06a8",
+  "actualVerifiedDeployment": {
+    "apiAuthorizersAndStagesUnchanged": true,
+    "cleanupLiveVersion17Preserved": true,
+    "deployed": true,
+    "fourRoutesIAMManagedAndInlinePoliciesTrustLogsCapacityCleanupSchedulesAndLifecycleUnchanged": true,
+    "historical409CauseRemainsUnknown": true,
+    "independentPostCaptureAtUtc": "2026-10-17T03:21:32.941815+00:00",
+    "mutationRetried": false,
+    "newDiagnosticsLiveBehaviorNotYetExercised": true,
+    "noNewInfrastructureConfigurationPurchaseReplayOrEndpointInvocation": true,
+    "observedAtUtc": "2026-10-17T03:21:11.229077+00:00",
+    "other11RuntimeFingerprintsUnchanged": true,
+    "ownerApprovalId": "Sentinel_4929ccce42288191adbc21f3e2ba5752",
+    "postCapturePassedAllProtectedComparisons": true,
+    "privateJournalSha256": "d9f9cd87e68d63066b604e7196046f03776c30bee8e68b49768a3ad3a33dca49",
+    "privatePlanSha256": "d6c5b87203d53e399440ab1c8c43dd94cc9a8d40a05df3b22423a94d319494e5",
+    "privatePostMetadataSha256": "cd3d32e1087cbf15c549f38fee77d7a65277c9c12dc90dc8c47a7bc12ef95ab9",
+    "releaseMergeCommit": "f66f06e18f075f90d32caeae7e92143a45be06a8",
+    "rollbackExecuted": false,
+    "secretValuesRead": false,
+    "sourceCommit": "94f0f448661d69798f7621cb777262e029a8814e",
+    "targets": [
+      {
+        "artifactSha256": "ae22d0ddbc2c52bf791cf2728c2be2642a8f7e6968ca81b9d794e3b9cb268c06",
+        "codeSha256": "riLQ3bwsUr95HPJyjCviZCqPfmloyoG515TjucsmjAY=",
+        "configurationAdmissionAndCapacityUnchanged": true,
+        "functionName": "trustcheckradar-dev-v1-play-handoff",
+        "latestAndLiveCodeMatch": true,
+        "liveVersion": "8",
+        "rollbackCodeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0=",
+        "rollbackVersion": "7",
+        "unweightedAliasVerified": true
+      },
+      {
+        "artifactSha256": "ba9d1efbe25cdf2e6854e43da1a3c1df0d74462a2275f3d58355038a5255865a",
+        "codeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+        "configurationAdmissionAndCapacityUnchanged": true,
+        "functionName": "trustcheckradar-dev-v1-entitlements",
+        "latestAndLiveCodeMatch": true,
+        "liveVersion": "18",
+        "rollbackCodeSha256": "tWVH72rWwW2pS6K8roZqDzMBwRR0oIWK0VQg710UrNU=",
+        "rollbackVersion": "17",
+        "unweightedAliasVerified": true
+      }
+    ]
+  },
+  "mutationJournal": {
+    "phase": "completed",
+    "attempts": [
+      "trustcheckradar-dev-v1-play-handoff:code_publish",
+      "trustcheckradar-dev-v1-play-handoff:alias",
+      "trustcheckradar-dev-v1-entitlements:code_publish",
+      "trustcheckradar-dev-v1-entitlements:alias"
+    ],
+    "confirmed": [
+      "trustcheckradar-dev-v1-play-handoff:code_publish",
+      "trustcheckradar-dev-v1-play-handoff:alias",
+      "trustcheckradar-dev-v1-entitlements:code_publish",
+      "trustcheckradar-dev-v1-entitlements:alias"
+    ],
+    "allocatedVersions": {
+      "trustcheckradar-dev-v1-entitlements": "18",
+      "trustcheckradar-dev-v1-play-handoff": "8"
+    },
+    "completedTargets": [
+      "trustcheckradar-dev-v1-play-handoff",
+      "trustcheckradar-dev-v1-entitlements"
+    ],
+    "noMutationReplay": true,
+    "noConfigurationMutation": true
+  },
+  "runner": {
+    "sha256": "5acf50dbc6acb1e9c292a26078a93f354e26d44f2a192dbd60de1b75f7b11e7a",
+    "planDigest": "b4d58eb9f16fcfc92043f27877dc00e4ebe80b9a241a980d8a69df5d3fd8a983",
+    "reviewRecord": "evidence/pr126-deployment-runner-review.json",
+    "initialOfflineReviewFindingsResolvedBeforeAnyAwsWrite": [
+      "R1: malformed-error sanitizer types",
+      "R2: exclusive journal ownership and readback journal-write race"
+    ],
+    "finalLocalSyntheticGuardProbeCount": 7
+  },
+  "runtimeCodeZipPinsMatchReviewedManifest": true,
+  "sourceConfigurationAndBillingPolicyUnchanged": true,
+  "deploymentReadbackIsNotBehavioralTest": true,
+  "newDiagnosticEventsNotIntentionallyTriggered": true,
+  "historical409CauseStillUnknown": true,
+  "liveInterruptionAckPaidAccessAcceptanceStillOpen": [
+    "ATCR-112",
+    "ATCR-114"
+  ],
+  "SECUR4ALL195StillInProgress": true,
+  "noMainPromotionOrUatProductionChange": true,
+  "noNewPurchaseRestoreProofReplayAppEndpointOrEmulatorActionByInfra": true,
+  "rollbackTargetsVerifiedAvailableNotExecuted": {
+    "trustcheckradar-dev-v1-play-handoff": "7",
+    "trustcheckradar-dev-v1-entitlements": "17"
+  }
+}
