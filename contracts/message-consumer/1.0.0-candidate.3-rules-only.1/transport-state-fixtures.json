@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "profileVersion": "1.0.0-message-candidate.3-rules-only.1",
+  "fixtures": [
+    {
+      "name": "closed_without_both_scoped_gates",
+      "expectedHttpStatus": 503,
+      "expectedErrorCode": "SERVICE_NOT_ENABLED",
+      "expectedState": "unknown",
+      "chargedChecks": null,
+      "providerCalls": 0
+    },
+    {
+      "name": "retry_pending_reconcile_only",
+      "expectedHttpStatus": 202,
+      "expectedErrorCode": null,
+      "expectedState": "pending",
+      "chargedChecks": null,
+      "requiresReconciliation": true,
+      "contentResubmissionAllowed": false,
+      "providerCalls": 0
+    }
+  ]
+}

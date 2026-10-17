@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-191",
+  "outcome": "PASS_FINAL_SOURCE_AND_RETAINED_EVIDENCE_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:27:07.031081+00:00",
+  "files": {
+    "docs/SECUR4ALL-191-GOVERNED-SOURCE-RECONCILIATION.json": "fd3ce9c292bc33b782f9bd70685c7c480ff87c32cd090de3de205c68499f522d",
+    "docs/SECUR4ALL-191-GOVERNED-SOURCE-RECONCILIATION.md": "7f307f779ba878fd8439353582d40140df4237bd0b3ca57482b0de11c44180cd"
+  },
+  "priorFinalHandoffReview": {
+    "path": "/tmp/amt-sec191-governed-final-handoff-review.json",
+    "sha256": "90967e50c6b5d5b77f5beabe709f386b6735f32ae8b6746b2d4311a0840398eb",
+    "allPinnedSourceAndDocumentBytesUnchanged": true
+  },
+  "checkedJoins": {
+    "exactSelectedMainObjects": 39,
+    "manualAdaptations": 2,
+    "releasePreservedFiles": 10,
+    "currentSourceOnlyZipPins": 9,
+    "androidContractGroups": 8,
+    "combinedJunitTestsIncludingSubtests": 1397,
+    "junitFailuresErrorsSkipped": 0,
+    "copiedIndependentRecordsByteExact": 2
+  },
+  "disabledHostVerifier": {
+    "path": "/tmp/amt-sec191-governed-disabled-host-verifier.txt",
+    "sha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d",
+    "retainedStdoutMatchesCurrentVerifier": true,
+    "handlerCount": 5,
+    "exitCode": 0,
+    "exitCodeEvidenceSource": "Parent reported completed actual command with exit0; reviewer checked retained stdout without rerunning",
+    "supersedesPriorPendingVerifierLimit": true
+  },
+  "findings": [],
+  "limits": [
+    "Local source-only skip-dependency and host-import evidence only",
+    "No nativeARM64, realAWS configuration/index/IAM, actual API/client/provider, fresh readiness or deployment qualification",
+    "SEC191 remains open; no actor/flag/permission/runtime/Store version change",
+    "Previous mixed deployed archive provenance remains separate and unchanged"
+  ],
+  "operatorActions": {
+    "testRerun": 0,
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "emulator": 0,
+    "endpoint": 0,
+    "runtime": 0,
+    "publication": 0
+  }
+}

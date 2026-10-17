@@ -48,9 +48,11 @@ def unavailable_envelope(code='SERVICE_UNAVAILABLE',version=VERSION):
 
 
 class Consumer:
-    def __init__(self,authority,provider,refresh,budget,*,clock=time.monotonic,remaining_ms=lambda:29000,allow_ai=False):
+    def __init__(self,authority,provider,refresh,budget,*,clock=time.monotonic,remaining_ms=lambda:29000,allow_ai=False,
+                 allow_candidate3_rules_only=False):
         self.a=authority;self.provider=provider;self.refresh=refresh;self.budget=budget
-        self.clock=clock;self.remaining=remaining_ms;self.mapper=url_mapper();self.allow_ai=allow_ai;self.version=VERSION
+        self.clock=clock;self.remaining=remaining_ms;self.mapper=url_mapper();self.allow_ai=allow_ai
+        self.allow_candidate3_rules_only=allow_candidate3_rules_only;self.version=VERSION
 
     def access(self,event):return UrlConsumer.access(self,event)
 
@@ -104,7 +106,9 @@ class Consumer:
                         if e.code!='OPERATION_PENDING':raise
                 state={'ADMITTED':'pending','SETTLED':'settled','UNKNOWN':'unknown','NOT_STARTED':'rejected'}[row['state']]
                 return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row,error='OPERATION_EXPIRED' if state=='rejected' else None)
-            if self.version in (v2.VERSION,v3.VERSION) and not self.allow_ai:raise AuthorityError('SERVICE_NOT_ENABLED')
+            if (self.version==v2.VERSION and not self.allow_ai
+                    or self.version==v3.VERSION and not (self.allow_ai or self.allow_candidate3_rules_only)):
+                raise AuthorityError('SERVICE_NOT_ENABLED')
             required={'transportVersion','checkId','entryPoint','language','target'}
             prepare=route.endswith('/prepare')
             if set(body)!=(required if prepare else required|{'operationProof'}):raise AuthorityError('INPUT_REJECTED')
@@ -130,10 +134,15 @@ class Consumer:
             validator=v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
-                window=self.budget.reserve() if budget_ms>=1000 else None
-                if window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
+                rules_only=self.version==v3.VERSION and self.allow_candidate3_rules_only and not self.allow_ai
+                window=None if rules_only else (self.budget.reserve() if budget_ms>=1000 else None)
+                if not rules_only and window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
                 else:
-                    raw_result=self.provider({'schemaVersion':3 if self.version==v3.VERSION else (2 if self.version==v2.VERSION else 1),'checkId':client,'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,'intent':intent,'executionBudgetMs':budget_ms})
+                    request={'schemaVersion':3 if self.version==v3.VERSION else (2 if self.version==v2.VERSION else 1),'checkId':client,
+                             'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,
+                             'intent':intent,'executionBudgetMs':budget_ms}
+                    if rules_only:request['runtimeMode']='rules_only'
+                    raw_result=self.provider(request)
                     outcome=validator(raw_result,client)
             except Exception:
                 outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])

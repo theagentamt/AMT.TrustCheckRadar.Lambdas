@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-191",
+  "outcome": "PASS_SELECTIVE_SOURCE_RECONCILIATION_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:19:26.894890+00:00",
+  "baseRelease": "29138fffefe06a398ffb224d0de3cda42d7f73a4",
+  "selectedMain": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+  "selectedInputs": {
+    "path": "/tmp/amt-sec191-governed-selected-source-inputs.json",
+    "sha256": "6cb234b89b7c58503e46fc60aa117c8e881f99f86b4ed807e022d1d5d121c2ee",
+    "exactCopiedGitObjectsVerified": 39,
+    "manualAdaptation": [
+      "src/shared_check_authority/core.py",
+      "src/governed_history/service.py"
+    ]
+  },
+  "files": {
+    ".github/workflows/ci.yml": "5c9f4e2586422e5fe2f0b6db008335666f90dc0e601294478e75c224cc8830bb",
+    "contracts/governed-history/1.0.0-candidate.1/README.md": "e49f0fa559119d1d2ef0f44ee1225ccbf315efa87a5f05c72c52fd1def5ec7c3",
+    "contracts/governed-history/1.0.0-candidate.1/SHA256SUMS": "e57e7ee251c3913a26cbfb2ce3a950147f164bb98958bc103925200f2d5bc669",
+    "contracts/governed-history/1.0.0-candidate.1/contract-set.json": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1",
+    "contracts/governed-history/1.0.0-candidate.1/detail.schema.json": "3e9e32154b4c80b363dfb5e8aaf5adeec0d873f213279e6a4a3b0f6b3e70c4ac",
+    "contracts/governed-history/1.0.0-candidate.1/fixtures.json": "7b16fdfa74b2090650f9c1af1518b2fc57684b2ca191c95f77fb1484a55a352a",
+    "contracts/governed-history/1.0.0-candidate.1/item.schema.json": "c291ffaa55ee7a35786dea3fd6104599438d62b353cf5d4c70a5bc189e07b3f6",
+    "contracts/governed-history/1.0.0-candidate.1/list.schema.json": "d4f2c1f73dfb0804c1f3b2ec239f71b24098bc33c6055f24f5b3cd41b9b3c7f6",
+    "contracts/governed-history/1.0.0-candidate.1/message-outcome.schema.json": "8eaea6f42855fcb4ab134a593996a7c2328bb2f88f717aca6af4ba7b793ab8f2",
+    "contracts/governed-history/1.0.0-candidate.1/url-outcome.schema.json": "7f429ae789c36d07f18eb887a6d23e63d42ec85edfb93fc2196133c7bc63a70d",
+    "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/README.md": "4143aff1c0320bd3c1728f5a88f41d89fa42ddaff3aabbe1f3569c71ab634c74",
+    "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/SHA256SUMS": "c13c51a6a808614879891d7ea0143e75fc13ff3570137d41ebe64cc4a329e741",
+    "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/evaluation-fixtures.json": "6d280ffc7ec14d41c323b1eab1b3658576b727d8c8a1d4f4b6c732112de11df2",
+    "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/profile.json": "51cb8571745b75fe91bc24d8e13b2ff6a78530abe0dc2cbb72ff2673a1dc37da",
+    "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/transport-state-fixtures.json": "ea8ab98aacd92d1fddd16ad2c1845d16d178dd7cedd4a58ffacd8607b405eb0a",
+    "scripts/build_lambda_zip.sh": "83a8857f5e958e388e72ae5542fe015fc2e2e960630213cab281081b2be386f7",
+    "scripts/verify_v1_packages.py": "804b6795d162100ad02595265e27adeca60fd2a2a15cf1b9007416447c5f03b0",
+    "src/governed_history/__init__.py": "5b7423aae268651297b65c217923295c9d33672a9b38a3f85d70d69aefa210c1",
+    "src/governed_history/app.py": "2c751363a4185fe38f8aed4fac55cca2620ebf9cd28566d7d7df0a1528416773",
+    "src/governed_history/security.py": "2a13e87c4f0fd14bc35d4dc11f8d021b134e3416dcbb8a61f63b5948bd1af4dc",
+    "src/governed_history/service.py": "1ed2f34b562c3eaf41bbe5425627a643f11e7f87f9d6e842ba179be92d21868d",
+    "src/message_consumer/app.py": "5923050e4b685b56ec8cae2f1daa42555b005f2c969d73fd494edb8f3619544e",
+    "src/message_consumer/service.py": "6955166939c081831bbe151ee871ab345998f53b11298554d46de5c962787f67",
+    "src/message_evaluator/app.py": "11f33b70bb5c78ea73b29208da6a14cbef9802752b8a1ba446b1257609a86a13",
+    "src/message_evaluator/policy_v2.py": "f5a3065283b6a4e30edb672b569f01a7cfcc43c5030cab20252262a984660e93",
+    "src/message_evaluator/policy_v3.py": "7b998e3eeab35c90c6cf24ff7802414def206e3c16981420a93824efd672bbdb",
+    "src/shared_check_authority/core.py": "4e41e37aee1db5890bcdfb36b8ac7175c5c5bce95dc65bed1b0111efe938d7cd",
+    "src/shared_check_authority/inventory.py": "09c885746a928ce8951e3f256e7a97dfaf4dbf22396d457c1f2b7db45538696a",
+    "src/shared_check_authority/runtime.py": "2b0c73df47d2fece9d00b9af34294e78b946b0c2e914005b9ce0fed1354d6bc1",
+    "src/shared_governed_history/__init__.py": "235adc2e4efc2470eb9db64bc78ed91125a14ccde4d3fba54ec7794255fdd8eb",
+    "src/shared_governed_history/projection.py": "4a4bc57c216fe9b45a9c21d88c74fe6327d8e68ed39a191e4766ed436667cd1f",
+    "tests/governed_history/test_contract_and_handler.py": "58d90ea98a93cbb2b1c4a5e9aa3143e5f3102eeaaeea7df7fb390a4947d155a3",
+    "tests/governed_history/test_packaging.py": "0266ca8f93ad35d92843dadd6425f9f1353f065edb7fdfec18069e91ad58ed7c",
+    "tests/governed_history/test_release_preservation.py": "4ee36f857400ceaec266a2f9ec6cd63fa01bc2c755f29ce91a054e5ee314a1f2",
+    "tests/governed_history/test_security.py": "fd5ce9bc6ed9446dea8d2bd544c60053e9bafb0cd102c5b5e64abf604002aa5a",
+    "tests/governed_history/test_service.py": "ddbc3f427eb22ae63ce322d4fcbd939f2431c2635521622e8bb0c18935470645",
+    "tests/message_consumer/test_freshness_integration.py": "d82eb8f2bf7bbdfb9d916d3ec6d6ffa4d89bb03896be2524d702f182ce45ced5",
+    "tests/message_consumer/test_integration.py": "4b64b9ce9fbc92fbfdf4a4decb458b4a683168cb50e31f1aeb139a530b7cb32a",
+    "tests/message_evaluator/test_candidate3_rules_only.py": "4c8a3701bda47ed690a4f2a5d67f82b81d3d3ba4fd14c9b51032081f721a3725",
+    "tests/message_evaluator/test_policy.py": "7a4794612a452dd2762107eb7bd5089c6acd2b7542bbbc3d6e1d9450cc0277be",
+    "tests/shared_check_authority/test_governed_history.py": "da4f49a136d86c7122cb3b04f213efd1d35582c3f32819d37a627a21b0a333aa",
+    "tests/shared_check_authority/test_transactions.py": "8a4e8cbf732b2b953837dd526f8ea2d2e9aa29e9fc25964b0aeef65cc1188eba"
+  },
+  "independentTests": {
+    "file": "tests/governed_history/test_release_preservation.py",
+    "passed": 23,
+    "focusedGovernedRulesAndConsumerSuitesPassed": 113,
+    "failures": 0,
+    "errors": 0,
+    "checks": [
+      "Default-off actual admission/settlement records and transaction payloads match pinned release, including ticking-clock sequence for complete/inconclusive/failed",
+      "Five release authentication diagnostic/account/transaction fence function ASTs unchanged",
+      "Ten release billing/operations/publication source files byte exact",
+      "Enabled governed projection uses seven-day settlement retention and replay never extends it",
+      "CI header triggers and job-set preserved",
+      "Canonical read storage failure yields finite503 rather than empty200 or missing404",
+      "Extreme limit rejects422 without oversized integer conversion"
+    ]
+  },
+  "initialFindingsResolved": [
+    {
+      "id": "R1",
+      "origin": "Inherited selected-main reader source",
+      "finding": "Canonical storage exceptions were suppressed into empty/missing results",
+      "resolution": "Service/envelope/clock failure maps fixed503; only missing/expired/corrupt canonical data suppressed; one observed timestamp used",
+      "independentRegressionsPassed": 2
+    },
+    {
+      "id": "R2",
+      "origin": "Inherited selected-main parser source",
+      "finding": "5000-digit limit raised Python conversion ValueError and public503 rather than invalid request",
+      "resolution": "Length bound before conversion maps fixed422",
+      "independentRegressionsPassed": 1
+    }
+  ],
+  "remainingSourceBlockers": [],
+  "limits": [
+    "Selective source reconciliation, not whole-tree merge or artifact replacement",
+    "Retained deployed mixed billing archive provenance is not replaced by current source Git SHAs",
+    "Local Moto/fixture/package checks do not establish fresh Dev deployment/readiness, nativeARM64 execution or actual consumer endpoint acceptance",
+    "Governed seven days are measured from settlement, distinct from operations-reconciliation acceptance-based cutoff",
+    "Separate list/detail/settlement/rules-only/AI/provider/account gates remain configuration-controlled; no gate enabled",
+    "No account allowlist union, archive publication, runtime apply, client request, proof replay or provider test performed",
+    "Existing SEC191 integration/UAT/Production and billing/recovery acceptance remain open"
+  ],
+  "operatorActions": {
+    "services": 0,
+    "credentials": 0,
+    "endpoints": 0,
+    "runtime": 0,
+    "emulator": 0,
+    "publication": 0
+  }
+}

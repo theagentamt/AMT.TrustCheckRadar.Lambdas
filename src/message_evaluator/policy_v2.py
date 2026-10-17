@@ -42,19 +42,24 @@ def result(check, *, rules=(), limits=(), evidence=(), ai_status='not_assessed',
     return validate_summary(value,check)
 
 
-def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None):
+def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules_only=False):
     import json
     import re
     import time
     from shared_message_contract.validation import MessageError
     from shared_message_contract.privacy import validate_runtime_intent as validate_intent
     from .policy import evaluate as evaluate_v1
-    from .ai_provider import parse
     clock=clock or time.monotonic
     validate_intent(intent)
     deadline=clock()+budget_ms/1000
-    original=evaluate_v1(check,intent,lookup=lookup,budget_ms=budget_ms,clock=clock)
+    original=evaluate_v1(check,intent,lookup=None if rules_only else lookup,budget_ms=budget_ms,clock=clock)
     rules=original['ruleIds'];limits=original['limitationCodes'];evidence=original['evidence'];target=intent['target']
+    if rules_only:
+        # A deliberately disabled external lookup is not a provider outage. The
+        # result describes only qualified local coverage and never calls AI.
+        limits=[value for value in limits if value!='PROVIDER_UNAVAILABLE']
+        if target['reviewedLinks'] and 'INSUFFICIENT_EVIDENCE' not in limits:limits.append('INSUFFICIENT_EVIDENCE')
+        return result(check,rules=rules,limits=limits,evidence=evidence,ai_status='not_assessed')
     if rules:
         return result(check,rules=rules,limits=limits,evidence=evidence)
     if set(limits)&{'HOSTILE_INPUT_STOP','UNKNOWN_SPEAKER'} or target['speakerRole']!='other':
@@ -68,6 +73,7 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None):
     if ai is None or remaining<250:
         return result(check,limits=list(limits)+['PROVIDER_UNAVAILABLE' if ai is None else 'BUDGET_LIMIT'],evidence=evidence,ai_status='unavailable')
     try:
+        from .ai_provider import parse
         proposal=ai(intent,remaining)
         # Validate again at the policy boundary even if a provider adapter claims
         # it already parsed the response. No callback controls a public verdict.

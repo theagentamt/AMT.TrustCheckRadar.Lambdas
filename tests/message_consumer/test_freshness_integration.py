@@ -38,6 +38,53 @@ def test_new_message_real_settle_expired_replay_preserves_charge_ai_and_export(w
     wrong=c.handle(helpers.event(e,'POST /v1/message-checks/reconcile',{'transportVersion':'1.0.0-message-candidate.2','checkId':req['checkId'],'operationProof':proof}))
     assert wrong[0]==409
 
+
+@pytest.mark.parametrize('text,processing,charge',[('Send me your account password and the login code.','complete',1),
+                                                    ('A request outside qualified coverage.','inconclusive',0)])
+def test_candidate3_rules_only_settlement_never_uses_provider_budget(world,text,processing,charge):
+    from message_evaluator.policy_v3 import evaluate
+    a,e,_,row,_,_=world;calls=[];budget=helpers.Budget()
+    def provider(body):
+        calls.append(body)
+        assert body['runtimeMode']=='rules_only'
+        return evaluate(body['checkId'],body['intent'],rules_only=True,
+                        lookup=lambda *_:pytest.fail('Google called'),ai=lambda *_:pytest.fail('AI called'))
+    c=Consumer(a,provider,lambda _:None,budget,allow_candidate3_rules_only=True)
+    req=request();req['target']['sanitizedText']=text
+    status,p=c.handle(helpers.event(e,'POST /v1/message-checks/prepare',req));assert status==200
+    proof=p['operationProof']
+    status,b=c.handle(helpers.event(e,'POST /v1/message-checks',req|{'operationProof':proof}))
+    assert status==200 and b['outcome']['processingOutcome']==processing
+    assert b['outcome']['aiAssessmentStatus']=='not_assessed'
+    assert b['accounting']['chargedChecks']==charge
+    assert len(calls)==1 and budget.attempts==0
+    assert row('PERIOD#p1')['usedChecks']==charge
+
+
+def test_rules_only_profile_closed_and_retry_states_use_real_authority(world):
+    profile=json.loads((ROOT/'contracts/message-consumer/1.0.0-candidate.3-rules-only.1/transport-state-fixtures.json').read_text())
+    expected={item['name']:item for item in profile['fixtures']}
+    a,e,_,_,_,_=world;req=request();calls=[];budget=helpers.Budget()
+    closed=Consumer(a,lambda value:calls.append(value),lambda _:None,budget)
+    status,body=closed.handle(helpers.event(e,'POST /v1/message-checks/prepare',req))
+    case=expected['closed_without_both_scoped_gates']
+    assert (status,body['errorCode'],body['state'],body['accounting']['chargedChecks']) == (
+        case['expectedHttpStatus'],case['expectedErrorCode'],case['expectedState'],case['chargedChecks'])
+    assert calls==[] and budget.attempts==case['providerCalls']==0
+
+    bound={k:req[k] for k in ('entryPoint','language','target')}|{'messageTransportVersion':v3.VERSION}
+    proof=a.prepare(e,bound,req['checkId'],client_check_id=req['checkId'],count_attempt=False)
+    a.admit(e,bound,proof,client_check_id=req['checkId'],count_attempt=False)
+    retry=Consumer(a,lambda value:calls.append(value),lambda _:None,budget,allow_candidate3_rules_only=True)
+    status,body=retry.handle(helpers.event(e,'POST /v1/message-checks/reconcile',{
+        'transportVersion':v3.VERSION,'checkId':req['checkId'],'operationProof':proof}))
+    case=expected['retry_pending_reconcile_only']
+    assert (status,body['errorCode'],body['state'],body['accounting']['chargedChecks'],
+            body['accounting']['requiresReconciliation']) == (
+        case['expectedHttpStatus'],case['expectedErrorCode'],case['expectedState'],case['chargedChecks'],
+        case['requiresReconciliation'])
+    assert calls==[] and budget.attempts==case['providerCalls']==0
+
 @pytest.mark.parametrize('legacy',['1.0.0-message-candidate.1','1.0.0-message-candidate.2'])
 def test_legacy_replay_never_returns_unverified_current_google(world,legacy):
     from shared_check_authority.core import TrustedWorkerContext

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "transportVersion",
+    "resultId",
+    "resultType",
+    "sourceType",
+    "acceptedAtEpoch",
+    "settledAtEpoch",
+    "assessmentTransportVersion",
+    "processingOutcome",
+    "accounting",
+    "outcome",
+    "expiresAtEpoch",
+    "presentation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "transportVersion": {
+      "const": "1.0.0-governed-history-candidate.1"
+    },
+    "resultId": {
+      "type": "string",
+      "pattern": "^gh1_[0-9]{1,12}_[0-9a-f]{32}$"
+    },
+    "resultType": {
+      "enum": [
+        "message",
+        "url"
+      ]
+    },
+    "sourceType": {
+      "enum": [
+        "pasted_text",
+        "ocr",
+        "mixed",
+        "standalone_url",
+        "message_url",
+        "qr_url"
+      ]
+    },
+    "acceptedAtEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "settledAtEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "assessmentTransportVersion": {
+      "enum": [
+        "1.0.0-message-candidate.3",
+        "1.0.0-candidate.2"
+      ]
+    },
+    "processingOutcome": {
+      "enum": [
+        "invalid_input",
+        "blocked",
+        "unsupported",
+        "unavailable",
+        "inconclusive",
+        "partial",
+        "complete"
+      ]
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "chargedChecks",
+        "receiptId"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "charged",
+            "not_charged"
+          ]
+        },
+        "chargedChecks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "receiptId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        }
+      }
+    },
+    "outcome": {
+      "oneOf": [
+        {
+          "$ref": "message-outcome.schema.json"
+        },
+        {
+          "$ref": "url-outcome.schema.json"
+        }
+      ]
+    },
+    "expiresAtEpoch": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "freshnessStatus",
+        "verdict",
+        "processingOutcome",
+        "coverage",
+        "reasonCodes",
+        "messageKey",
+        "nextAction"
+      ],
+      "properties": {
+        "freshnessStatus": {
+          "enum": [
+            "current",
+            "historical",
+            "not_applicable"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "unknown",
+            "suspicious",
+            "high_risk",
+            "no_known_threat_detected"
+          ]
+        },
+        "processingOutcome": {
+          "enum": [
+            "invalid_input",
+            "blocked",
+            "unsupported",
+            "unavailable",
+            "inconclusive",
+            "partial",
+            "complete"
+          ]
+        },
+        "coverage": {
+          "enum": [
+            "not_assessed",
+            "limited",
+            "supported_checks_complete"
+          ]
+        },
+        "reasonCodes": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z_]{1,80}$"
+          }
+        },
+        "messageKey": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        },
+        "nextAction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80
+        }
+      }
+    }
+  }
+}

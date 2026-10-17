@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "policyVersion",
+    "verdict",
+    "processingOutcome",
+    "coverage",
+    "limitationCodes",
+    "ruleIds",
+    "evidence",
+    "nextAction",
+    "messageKey",
+    "assessmentBasis",
+    "aiAssessmentStatus",
+    "aiReasonCodes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3,
+      "type": "integer"
+    },
+    "kind": {
+      "const": "message_assessment"
+    },
+    "policyVersion": {
+      "const": "message-ai-2026-09-21-v1"
+    },
+    "verdict": {
+      "enum": [
+        "high_risk",
+        "no_known_threat_detected",
+        "suspicious",
+        "unknown"
+      ]
+    },
+    "processingOutcome": {
+      "enum": [
+        "blocked",
+        "complete",
+        "inconclusive",
+        "partial",
+        "unavailable"
+      ]
+    },
+    "coverage": {
+      "enum": [
+        "limited",
+        "not_assessed",
+        "supported_checks_complete"
+      ]
+    },
+    "limitationCodes": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "BUDGET_LIMIT",
+          "HOSTILE_INPUT_STOP",
+          "INSUFFICIENT_EVIDENCE",
+          "PROVIDER_RESPONSE_INVALID",
+          "PROVIDER_UNAVAILABLE",
+          "UNKNOWN_SPEAKER",
+          "UNSUPPORTED_CONTENT",
+          "WITHHELD_LINKS"
+        ]
+      }
+    },
+    "ruleIds": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "BENIGN_FIXED_TEXT",
+          "DEMAND_GIFT_CARD_PAYMENT",
+          "PAYMENT_WITH_SECRECY_PRESSURE",
+          "REQUEST_SECRET_DISCLOSURE"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "outcome",
+          "targetScope",
+          "observedAt",
+          "validUntil",
+          "threatTypes",
+          "freshness"
+        ],
+        "properties": {
+          "source": {
+            "const": "google_web_risk_lookup"
+          },
+          "outcome": {
+            "enum": [
+              "match",
+              "no_match"
+            ]
+          },
+          "targetScope": {
+            "enum": [
+              "full_submitted_url",
+              "observed_http_chain",
+              "origin_only",
+              "redirect_hop"
+            ]
+          },
+          "observedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?Z$"
+          },
+          "validUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?Z$"
+          },
+          "threatTypes": {
+            "type": "array",
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "MALWARE",
+                "SOCIAL_ENGINEERING",
+                "UNWANTED_SOFTWARE"
+              ]
+            },
+            "minItems": 0
+          },
+          "freshness": {
+            "enum": [
+              "current",
+              "expired",
+              "unverified",
+              "observation_only"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "freshness": {
+                  "enum": [
+                    "current",
+                    "expired"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "const": "match"
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "validUntil": {
+                  "type": "string"
+                },
+                "threatTypes": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "freshness": {
+                  "const": "observation_only"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "const": "no_match"
+                },
+                "observedAt": {
+                  "type": "string"
+                },
+                "validUntil": {
+                  "type": "null"
+                },
+                "threatTypes": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "freshness": {
+                  "const": "unverified"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "match",
+                    "unavailable"
+                  ]
+                },
+                "observedAt": {
+                  "type": "null"
+                },
+                "validUntil": {
+                  "type": "null"
+                },
+                "threatTypes": {
+                  "maxItems": 0
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "nextAction": {
+      "enum": [
+        "avoid_link",
+        "pause_and_verify",
+        "review_input",
+        "use_built_in_help",
+        "verify_independently"
+      ]
+    },
+    "messageKey": {
+      "enum": [
+        "message.high_risk_request",
+        "message.hostile_stop",
+        "message.inconclusive",
+        "message.no_supported_finding",
+        "message.partial_known_threat",
+        "message.provider_unavailable",
+        "message.suspicious_request",
+        "message.ai_warning",
+        "message.ai_no_warning",
+        "message.ai_inconclusive"
+      ]
+    },
+    "assessmentBasis": {
+      "type": "array",
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "qualified_rules",
+          "google_web_risk_lookup",
+          "ai_assessment"
+        ]
+      }
+    },
+    "aiAssessmentStatus": {
+      "enum": [
+        "not_assessed",
+        "warning",
+        "no_warning",
+        "abstained",
+        "unavailable"
+      ]
+    },
+    "aiReasonCodes": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "AI_CONSEQUENTIAL_URGENCY",
+          "AI_CREDENTIAL_REQUEST",
+          "AI_PAYMENT_PRESSURE",
+          "AI_PRETEXT",
+          "AI_VERIFICATION_BYPASS"
+        ]
+      }
+    }
+  }
+}
