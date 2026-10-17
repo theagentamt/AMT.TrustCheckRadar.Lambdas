@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-17T11:23:36.742235+00:00",
+  "result": "READ_ONLY_PROPOSAL_BASELINE_QUALIFIED",
+  "targets": [
+    {
+      "function": "trustcheckradar-dev-v1-play-handoff",
+      "alias": "live",
+      "version": "9",
+      "unweighted": true,
+      "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+      "configurationSha256ExcludingCode": "bb2689652e5b469dbb7b8c7245a37b3015727e7474a8bef4025345085b0021c5",
+      "runtime": "python3.14",
+      "architecture": [
+        "arm64"
+      ],
+      "memoryMiB": 256,
+      "timeoutSeconds": 29,
+      "reservedConcurrency": 2,
+      "latestCodeAndConfigurationMatchLive": true,
+      "latestActive": true,
+      "gates": {
+        "PLAY_HANDOFF_ENABLED": "true",
+        "PLAY_PREPARATION_ENABLED": "true",
+        "AUTHORITY_ENABLED": "true",
+        "PLAY_REQUIRE_TEST_PURCHASES": "true",
+        "PLAY_CATALOG_P1M_VERIFIED": "true",
+        "PLAY_LIFECYCLE_ENABLED": "false"
+      },
+      "listedPublishedVersions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "proposedNextVersion": 10,
+      "nextVersionNotReserved": true,
+      "closedRollback6Available": true,
+      "closedRollback6CodeSha256": "lRlJaVYOIIOGqpQml/HsF1VyyuCetakXoFdPGtUT9C0="
+    },
+    {
+      "function": "trustcheckradar-dev-v1-entitlements",
+      "alias": "live",
+      "version": "18",
+      "unweighted": true,
+      "codeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+      "configurationSha256ExcludingCode": "0b28bad05f4a1f8ecc5a1f7d5386c2636c4c29af9b9acce88ae9d81a48012945",
+      "runtime": "python3.14",
+      "architecture": [
+        "arm64"
+      ],
+      "memoryMiB": 256,
+      "timeoutSeconds": 10,
+      "reservedConcurrency": 2,
+      "latestCodeAndConfigurationMatchLive": true,
+      "latestActive": true
+    },
+    {
+      "function": "trustcheckradar-dev-play-token-deletion",
+      "alias": "live",
+      "version": "17",
+      "unweighted": true,
+      "codeSha256": "EgY9o17ASfGm9RhY3Zfl7naFlw2fkrz6ZSSSyFQ4mjo=",
+      "configurationSha256ExcludingCode": "b83e81cab34ebbbe5ec704bd762923e113b247cb9cdfe858b2d373ff78fd9acd",
+      "runtime": "python3.14",
+      "architecture": [
+        "arm64"
+      ],
+      "memoryMiB": 256,
+      "timeoutSeconds": 60,
+      "reservedConcurrency": 1,
+      "latestCodeAndConfigurationMatchLive": true,
+      "latestActive": true
+    }
+  ],
+  "all13RuntimeFourRoutesIamLogsCapacitySchedulesStreamsMatchRetainedPostBaseline": true,
+  "other12RuntimeFingerprintsProtected": true,
+  "credentialExpiryAtUtc": "2026-10-17T12:23:24+00:00",
+  "noAuthFlow": true,
+  "noMutationsOrEndpoints": true,
+  "baselineSha256": "8f61107ab6621a8bb5d15d4c0e668688a7a482cec73943882d06bee950024a4e"
+}

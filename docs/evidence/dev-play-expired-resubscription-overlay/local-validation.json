@@ -1,0 +1,45 @@
+{
+  "exactArtifactWithOneTestOnlySupportFixture": {
+    "tests": 208,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "exactArtifactNoSupplementalModules": {
+    "tests": 207,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "deselected": 1
+  },
+  "builderCases": {
+    "tests": 10,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "allScriptSuiteJUnitIncludingSubtests": {
+    "tests": 244,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "retentionRollbackCases": 8,
+  "hostNativeTestDependenciesPreloaded": true,
+  "oneBaselineDeletionFixtureNeedsDeclaredTestOnlySupport": true,
+  "sameMissingSupportErrorReproducedOnOriginalLive9": true,
+  "all22LoadedArchivePythonModulesByteExact": true,
+  "compiledArchivedPythonEntries": 476,
+  "stalePycEntries": 0,
+  "staticNativeLibraries": {
+    "count": 4,
+    "format": "ELF64",
+    "architecture": "AArch64",
+    "allByteExactToBaseline": true,
+    "nativeExecutionQualified": false
+  },
+  "shellcheck": true,
+  "pythonCompile": true,
+  "diffCheck": true,
+  "noRuntimeAction": true
+}

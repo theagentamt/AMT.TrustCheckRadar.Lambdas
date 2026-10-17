@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T11:35:49.681111+00:00",
+  "sourceComponent": "SECUR4ALL-343",
+  "sourcePr": "https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/131",
+  "reviewedSourceHead": "55f42bdd9bcb18e2c2966ff02aba481f4dfd92e3",
+  "sourceReleaseMerge": "775db2ef23bfa47249a8dd08f43096d23f831d25",
+  "artifactPath": "/tmp/amt-dev-play-resubscription-live9-overlay.zip",
+  "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+  "artifactBytes": 6279910,
+  "lambdaCodeSha256": "6RcWwX2dxm85VkUuUAPXXmxuZf/EPC932JxgbIHNggY=",
+  "sourceAndTestDocPins": {
+    "scripts/prepare_dev_expired_resubscription.py": "5d66c73488631e00280d6ada9fec11eaf8a22da18f4250ca7291573fb3ec577c",
+    "tests/scripts/test_expired_resubscription_overlay.py": "eb6d18bad094955121f51ede92015abb9ae8c231bb278e01bd19d1edd20032b2",
+    "tests/shared_check_authority/fixtures/dev-live9-retained-writer.py": "d56b519eb333a57b819a285ea34477ef255143b2249c25d0492c836f85757177",
+    "tests/v1_play_handoff/fixtures/dev-live9-handoff.py": "8cc95103246de5c8451efaf5e7370ce59ebe8595ca65874f38c7e8da051f7eaf",
+    "tests/v1_play_handoff/fixtures/dev-access18-snapshot.py": "36ba23e497edb9aa4baee477844f29cf7b6db69e8a90ddd135a280fb06b21e83",
+    "tests/v1_play_handoff/test_retained_overlay_compatibility.py": "8bb31d5fbeaecb5ebac1cc935b7c1a539082b66075fc78b7c0bb3550c4fcf864",
+    "docs/dev-play-expired-resubscription-overlay.md": "7877feaf70f23daf21ad00ca804d5301b2370f345069c276a0c11e6d5ba3adb4"
+  },
+  "evidencePins": {
+    "docs/evidence/dev-play-expired-resubscription-overlay/archive-manifest.json": "842e35d9047ada2f79d9760dea18b02f9e9a399bbd6fcbf560ded3461ec5ffd3",
+    "docs/evidence/dev-play-expired-resubscription-overlay/disabled-root-handler-smoke.json": "b983e8f90df7f9543e11afc9f915bd9b6f34287b66b430545a25e15eb3e8ad69",
+    "docs/evidence/dev-play-expired-resubscription-overlay/loaded-application-modules.json": "aa804402e6662a4bfa9af2a8fab61822b1e7f0dfdeb03d31809fef317352d7e4",
+    "docs/evidence/dev-play-expired-resubscription-overlay/local-validation.json": "3e5b561f81c0be2eefb8c79b49bc3bc05fdc871414c3a226fb5690be2093a423",
+    "docs/evidence/dev-play-expired-resubscription-overlay/proposal-readonly-baseline.json": "10eac533532e67f0f28c30516aa69471302903b501066cb63bf9e8d1745eed22",
+    "docs/evidence/dev-play-expired-resubscription-overlay/test-environment.json": "79c754928eefd030e7d9d30add7cb2f8541dca821d8de373ce6383f57fe89823"
+  },
+  "combinedArtifactTests": {
+    "exactArtifactWithOneTestOnlySupportFixture": {
+      "tests": 208,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "exactArtifactNoSupplementalModules": {
+      "tests": 207,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "deselected": 1
+    },
+    "builderCases": {
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "allScriptSuiteJUnitIncludingSubtests": {
+      "tests": 244,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "retentionRollbackCases": 8,
+    "hostNativeTestDependenciesPreloaded": true,
+    "oneBaselineDeletionFixtureNeedsDeclaredTestOnlySupport": true,
+    "sameMissingSupportErrorReproducedOnOriginalLive9": true,
+    "all22LoadedArchivePythonModulesByteExact": true,
+    "compiledArchivedPythonEntries": 476,
+    "stalePycEntries": 0,
+    "staticNativeLibraries": {
+      "count": 4,
+      "format": "ELF64",
+      "architecture": "AArch64",
+      "allByteExactToBaseline": true,
+      "nativeExecutionQualified": false
+    },
+    "shellcheck": true,
+    "pythonCompile": true,
+    "diffCheck": true,
+    "noRuntimeAction": true
+  },
+  "soleFutureDevTarget": "trustcheckradar-dev-v1-play-handoff:live",
+  "otherFunctionsNotTargets": [
+    "trustcheckradar-dev-v1-entitlements:live:18",
+    "trustcheckradar-dev-play-token-deletion:live:17",
+    "remaining10runtimefunctions"
+  ],
+  "baselineObservedAtUtc": "2026-10-17T11:23:36.742235+00:00",
+  "futureLiveVersion10NotReserved": true,
+  "runtimeDeploymentApproved": false,
+  "runtimeDeploymentPerformed": false,
+  "allFiveTransactionBudgetsConsumed": true,
+  "futurePurchaseAuthority": false,
+  "liveAcceptancePassed": false,
+  "futureApplyRequiresFreshMetadataAndRevisionGuards": true,
+  "noIamSecurityInfraSettingChange": true
+}

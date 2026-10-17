@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baselineSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+  "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+  "artifactBytes": 6279910,
+  "archiveEntries": 609,
+  "changedEntries": [
+    "shared_check_authority/entitlements.py",
+    "shared_play_verification/proof.py",
+    "shared_purchase_ownership/service.py",
+    "v1_play_handoff/app.py",
+    "v1_play_handoff/diagnostics.py",
+    "v1_play_handoff/service.py"
+  ],
+  "addedOrRemovedEntries": 0,
+  "unrelatedEntriesByteAndCompressedPayloadExact": 603,
+  "unrelatedMetadataExactExceptNecessaryArchiveOffsets": true,
+  "retentionAstPreservedOutsideApprovedMigrationDelta": true,
+  "entrySha256": {
+    "shared_check_authority/entitlements.py": "ab1939f6eb9c6f9f5be1d79fc338e335670f88d03e192c04e0bd2d21101f25cd",
+    "shared_play_verification/proof.py": "81fb9bfccd200b97e51a639b706cf2cfa0d01d773c6f92a462ada334e6697e3b",
+    "shared_purchase_ownership/service.py": "c133a769ae101b3330e484ac75acc4b58786161f1acaca81e49f2ec322686bf1",
+    "v1_play_handoff/app.py": "7fe01208f4d22c59eaaee6eb74e8e72840a8a8b9ca90835ca6ade65ef7720fcf",
+    "v1_play_handoff/diagnostics.py": "c68fa64d1cb94224b57f76f84bf54ab7ab8636e7b9189286a14531feaa5fa80f",
+    "v1_play_handoff/service.py": "4d134557dca8a8c54dcb962bed51cb3890088ba6ae97808317ca3643b39bb57a"
+  },
+  "runtimeApplied": false
+}
