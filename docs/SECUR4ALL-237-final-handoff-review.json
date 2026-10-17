@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "reviewOutcome": "PASS_SOURCE_KERNEL_AND_HANDOFF_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:01:14.898017+00:00",
+  "files": {
+    "docs/SECUR4ALL-237-OPERATIONS-KERNEL.md": "862197334c4d23b46edfdff09c4492a9e2d20e4d28fe73945558891ce2f9654d",
+    "src/operations_reporting/__init__.py": "015a6ff966b65469839fea7c9e19345a3417001238d2e75cb2fdab1352632db4",
+    "src/operations_reporting/event.schema.json": "1e714de421c2f14527cc08b91d239815acba032f3665d5eec9c1e968eb53a958",
+    "src/operations_reporting/reducer.py": "73f1e922763d02575ba9a8d7e2fca930db276a69bb290e8f6ab114228c71e73f",
+    "src/operations_reporting/rejection.schema.json": "a32632678a79eb6c92190b3de414a64183fe4d733dacb580fdb4ea9f570b3ed2",
+    "src/operations_reporting/requirements.txt": "756cc9e506ae4ee1a6f6c0507088b5cfc0dc8ba350fb2d2d46f1ffa72033adb6",
+    "tests/operations_reporting/fixtures.json": "12601f0e7a2937f07e9b4e5aca31fac5f0bd86af7e603875df31f05dc8378452",
+    "tests/operations_reporting/test_independent.py": "a4c3a5ce007adc3846d46ef94eedbda7030d0e67502155813eabad2be527169c",
+    "tests/operations_reporting/test_reducer.py": "b890e46ae37199d51600d86d46c84870802792a2b667a0785a4e100905755c71"
+  },
+  "checks": {
+    "priorImplementationAndIndependentTestPinsUnchanged": true,
+    "focusedOperationsCasesIndependentlyPassed": 109,
+    "independentCasesIncluded": 17,
+    "failures": 0,
+    "errors": 0,
+    "schemasAndSyntheticFixtureExactMainSec178Copies": true,
+    "nondeployableLibraryBuilderRefusalAndNoZip": true,
+    "existingPackagingAndWorkflowUnchanged": true,
+    "docSourceBoundaryAndPendingFullStoryAcceptanceAccurate": true
+  },
+  "findings": [],
+  "acceptedBoundary": [
+    "Pure supplied-snapshot calculation, not authoritative ingestion, durable start/projection store or runtime handler",
+    "Fixed seven-day conservative closure refuses fresh calculation and does not erase prior aggregates",
+    "Producer completeness, cost catalog and delivery remain explicitly unqualified",
+    "SEC237 and SEC243 remain open; later release followup does not replace unfinished Dev criteria",
+    "No approval to deploy, activate, add storage/permissions, collect client telemetry or change budgets"
+  ],
+  "unreviewedResults": [
+    "Parent broader authority integration suite results are not independently claimed by this record"
+  ],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "endpoint": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "deployment": 0
+  }
+}
