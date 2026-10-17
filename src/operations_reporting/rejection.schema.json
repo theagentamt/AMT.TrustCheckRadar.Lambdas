@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://andmorethings.com/contracts/operations/1.0.0-candidate.1/rejection-aggregate.schema.json",
+  "title": "Privacy-safe pre-admission rejection aggregate proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventType",
+    "windowStartEpoch",
+    "windowSeconds",
+    "environment",
+    "trafficClass",
+    "service",
+    "reasonCode",
+    "rejectedCount"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0-rejection-aggregate-candidate.1"
+    },
+    "eventType": {
+      "const": "request_rejected"
+    },
+    "windowStartEpoch": {
+      "type": "integer",
+      "minimum": 0,
+      "multipleOf": 300
+    },
+    "windowSeconds": {
+      "const": 300
+    },
+    "environment": {
+      "enum": [
+        "dev",
+        "uat",
+        "prod"
+      ]
+    },
+    "trafficClass": {
+      "const": "customer"
+    },
+    "service": {
+      "enum": [
+        "message_check",
+        "url_check",
+        "recovery_clarification"
+      ]
+    },
+    "reasonCode": {
+      "enum": [
+        "AUTHENTICATION",
+        "ACCOUNT_UNAVAILABLE",
+        "DEVICE_REQUIRED",
+        "ACCESS_UNAVAILABLE",
+        "ALLOWANCE_EXHAUSTED",
+        "INPUT_REJECTED",
+        "PRIVACY_REVIEW_REQUIRED",
+        "CONTRACT_UNSUPPORTED",
+        "RATE_LIMITED",
+        "CHECK_ID_CONFLICT",
+        "OPERATION_EXPIRED",
+        "SERVICE_DISABLED",
+        "SERVICE_UNAVAILABLE"
+      ]
+    },
+    "rejectedCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000000
+    }
+  }
+}

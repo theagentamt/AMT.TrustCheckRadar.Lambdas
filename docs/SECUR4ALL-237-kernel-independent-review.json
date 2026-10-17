@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "reviewOutcome": "PASS_SOURCE_ONLY_KERNEL",
+  "reviewedAtUtc": "2026-10-17T22:59:30.877999+00:00",
+  "files": {
+    "src/operations_reporting/reducer.py": "73f1e922763d02575ba9a8d7e2fca930db276a69bb290e8f6ab114228c71e73f",
+    "src/operations_reporting/event.schema.json": "1e714de421c2f14527cc08b91d239815acba032f3665d5eec9c1e968eb53a958",
+    "src/operations_reporting/rejection.schema.json": "a32632678a79eb6c92190b3de414a64183fe4d733dacb580fdb4ea9f570b3ed2",
+    "tests/operations_reporting/test_reducer.py": "fe95a9140a2a6259791404929b2e5f94614d192f2a620256fee1b0702f954659",
+    "tests/operations_reporting/test_independent.py": "a4c3a5ce007adc3846d46ef94eedbda7030d0e67502155813eabad2be527169c",
+    "tests/operations_reporting/fixtures.json": "12601f0e7a2937f07e9b4e5aca31fac5f0bd86af7e603875df31f05dc8378452"
+  },
+  "independentTests": {
+    "addedFile": "tests/operations_reporting/test_independent.py",
+    "addedPassed": 17,
+    "combinedOperationsPassed": 108,
+    "failures": 0,
+    "errors": 0,
+    "checks": [
+      "All24 fact delivery permutations and duplicate replay yield exact same report without modifying callers",
+      "Accepted-check and provider-attempt cohorts remain independently anchored across midnight and late finish",
+      "Known-zero cost/request units are separate from null unknown coverage",
+      "Conflicting alternative phase identities are rejected, not double-counted",
+      "Cumulative pre-admission rejection heads require monotonic reconciliation; stale or mixed heads reject",
+      "Conservative cohort closure refuses recalculation rather than reversing old totals",
+      "Noncomplete charged outcomes reject before totals",
+      "Private extension/cyclic/nested inputs expose finite faults only with no logs or stdout",
+      "Report contains no event/logical-check/attempt reference and never claims qualified producer/catalog/cost coverage or delivery",
+      "A new attempt after known terminal settlement rejects; a previously started attempt may finish later"
+    ]
+  },
+  "contractBaseline": {
+    "commit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+    "eventSchemaByteExact": true,
+    "rejectionSchemaByteExact": true
+  },
+  "findings": [],
+  "scopeLimits": [
+    "Pure caller-supplied bounded projection only; random-reference authority/deletion/expiry and producer completeness are not established by schema validation",
+    "Rejection monotonic helper requires a future durable atomic-CAS store",
+    "No actual producers, durable pre-dispatch writes, correction storage, cost catalog, handler, report publisher or cloud delivery implemented/qualified here",
+    "Seven-day closure conservatively ends the full day cohort at local-day-start plus604800 seconds; callers must preserve prior unlinkable aggregates",
+    "All producer/cost coverage and no-delivery limitations are explicit in report output",
+    "SEC237 remains open for retained full Dev and integration criteria"
+  ],
+  "actions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "endpoints": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "deployment": 0
+  }
+}
