@@ -110,17 +110,6 @@ jobs:
             echo "release_id=${source_sha}"
           } >> "${GITHUB_OUTPUT}"
 
-      - name: Validate environment configuration
-        run: |
-          set -euo pipefail
-          [[ -n "${AWS_REGION}" ]] || { echo "GitHub environment variable AWS_REGION is required" >&2; exit 2; }
-          [[ -n "${AWS_ROLE_ARN}" ]] || { echo "GitHub environment variable AWS_ROLE_ARN is required" >&2; exit 2; }
-          [[ -n "${ARTIFACT_BUCKET}" ]] || { echo "GitHub environment variable ARTIFACT_BUCKET is required" >&2; exit 2; }
-          [[ "${AWS_ROLE_ARN}" =~ ^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+ ]] || {
-            echo "AWS_ROLE_ARN is not a valid IAM role ARN" >&2
-            exit 2
-          }
-
       - name: Check out the released source
         uses: actions/checkout@v7.0.1
         with:
@@ -148,10 +137,22 @@ jobs:
           assert manifest.get("schemaVersion") == 1
           assert manifest.get("headSha") == os.environ["SOURCE_SHA"]
           assert re.fullmatch("[0-9a-f]{40}", manifest.get("baseSha", ""))
-          assert manifest.get("scope") in {"resolver", "all", "contracts", "assessment_manual", "authority_manual"}
+          assert manifest.get("scope") in {"docs_only", "resolver", "all", "contracts", "assessment_manual", "authority_manual"}
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("value=" + manifest["scope"] + "\n")
           PYTHON
+
+      - name: Validate environment configuration
+        if: steps.scope.outputs.value == 'resolver' || steps.scope.outputs.value == 'all'
+        run: |
+          set -euo pipefail
+          [[ -n "${AWS_REGION}" ]] || { echo "GitHub environment variable AWS_REGION is required" >&2; exit 2; }
+          [[ -n "${AWS_ROLE_ARN}" ]] || { echo "GitHub environment variable AWS_ROLE_ARN is required" >&2; exit 2; }
+          [[ -n "${ARTIFACT_BUCKET}" ]] || { echo "GitHub environment variable ARTIFACT_BUCKET is required" >&2; exit 2; }
+          [[ "${AWS_ROLE_ARN}" =~ ^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+ ]] || {
+            echo "AWS_ROLE_ARN is not a valid IAM role ARN" >&2
+            exit 2
+          }
 
       - name: Verify package checksums and contents
         run: |
@@ -268,7 +269,10 @@ jobs:
               echo "- ZIP location: \`s3://${ARTIFACT_BUCKET}/releases/${RELEASE_ID}/\`"
             fi
             echo
-            echo "This publishes immutable artifacts only. Resolver scope uploads only url_redirect_resolver.zip. Contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
+            if [[ "$RELEASE_SCOPE" == "docs_only" ]]; then
+              echo "Documentation-only change: no publication, no AWS credentials requested, and no S3 or Lambda artifact uploaded. Main CI validation and GitHub inspection artifacts are retained."
+            fi
+            echo "This publishes immutable artifacts only for publishing scopes. Resolver scope uploads only url_redirect_resolver.zip. docs_only, contracts, assessment_manual, and authority_manual scopes skip AWS credentials and all uploads; private assessment publication requires a separately reviewed manual artifact step. No scope deploys or updates a Lambda runtime or alias."
           } >> "${GITHUB_STEP_SUMMARY}"
 
 

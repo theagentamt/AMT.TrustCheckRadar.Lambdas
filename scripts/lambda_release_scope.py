@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Classify a main push for resolver, contract-only, or broad artifact publication."""
+"""Classify a main push, including explicit documentation-only non-publication."""
 import argparse
 import json
 import re
@@ -45,6 +45,16 @@ RESOLVER_PREFIXES = ('src/url_redirect_resolver/', 'tests/url_redirect_resolver/
 
 def classify(paths):
     paths = list(paths)
+    # Only the docs namespace is non-publishing. Root READMEs, unknown paths,
+    # empty diffs and every mixed diff retain the existing release policy.
+    # git emits canonical paths; reject traversal/empty components for callers
+    # that supply a path list directly rather than using the CLI.
+    if paths and all(
+        isinstance(path, str) and path.startswith('docs/')
+        and all(part not in ('', '.', '..') for part in path.split('/'))
+        for path in paths
+    ):
+        return 'docs_only'
     authority = lambda path: path.startswith(AUTHORITY_PREFIXES)
     if paths and any(path.startswith(MESSAGE_PREFIXES + ('src/shared_check_authority/', 'src/url_consumer/', 'src/url_lease_recovery/', 'src/v1_entitlements/', 'src/v1_authority_deletion/', 'contracts/url-consumer/', 'contracts/v1-access/')) for path in paths) and all(
         authority(path) or path in AUTHORITY_SUPPORT_PATHS for path in paths
@@ -78,7 +88,10 @@ def main():
         if not re.fullmatch('[0-9a-f]{40}', revision) or revision == '0' * 40:
             parser.error('Expected nonzero full Git commit IDs')
     subprocess.run(['git', 'merge-base', '--is-ancestor', args.base, args.head], check=True)
-    diff = subprocess.check_output(['git', 'diff', '--name-only', '-z', args.base, args.head])
+    # Include deletion and addition paths for moves across the docs boundary.
+    # Rename detection could otherwise report only docs/new.py for a runtime
+    # file moved out of src/, incorrectly hiding the runtime deletion.
+    diff = subprocess.check_output(['git', 'diff', '--name-only', '--no-renames', '-z', args.base, args.head])
     paths = diff.decode().rstrip('\0').split('\0') if diff else []
     manifest = {'schemaVersion': 1, 'baseSha': args.base, 'headSha': args.head, 'scope': classify(paths)}
     Path(args.output).write_text(json.dumps(manifest, indent=2) + '\n')

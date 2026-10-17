@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-341",
+  "stage": "SOURCE_VALIDATED_MAIN_ACCEPTANCE_PENDING",
+  "baseRelease": "7647a910cb656cd701b1b6d7db9b769ead4e57e0",
+  "mainReference": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+  "localValidation": {
+    "scriptsPassed": 215,
+    "expectedIsolatedModuleSkipped": 1,
+    "subtestsPassed": 21,
+    "independentWorkflowCasesPassed": 20,
+    "combinedClassifierWorkflowCasesPassed": 32,
+    "actionlint": "PASS",
+    "shellcheck": "PASS",
+    "compile": "PASS",
+    "diffCheck": "PASS"
+  },
+  "noRuntimeOrWorkflowDispatch": true,
+  "mainPromotionAuthorized": false,
+  "mainCiAcceptancePassed": false,
+  "existingImmutableObjectsChanged": false,
+  "files": {
+    "scripts/lambda_release_scope.py": "6fde81a9051e89ef8d17d16248c91307c3331d577e781841a4af9fc59e58b2ff",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd",
+    "tests/scripts/test_lambda_release_scope.py": "dc3f059e4f724baf5f0166b69a265fc5681d1e7007ae1e75fd88ea3e63dc395b",
+    "tests/scripts/test_docs_publication_workflow.py": "f512b43655c5a383de6fb2de13266269ee67c149f87d00c4ff64e2f7d7220a36",
+    "docs/GITHUB_PUBLISHING.md": "2a1cad1ff387921e01470769993f25f6b2463d56de1526b4b05250a2a0e5f0c6",
+    "docs/SECUR4ALL-341-DOCS-NONPUBLICATION.md": "0293c188db22f4049655fb719a45708c273489b277a26c3c3bdf08da6197f122",
+    "docs/SECUR4ALL-341-independent-review.json": "9d6598456aa35fcdef4f8b748d786552beaad23a0fbed997f72a78409c2d84b9"
+  }
+}

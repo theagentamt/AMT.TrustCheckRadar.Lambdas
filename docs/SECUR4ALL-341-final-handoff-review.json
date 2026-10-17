@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-341",
+  "reviewOutcome": "PASS_SOURCE_AND_HANDOFF_ONLY",
+  "observedAtUtc": "2026-10-17T22:44:15.896281+00:00",
+  "priorIndependentSourcePinsUnchanged": true,
+  "allDeclaredValidationPinsMatch": true,
+  "files": {
+    "docs/GITHUB_PUBLISHING.md": "2a1cad1ff387921e01470769993f25f6b2463d56de1526b4b05250a2a0e5f0c6",
+    "docs/SECUR4ALL-341-DOCS-NONPUBLICATION.md": "0293c188db22f4049655fb719a45708c273489b277a26c3c3bdf08da6197f122",
+    "docs/SECUR4ALL-341-validation.json": "37c5f6f40857142765b866130299a8c1683fc3062c836d1179223da074d5f2af",
+    "docs/SECUR4ALL-341-independent-review.json": "9d6598456aa35fcdef4f8b748d786552beaad23a0fbed997f72a78409c2d84b9"
+  },
+  "verification": [
+    "Read both human-facing documents and JSON validation receipt",
+    "Rechecked all declared implementation/test/doc pins against current bytes",
+    "Read actual scripts JUnit receipt without rerunning full suite",
+    "Confirmed source-only release integration wording and explicit pending main criterion 5",
+    "Confirmed preservation of divergent main entitlements/governed-history extensions",
+    "Confirmed no actual workflow/AWS/deployment result is claimed"
+  ],
+  "scriptsJunitReceipt": {
+    "path": "/tmp/amt-sec341-scripts-tests.xml",
+    "sha256": "b792a2d2006483affc13c363f623604d5d9e24707a1490b6302204ed985f8dc9",
+    "suites": [
+      {
+        "name": "pytest",
+        "tests": "237",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "1"
+      }
+    ]
+  },
+  "findings": [],
+  "remainingAcceptance": [
+    "Reviewed approved main reconciliation preserving main-only extensions",
+    "Actual main CI release-scope and docs-only no-publication behavior"
+  ],
+  "scopeLimits": [
+    "Review performed entirely using local files",
+    "No workflow, runtime, AWS, endpoint, credential, or immutable artifact action"
+  ]
+}

@@ -37,8 +37,10 @@ nonsecret environment variables in each environment:
 
 Set repository variable `ENABLE_DEV_PUBLISH=true` only after the `dev`
 environment and AWS role are ready. Thereafter, every successful `CI` push run on
-`main` publishes its exact ZIP artifacts to dev. Without that variable, publishing
-is manual and CI remains read-only.
+`main` validates its release scope: publishing scopes promote their exact ZIP
+artifacts to Dev; documentation-only and restricted manual/contract scopes do
+not request AWS credentials or upload artifacts. Without that variable,
+publishing is manual and CI remains read-only.
 
 Require a reviewer for the `uat` and `prod` environments and restrict all three
 environments to the `main` branch. Do not store AWS access keys in GitHub.
@@ -87,6 +89,30 @@ The publishing workflow requires a successful main-push CI run and an exact matc
 Broader releases retain the existing all-functions uploader. CI runs created before this scope manifest existed cannot be promoted with this workflow; run fresh main CI after merging the reviewed source. The OIDC role and permissions are unchanged. Resolver-only publication uses the same already-authorized versioned artifact bucket and S3 release prefix.
 
 The publisher uses existing `s3:GetObject` and `s3:PutObject` permissions. It does not request `GetObjectVersion`; a concurrent latest-version replacement fails verification. Infrastructure independently verifies pinned-version bytes with its existing deploy permissions before rollout.
+
+## Documentation-only non-publication
+
+A nonempty push range containing only canonical `docs/` paths receives
+`scope=docs_only`. Main CI still runs its existing validation/package jobs and
+retains GitHub inspection artifacts. The publishing job validates its exact CI
+source and scope evidence, then skips AWS environment requirements, credential
+assumption, AWS account/bucket reads and every S3 publication step. Its summary
+explicitly records no publication and no AWS credentials requested; it does not
+advertise an S3 release location.
+
+`README.md` outside `docs/`, empty ranges, unknown non-documentation paths and
+mixed runtime/package/workflow changes keep their existing specialized or
+conservative `all` policy. The classifier disables Git rename detection so a
+runtime file moved into `docs/` still includes the runtime deletion and cannot
+hide behind the documentation-only scope. No immutable existing release object
+is removed. No scope deploys or updates a Lambda function or alias.
+
+The SECUR4ALL-341 source fix targets `release-V01`. That branch's classifier and
+workflow do not yet contain the independent `main` entitlements/governed-History
+extensions. Future authorized main reconciliation must preserve those extensions
+when applying this narrow change; copying the older release files over main is
+not an approved merge strategy. Reviewed main integration and actual main CI
+remain acceptance gates; local tests and release integration are not that pass.
 
 
 Contract-only changes under `contracts/url-assessment/v1-draft/` and their tests, with narrowly listed release-scope support files, receive `scope=contracts`. The publishing workflow validates the main CI evidence but skips AWS credential assumption and every upload step. These draft handoffs are versioned in Git only; they do not publish or activate runtime artifacts. Any runtime-code change prevents contract-only scope.
