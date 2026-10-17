@@ -34,6 +34,14 @@ class VerifiedMonthlyDecision:
 
 
 @dataclass(frozen=True)
+class _ExpiredPaidRootMigration:
+    """Call-local capability minted only by the explicit foreground proof API."""
+    account: str = field(repr=False)
+    expected_access_json: str = field(repr=False)
+    decision: VerifiedMonthlyDecision = field(repr=False)
+
+
+@dataclass(frozen=True)
 class TrustedLifecycleWorker:
     """Server-created worker identity; never deserialize HTTP/PubSub body fields."""
     principal_arn: str
@@ -211,7 +219,7 @@ class EntitlementWriter:
             break
         return row
 
-    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None, request_digest=None):
+    def _commit(self, account, pk, old, sources, operation_id, action, details, *, extras=(), actor=None, request_digest=None, exact_access=False):
         if not isinstance(operation_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', operation_id):
             raise AuthorityError('WRITER_INPUT_REJECTED')
         kid = self.a.s.active_key_id
@@ -250,7 +258,13 @@ class EntitlementWriter:
         for other in self.a.deletion_partitions(account):
             if other != pk:
                 items.append(self.a._check(self.a.s.authority_table, {'PK': other, 'SK': 'ACCESS'}, 'attribute_not_exists(PK)'))
-        items += list(extras) + [self._put(row, condition, values), self._put(audit)]
+        access_put = self._put(row, condition, values)
+        if exact_access:
+            from .purchase_usage import exact_condition
+            if old is None:
+                raise AuthorityError('STORE_OBSERVATION_CHANGED')
+            access_put = {'Put': {'TableName': self.a.s.authority_table, 'Item': row, **exact_condition(old)}}
+        items += list(extras) + [access_put, self._put(audit)]
         if len(items) > 100:
             raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
         try:
@@ -317,6 +331,54 @@ class EntitlementWriter:
         A modern Play adapter supplies pre-provider ACCESS/device observations and
         exact ownership CAS actions. Existing verifier callers keep their API.
         """
+        return self._commit_foreground_paid(verified_event, decision, operation_id,
+            observation=observation, transaction_extras=transaction_extras, request_digest=request_digest)
+
+    def commit_verified_resubscription(self, verified_event, proof, operation_id, *, intent, observation,
+            ownership, previous_ownership, new_ownership, transaction_extras=(), request_digest=None):
+        """Fresh bound PURCHASE only; never a generic/background/RESTORE switch.
+
+        Stored authority expiry is not proof that every old provider state ended.
+        Preserve both old locks and all historical usage in the atomic transition.
+        """
+        from shared_play_verification.proof import PlayProof, PRODUCT
+        from shared_purchase_ownership.service import OwnershipStore, ClaimObservation, expired_resubscription_guards
+        account = self.a._account(verified_event)
+        if (intent != 'PURCHASE' or type(proof) is not PlayProof or proof.active is not True
+                or proof.obfuscated_account_id != hashlib.sha256(b'TrustCheckRadar/account-namespace/v1\x00'+account.encode()).hexdigest()
+                or proof.access_until_epoch != proof.period_end_epoch
+                or len(proof.token_hashes) != 1 or proof.subscription_identity != proof.token_hashes[0]
+                or type(ownership) is not OwnershipStore or type(observation) is not dict
+                or type(previous_ownership) is not ClaimObservation or type(new_ownership) is not ClaimObservation
+                or set(observation) != {'access', 'device'} or type(observation['access']) is not dict):
+            raise AuthorityError('STORE_AUTHORITY_MIGRATION_REQUIRED')
+        _, current, sources = self._read(account)
+        if current != observation['access']:
+            raise AuthorityError('STORE_OBSERVATION_CHANGED')
+        previous = sources.get('paid', {})
+        if (previous_ownership.hashes != (previous.get('headTokenDigest'),)
+                or new_ownership.hashes != proof.token_hashes
+                or previous_ownership.table_name != ownership.table_name
+                or new_ownership.table_name != ownership.table_name
+                or previous_ownership.environment != ownership.environment
+                or new_ownership.environment != ownership.environment):
+            raise AuthorityError('STORE_AUTHORITY_MIGRATION_REQUIRED')
+        guards = expired_resubscription_guards(previous_ownership, new_ownership,
+            account_id=account, product_id=PRODUCT)
+        claims = ownership.prepare_claim_actions(new_ownership, proof.token_hashes, product_id=PRODUCT)
+        decision = VerifiedMonthlyDecision(account=account, store='google_play', product_id=PRODUCT,
+            subscription_id=proof.subscription_identity, source_revision=int(previous.get('sourceRevision', 0))+1,
+            verified_at_epoch=proof.verified_at_epoch, active=True, period_id=proof.order_digest,
+            period_start_epoch=proof.period_start_epoch, period_end_epoch=proof.period_end_epoch,
+            access_until_epoch=proof.access_until_epoch, head_token_digest=proof.token_hashes[0])
+        migration = _ExpiredPaidRootMigration(account,
+            json.dumps(current, sort_keys=True, separators=(',', ':'), default=_json_integral), decision)
+        return self._commit_foreground_paid(verified_event, decision, operation_id,
+            observation=observation, transaction_extras=claims+guards+list(transaction_extras),
+            request_digest=request_digest, migration=migration)
+
+    def _commit_foreground_paid(self, verified_event, decision, operation_id, *, observation=None,
+            transaction_extras=(), request_digest=None, migration=None):
         account = self.a._account(verified_event)
         device_conditions = self._device_conditions(verified_event, account)
         expected = None
@@ -325,7 +387,8 @@ class EntitlementWriter:
                 raise AuthorityError('STORE_OBSERVATION_CHANGED')
             expected = observation['access']
         return self._commit_paid(account, decision, operation_id, observed=observation is not None,
-            expected_access=expected, extras=device_conditions + list(transaction_extras), request_digest=request_digest)
+            expected_access=expected, extras=device_conditions + list(transaction_extras), request_digest=request_digest,
+            migration=migration)
 
     def commit_background_paid(self, worker, decision, operation_id, *, expected_access, ownership_actions, token_actions=(), request_digest=None):
         if type(worker) is not TrustedLifecycleWorker or worker.principal_arn not in self.lifecycle_principals:
@@ -357,7 +420,7 @@ class EntitlementWriter:
         return self._commit_paid(decision.account,decision,operation_id,observed=True,
             expected_access=expected_access,extras=list(ownership_actions)+list(token_actions),request_digest=request_digest)
 
-    def _commit_paid(self, account, decision, operation_id, *, observed, expected_access, extras, request_digest):
+    def _commit_paid(self, account, decision, operation_id, *, observed, expected_access, extras, request_digest, migration=None):
         if type(decision) is not VerifiedMonthlyDecision:
             raise AuthorityError('VERIFIED_STORE_AUTHORITY_UNAVAILABLE')
         now = self.a.now()
@@ -375,7 +438,23 @@ class EntitlementWriter:
         kid = self.a.s.active_key_id
         subscription = self.a._mac(kid, 'store-subscription', decision.store + '\0' + decision.subscription_id)
         previous = sources.get('paid')
-        if previous and (previous.get('subscriptionDigest') != subscription
+        if migration is not None:
+            if (type(migration) is not _ExpiredPaidRootMigration or migration.account != account
+                    or migration.decision is not decision or not observed
+                    or json.loads(migration.expected_access_json) != old
+                    or not previous or previous.get('subscriptionDigest') == subscription
+                    or previous.get('store') != 'google_play' or decision.store != 'google_play'
+                    or previous.get('productId') != decision.product_id or not decision.active
+                    or decision.require_existing_usage or decision.head_token_digest is None
+                    or decision.access_until_epoch != decision.period_end_epoch
+                    or decision.subscription_id != decision.head_token_digest
+                    or previous.get('headTokenDigest') is None or previous['headTokenDigest'] == decision.head_token_digest
+                    or not previous.get('periodId') or integral(previous.get('validUntilEpoch')) is None
+                    or type(decision.period_start_epoch) is not int
+                    or previous['validUntilEpoch'] > now or previous['validUntilEpoch'] > decision.period_start_epoch
+                    or decision.source_revision != previous['sourceRevision']+1):
+                raise AuthorityError('STORE_AUTHORITY_MIGRATION_REQUIRED')
+        elif previous and (previous.get('subscriptionDigest') != subscription
                          or decision.source_revision < previous.get('sourceRevision', 0)):
             # Linked token/subscription changes require an explicit verified migration.
             raise AuthorityError('STORE_AUTHORITY_MIGRATION_REQUIRED')
@@ -395,6 +474,8 @@ class EntitlementWriter:
                 raise AuthorityError('VERIFIED_MONTHLY_PERIOD_UNAVAILABLE')
             period_id = 'paid-' + self.a._mac(kid, 'store-period', subscription + '\0' + decision.period_id)[:40]
             period = self.a._get(self.a.s.authority_table, {'PK': pk, 'SK': 'PERIOD#' + period_id})
+            if migration is not None and period is not None:
+                raise AuthorityError('STORE_AUTHORITY_MIGRATION_REQUIRED')
             from . import purchase_usage
             if period is not None:
                 purchase_usage.validate_period(period)
@@ -432,6 +513,26 @@ class EntitlementWriter:
                         raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
                     if previous_period['endEpoch'] > start:
                         raise AuthorityError('OVERLAPPING_STORE_PERIOD')
+                    if migration is not None:
+                        if purchase_usage.effective_access_end(previous_period) != previous['validUntilEpoch']:
+                            raise AuthorityError('IMMUTABLE_PERIOD_CONFLICT')
+                        old_pointer = purchase_usage.validate_period(previous_period)
+                        if old_pointer == usage_key:
+                            raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+                        old_usage = self.a._get(self.a.s.authority_table, old_pointer)
+                        if old_usage is None:
+                            if now < purchase_usage.usage_deadline(previous_period) or previous_period['reservedChecks'] != 0:
+                                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+                            extras.append(self.a._check(self.a.s.authority_table, old_pointer, 'attribute_not_exists(PK)'))
+                        else:
+                            purchase_usage.validate(old_usage, old_pointer, now, allow_expired=True)
+                            if (any(old_usage[k] != previous_period[k] for k in ('startEpoch', 'endEpoch', 'usedChecks', 'reservedChecks', 'limit'))
+                                    or purchase_usage.effective_access_end(old_usage) != previous['validUntilEpoch']):
+                                raise AuthorityError('PURCHASE_USAGE_MISMATCH')
+                            if now >= purchase_usage.usage_deadline(old_usage) and old_usage['reservedChecks'] != 0:
+                                raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+                            extras.append({'ConditionCheck': {'TableName': self.a.s.authority_table,
+                                'Key': old_pointer, **purchase_usage.exact_condition(old_usage)}})
                     extras.append({'ConditionCheck': {'TableName': self.a.s.authority_table,
                         'Key': {'PK': pk, 'SK': previous_period['SK']}, **purchase_usage.exact_condition(previous_period)}})
                 revision = (int(old['revision']) if old else 0) + 1
@@ -479,7 +580,8 @@ class EntitlementWriter:
             raise AuthorityError('STORE_REVISION_CONFLICT')
         sources['paid'] = source
         details = source if request_digest is None else {'source': source, 'requestDigest': request_digest}
-        return self._commit(account, pk, old, sources, operation_id, 'SYNC_PAID', details, extras=extras, request_digest=request_digest)
+        return self._commit(account, pk, old, sources, operation_id, 'SYNC_PAID', details,
+            extras=extras, request_digest=request_digest, exact_access=migration is not None)
 
     def set_complimentary(self, operator, account, operation_id, *, enabled, reason_code, expires_at=None):
         if (type(operator) is not TrustedOperator or operator.principal_arn not in self.operators

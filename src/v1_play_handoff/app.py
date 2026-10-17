@@ -26,12 +26,18 @@ def _code(error):
     if code in {'TRANSACTION_UNCERTAIN','STORE_OBSERVATION_CHANGED','PLAY_OBSERVATION_CHANGED','PURCHASE_OBSERVATION_CHANGED','PURCHASE_TRANSACTION_UNCONFIRMED','PLAY_OWNERSHIP_UNCONFIRMED','STORE_AUTHORITY_MIGRATION_REQUIRED','AUTHORITY_OPERATION_CONFLICT','OVERLAPPING_STORE_PERIOD','IMMUTABLE_PERIOD_CONFLICT','PURCHASE_USAGE_UNAVAILABLE','PURCHASE_USAGE_MISMATCH','PURCHASE_USAGE_RECONCILIATION_REQUIRED','PURCHASE_USAGE_INVALID'}:return 'PURCHASE_RECONCILIATION_REQUIRED'
     return 'PURCHASE_SERVICE_UNAVAILABLE'
 
-def _record_failure(event,code,status,stage):
+def _record_failure(event,code,status,stage,error=None):
     try:
         from .diagnostics import record_failure
         record_failure(event,code,status,stage)
     except Exception:
         pass  # Logging cannot alter the response or trigger a retry.
+    try:
+        if code=='PURCHASE_TRANSITION_UNSUPPORTED' and stage=='VERIFICATION':
+            from .diagnostics import record_transition_failure
+            record_transition_failure(event,getattr(error,'_play_transition_predicate',None))
+    except Exception:
+        pass
 
 def _runtime():
     if (os.environ.get('PLAY_CATALOG_P1M_VERIFIED')!='true' or os.environ.get('GOOGLE_PLAY_PACKAGE_NAME')!=PACKAGE
@@ -79,7 +85,7 @@ def lambda_handler(event,_context):
         return _response(200,handoff.handle(event,payload))
     except Exception as error:
         code=_code(error);status,retryable=ERRORS[code]
-        _record_failure(event,code,status,diagnostic_stage)
+        _record_failure(event,code,status,diagnostic_stage,error)
         return _response(status,{'schemaVersion':1,'contractVersion':CONTRACT,'requestId':request_id,'error':{'code':code,'retryable':retryable}})
     finally:
         if handoff is not None:

@@ -1,0 +1,589 @@
+{
+  "recordedAtUtc": "2026-10-17T11:13:43.099027+00:00",
+  "allPassed": true,
+  "rows": [
+    {
+      "kind": "default",
+      "suite": "tests/account_data_api",
+      "exitCode": 0,
+      "tests": 111,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 4
+    },
+    {
+      "kind": "default",
+      "suite": "tests/account_export_api",
+      "exitCode": 0,
+      "tests": 81,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/age_attestation",
+      "exitCode": 0,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_cluster_aggregator",
+      "exitCode": 0,
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_contracts",
+      "exitCode": 0,
+      "tests": 31,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_deletion_bridge",
+      "exitCode": 0,
+      "tests": 26,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 11
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_lifecycle",
+      "exitCode": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_observation_publisher",
+      "exitCode": 0,
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_participation",
+      "exitCode": 0,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_review",
+      "exitCode": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/campaign_trends",
+      "exitCode": 0,
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/contracts",
+      "exitCode": 0,
+      "tests": 86,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/conversation_analysis",
+      "exitCode": 0,
+      "tests": 135,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/demographic_research",
+      "exitCode": 0,
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/device_recovery",
+      "exitCode": 0,
+      "tests": 38,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/device_recovery_contracts",
+      "exitCode": 0,
+      "tests": 45,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/device_registration",
+      "exitCode": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/entitlement_snapshot",
+      "exitCode": 0,
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/history_account_deletion_bridge",
+      "exitCode": 0,
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/history_contracts",
+      "exitCode": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/history_lifecycle",
+      "exitCode": 0,
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/history_mutation_api",
+      "exitCode": 0,
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/history_read_api",
+      "exitCode": 0,
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/legacy_retirement",
+      "exitCode": 0,
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/message_ai_controlled",
+      "exitCode": 0,
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/message_ai_evaluation",
+      "exitCode": 0,
+      "tests": 35,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/message_consumer",
+      "exitCode": 0,
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/message_evaluator",
+      "exitCode": 0,
+      "tests": 394,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/post_confirmation",
+      "exitCode": 0,
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/profile_fence",
+      "exitCode": 5,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/purchase_handoff",
+      "exitCode": 0,
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/recovery_clarification",
+      "exitCode": 0,
+      "tests": 53,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/recovery_playbook",
+      "exitCode": 0,
+      "tests": 93,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/recovery_runtime",
+      "exitCode": 0,
+      "tests": 58,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/recovery_selection",
+      "exitCode": 0,
+      "tests": 157,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/release_pipeline",
+      "exitCode": 0,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/result_feedback",
+      "exitCode": 0,
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/sanitizer_contract",
+      "exitCode": 0,
+      "tests": 83,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/scripts",
+      "exitCode": 0,
+      "tests": 205,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_account_finalization",
+      "exitCode": 5,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_campaign_contracts",
+      "exitCode": 0,
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_campaign_locators",
+      "exitCode": 5,
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_campaign_recovery",
+      "exitCode": 5,
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_campaign_work",
+      "exitCode": 0,
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 14
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_check_authority",
+      "exitCode": 0,
+      "tests": 85,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 16
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_history",
+      "exitCode": 0,
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_play_lifecycle",
+      "exitCode": 0,
+      "tests": 49,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_play_verification",
+      "exitCode": 0,
+      "tests": 34,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/shared_purchase_ownership",
+      "exitCode": 5,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/support_account_deletion",
+      "exitCode": 0,
+      "tests": 98,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/url_assessment",
+      "exitCode": 0,
+      "tests": 81,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/url_assessment_contracts",
+      "exitCode": 0,
+      "tests": 158,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/url_redirect_resolver",
+      "exitCode": 0,
+      "tests": 77,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "default",
+      "suite": "tests/v1_play_handoff",
+      "exitCode": 0,
+      "tests": 102,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2
+    },
+    {
+      "kind": "default",
+      "suite": "tests/web_risk_communication",
+      "exitCode": 0,
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/shared_check_authority",
+      "exitCode": 0,
+      "tests": 448,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/shared_purchase_ownership",
+      "exitCode": 0,
+      "tests": 46,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/shared_play_lifecycle",
+      "exitCode": 0,
+      "tests": 91,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/v1_play_handoff",
+      "exitCode": 0,
+      "tests": 166,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/scripts",
+      "exitCode": 0,
+      "tests": 234,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/message_consumer",
+      "exitCode": 0,
+      "tests": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/result_feedback",
+      "exitCode": 0,
+      "tests": 65,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "integration",
+      "suite": "tests/account_export_api",
+      "exitCode": 0,
+      "tests": 102,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "totals": {
+    "default": {
+      "tests": 2775,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 73
+    },
+    "integration": {
+      "tests": 1206,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "noLiveSdkCredentials": true,
+  "isolatedChildProcesses": true
+}
