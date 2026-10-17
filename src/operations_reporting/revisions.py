@@ -247,6 +247,11 @@ def _prior(record):
     return old
 
 
+def validate_revision(record):
+    """Capture and validate one unlinkable revision before a storage boundary."""
+    return _prior(record)
+
+
 def plan_revision(previous, summary, *, generated_at_epoch):
     """Plan immutable CAS-ready changes, coalescing to at most one per local day.
 

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "recordedAtUtc": "2026-10-17T23:33:53.429416+00:00",
+  "baseRelease": "79c20794296d81d05abd0b46250e2b8aa26c0b15",
+  "purpose": "Conditional storage adapter for unlinkable aggregate revisions; no runtime or resources",
+  "sourceAndTestPins": {
+    "src/operations_reporting/store.py": "4f9278a9486c3bab6c78cc5146adb146d183ed09de8c0215f6f427e09c10ac3a",
+    "src/operations_reporting/revisions.py": "4c078b187c16d0ce1516f234a812005cfb75d178b5f395a54bfa1abcce561a9a",
+    "tests/operations_reporting/test_store.py": "69212cf6f80b2b49cb74429671735bdf13d4b6569ef64151c67d6dde16891929",
+    "tests/operations_reporting/test_store_independent.py": "70c075a4e250b6f86bbec16c8b58ce9fe46376670528b2b703cbc797a191c3da",
+    "docs/SECUR4ALL-237-AGGREGATE-STORE.md": "13f248b7d66071fdc8c7bcdb873aaa79592d1c15736da37d1783100ee45800e6"
+  },
+  "localValidation": {
+    "operationsTests": 214,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junitSha256": "d4a7481187a3212d4cfef07fec0b352fd9ba51864c0cbd914c86c9575b998d55",
+    "actualMockedDynamoTransactions": true,
+    "actionlint": "PASS",
+    "shellcheck": "PASS"
+  },
+  "sourceFinding": {
+    "fixed": "Malformed stored Unicode now fixed INVALID_STORED_RECORD",
+    "actualServiceIncidentClaimed": false
+  },
+  "storageSemantics": {
+    "atomicTwoRowConditionalAppend": true,
+    "differentCandidateConcurrentWritersOneDurableWinner": true,
+    "identicalRequestTokenMayAcknowledgeSameWrite": true,
+    "noSdkRetryOrApplicationWriteRetry": true,
+    "ambiguousWrite": "WRITE_OUTCOME_UNKNOWN",
+    "fixedExpiryFromOriginalCohortSeconds": 7776000,
+    "readExpiryRechecked": true,
+    "logicalExpiryNotPhysicalDelete": true,
+    "pendingDailyCorrectionPersisted": false,
+    "sourceFactsAuthenticatedByStore": false,
+    "noProducerCompletenessUpgrade": true
+  },
+  "officialApiReference": "https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html",
+  "runtimeTableIamBackupsTtlOrCostQualified": false,
+  "handlerOrPackageRegistryAdded": false,
+  "realAwsAuthServiceEndpointResourcesDeploymentOrSendActions": false,
+  "SEC237Done": false,
+  "remaining": [
+    "Trusted authority/ref/attempt producers and atomic linkable ingestion/deletion/restore fences",
+    "Coalesced pending correction storage and scheduler",
+    "Cost coverage, alert/delivery implementation and actual Dev report/alarm/recovery/failure evidence",
+    "Reviewed resources/IAM/physical retention/backup/cost limits before activation"
+  ],
+  "independentReview": "docs/SECUR4ALL-237-aggregate-store-independent-review.json"
+}

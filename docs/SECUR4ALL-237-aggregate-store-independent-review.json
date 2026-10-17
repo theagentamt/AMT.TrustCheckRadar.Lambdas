@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_SOURCE_ADAPTER_AND_HANDOFF_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:34:33.509056+00:00",
+  "files": {
+    "src/operations_reporting/store.py": "4f9278a9486c3bab6c78cc5146adb146d183ed09de8c0215f6f427e09c10ac3a",
+    "src/operations_reporting/revisions.py": "4c078b187c16d0ce1516f234a812005cfb75d178b5f395a54bfa1abcce561a9a",
+    "tests/operations_reporting/test_store.py": "69212cf6f80b2b49cb74429671735bdf13d4b6569ef64151c67d6dde16891929",
+    "tests/operations_reporting/test_store_independent.py": "70c075a4e250b6f86bbec16c8b58ce9fe46376670528b2b703cbc797a191c3da",
+    "docs/SECUR4ALL-237-AGGREGATE-STORE.md": "13f248b7d66071fdc8c7bcdb873aaa79592d1c15736da37d1783100ee45800e6",
+    "docs/SECUR4ALL-237-AGGREGATE-STORE.json": "12634b798f8bb77b846b3b25820153a212c11fd11d0822130bb1aa0dd68bcf13"
+  },
+  "independentTests": {
+    "file": "tests/operations_reporting/test_store_independent.py",
+    "passed": 11,
+    "combinedOperationsIndependentlyRerunPassed": 214,
+    "failures": 0,
+    "errors": 0,
+    "initialCounterexampleOutcome": "10 passed,1 failed before Unicode boundary fix",
+    "checks": [
+      "Unpaired-surrogate stored JSON is fixed finite INVALID_STORED_RECORD with no log/response echo",
+      "Lost second revision response stays unknown with exactly one write; strong read reconciles it and replay appends nothing",
+      "Noncanonical Dynamo numeric forms rejected rather than coerced",
+      "Noncanonical formatted stored JSON cannot bypass exact head/revision hash join",
+      "Invalid date/sensitive scope labels reject before any storage operation"
+    ]
+  },
+  "resolvedSourceFindings": [
+    {
+      "id": "R1",
+      "finding": "Stored JSON encoding happened outside finite failure boundary, leaking UnicodeEncodeError for malformed Unicode",
+      "resolution": "Character bound before byte encoding; UnicodeError maps finite INVALID_STORED_RECORD",
+      "actualServiceIncidentClaimed": false,
+      "independentRegressionPassed": true
+    }
+  ],
+  "reviewedSemantics": [
+    "Head+immutable revision appended in one conditional transaction; stored previous record validated before new plan",
+    "Strong reads are point-observed head then immutable revision, not an atomic newest multirow snapshot",
+    "Different proposals share expected head CAS, while identical request token may acknowledge the same durable append more than once",
+    "Application and SDK write retries disabled; mixed/ambiguous/service errors remain unknown and require explicit read reconciliation",
+    "Caller summary is captured and validated before storage and fixed environment/cohort joins prevent crossscope read/write",
+    "Logical expiry from original cohort is not renewed by corrections/replay; completion clock prevents returning present after expiry",
+    "Producer completeness/authenticity, pending correction persistence and delivery are not upgraded"
+  ],
+  "evidence": {
+    "retainedFullSuiteJunit": {
+      "path": "/tmp/amt-sec237-store-tests.xml",
+      "sha256": "d4a7481187a3212d4cfef07fec0b352fd9ba51864c0cbd914c86c9575b998d55",
+      "tests": 214,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "manifestAllDeclaredPinsMatch": true,
+    "sourceOnlyAndOpenStoryFlagsAccurate": true
+  },
+  "remainingSourceBlockers": [],
+  "limits": [
+    "Actual transactions exercised only under local Moto; no real DynamoDB concurrency/latency/idempotency/TTL qualification",
+    "Unkeyed hashes and conditional storage do not authenticate source facts or implement linkable authority/receipt/attempt producers",
+    "No pending correction queue, source price catalog, alert, schedule, handler, resource, deployed IAM, backups/physicalTTL or delivery implementation qualified",
+    "SEC237/SEC243 full Dev acceptance remains open; not a runtime activation or artifact distribution candidate"
+  ],
+  "publicationPrerequisite": "Copy this exact review into the manifest independentReview documentation path before publication; no self-referential hash required",
+  "operatorActions": {
+    "realNetwork": 0,
+    "realServices": 0,
+    "credentials": 0,
+    "emulator": 0,
+    "endpoint": 0,
+    "runtime": 0,
+    "resourceCreationOutsideMoto": 0,
+    "deployment": 0
+  }
+}
