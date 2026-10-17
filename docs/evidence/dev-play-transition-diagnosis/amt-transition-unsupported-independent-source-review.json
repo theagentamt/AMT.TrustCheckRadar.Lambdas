@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T10:45:20.069455+00:00",
+  "result": "QUALIFIED_SOURCE_PRODUCERS_OBSERVED_PREDICATE_UNRESOLVED",
+  "reviewScope": "Independent exact frozen deployed handoff9 artifact source-only mapping and synthetic local probes; no source changes",
+  "artifact": {
+    "path": "/tmp/amt-dev-prepare-auth-diagnostics-verified.zip",
+    "sha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+    "bytes": 6277526,
+    "deployedVersionContext": "9",
+    "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+    "entrySha256": {
+      "app.py": "eb3acef83f04c060790ef3bee28aa2740f62b1d19d444b643edc70f447c2f89e",
+      "v1_play_handoff/app.py": "b9a8769ce71ced58e07d81d222d4f0983fefcb9c333ade30519e3ef7f7ca8482",
+      "v1_play_handoff/service.py": "8cc95103246de5c8451efaf5e7370ce59ebe8595ca65874f38c7e8da051f7eaf",
+      "shared_play_verification/proof.py": "3437a7ec176f4c375b0175ba4077be712bd8728efbf3923b31186e5fd5b577bb",
+      "shared_check_authority/entitlements.py": "d56b519eb333a57b819a285ea34477ef255143b2249c25d0492c836f85757177",
+      "shared_check_authority/core.py": "37a87fe28ce344e9bc9b14ee04e6c555b46969667ba018d2c8c5fec53ae91f1c"
+    },
+    "rootAppImports": "v1_play_handoff.app.lambda_handler",
+    "duplicateRootServiceBytesEqualToCanonicalNestedService": true
+  },
+  "publicMapping": {
+    "publicError": "PURCHASE_TRANSITION_UNSUPPORTED",
+    "httpStatus": 409,
+    "retryable": false,
+    "mappedInternalCodes": [
+      "PLAY_TRANSITION_UNSUPPORTED",
+      "PLAY_PERIOD_EXTENSION_UNSUPPORTED",
+      "RESTORE_POLICY_UNAVAILABLE"
+    ],
+    "restorePolicyUnavailableProducerInExactZip": false,
+    "restoreCodeAppearsOnlyAsMapperCompatibilityCase": true
+  },
+  "canonicalProducerSites": [
+    {
+      "path": "shared_play_verification/proof.py",
+      "line": 75,
+      "internalCode": "PLAY_TRANSITION_UNSUPPORTED",
+      "condition": "Any canonical lineage item contains deferredItemReplacement, deferredItemRemoval or itemReplacement, or its subscription row contains outOfAppPurchaseContext. Field presence, even empty, rejects; every lineage row is checked.",
+      "mutationOrAckReached": false
+    },
+    {
+      "path": "shared_play_verification/proof.py",
+      "line": 107,
+      "internalCode": "PLAY_TRANSITION_UNSUPPORTED",
+      "condition": "Head normalized state pending or pending_canceled with more than one linked token hash.",
+      "mutationOrAckReached": false
+    },
+    {
+      "path": "shared_play_verification/proof.py",
+      "line": 129,
+      "internalCode": "PLAY_PERIOD_EXTENSION_UNSUPPORTED",
+      "condition": "Access expiry and funded-order end fail exact equality when allow_access_extension false, or access expiry is less than funded end under true. Non-bool extension option also rejects. Deployed lifecycle=false means exact equality is required.",
+      "mutationOrAckReached": false
+    },
+    {
+      "path": "v1_play_handoff/service.py",
+      "line": 58,
+      "internalCode": "PLAY_TRANSITION_UNSUPPORTED",
+      "condition": "No exact operation receipt, retained paid source has a non-null headTokenDigest, and prior head is absent from freshly verified token lineage. No exception for expired or INACTIVE old source.",
+      "mutationOrAckReached": false
+    }
+  ],
+  "writerIndependentFence": {
+    "path": "shared_check_authority/entitlements.py",
+    "lines": [
+      404,
+      407
+    ],
+    "internalCode": "STORE_AUTHORITY_MIGRATION_REQUIRED",
+    "publicMapping": "PURCHASE_RECONCILIATION_REQUIRED",
+    "httpStatus": 503,
+    "condition": "Existing paid source subscriptionDigest differs from new verified root subscription digest, or supplied source revision moves backwards, even if old source is expired/INACTIVE.",
+    "notDirectProducerOfObservedTransition409": true,
+    "removingOnlyHandoffHeadGuardIsInsufficient": true
+  },
+  "supportedVersusMissingScenario": {
+    "supported": "New funded period on same verified token lineage/root with monotonic source revision and preserved prior/global usage, nonoverlapping funded periods, fresh owner/device/receipt/CAS checks.",
+    "notGenerallySupported": "Disconnected new-root purchase after old retained paid source expires; source conclusively rejects this constructed scenario in both Handoff and writer.",
+    "classification": "Current code explicitly fences this as unimplemented verified migration. Source demonstrates coverage limitation, not live request cause or authority to weaken policy."
+  },
+  "independentSyntheticExactZipProbes": {
+    "passed": 9,
+    "sdkCalls": 0,
+    "cases": [
+      "deferredItemReplacement presence",
+      "deferredItemRemoval presence",
+      "itemReplacement presence",
+      "outOfAppPurchaseContext presence",
+      "pending linked lineage",
+      "access expiry different from funded end",
+      "expired ACTIVE old head absent from new lineage",
+      "expired INACTIVE old head absent from new lineage",
+      "expired old subscription digest differs at writer"
+    ],
+    "sourceOnlyNotProviderAcceptance": true
+  },
+  "observedEvidenceLimits": {
+    "retainedSafeAggregate": "2026-10-17T10:37Z\u201310:40Z access200x3 prepare200x1 verify409x1 and fixed public transition code/stageVERIFICATION once, as supplied by parent; reviewer made no log calls.",
+    "noRequestOrActorAttribution": true,
+    "exactInternalPredicate": "UNKNOWN",
+    "ownerPaymentSuccessfulDoesNotProveBackendCommitAckOrPaidAccess": true,
+    "cannotClaimOldHeadPredicateOrProviderFundingPeriodCauseFromPublicCode": true
+  },
+  "recommendation": {
+    "minimalJustifiedSourceChange": "Fixed internal predicate diagnostics at original rejection sites, no re-evaluation/provider reads, no raw provider fields/IDs/tokens/claims/payloads or exception text; default UNKNOWN and Dev/exact route/existing gate only.",
+    "noUnsafeShortcut": "Do not delete head lineage guard, relax funded-period equality, bypass migration guard, mark ACK succeeded or retry a nonretryable purchase blindly.",
+    "ifNormalExpiredRepurchaseIsRequired": "Implement an explicit verified atomic root-transition policy across BOTH Handoff and writer, with previous-source/period/usage/ownership/deletion/device/CAS and replay/rollback/race tests preserving historical usage; do not treat simple head-guard deletion as a fix.",
+    "historicalAndCurrentDiagnosis": "Need fixed predicate evidence to attribute this live failure. Independently demonstrated scenario coverage may be designed/tested source-only without claiming it caused the live row."
+  },
+  "reviewerActions": {
+    "localReadOnlyZipInspection": true,
+    "localSyntheticTests": true,
+    "sourceEdits": false,
+    "awsNetworkEndpointsDeviceProofOrProviderStateReads": false,
+    "deploymentOrNewPurchase": false
+  },
+  "outstandingDependency": "Observed internal transition predicate remains unqualified; actual grant/ACK and paid-access acceptance not established."
+}

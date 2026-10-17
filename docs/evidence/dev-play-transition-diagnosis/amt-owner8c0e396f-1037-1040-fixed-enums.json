@@ -1,0 +1,34 @@
+{
+  "observedAtUtc": "2026-10-17T10:40:14.450115+00:00",
+  "windowStartUtc": "2026-10-17T10:37:00Z",
+  "windowEndExclusiveUtc": "2026-10-17T10:40:00Z",
+  "windowClosedAtObservation": true,
+  "diagnostics": [
+    {
+      "event": "dev_play_verification_failure",
+      "fixedClassificationCounts": [
+        {
+          "errorCode": "PURCHASE_TRANSITION_UNSUPPORTED",
+          "httpStatus": 409,
+          "stage": "VERIFICATION",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "event": "dev_access_admission_failure",
+      "fixedClassificationCounts": []
+    },
+    {
+      "event": "dev_play_prepare_auth_failure",
+      "fixedClassificationCounts": []
+    }
+  ],
+  "unqualifiedRecordsDiscarded": 0,
+  "accountOrRequestAttributionAvailable": false,
+  "temporalOverlapDoesNotEstablishActorOrRequest": true,
+  "boundedIngestionSnapshotNotContinuousMonitoring": true,
+  "noEventsIsNotProofOfNoCallsOrWrites": true,
+  "rawMessagesRetained": false,
+  "noEndpointInvocationOrMutation": true
+}

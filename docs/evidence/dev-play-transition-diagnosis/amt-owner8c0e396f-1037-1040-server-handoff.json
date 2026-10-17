@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-17T10:40:38.978003+00:00",
+  "closedWindowStartUtc": "2026-10-17T10:37:00Z",
+  "closedWindowEndExclusiveUtc": "2026-10-17T10:40:00Z",
+  "aggregateObservedCounts": {
+    "access200": 3,
+    "prepare200": 1,
+    "verify409": 1,
+    "registrationRows": 0,
+    "verifierFixedFailureRows": 1,
+    "prepareAuthFixedFailureRows": 0,
+    "accessAdmissionFixedFailureRows": 0
+  },
+  "safeVerifierClassification": {
+    "errorCode": "PURCHASE_TRANSITION_UNSUPPORTED",
+    "httpStatus": 409,
+    "stage": "VERIFICATION",
+    "count": 1
+  },
+  "evidence": [
+    {
+      "path": "/tmp/amt-owner8c0e396f-1037-1040-routes.json",
+      "sha256": "bd994704eba032f674c9c40d3e110d5537774445fdd23904915f0b9a400f7c74",
+      "observedAtUtc": "2026-10-17T10:40:14.327916+00:00"
+    },
+    {
+      "path": "/tmp/amt-owner8c0e396f-1037-1040-fixed-enums.json",
+      "sha256": "b44f2ea5fefb908077b260544884a77420d1f64e5b8c6ae93bb9399b9d60a442",
+      "observedAtUtc": "2026-10-17T10:40:14.450115+00:00"
+    }
+  ],
+  "localExecutorTerminal": {
+    "failureStage": "POST_SUBMIT_RETURN_OBSERVATION",
+    "fixedGuardStopCode": "POST_SUBMIT_RETURN_TIMEOUT",
+    "exceptionCategory": "RUNTIME_ERROR",
+    "completed": false,
+    "subscribeDispatchAttempted": true,
+    "exactNewCancellationQualified": true,
+    "controlUnarmedQualified": true,
+    "connectivityQualified": true,
+    "connectivityDisposition": "UNCHANGED",
+    "watchdogSettled": true,
+    "acceptancePathCompleted": false
+  },
+  "executorResultSha256": "657fe7bc3debd3b8d849aec0c075495142026a9cecd5bef1ea92a4f498375364",
+  "heldOutageWatchdogLaunchReceiptsPresent": {
+    "held-observation.json": false,
+    "network-disable-intent.json": false,
+    "watchdog-launch.json": false
+  },
+  "fifthBudgetConsumed": true,
+  "fifthBudgetSha256": "334ec031a789d1c637ebb6657da5c69c269818846a15b5ba83f3dd1f31eaeedf",
+  "fourPriorSpentJournalsUnchanged": true,
+  "allFiveBudgetsConsumedNoSixthAuthorized": true,
+  "accountOrRequestAttributionAvailable": false,
+  "temporalOverlapDoesNotEstablishActorOrRequest": true,
+  "safeCodeDoesNotIdentifyUnderlyingProviderTransitionOrFundingCause": true,
+  "verify409NotEstablishedAsCauseOfUiTimeout": true,
+  "noAckPaidAccessHeldOutageOrRecoveryAcceptanceInferred": true,
+  "noEventsDoesNotProveNoCallsOrWrites": true,
+  "boundedIngestionSnapshotNotContinuousMonitoring": true,
+  "noEndpointRuntimeConfigurationAuthEmulatorOrFinancialActionByInfra": true,
+  "frozenReadinessReceiptPreserved": true,
+  "additionalPostRuntimeReadbackNotPerformedOrRequested": true
+}
