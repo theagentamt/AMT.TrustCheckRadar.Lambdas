@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-191",
+  "outcome": "PASS_RETAINED_SOURCE_MANIFEST_ONLY",
+  "reviewedAtUtc": "2026-10-17T22:53:04.133442+00:00",
+  "files": {
+    "docs/SECUR4ALL-191-COMPONENT-MANIFEST.md": "c3519c44b6b2f5d7d6b3aacc76169155e5b9123737dea007a3645aca05f1546e",
+    "docs/SECUR4ALL-191-COMPONENT-MANIFEST.json": "1d7e3e75d2c8160f6e79984ea2e39603362009b7196870aeda6c694426c080d5"
+  },
+  "independentChecks": {
+    "retainedPrivateSnapshotHashAndTimestamp": true,
+    "runtimeVersionCodeConfigBooleanJoins": 13,
+    "overlayArchiveHexToLambdaBase64Joins": 4,
+    "retainedArchiveProvenanceRecords": 4,
+    "exactContractGitBlobHashes": 8,
+    "repositoryAncestryCounts": 2,
+    "androidExactAppTreeObjectEquality": true,
+    "installedPublicProvenanceFieldsAndFourApkRecord": true,
+    "frozenInternalBuildIsolationGuard": true,
+    "retainedProtectionDigests": true,
+    "governedPublicationHistory": true,
+    "unidentifiedArchiveCompositionRemainsUnknown": true
+  },
+  "findings": [],
+  "limits": [
+    "Retained evidence only; no fresh service or device credential/session/runtime qualification",
+    "Four mixed-source overlays are not whole-archive source builds",
+    "Unknown full archive source composition of remaining components is deliberately not assigned",
+    "No UAT/Production or integrated Android profile qualification",
+    "SEC191 remains open; no acceptance criterion or activation gate waived"
+  ],
+  "operatorActions": {
+    "services": 0,
+    "credentials": 0,
+    "endpoints": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "publication": 0
+  }
+}

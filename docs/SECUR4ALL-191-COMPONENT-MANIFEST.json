@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "purpose": "SECUR4ALL-191 source/artifact/configuration reconciliation; not an activation manifest",
+  "recordedAtUtc": "2026-10-17T22:51:12.607237+00:00",
+  "actionReady": false,
+  "freshServiceReadbackPerformed": false,
+  "retainedObservationAtUtc": "2026-10-17T21:22:59.061455+00:00",
+  "retainedPrivateSnapshotSha256": "29c3bda062d46d2750e1f060923ced562f1181718dfce20ae18a0b7ad7416a53",
+  "fingerprintSerialization": "SHA-256 of UTF-8 JSON sorted keys, separators comma/colon; whole private input bytes hashed separately",
+  "repositories": {
+    "lambda": {
+      "release": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "main": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "mergeBase": "662fbf47e9e392468b6d24ff7dc69206fb09a864",
+      "mainUniqueCommits": 39,
+      "releaseUniqueCommits": 41
+    },
+    "infrastructure": {
+      "release": "353303b657dfe3e44eda59cd8ed343284880cf69",
+      "main": "f1c5d36d565d1f6eb937d957605dc235f7867780",
+      "mergeBase": "238a480ffeda774049b275475e96b201d8a2b3ce",
+      "mainUniqueCommits": 100,
+      "releaseUniqueCommits": 3
+    },
+    "android": {
+      "auditRelease": "2c8f97548d13fb8b5503bd22cf54b5543136310a",
+      "installedBuildSource": "a61bae79be9c8a587c87d2fc87aa00f3d6a48e83",
+      "newNativeBatchNotIncluded": true
+    }
+  },
+  "runtime": [
+    {
+      "function": "trustcheckradar-dev-governed-history",
+      "alias": "live",
+      "version": "2",
+      "codeSha256": "TN03cp7kk/cbTOJYn9W6V+wl3zGz866UD/xzzLgDJxE=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "c41ab7ee14be71dfea6b9a75546eb668a76bcbac92fb90ea9b35570a2d471398",
+      "retainedRuntimeFingerprintSha256": "9fa6c0855d5edeb1633837da08bc07be5e736ba2fd5fbe83b99271a25a8d080d",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": true,
+        "GOVERNED_HISTORY_DETAIL_ENABLED": true,
+        "GOVERNED_HISTORY_LIST_ENABLED": true
+      },
+      "sourceArtifactGroup": "governed-message-history"
+    },
+    {
+      "function": "trustcheckradar-dev-message-consumer",
+      "alias": "live",
+      "version": "7",
+      "codeSha256": "UbXMvj46spsxhd2P0rPATFWiqjGUbti4rv0fCALa2Xo=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "45ced24ff3b880e0176049b17df39af1c2c6465a535b2aecbcef6d9f295818c9",
+      "retainedRuntimeFingerprintSha256": "2e57022647ac037abf40cfd18c04f10c78e2f5150f6a084850c1f94ca8758542",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": true,
+        "GOVERNED_HISTORY_SETTLEMENT_ENABLED": true,
+        "MESSAGE_AI_ENABLED": false,
+        "MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED": true,
+        "MESSAGE_CONSUMER_ENABLED": true,
+        "MESSAGE_PROVIDER_CIRCUIT_OPEN": true
+      },
+      "sourceArtifactGroup": "governed-message-history"
+    },
+    {
+      "function": "trustcheckradar-dev-message-evaluator",
+      "alias": "live",
+      "version": "7",
+      "codeSha256": "4t6hHXE5RybaI7o4qTFqcWZgK0TaOdnN1uAZ+nctBj0=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "a184f5f948ca5a9ce1e8eb2f73e28813e1c6eafde528b376eeef2626d53f9ccf",
+      "retainedRuntimeFingerprintSha256": "786b1b4f4cdd6f88a3fbaa37a3cc53ec2101fdcfc66c73cfdf60c209566cefe4",
+      "fixedBooleanConfiguration": {
+        "MESSAGE_AI_ENABLED": false,
+        "MESSAGE_AI_QUALIFIED": false,
+        "MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED": true,
+        "MESSAGE_EVALUATOR_ENABLED": true,
+        "MESSAGE_PROPOSER_ENABLED": false
+      },
+      "sourceArtifactGroup": "governed-message-history"
+    },
+    {
+      "function": "trustcheckradar-dev-play-lifecycle-ingress",
+      "alias": "live",
+      "version": "2",
+      "codeSha256": "BocXkxw6VeJSHp4Ggtmc5wlz4lxetWhXpTbz+mYtrRo=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "0dc23bdc2a6f7ba207af3400f96c85965f063d08dd7ada813c26681b54f8c998",
+      "retainedRuntimeFingerprintSha256": "e473103de75342edb67d10ee5ba9714734fe44baa12b3bfb30c9de6cb933efd1",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": false,
+        "PLAY_CATALOG_P1M_VERIFIED": true,
+        "PLAY_CHECKPOINT_POLICY_APPROVED": false,
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_PREPARATION_ENABLED": false,
+        "PLAY_REQUIRE_TEST_PURCHASES": true,
+        "PLAY_TOKEN_CLEANUP_ENABLED": false
+      },
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-play-lifecycle-worker",
+      "alias": "live",
+      "version": "1",
+      "codeSha256": "YdZv9rHFPAYScnVhJLFh9/NZ598R3SgaeEzi7A2Xgcs=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "8be2580ef7bbf57a97ce790dff1f17892f4171e53491e70479c0da554cc0af76",
+      "retainedRuntimeFingerprintSha256": "7f50dc5cfa049038ae711a6aa958f745f1f1c41e83e2dfb5af21d2ff6ca97d85",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": false,
+        "PLAY_CATALOG_P1M_VERIFIED": true,
+        "PLAY_CHECKPOINT_POLICY_APPROVED": false,
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_PREPARATION_ENABLED": false,
+        "PLAY_REQUIRE_TEST_PURCHASES": true,
+        "PLAY_TOKEN_CLEANUP_ENABLED": false
+      },
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-play-token-deletion",
+      "alias": "live",
+      "version": "17",
+      "codeSha256": "EgY9o17ASfGm9RhY3Zfl7naFlw2fkrz6ZSSSyFQ4mjo=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "0f974da8983f4fe212fa3df6e6809c499efddf2288ee29019930890fa201479a",
+      "retainedRuntimeFingerprintSha256": "4d0be79f06bcc14ca17b8c0d53af9da69ba6e2350830a725bff367f5e0f1bc8e",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": false,
+        "PLAY_CHECKPOINT_POLICY_APPROVED": false,
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_PREPARATION_ENABLED": false,
+        "PLAY_TOKEN_CLEANUP_ENABLED": true
+      },
+      "sourceArtifactGroup": "play-token-deletion"
+    },
+    {
+      "function": "trustcheckradar-dev-url-assessment",
+      "alias": "live",
+      "version": "3",
+      "codeSha256": "ZR2IfD7e51zdXQPhdA1rCp0KzD4gdYLK7VlHRTUQaVA=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "7492d9bd2a5a261aadddef8faae0d1ad18b4406098908317c9c81836a337105b",
+      "retainedRuntimeFingerprintSha256": "fa808ccd7b96661c1dc2022792073d745a156fda3c4d04d3024304667d1736d3",
+      "fixedBooleanConfiguration": {},
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-url-consumer",
+      "alias": "live",
+      "version": "9",
+      "codeSha256": "UZGXzwy/TqyybWVl6js5NJ8YH8syJciQeYpmebBY3Is=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "f6089d7ac335ac5783aee7971242fb0dbff774012863e7eb9cf7d26d17ff8649",
+      "retainedRuntimeFingerprintSha256": "28ae33e5f83403546f468136d8ed1e87acd19205e5f58b08676ea088f6ae8e29",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": false,
+        "CONSUMER_ENABLED": false,
+        "TRIAL_AUTHORITY_RETENTION_APPROVED": false,
+        "V1_ENTITLEMENTS_ENABLED": false
+      },
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-url-lease-recovery",
+      "alias": "live",
+      "version": "11",
+      "codeSha256": "a5uouU5vy1ZJMuWpjQY4GUQ236d4jpRS23yTmaP5K+Y=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "46225cd4cd3b077c3fc371edd0cd7e4c3705d5dfd0af2533a50b86db5d002103",
+      "retainedRuntimeFingerprintSha256": "5c07a428bf70c01108b6255ae84a0cd58b18ca0c346db7c2d199faaac225d818",
+      "fixedBooleanConfiguration": {
+        "LEASE_SWEEP_ENABLED": false
+      },
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-url-resolver",
+      "alias": "live",
+      "version": "2",
+      "codeSha256": "0QeYi0QSW0hfQ5Z4stNK5968KHovT00yoXq1MrBmbmw=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "776e228ad1584a62e296cc41c3ea79802aab381ec236d573436e5be92d1ed94f",
+      "retainedRuntimeFingerprintSha256": "35e9e3bb5ef2fe2389b7e42ab83cb37493e6bf886661f7e8cbc3ed63a631ce21",
+      "fixedBooleanConfiguration": {},
+      "sourceArtifactGroup": "other"
+    },
+    {
+      "function": "trustcheckradar-dev-v1-authority-deletion",
+      "alias": "live",
+      "version": "24",
+      "codeSha256": "RR6Qd3aM1ap/hSs6mihSKxjDSjivTKK7tcnfoSOMi5w=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "ccc82dc5de04b2a1cbc62e285053a11155f4a12d4564be349fc6e8890f6aae39",
+      "retainedRuntimeFingerprintSha256": "99e99a6da13d793c8c4760a9e91c606e8c11e86a85cbebb5617532712b9a8b6e",
+      "fixedBooleanConfiguration": {
+        "V1_AUTHORITY_DELETION_ENABLED": true
+      },
+      "sourceArtifactGroup": "authority-deletion"
+    },
+    {
+      "function": "trustcheckradar-dev-v1-entitlements",
+      "alias": "live",
+      "version": "18",
+      "codeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "53fd05e5cf528dc80408b799fc8ee4373e9e27fccbd5e4550c460cf23358d7ad",
+      "retainedRuntimeFingerprintSha256": "5621bba98e2e9cfc51ae96c10315488ee03450d534ddf419418c4db9fb23a9af",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": true,
+        "COMPLIMENTARY_OPERATOR_ENABLED": true,
+        "CONSUMER_ENABLED": false,
+        "TRIAL_AUTHORITY_RETENTION_APPROVED": true,
+        "V1_ENTITLEMENTS_ENABLED": true
+      },
+      "sourceArtifactGroup": "entitlements"
+    },
+    {
+      "function": "trustcheckradar-dev-v1-play-handoff",
+      "alias": "live",
+      "version": "10",
+      "codeSha256": "6RcWwX2dxm85VkUuUAPXXmxuZf/EPC932JxgbIHNggY=",
+      "unweighted": true,
+      "configurationFingerprintSha256": "2c1780159e82be219ce7ea43bc0f6efcf3e58c11bb9acc2ae66a4ec69f33fe55",
+      "retainedRuntimeFingerprintSha256": "65d57c27198870f7c06e66923f0e38e57b995d1a517a7198d90055b269d60487",
+      "fixedBooleanConfiguration": {
+        "AUTHORITY_ENABLED": true,
+        "PLAY_CATALOG_P1M_VERIFIED": true,
+        "PLAY_HANDOFF_ENABLED": true,
+        "PLAY_LIFECYCLE_ENABLED": false,
+        "PLAY_PREPARATION_ENABLED": true,
+        "PLAY_REQUIRE_TEST_PURCHASES": true
+      },
+      "sourceArtifactGroup": "play-handoff"
+    }
+  ],
+  "artifactProvenance": {
+    "play-handoff": {
+      "kind": "mixed_source_overlay",
+      "implementationHead": "55f42bdd9bcb18e2c2966ff02aba481f4dfd92e3",
+      "implementationRelease": "775db2ef23bfa47249a8dd08f43096d23f831d25",
+      "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+      "artifactBytes": 6279910,
+      "changedEntries": 6,
+      "preservedEntries": 603,
+      "wholeArchiveFromImplementationCommit": false,
+      "record": "docs/dev-play-expired-resubscription-deployed.json",
+      "rollbackVersion": "9",
+      "rollbackExecuted": false,
+      "liveBehaviorAcceptance": false
+    },
+    "entitlements": {
+      "kind": "mixed_source_overlay",
+      "implementationHead": "94f0f448661d69798f7621cb777262e029a8814e",
+      "artifactSha256": "ba9d1efbe25cdf2e6854e43da1a3c1df0d74462a2275f3d58355038a5255865a",
+      "wholeArchiveFromImplementationCommit": false,
+      "record": "docs/dev-purchase-admission-diagnostics-deployed.json"
+    },
+    "play-token-deletion": {
+      "kind": "mixed_source_overlay",
+      "baselineSourceCommit": "39cce61623794a123e61d25f5248b0c081eccf4a",
+      "overrideSourceCommit": "9123459a5c2bc9503d56235b2cb1f1e162c00da1",
+      "changedEntry": "v1_authority_deletion/service.py",
+      "artifactSha256": "12063da35ec049f1a6f51858dd97e5ee7685970d9f92bcfa652492c854389a3a",
+      "wholeArchiveFromOverrideCommit": false,
+      "recordRepository": "AMT.TrustCheckRadar.Cloud.Infrastructure",
+      "record": "docs/evidence/sec332-deletion-packages.json"
+    },
+    "authority-deletion": {
+      "kind": "mixed_source_overlay",
+      "baselineSourceCommit": "39cce61623794a123e61d25f5248b0c081eccf4a",
+      "overrideSourceCommit": "9123459a5c2bc9503d56235b2cb1f1e162c00da1",
+      "artifactSha256": "451e9077768cd5aa7f852b3a9a28522b18c34a38af4ca2bbb5c9dfa1238c8b9c",
+      "wholeArchiveFromOverrideCommit": false,
+      "recordRepository": "AMT.TrustCheckRadar.Cloud.Infrastructure",
+      "record": "docs/evidence/sec332-deletion-packages.json"
+    },
+    "governed-message-history": {
+      "kind": "retained_qualified_publication",
+      "lambdaSourceCommit": "6d9ae503b7d4e36a16a4cfc6bee2c939b988c723",
+      "mainCiRun": "37142525442",
+      "publicationRun": "37142703658",
+      "infrastructureRuntimeSource": "ff4b05c542bbec9c8d81f623b9fe3d3dbd276cda",
+      "recordRepository": "AMT.TrustCheckRadar.Cloud.Infrastructure",
+      "record": "docs/GOVERNED-HISTORY-DEV.md",
+      "archiveDownloadedDuringThisReconciliation": false
+    },
+    "other": {
+      "kind": "retained_runtime_fingerprint_only",
+      "wholeArchiveSourceCompositionRevalidated": false,
+      "rule": "Do not assign a whole-archive Git SHA from a current branch or an older deployment record."
+    }
+  },
+  "contractSourcePins": [
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/message-consumer/1.0.0-candidate.3/response.schema.json",
+      "sha256": "331135ca1e51978e06fb66a1f8c2dad8dd17388c87e3cfd2543fe2cfaf4226a3"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/url-consumer/1.0.0-candidate.2/response.schema.json",
+      "sha256": "1a3c43dd306d962a489c8ea7cfaf01ae3aba8a30a67d728e394fa5183f2410ad"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/url-assessment/0.3.0-candidate.1/result.schema.json",
+      "sha256": "a9d593e8de3958b8c9d0fd156ca664440e681d02710d4db299ed4790b83fef9f"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "path": "contracts/governed-history/1.0.0-candidate.1/contract-set.json",
+      "sha256": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/v1-access/v1/snapshot.schema.json",
+      "sha256": "968d1407602d2d32c43c95edc057c31633cd522d409f88f125d0f4df8e86813c"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/v1-play-handoff/candidate.1/request.schema.json",
+      "sha256": "68468e6c68444d6dc31cb46c62aac7ad593f2d795e1488b437978d8ba095f66d"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/v1-play-handoff/candidate.1/response.schema.json",
+      "sha256": "9d9d88700631b469dcfddd2e166ccea190fa4899ccb62b639ae0d5153317a781"
+    },
+    {
+      "repository": "AMT.TrustCheckRadar.Lambdas",
+      "sourceCommit": "d15f5bcb5efbc76008f0d0e7c09f1ac086865236",
+      "path": "contracts/recovery-selection/1.0.0/selection-output.schema.json",
+      "sha256": "b635b855a200228307405f691f79a63e38701083a917be90a56d5241d61f936e"
+    }
+  ],
+  "android": {
+    "verifiedAtUtc": "2026-10-16T01:54:18.702257+00:00",
+    "package": "com.andmorethings.trustcheckradar",
+    "versionCode": 13,
+    "versionName": "0.1.0-dev-play-internal",
+    "debuggable": false,
+    "installer": "com.android.vending",
+    "expectedPlayAppCertificateSha256": "61581a357e6823991c2b60d2f8adf9b96354231d349b30758494f0ab541a6747",
+    "implementationCommit": "2a2e701af99d41eddafbf50a414d84512d4eec1d",
+    "releaseMerge": "a61bae79be9c8a587c87d2fc87aa00f3d6a48e83",
+    "unsignedBundleSha256": "75db2827394601269871a8805dc753f239c32a81ab601bc3825936da92ec8de9",
+    "signedBundleSha256": "965473169edd3d23cade159a37788cf11501f7bc41c832fb96fb50d42350ce79",
+    "providerGeneratedApkSha256": "d8b32d0c03850a746d1f5acdc886f461d65a1711f865787a24003f9a49835563",
+    "dexSha256ByName": {
+      "classes.dex": "67aa466be26660de2083970be72d09643cdaae8876b67a3e327d795c5868e17c"
+    },
+    "authResourceSha256": "bec0ae5acf3dc4a804281ce34caaaf5759ba41e47039ea19c99bc8c72869bf52",
+    "profile": "canonical Dev internal billing qualification",
+    "allFourInstalledSignaturesPreviouslyQualified": true,
+    "controlCompiled": true,
+    "currentDeviceReadDuringThisReconciliation": false,
+    "integratedProfileQualified": false,
+    "billingProfileIsolationIntentional": true,
+    "appSubtreeEqualAtAuditRelease": true
+  },
+  "protectedMetadataFingerprints": {
+    "fourRoutes": {
+      "GET /v1/access": "9bb7b16a49c2abcdc4aa580c5ff2bffe130ae80d327b99814d19bef4df6f1e82",
+      "POST /device-registration": "34de5c322c0bff1abb4e902d796d6a69e8f4980ceaa103cd63d505e0d9c14504",
+      "POST /v1/purchases/google-play/prepare": "2a95de89ea8eb0f8b569705f5f32aa29096cd28371499cae19ae0eb30ecaebf2",
+      "POST /v1/purchases/google-play/verify": "2edc70d817d2a869697e092171765f5dca7451a6d9380f1a964758c7286ae176"
+    },
+    "cleanupMappings": "ba731c4e392cda4a58242c9c1eb28d91e5d35aab1a82573981569603c778a905",
+    "schedulesSha256": "4795886919020115176d673f8fbcced0f96d4283ba8d0f2d50a3597588e2963f",
+    "securitySha256": "be16c46738d6c7110e0b8d0e298bd07355f00f5e8c22f04178cf1d04dcb757d4",
+    "extraProtectedSha256": "31c9766ab7c2c495e1d338f736a3cbb8d2df56eded700462abfc4304e8aac1af"
+  },
+  "environmentReadiness": {
+    "Dev": "retained, independently qualified component observations; combined journey pending",
+    "UAT": "not qualified by this reconciliation; resource inventory not refreshed",
+    "Production": "not qualified by this reconciliation; no promotion authorized"
+  },
+  "requiredIntegrationGates": [
+    "Review main-only governed History/rules source against release billing overlays; do not blindly merge either branch.",
+    "Keep canonical internal billing profile isolated; separately review integrated native Dev build and genuine adapters without widening selected accounts.",
+    "Resolve each immutable artifact to its actual packaged entries, configuration, environment and rollback; current tfvars defaults are not live truth.",
+    "Fresh authorized service/resource inventory and private input selection before deployment; do not infer absent resources from missing mobile adapters.",
+    "Complete Android integrated contract/source validation, then separately approved build/signing/distribution and actual emulator journeys.",
+    "Preserve all five spent subscription budgets; new live purchase requires precise new owner scope and independently reviewed one-shot arrangement.",
+    "Do not activate URL retention experiment, broader provider/AI quality claims, Google lifecycle/RTDN or Production as a side effect."
+  ],
+  "knownOpenStories": [
+    "SECUR4ALL-191",
+    "SECUR4ALL-195",
+    "SECUR4ALL-198",
+    "SECUR4ALL-237",
+    "SECUR4ALL-243",
+    "SECUR4ALL-125",
+    "SECUR4ALL-244",
+    "ATCR-71",
+    "ATCR-112",
+    "ATCR-114",
+    "ATCR-148"
+  ],
+  "operatorMutations": [],
+  "privacy": "Only public code/artifact pins, configuration digests and finite booleans; no actor lists, subjects, credentials, proof, raw environment or private resource identifiers."
+}
