@@ -1,0 +1,12 @@
+{
+  "supportOnlyForBaselineDeletionFixture": true,
+  "sameMissingDependencyReproducedAgainstUnchangedLive9": true,
+  "supportFiles": {
+    "shared_account_finalization/service.py": "110a65ed3338018ab9590aa302535e1e92b5605a5dcce7e316cb088f8a8f8e3c",
+    "shared_account_finalization/__init__.py": "d25e0e244b689d9208a0975670ed5aa4caa2cfad706a0932bf8cbcf0688fb2b5",
+    "shared_account_finalization/history_receipts.py": "e1486edc95747c3fb384518d86181697827d27a502f68f581a2de9db64bfb95a"
+  },
+  "supportNotAddedToZip": true,
+  "hostNativeTestDependenciesPreloaded": true,
+  "notArm64RuntimeQualification": true
+}

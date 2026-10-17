@@ -1,0 +1,138 @@
+{
+  "artifact": {
+    "addedOrRemovedEntries": 0,
+    "baselineSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+    "bytes": 6279910,
+    "changedEntries": {
+      "shared_check_authority/entitlements.py": "ab1939f6eb9c6f9f5be1d79fc338e335670f88d03e192c04e0bd2d21101f25cd",
+      "shared_play_verification/proof.py": "81fb9bfccd200b97e51a639b706cf2cfa0d01d773c6f92a462ada334e6697e3b",
+      "shared_purchase_ownership/service.py": "c133a769ae101b3330e484ac75acc4b58786161f1acaca81e49f2ec322686bf1",
+      "v1_play_handoff/app.py": "7fe01208f4d22c59eaaee6eb74e8e72840a8a8b9ca90835ca6ade65ef7720fcf",
+      "v1_play_handoff/diagnostics.py": "c68fa64d1cb94224b57f76f84bf54ab7ab8636e7b9189286a14531feaa5fa80f",
+      "v1_play_handoff/service.py": "4d134557dca8a8c54dcb962bed51cb3890088ba6ae97808317ca3643b39bb57a"
+    },
+    "codeSha256": "6RcWwX2dxm85VkUuUAPXXmxuZf/EPC932JxgbIHNggY=",
+    "compiledPythonEntries": 476,
+    "entries": 609,
+    "independentRebuildByteIdentical": true,
+    "path": "/tmp/amt-dev-play-resubscription-live9-overlay.zip",
+    "preservedUncompressedRawCompressedAndMetadataEntries": 603,
+    "pycEntries": 0,
+    "sha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206"
+  },
+  "blockingFindings": [],
+  "independentChecks": {
+    "access18SnapshotFixtureByteExactRetainedActualZip": true,
+    "access18WriterByteExactFrozen9Writer": true,
+    "allManifest13PinsVerified": true,
+    "artifactAndBase64CodeDigestVerified": true,
+    "builderTests": {
+      "passed": 10,
+      "seconds": 0.9
+    },
+    "eighthAccess18ReaderCase": {
+      "paidLimit200ThenCompleted1Remaining199ThenExpiredNoneNullTrialFalse": true,
+      "passed": 1,
+      "seconds": 0.51
+    },
+    "fiveChangedEntriesExactReviewedSource": true,
+    "independentlyNormalizedCommitAstExactOutsideExactAccess": true,
+    "nativeLibrariesUnchangedElf64Aarch64StaticOnly": 4,
+    "newOrReplacedWriterDefinitionsAstExactReviewedSource": true,
+    "original365DayComplimentaryGatePointerAuditExpiryAndOperationKeyBehaviorPreserved": true,
+    "priorSevenRetentionRollbackCases": {
+      "passed": 7,
+      "seconds": 1.53
+    },
+    "retainedMethodsAstExact": [
+      "__init__",
+      "_read",
+      "_operation_sk",
+      "_expire_audit",
+      "set_complimentary"
+    ],
+    "rootRetainedJUnitIndependentlyRecounted": {
+      "allScriptsIncludingSubtests": 244,
+      "errors": 0,
+      "exactArtifactWithOneSupplementedFixture": 208,
+      "exactArtifactWithoutSupplement": 207,
+      "failures": 0,
+      "skipped": 0
+    },
+    "selfContainedExactArtifactTests": {
+      "deselectedKnownBaselineDeletionFixture": 1,
+      "loadedArchiveModulesByteAndOriginExact": 22,
+      "passed": 207,
+      "seconds": 12.6,
+      "testOnlyFinalizationModuleNotImported": true
+    },
+    "wholeOriginalWriterAstRestoredOutsideApprovedDeltas": true
+  },
+  "independentEvidenceSha256": {
+    "/tmp/amt-pr131-independent-207-module-pins.json": "aa99ba6b08e7f95c3194bdcb94488bdcc633f311999193605434c4f8440cf5c1",
+    "/tmp/amt-pr131-independent-access18-reader.log": "6e26a14fc6f4f30ca2ba6d5850c6970673d246f88e6bdb3427c18663976cb79e",
+    "/tmp/amt-pr131-independent-artifact-207.log": "3ef2e28f3682d13ddf0fa1dba687d13f2eb265d4735339bebf14b8d9faf3f7a9",
+    "/tmp/amt-pr131-independent-artifact-focused-final.log": "86f1e21b53911e048dce7060d162f5a458d2a59d3c0ad55e633e64c5cc54b783",
+    "/tmp/amt-pr131-independent-builder-tests.log": "b1a3b823c0132e996ea464ef2dc1e00db48e3527bc3e8cca3f60f18d18048927",
+    "/tmp/amt-pr131-independent-retention-rollback.log": "6b58e3af9d2c30b7dc3a59663725b282cc562e5dec2c890c0af3ab1be353751e"
+  },
+  "resolvedPriorFinding": {
+    "description": "Extended accessUntil beyond fundedEnd could previously cross direct migration API with seeded global usage.",
+    "id": "R1",
+    "resolution": "Exact equality in Handoff candidate, explicit proof API and private capability; source regressions and exact artifact suite retained.",
+    "sourceFinalReviewSha256": "ac9954511977d3b324197f36ed47be73af72a4c35985f869db4eb62728879362"
+  },
+  "result": "PASS_EXACT_ARTIFACT_AND_SOURCE_ONLY_HANDOFF",
+  "retainedLimits": [
+    "Local synthetic Moto/SDK checks, not native Python3.14 ARM64 Lambda execution or live provider/ACK/access acceptance.",
+    "Linux ARM64 native dependencies were not executed on macOS; host-native dependencies preloaded only for tests.",
+    "One existing deletion fixture requires three pinned test-only shared_account_finalization files outside ZIP, absent from both baseline9 and candidate; separate207-test run has no supplement.",
+    "Rollback checks selected frozen writer/Handoff receipt/retry and exact access18 reader behavior; no live rollback rehearsal or erasure/refund/revocation claim.",
+    "Source narrowness preserves exclusions: out-of-app association, linked replacement, missing binding and extended funded access remain unsupported.",
+    "Stored authority expiry/nonoverlap does not prove old provider termination, historic409 predicate or historical refund cause.",
+    "Future deployment needs separate owner approval plus fresh baseline/version/revision/credential/protected metadata and durable no-blind-retry journal. Version10 is proposed, not reserved.",
+    "All five historic purchase budgets remain consumed; no new live purchase authority. No broad rollout, runtime settings, IAM/routes/capacity/schedules/streams or other code target is authorized by this review.",
+    "Preparation review does not prove commit/push/release integration of this preparation branch; parent must complete and verify publication separately."
+  ],
+  "reviewedAtUtc": "2026-10-17T11:37:51.810970+00:00",
+  "reviewedFileSha256": {
+    "docs/dev-play-expired-resubscription-overlay.json": "1498e324389952c9f8bef6bcee66606544d5e5439d8e6ab2f5dbfe1627fd8bfb",
+    "docs/dev-play-expired-resubscription-overlay.md": "7877feaf70f23daf21ad00ca804d5301b2370f345069c276a0c11e6d5ba3adb4",
+    "docs/evidence/dev-play-expired-resubscription-overlay/archive-manifest.json": "842e35d9047ada2f79d9760dea18b02f9e9a399bbd6fcbf560ded3461ec5ffd3",
+    "docs/evidence/dev-play-expired-resubscription-overlay/disabled-root-handler-smoke.json": "b983e8f90df7f9543e11afc9f915bd9b6f34287b66b430545a25e15eb3e8ad69",
+    "docs/evidence/dev-play-expired-resubscription-overlay/loaded-application-modules.json": "aa804402e6662a4bfa9af2a8fab61822b1e7f0dfdeb03d31809fef317352d7e4",
+    "docs/evidence/dev-play-expired-resubscription-overlay/local-validation.json": "3e5b561f81c0be2eefb8c79b49bc3bc05fdc871414c3a226fb5690be2093a423",
+    "docs/evidence/dev-play-expired-resubscription-overlay/proposal-readonly-baseline.json": "10eac533532e67f0f28c30516aa69471302903b501066cb63bf9e8d1745eed22",
+    "docs/evidence/dev-play-expired-resubscription-overlay/test-environment.json": "79c754928eefd030e7d9d30add7cb2f8541dca821d8de373ce6383f57fe89823",
+    "scripts/prepare_dev_expired_resubscription.py": "5d66c73488631e00280d6ada9fec11eaf8a22da18f4250ca7291573fb3ec577c",
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb",
+    "src/shared_play_verification/proof.py": "81fb9bfccd200b97e51a639b706cf2cfa0d01d773c6f92a462ada334e6697e3b",
+    "src/shared_purchase_ownership/service.py": "c133a769ae101b3330e484ac75acc4b58786161f1acaca81e49f2ec322686bf1",
+    "src/v1_play_handoff/app.py": "7fe01208f4d22c59eaaee6eb74e8e72840a8a8b9ca90835ca6ade65ef7720fcf",
+    "src/v1_play_handoff/diagnostics.py": "c68fa64d1cb94224b57f76f84bf54ab7ab8636e7b9189286a14531feaa5fa80f",
+    "src/v1_play_handoff/service.py": "4d134557dca8a8c54dcb962bed51cb3890088ba6ae97808317ca3643b39bb57a",
+    "tests/scripts/test_expired_resubscription_overlay.py": "eb6d18bad094955121f51ede92015abb9ae8c231bb278e01bd19d1edd20032b2",
+    "tests/shared_check_authority/fixtures/dev-live9-retained-writer.py": "d56b519eb333a57b819a285ea34477ef255143b2249c25d0492c836f85757177",
+    "tests/v1_play_handoff/fixtures/dev-access18-snapshot.py": "36ba23e497edb9aa4baee477844f29cf7b6db69e8a90ddd135a280fb06b21e83",
+    "tests/v1_play_handoff/fixtures/dev-live9-handoff.py": "8cc95103246de5c8451efaf5e7370ce59ebe8595ca65874f38c7e8da051f7eaf",
+    "tests/v1_play_handoff/test_retained_overlay_compatibility.py": "8bb31d5fbeaecb5ebac1cc935b7c1a539082b66075fc78b7c0bb3550c4fcf864"
+  },
+  "reviewer": "prepare_auth_review independent reviewer",
+  "rootRetainedTestReportsSha256": {
+    "/tmp/amt-pr131-all-script-tests.xml": "a330f6225d67f0e346cc7911961f8463b13751182e931225005e249741ae4490",
+    "/tmp/amt-pr131-artifact-focused.xml": "93e3ba7db91b17373cddc4ee99957e535b5eaf090c5ca15729daa10f92be7c91",
+    "/tmp/amt-pr131-artifact-self-contained-final.xml": "af3fa1691eb7e6944a65fda811210d4d0ab911f9c5fd95bcd5a3f5844c18e664"
+  },
+  "schemaVersion": 1,
+  "scope": {
+    "awsNetworkProviderDeviceOrEndpointCallsByReviewer": 0,
+    "baselineVersion": "9",
+    "futureSoleTarget": "trustcheckradar-dev-v1-play-handoff:live",
+    "protectedAccessVersion": "18",
+    "protectedCleanupVersion": "17",
+    "protectedOtherRuntimeCount": 12,
+    "purchaseApprovalByReview": false,
+    "runtimeDeploymentApprovedByReview": false,
+    "sourceOnly": true
+  }
+}
