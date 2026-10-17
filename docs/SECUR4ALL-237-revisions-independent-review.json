@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "reviewOutcome": "PASS_SOURCE_ONLY_REVISION_PLANNER",
+  "reviewedAtUtc": "2026-10-17T23:08:50.581878+00:00",
+  "files": {
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "13a2e6403a57bfad19ee349704ca74cd8b5a9bc3b81c9e2a94feac4bcb526e3e",
+    "src/operations_reporting/event.schema.json": "1e714de421c2f14527cc08b91d239815acba032f3665d5eec9c1e968eb53a958",
+    "src/operations_reporting/rejection.schema.json": "a32632678a79eb6c92190b3de414a64183fe4d733dacb580fdb4ea9f570b3ed2",
+    "tests/operations_reporting/test_revisions.py": "cdd8e01d09024a2463da140d2e6a0561cbaefbeba1208305dd252c5e1e930853",
+    "tests/operations_reporting/test_revisions_independent.py": "1c2e2953899a8b13630d54a16b87dc275317073ee77cd0e584d0672c05c42313"
+  },
+  "tests": {
+    "independentAddedPassed": 19,
+    "combinedOperationsPassed": 165,
+    "failures": 0,
+    "errors": 0
+  },
+  "initialFindingsResolved": [
+    {
+      "id": "R1",
+      "observed": "Malformed aggregate accepted completion in complimentary class with accepted0 while moving real trial completion to noDeduction",
+      "resolution": "All access rows enforce complete<=accepted-settlementUnknown, preserving deduction equations",
+      "independentRegressionPassed": true
+    },
+    {
+      "id": "R2",
+      "observed": "Malformed aggregate could label every terminal as NONE despite noncomplete outcomes",
+      "resolution": "Exact feasible reason/outcome allocation under canonical event schema; all valid reason families remain accepted",
+      "independentRegressionPassed": true
+    },
+    {
+      "id": "R3",
+      "observed": "First revision with rehashed negative/omitted/wrong numericDelta accepted as NO_CHANGE",
+      "resolution": "Revision1 requires exact canonical nonzero projection delta from empty report",
+      "independentRegressionPassed": true
+    }
+  ],
+  "additionalChecks": [
+    "Untrusted nested extensions and Boolean count values reject with finite privacy-safe error",
+    "Input/prior snapshots remain immutable",
+    "Cross-environment previous head rejected",
+    "Concurrent plans expose equal expected CAS but perform no atomic action",
+    "Original fixed expiry/generation time never renewed on replay",
+    "Sparse and zero-filled optional reason maps canonicalize without false corrections",
+    "Captured reducer validation bytes are same bytes later reduced",
+    "plannedRunLocalDate describes a plan, not an emitted notification"
+  ],
+  "remainingBlockers": [],
+  "limits": [
+    "Content hashes are unkeyed integrity/CAS planning, not source authority or authenticated event provenance",
+    "For later revisions, prior-chain authenticity/delta reconciliation requires the trusted durable store; only available first-revision empty-parent delta is independently checkable here",
+    "No authoritative producers, deletion/restore fences, conditional storage, pending corrections queue, scheduler or delivery implemented/qualified",
+    "90day expiration is a fixed planned original-cohort TTL, not executed physical deletion",
+    "Atmost-one-per-localday is a pure plan classification, not concurrent durable serialization",
+    "SEC237 and SEC243 remain unfinished; no activation/runtime acceptance claimed"
+  ],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "endpoint": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "deployment": 0
+  }
+}

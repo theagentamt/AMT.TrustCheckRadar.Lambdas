@@ -65,12 +65,13 @@ def _validated(value, validator, code):
         _fail(code)
     try:
         wire = _canonical(value)
-        valid = len(wire.encode("utf-8")) <= MAX_FACT_BYTES and validator.is_valid(value)
+        snapshot = json.loads(wire)
+        valid = len(wire.encode("utf-8")) <= MAX_FACT_BYTES and validator.is_valid(snapshot)
     except (ValueError, TypeError, RecursionError, OverflowError):
         _fail(code)
     if not valid:
         _fail(code)
-    return json.loads(wire)
+    return snapshot
 
 
 def day_bounds(local_day):
