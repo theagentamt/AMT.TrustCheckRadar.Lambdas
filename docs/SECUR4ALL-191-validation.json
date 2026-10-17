@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "result": "PASS_RETAINED_SOURCE_MANIFEST_ONLY",
+  "recordedAtUtc": "2026-10-17T22:53:22.518745+00:00",
+  "manifestSha256": "1d7e3e75d2c8160f6e79984ea2e39603362009b7196870aeda6c694426c080d5",
+  "checks": {
+    "runtimeJoins": 13,
+    "overlayArtifactToCodeHashJoins": 4,
+    "contractGitObjectHashes": 8,
+    "repositoryHistories": 2,
+    "androidAppSubtreeEquivalence": true,
+    "independentReviewPassed": true,
+    "allManifestJsonParsed": true,
+    "gitDiffCheck": true
+  },
+  "scope": "Local source and retained evidence only; no live inventory, auth, deployment, emulator, app endpoint or production test.",
+  "SEC191Complete": false
+}
