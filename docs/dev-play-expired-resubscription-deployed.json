@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T21:24:04.847345+00:00",
+  "ownerDeploymentApproval": "Sentinel_29ab99976f2c8191bf152efc8a00f0a9",
+  "sourcePr": "https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/131",
+  "preparationPr": "https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/132",
+  "implementationHead": "55f42bdd9bcb18e2c2966ff02aba481f4dfd92e3",
+  "preparationHead": "cfc1241905b5a24dc6165c1d5025837f22161459",
+  "preparationReleaseMerge": "a51e17732ce101a54162e6a3c4db1b60597a76c5",
+  "soleDeployedFunction": "trustcheckradar-dev-v1-play-handoff",
+  "liveVersion": "10",
+  "unweighted": true,
+  "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+  "artifactBytes": 6279910,
+  "lambdaCodeSha256": "6RcWwX2dxm85VkUuUAPXXmxuZf/EPC932JxgbIHNggY=",
+  "rollbackVersion": "9",
+  "rootReadbackAtUtc": "2026-10-17T21:21:34.287669+00:00",
+  "independentReadbackAtUtc": "2026-10-17T21:22:59.061455+00:00",
+  "independentActualArchiveDownloadAndProtectedStatePassed": true,
+  "otherRuntimeCountProtected": 12,
+  "access18Cleanup17Preserved": true,
+  "nonCodeIamSecurityInfraSettingChanges": false,
+  "mutationCallsAttemptedConfirmed": 2,
+  "mutationRetries": 0,
+  "rollbackExecuted": false,
+  "newApplicationProviderOrProofInvocationByOperator": false,
+  "globalRequestAbsenceProven": false,
+  "liveMigrationAckPaidAccessOrInterruptionAcceptancePassed": false,
+  "allFivePurchaseBudgetsRemainConsumed": true,
+  "newPurchaseAuthority": false,
+  "queuedV1MvpAuditNotStartedParentCoordinates": true,
+  "privatePostMetadataSha256": "29c3bda062d46d2750e1f060923ced562f1181718dfce20ae18a0b7ad7416a53",
+  "evidenceSha256": {
+    "docs/evidence/dev-play-expired-resubscription-deployed/deployment-readback.json": "b252cffebfb9197fceaa299ab10844f7d94f62249de44dfc46d2b980f38ddba5",
+    "docs/evidence/dev-play-expired-resubscription-deployed/independent-actual-readback.json": "8ed32d549471c7d97fda0520d69d74570dc0a26a418baaa1d1ca71282b58c260",
+    "docs/evidence/dev-play-expired-resubscription-deployed/mutation-journal.json": "ce9f693cb81e2acfd23c9214996ca92b0c7d5a20da4783798ce8f90f4e35db72",
+    "docs/evidence/dev-play-expired-resubscription-deployed/publication-checks.json": "3982b675d9bcb2afbf8216dd102aed84a3b01b5b82c4f437a7e027acd23a81e0",
+    "docs/evidence/dev-play-expired-resubscription-deployed/rollout-independent-review.json": "053ca03553989d38de041d3ac86c5f6ba80d80640cab21050c69a8ff7e3937da",
+    "docs/evidence/dev-play-expired-resubscription-deployed/rollout-reviewed.py": "21ae4edc93653cccaeeca625e632229fba7c7f231cec663a0834694fa0ab6d1b"
+  },
+  "documentationSha256": {
+    "docs/dev-play-expired-resubscription-deployed.md": "f3abb47bcf5d2034c32dbc53cf9dd5540c66225376840b48e1ba19a508a1dcf9"
+  },
+  "openLiveAcceptance": [
+    "SECUR4ALL-195",
+    "ATCR-112",
+    "ATCR-114"
+  ],
+  "sourceComponentDone": "SECUR4ALL-343",
+  "physicalFollowup": "ATCR-148"
+}
