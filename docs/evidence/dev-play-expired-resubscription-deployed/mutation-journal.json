@@ -1,0 +1,21 @@
+{
+  "phase": "completed",
+  "attempts": [
+    "trustcheckradar-dev-v1-play-handoff:code_publish",
+    "trustcheckradar-dev-v1-play-handoff:alias"
+  ],
+  "confirmed": [
+    "trustcheckradar-dev-v1-play-handoff:code_publish",
+    "trustcheckradar-dev-v1-play-handoff:alias"
+  ],
+  "newVersions": {
+    "trustcheckradar-dev-v1-play-handoff": "10"
+  },
+  "completedTargets": [
+    "trustcheckradar-dev-v1-play-handoff"
+  ],
+  "ownerApprovalId": "Sentinel_29ab99976f2c8191bf152efc8a00f0a9",
+  "planDigest": "db1760fecf13f691565a798341fd6a0a061b2e30cbfe8f5dd45e8c849e6c6ac4",
+  "rawJournalSha256": "d3d1bc50da95383d3c01c5aacbc6ab80c85c439a27887716549623e2c79c55ef",
+  "noRetries": true
+}

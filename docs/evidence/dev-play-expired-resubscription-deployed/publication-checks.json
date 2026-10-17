@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "rootIndependentArtifactHashVersionJournalConsistent": true,
+  "exactlyTwoConfirmedOneShotMutationCalls": true,
+  "onlyTargetHandoff10": true,
+  "immutableRollback9AndProtectedMetadataVerified": true,
+  "operatorOnlyNotGlobalAbsenceSemantics": true,
+  "allJsonParses": true,
+  "rolloutPythonCompile": true,
+  "shellcheck": true,
+  "diffCheck": true,
+  "targetedCredentialPatternScan": true,
+  "noPrivateEnvironmentSnapshotOrPresignedUrlArchived": true,
+  "noNewBehaviorTestOrPurchaseDuringEvidencePublication": true
+}

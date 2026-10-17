@@ -1,0 +1,48 @@
+{
+  "actualIndependentReadbackSha256": "8ed32d549471c7d97fda0520d69d74570dc0a26a418baaa1d1ca71282b58c260",
+  "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+  "blockingFindings": [],
+  "checks": {
+    "allEightManifestEvidenceAndDocPins": true,
+    "budgetsConsumedNoPurchaseOrLiveAcceptanceAuthority": true,
+    "independentActualReadbackExactCopyAndPrivateHash": true,
+    "local207SelfContained208Supplemented244ScriptCountsPreciselyBounded": true,
+    "noCredentialPatternDetected": true,
+    "noInferenceHistoricTransitionCauseOrOldProviderTermination": true,
+    "noMutationRetryNoRollback": true,
+    "noPrivateEnvironmentIdentityOrPresignedCodeUrlCopied": true,
+    "operatorOnlyNoGlobalRequestAbsence": true,
+    "rawJournalHashAndTwoAttemptsConfirmedExact": true,
+    "readbackArchiveLiveLatestPublished10ExactAndRollback9": true,
+    "rootReadbackOnlyOriginalRawNotExercisedFieldNormalized": true,
+    "sourceDoneSeparateOpenIntegrationReleasePhysicalScopes": true,
+    "twelveOthersAccess18Cleanup17ProtectedMetadata": true
+  },
+  "exactReviewedFileSha256": {
+    "docs/dev-play-expired-resubscription-deployed.json": "ea7245e2f6bb0b34fd1ef5d43dd80bb93628efd7b28f8d1d5d6ca0aa761baa8b",
+    "docs/dev-play-expired-resubscription-deployed.md": "f3abb47bcf5d2034c32dbc53cf9dd5540c66225376840b48e1ba19a508a1dcf9",
+    "docs/evidence/dev-play-expired-resubscription-deployed/deployment-readback.json": "b252cffebfb9197fceaa299ab10844f7d94f62249de44dfc46d2b980f38ddba5",
+    "docs/evidence/dev-play-expired-resubscription-deployed/independent-actual-readback.json": "8ed32d549471c7d97fda0520d69d74570dc0a26a418baaa1d1ca71282b58c260",
+    "docs/evidence/dev-play-expired-resubscription-deployed/mutation-journal.json": "ce9f693cb81e2acfd23c9214996ca92b0c7d5a20da4783798ce8f90f4e35db72",
+    "docs/evidence/dev-play-expired-resubscription-deployed/publication-checks.json": "3982b675d9bcb2afbf8216dd102aed84a3b01b5b82c4f437a7e027acd23a81e0",
+    "docs/evidence/dev-play-expired-resubscription-deployed/rollout-independent-review.json": "053ca03553989d38de041d3ac86c5f6ba80d80640cab21050c69a8ff7e3937da",
+    "docs/evidence/dev-play-expired-resubscription-deployed/rollout-reviewed.py": "21ae4edc93653cccaeeca625e632229fba7c7f231cec663a0834694fa0ab6d1b"
+  },
+  "limits": [
+    "This final review adds no runtime reads or writes. Actual control-plane/code qualification is the separate independent21:22:59UTC record.",
+    "Exact source/code/config and protected bounded snapshots do not prove live provider migration, acknowledgment, paid access or interruption acceptance.",
+    "Global concurrent request absence was not observed or inferred.",
+    "Evidence publication/integration must still be completed and remotely verified by the parent.",
+    "Ordinary rollback requires applicable incident authorization and fresh metadata/revision checks; it never undoes grants or spending."
+  ],
+  "liveVersion": "10",
+  "ownerApprovalId": "Sentinel_29ab99976f2c8191bf152efc8a00f0a9",
+  "result": "FINAL_PASS_ACTUAL_DEPLOYMENT_HANDOFF",
+  "reviewScope": "Final source-only evidence/doc/privacy/count/scope review; no additional AWS/runtime/provider/device calls.",
+  "reviewedAtUtc": "2026-10-17T21:24:36.711213+00:00",
+  "rollbackVersion": "9",
+  "runnerIndependentReviewSha256": "053ca03553989d38de041d3ac86c5f6ba80d80640cab21050c69a8ff7e3937da",
+  "runnerSha256": "21ae4edc93653cccaeeca625e632229fba7c7f231cec663a0834694fa0ab6d1b",
+  "schemaVersion": 1,
+  "soleDeployedFunction": "trustcheckradar-dev-v1-play-handoff"
+}

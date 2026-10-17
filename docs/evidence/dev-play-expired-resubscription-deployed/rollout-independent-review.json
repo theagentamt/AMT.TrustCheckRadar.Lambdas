@@ -1,0 +1,56 @@
+{
+  "actualAwsNetworkEndpointDeviceCalls": 0,
+  "allCallsMocked": true,
+  "artifactSha256": "e91716c17d9dc66f3956452e5003d75e6c6e65ffc43c2f77d89c606c81cd8206",
+  "baselineVersion": "9",
+  "blockingFindings": [],
+  "guardChecks": {
+    "applyRaceLoserCannotRewriteJournal": true,
+    "boundedMonotonicReadinessPolls": true,
+    "credentialExpiryMinimum900SecondsAtPlanAndApply": true,
+    "exclusiveFsyncedJournalBeforeMethods": true,
+    "existingJournalApplyRefusesReplay": true,
+    "finiteExceptionOutput": true,
+    "full13RuntimePostPR128AndExtrasBaselineExact": true,
+    "immutableRollback9QualifiedNoAutomaticRollback": true,
+    "noConfigIamSettingsCapacityOrEndpointMutation": true,
+    "noWeightedAlias": true,
+    "onlyFixedHandoffTarget": true,
+    "other12Access18Cleanup17Protected": true,
+    "readbackModeNeverRewritesJournal": true,
+    "revisionCASOnCodeAndAlias": true,
+    "sdkTotalMaxAttemptsOne": true,
+    "selectedCognitoEligibilityProfileDeletionAndOwnershipInventoryReadOnly": true,
+    "unknownCallStopsReadOnlyReconciliationRequired": true
+  },
+  "independentOfflineProbes": [
+    "durable_attempt_precedes_exact_code_publish",
+    "wrong_function_artifact_publish_revision_or_config_before_call",
+    "exact_version10_revision_and_unweighted_alias_only",
+    "uncertain_call_unconfirmed_and_no_second_call",
+    "journal_failure_prevents_call",
+    "runner_drift_prevents_call"
+  ],
+  "limits": [
+    "Static and mocked guard review only; no actual deployment/readback performed by reviewer.",
+    "Post-report global negative behavior flag must be read as no intentional operator invocation, not proof of global absence of requests.",
+    "Protected metadata checks are bounded snapshots; CAS protects target revision transitions, not a cross-service atomic lock.",
+    "Readback after an uncertain mutation is permitted for reconciliation; apply is never replayed or auto-rolled-back."
+  ],
+  "localPinsPassed": true,
+  "maximumMutationMethods": 2,
+  "onlyPublishedVersionAllowed": "10",
+  "ownerApprovalId": "Sentinel_29ab99976f2c8191bf152efc8a00f0a9",
+  "permittedMethods": [
+    "update_function_code(Publish=True,exactZip,latestRevisionId)",
+    "update_alias(live,10,emptyWeights,aliasRevisionId)"
+  ],
+  "priorAuditedRunnerSha256": "a6d503c2cf6255481c62617616f5d89a59eaa074cc79802fb0170d8f9b0510f5",
+  "releaseMerge": "a51e17732ce101a54162e6a3c4db1b60597a76c5",
+  "result": "PASS_GUARDED_HANDOFF_ONLY_DEPLOYMENT_RUNNER",
+  "reviewedAtUtc": "2026-10-17T21:17:07.548058+00:00",
+  "runnerPath": "/tmp/amt-pr131-resubscription-rollout.py",
+  "runnerSha256": "21ae4edc93653cccaeeca625e632229fba7c7f231cec663a0834694fa0ab6d1b",
+  "schemaVersion": 1,
+  "sourceHead": "cfc1241905b5a24dc6165c1d5025837f22161459"
+}
