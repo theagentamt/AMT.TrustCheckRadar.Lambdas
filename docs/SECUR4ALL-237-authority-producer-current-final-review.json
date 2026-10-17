@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_CURRENT_PRODUCER_AND_RECOVERY_SOURCE_HANDOFF",
+  "reviewedAtUtc": "2026-10-17T23:52:14.536613+00:00",
+  "files": {
+    "docs/SECUR4ALL-237-AUTHORITY-PRODUCER.md": "d2569f061543e1838c4d886ba7fd4a64388e44a9934c6da29e7d4c3041c7871f",
+    "docs/SECUR4ALL-237-AUTHORITY-PRODUCER.json": "9ddbe7b10a9333be55240f2342ea4e27480e187a6b9561b74ff490cf2b3dfe65",
+    "docs/SECUR4ALL-237-authority-producer-independent-review.json": "9dff07f0074f71b7c728052790810bf8a30f06378150c9a735fd596686b160c9",
+    "docs/SECUR4ALL-237-authority-recovery-independent-review.json": "b0dd72a684c38b859e47714a55a846edb52ec2f859ce56d8da8979f67b147262"
+  },
+  "currentSourceTestDocPins": {
+    "src/shared_check_authority/core.py": "d9aa30ab588db626bf917842c5f54bd7d4e335f2bc9f949c7ea8953cd3c42772",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/shared_operations/__init__.py": "ba29b428d1da035b1070064a93e62b38a79ae63a255970df977afd9c7345f91f",
+    "src/shared_operations/receipts.py": "b88ebdb71934aae36e04fffa23e1dc37f83713fbf70ab060f6110abe24baf7f5",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    "tests/shared_check_authority/test_operations_producer.py": "1ae1c6b5d7d24f263da29cd179605c3411e77e16012d811f5a2416b53eb5e1fd",
+    "tests/shared_check_authority/test_operations_producer_independent.py": "3b7031a8675770b4881a7a88e2921323c5d95c3f36d7bead5316bc90c7023633",
+    "tests/governed_history/test_release_preservation.py": "c91b25bb01a05f633a7a49a2554daee05d2ef7148576a6360834c4443bb29ff5",
+    "docs/SECUR4ALL-237-AUTHORITY-PRODUCER.md": "d2569f061543e1838c4d886ba7fd4a64388e44a9934c6da29e7d4c3041c7871f",
+    "src/shared_check_authority/recovery.py": "c5822690f883fe376a04de5d102a70955bf7020000d132c73d4bd6b5b13dab1c"
+  },
+  "checks": {
+    "all10CurrentSourceTestDocPinsMatch": true,
+    "all8RecoverySourceReviewPinsUnchanged": true,
+    "bothCopiedSourceReviewsExactBytes": true,
+    "junitShaMatches": true,
+    "junitTestsIncludingSubtests": 1498,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "parentPytestPassedTests": 1477,
+    "parentPytestPassedSubtests": 21,
+    "defaultRecoveryPinnedReleaseRowsTransactionsClockParityCaseInJUnit": true,
+    "all9InspectionZipHashAndSizeJoins": true,
+    "all8AuthorityArchivesEmbedCurrentCoreRuntimeRecoveryAndSharedOperations": true,
+    "operationsReportingAbsentFromAll9Archives": true,
+    "retained5DisabledNetworkBlockedHostImportsStdoutMatches": true,
+    "noTestRerunForFinalHandoff": true
+  },
+  "evidence": {
+    "junit": {
+      "path": "/tmp/amt-sec237-producer-current-final-tests.xml",
+      "sha256": "75504f74263bdf1008991520067404091a803c5ecd0bebf9a9b6b75074ce1baf"
+    },
+    "hostVerifierStdout": {
+      "path": "/tmp/amt-sec237-producer-current-disabled-host-verifier.txt",
+      "sha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d"
+    }
+  },
+  "proseChecks": [
+    "Both authenticated and HMAC-only recovery writers accurately described; exact expiry assessment and known reason require existing unexpired metadata",
+    "Default-off no-metadata HMAC worker retains pinned release shape, transaction and clock behavior",
+    "Expired receipt-ID allowance remains failed/OPERATION_EXPIRED only; no receipt ID copied into events",
+    "Original random-reference and finite-reason schema finding remains source-only; no live incident claimed",
+    "Physical operations-field removal from longer-lived History records and backup/restore/deletion remains explicit activation blocker",
+    "Trusted atomic receipt/deletion/expiry ingestion and dictionary-authenticity boundary remain unimplemented and unqualified",
+    "Attempt/cost sources, pending correction/scheduler/alert/delivery and real Dev evidence remain unfinished",
+    "Inspection ZIPs and host imports do not qualify dependency/native ARM64/distribution/IAM/runtime behavior",
+    "SEC237/243 remain open, producerCoverage remains not_qualified, no flag/runtime/service/auth/endpoint/emulator/provider/purchase/main action claimed"
+  ],
+  "remainingReviewBlockers": [],
+  "supersedesPriorFinalEvidence": {
+    "path": "/tmp/amt-sec237-authority-producer-final-handoff-review.json",
+    "reason": "Current source includes separately reviewed HMAC recovery extension; old snapshot retained only for history"
+  },
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}

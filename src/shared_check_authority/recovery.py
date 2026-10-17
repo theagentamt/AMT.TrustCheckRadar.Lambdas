@@ -55,6 +55,20 @@ class Recovery:
             update = items[-1]['Update']
             update['UpdateExpression'] += ', resultSummary = :summary, assessmentEpoch = :assessed'
             update['ExpressionAttributeValues'].update({':summary': summary, ':assessed': now})
+        if 'operationsReceipt' in row:
+            try:
+                from shared_operations import settlement_fields
+                operations = settlement_fields(row, 'failed', expired_recovery=True)
+            except Exception: raise AuthorityError('OPERATIONS_RECEIPT_INVALID') from None
+            if operations['capturedMetadata']['expiresAtEpoch'] > now:
+                update = items[-1]['Update']
+                update['UpdateExpression'] += ', operationsTerminalReasonCode = :operationsReason'
+                if row.get('projectionScope') != 'recovery_clarification':
+                    update['UpdateExpression'] += ', assessmentEpoch = :assessed'
+                    update['ExpressionAttributeValues'][':assessed'] = now
+                update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
+                update['ExpressionAttributeValues'].update({':operationsReason': operations['terminalReasonCode'],
+                                                           ':operationsCaptured': operations['capturedMetadata']})
         try: self.client.transact_write_items(TransactItems=items)
         except Exception: raise AuthorityError('RECOVERY_TRANSACTION_UNCERTAIN') from None
         return True

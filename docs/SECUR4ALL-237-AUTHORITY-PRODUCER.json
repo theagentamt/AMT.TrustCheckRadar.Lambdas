@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "recordedAtUtc": "2026-10-17T23:51:26.518156+00:00",
+  "baseRelease": "cf3b9ad3849a42999f7493efc54ec8350f10b6dc",
+  "scope": "Default-off check-receipt source producer, not ingestion/dispatch/runtime activation",
+  "sourceTestDocPins": {
+    "src/shared_check_authority/core.py": "d9aa30ab588db626bf917842c5f54bd7d4e335f2bc9f949c7ea8953cd3c42772",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/shared_operations/__init__.py": "ba29b428d1da035b1070064a93e62b38a79ae63a255970df977afd9c7345f91f",
+    "src/shared_operations/receipts.py": "b88ebdb71934aae36e04fffa23e1dc37f83713fbf70ab060f6110abe24baf7f5",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    "tests/shared_check_authority/test_operations_producer.py": "1ae1c6b5d7d24f263da29cd179605c3411e77e16012d811f5a2416b53eb5e1fd",
+    "tests/shared_check_authority/test_operations_producer_independent.py": "3b7031a8675770b4881a7a88e2921323c5d95c3f36d7bead5316bc90c7023633",
+    "tests/governed_history/test_release_preservation.py": "c91b25bb01a05f633a7a49a2554daee05d2ef7148576a6360834c4443bb29ff5",
+    "docs/SECUR4ALL-237-AUTHORITY-PRODUCER.md": "d2569f061543e1838c4d886ba7fd4a64388e44a9934c6da29e7d4c3041c7871f",
+    "src/shared_check_authority/recovery.py": "c5822690f883fe376a04de5d102a70955bf7020000d132c73d4bd6b5b13dab1c"
+  },
+  "sourceReview": "docs/SECUR4ALL-237-authority-producer-independent-review.json",
+  "localValidation": {
+    "passedTests": 1477,
+    "passedSubtests": 21,
+    "junitIncludingSubtests": 1498,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junitSha256": "75504f74263bdf1008991520067404091a803c5ecd0bebf9a9b6b75074ce1baf",
+    "focusedIndependentAndPreservationCases": 75,
+    "independentNewCases": 22,
+    "sourceOnlyInspectionPackages": 9,
+    "networkBlockedDisabledHostImports": 5,
+    "hostVerifierStdoutSha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d",
+    "actionlint": "PASS",
+    "shellcheck": "PASS"
+  },
+  "artifacts": [
+    {
+      "name": "governed_history.zip",
+      "sha256": "9dd044c59444bccdfb3118d6f25efbfca445c0e9548c04e6d0461bef856affcd",
+      "bytes": 102382,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_consumer.zip",
+      "sha256": "6a505bfe4fa52242d99eddabdb86a4f4663466bb1a70aa88dff95c0816ea0aa4",
+      "bytes": 241355,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_evaluator.zip",
+      "sha256": "30001c5cfa5bfd95bf5544d6d53540e910f34a464d6ea5fec6dde1fff168f50c",
+      "bytes": 164405,
+      "includesAuthorityAndSharedOperations": false,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "play_token_deletion.zip",
+      "sha256": "d999721694d3828171026c0e4ebf0f764cd09b8d60cc46fe6521dc4d5913dafc",
+      "bytes": 114422,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_consumer.zip",
+      "sha256": "275220fda0698f7e913fef932328e45c49fee69d921e1b5a17edd21184b6e683",
+      "bytes": 173898,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_lease_recovery.zip",
+      "sha256": "386eb07e03a23c1c800d1048e5adf8c1ee9d540987abead1ed3fb83726422073",
+      "bytes": 59985,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_authority_deletion.zip",
+      "sha256": "6d040e21cfb74993b401d85a099df9c1a5e06a526d66be0e6a9e8f89df2a8f6c",
+      "bytes": 77872,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_entitlements.zip",
+      "sha256": "b266ed88552acd5c610a174924a85e659dcde43faa90db49c1090e85ecc93593",
+      "bytes": 71046,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_play_handoff.zip",
+      "sha256": "c5558e743223bd323d8e668aae0828d1deb6d4962126ffcf1f6edc6ae2775d77",
+      "bytes": 101048,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    }
+  ],
+  "sourceFindings": [
+    {
+      "finding": "Unknown declared admitted source could fall back to schema-forbidden unknown kind",
+      "fixed": "Reject invalid/missing source; no content inference",
+      "actualRuntimeIncidentClaimed": false
+    },
+    {
+      "finding": "Pinned whole-file reconciliation assertion rejected PR139 explicit public validator wrapper",
+      "fixed": "Exact wrapper AST allowlist while all prior planner AST remains unchanged",
+      "testExpectationWeakened": false
+    }
+  ],
+  "references": {
+    "newServerRandomOnly": true,
+    "sameExistingReceiptAdmissionTransaction": true,
+    "secondSubjectLocatorCreated": false,
+    "preparationReferenceCreated": false,
+    "clientResponseFieldsChanged": false,
+    "replayRemints": false,
+    "deadlineFromAcceptanceMaxSeconds": 604800,
+    "alsoClippedToOriginalReceiptDeadline": true,
+    "renewedAtHistorySettlement": false,
+    "physicalRemovalImplemented": false
+  },
+  "projectionLimits": {
+    "callerDictAuthenticated": false,
+    "futureAtomicIngestionAndDeletionFenceRequired": true,
+    "missingCauseCoverage": "TERMINAL_REASON_NOT_RECORDED",
+    "producerCoverageUpgraded": false,
+    "attemptProducerImplemented": false,
+    "sendOrIngestionImplemented": false
+  },
+  "runtimeConfigOrFlagsResourcesIamRoutesAuthEndpointEmulatorProviderOrBillingActions": false,
+  "SEC237Done": false,
+  "activationBlockers": [
+    "Physical removal of operations fields from longer-lived History receipts plus backup/restore/deletion enforcement",
+    "Trusted atomic receipt/deletion/expiry ingestion and durable pre-dispatch attempt source facts",
+    "Component-specific terminal causes and actual coverage/cost evidence",
+    "Pending correction/scheduler/alert/delivery implementation and real Dev acceptance",
+    "Separate reviewed resources/IAM/cost/configuration qualification"
+  ],
+  "recoveryReview": "docs/SECUR4ALL-237-authority-recovery-independent-review.json",
+  "finalEvidenceReview": "docs/SECUR4ALL-237-authority-producer-current-final-review.json",
+  "recoverySource": {
+    "actualAuthenticatedAndHmacWritersCovered": true,
+    "newRefsOrCounterSemanticsInHmacWorker": false,
+    "existingUnexpiredMetadataOnly": true,
+    "noMetadataRowsTransactionsClockMatchPinnedRelease": true,
+    "expiredReceiptIdNeverCopied": true,
+    "metadataEqualityInSameAccountingTransaction": true
+  }
+}

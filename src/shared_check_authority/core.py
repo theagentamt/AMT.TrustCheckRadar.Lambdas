@@ -66,6 +66,8 @@ class Settings:
     max_inflight: int
     enabled: bool = False
     governed_history_settlement_enabled: bool = False
+    operations_producer_enabled: bool = False
+    operations_environment: str = 'dev'
 
     def validate(self):
         texts = (self.users_table, self.devices_table, self.deletion_table, self.authority_table,
@@ -77,6 +79,8 @@ class Settings:
         if (self.enabled is not True or any(not isinstance(x, str) or not x.strip() for x in texts)
                 or self.policy_version != OWNER_POLICY
                 or type(self.governed_history_settlement_enabled) is not bool
+                or type(self.operations_producer_enabled) is not bool
+                or self.operations_environment not in ('dev', 'uat', 'prod')
                 or any(type(x) is not int or x <= 0 for x in nums)
                 or self.receipt_retention_seconds < (self.operation_validity_seconds + self.worker_settlement_seconds + self.reconciliation_seconds)
                 or self.counter_retention_seconds < self.receipt_retention_seconds
@@ -381,7 +385,8 @@ class Authority:
         device = self._device(event, account)
         grant, period = self._grant(partition)
         token = secrets.token_hex(16)
-        accepted_at = self.now() if getattr(self.s, 'governed_history_settlement_enabled', False) else None
+        accepted_at = self.now() if (getattr(self.s, 'governed_history_settlement_enabled', False)
+                                   or getattr(self.s, 'operations_producer_enabled', False)) else None
         row = key | {'recordType': 'V1_CHECK_RECEIPT', 'checkId': check_id, 'payloadHmac': digest,
                      'clientCheckId': client_check_id, 'projectionScope': payload['target']['scope'],
                      'state': 'ADMITTED', 'chargedChecks': None, 'receiptId': None, 'processingOutcome': None,
@@ -397,6 +402,13 @@ class Authority:
                 from shared_governed_history import admission_metadata
                 row.update(admission_metadata(payload, accepted_at))
             except Exception: raise AuthorityError('INPUT_REJECTED') from None
+        if getattr(self.s, 'operations_producer_enabled', False):
+            try:
+                from shared_operations import admission_fields
+                row.update(admission_fields(payload, accepted_at=accepted_at,
+                    receipt_deadline=row['retentionDeadlineEpoch'], access_class=grant['basis'],
+                    environment=self.s.operations_environment))
+            except Exception: raise AuthorityError('OPERATIONS_RECEIPT_INVALID') from None
         if grant['basis'] == 'paid':
             from .purchase_usage import effective_access_end
             row['purchaseUsageKey'] = dict(period['purchaseUsageKey'])
@@ -510,10 +522,12 @@ class Authority:
         account = self._account(event)
         return self._settle(TrustedWorkerContext(account), check_id, None, 'failed', expired_recovery=True)
 
-    def settle(self, worker, check_id, execution_token, processing_outcome, *, result_summary=None):
-        return self._settle(worker, check_id, execution_token, processing_outcome, expired_recovery=False, result_summary=result_summary)
+    def settle(self, worker, check_id, execution_token, processing_outcome, *, result_summary=None, operations_reason_code=None):
+        return self._settle(worker, check_id, execution_token, processing_outcome, expired_recovery=False,
+                            result_summary=result_summary, operations_reason_code=operations_reason_code)
 
-    def _settle(self, worker, check_id, execution_token, processing_outcome, *, expired_recovery, result_summary=None):
+    def _settle(self, worker, check_id, execution_token, processing_outcome, *, expired_recovery, result_summary=None,
+                operations_reason_code=None):
         """Internal worker boundary: account/outcome must come from trusted dispatch.
 
         Never bind directly to client JSON. The adapter must authenticate the
@@ -629,6 +643,17 @@ class Authority:
                 'ExpressionAttributeNames': {'#s': 'state'},
                 'ExpressionAttributeValues': {':settled': 'SETTLED', ':charge': charge, ':receipt': receipt_id, ':outcome': processing_outcome,
                                               ':admitted': 'ADMITTED', ':token': execution_token, ':policy': OWNER_POLICY, ':now': self.now(), ':expiry': row['retentionDeadlineEpoch'], ':summary': result_summary, ':assessed': self.now(), ':index':'V1_EXPIRING', ':sort':f'{int(row["retentionDeadlineEpoch"]):012d}#{partition}#{key["SK"]}'}}})
+        if getattr(self.s, 'operations_producer_enabled', False) and 'operationsReceipt' in row:
+            try:
+                from shared_operations import settlement_fields as operations_settlement
+                operations = operations_settlement(row, processing_outcome,
+                    reason_code=operations_reason_code, expired_recovery=expired_recovery)
+            except Exception: raise AuthorityError('OPERATIONS_RECEIPT_INVALID') from None
+            update = items[-1]['Update']
+            update['UpdateExpression'] += ', operationsTerminalReasonCode = :operationsReason'
+            update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
+            update['ExpressionAttributeValues'].update({':operationsReason': operations['terminalReasonCode'],
+                                                       ':operationsCaptured': operations['capturedMetadata']})
         if result_summary is not None:
             from shared_lookup_freshness import current
             observations = ([(result_summary['lookupObservedAt'], result_summary['lookupValidUntil'])]

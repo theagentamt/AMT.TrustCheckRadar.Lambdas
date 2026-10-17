@@ -44,6 +44,20 @@ def test_release_auth_diagnostic_and_transaction_fences_unchanged(name):
     'scripts/lambda_release_scope.py','.github/workflows/publish.yml',
 ])
 def test_release_billing_operations_and_publication_overlays_byte_exact(path):
+    if path == 'src/operations_reporting/revisions.py':
+        # PR139 deliberately exposes the existing private validator for the
+        # store. Preserve every original statement; allow exactly that wrapper.
+        before = ast.parse(old_blob(path))
+        after = ast.parse((ROOT/path).read_bytes())
+        wrapper = next(n for n in after.body if isinstance(n, ast.FunctionDef) and n.name == 'validate_revision')
+        expected = ast.parse('''def validate_revision(record):
+    """Capture and validate one unlinkable revision before a storage boundary."""
+    return _prior(record)
+''').body[0]
+        assert ast.dump(wrapper, include_attributes=False) == ast.dump(expected, include_attributes=False)
+        after.body.remove(wrapper)
+        assert ast.dump(before, include_attributes=False) == ast.dump(after, include_attributes=False)
+        return
     assert (ROOT/path).read_bytes()==old_blob(path)
 
 
