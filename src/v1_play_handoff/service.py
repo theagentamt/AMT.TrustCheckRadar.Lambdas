@@ -4,7 +4,7 @@ import json
 from uuid import UUID
 from shared_check_authority.core import AuthorityError,OWNER_POLICY,integral
 from shared_check_authority.entitlements import VerifiedMonthlyDecision
-from shared_play_verification.proof import PRODUCT, PlayVerificationError, discover_lineage, verify
+from shared_play_verification.proof import PRODUCT, PlayVerificationError, discover_lineage, verify, require_transition
 
 CONTRACT='v1-play-handoff-1.0.0-candidate.1'
 
@@ -38,6 +38,10 @@ class Handoff:
         # fresh full-lineage verification; conflicts require a new provider read.
         _,hashes=discover_lineage(payload['purchaseToken'],self.client.subscription)
         observed=self.ownership.observe_claim(account,hashes,product_id=PRODUCT)
+        previous=sources.get('paid')
+        previous_ownership=None
+        if prior is None and previous and previous.get('headTokenDigest') is not None and previous['headTokenDigest'] not in hashes:
+            previous_ownership=self.ownership.observe_claim(account,(previous['headTokenDigest'],),product_id=PRODUCT)
         proof=verify(payload['purchaseToken'],fetch_subscription=self.client.subscription,fetch_order=self.client.order,now_epoch=self.a.now(),expected_hashes=hashes,allow_test=self.allow_test,allow_access_extension=self.lifecycle_enabled)
         if self.require_test and not proof.test_purchase:raise PlayVerificationError('PLAY_TEST_PURCHASE_REQUIRED')
         cross_account_restore = proof.obfuscated_account_id != account_binding(account)
@@ -52,10 +56,19 @@ class Handoff:
             # linked subscription. Background lifecycle owns authoritative revoke.
             return self._result(payload,'pending' if proof.state=='pending' else 'not_granted','not_applicable',False)
         if prior is None:
-            actions=self.ownership.prepare_claim_actions(observed,proof.token_hashes,product_id=PRODUCT)
-            previous=sources.get('paid')
+            migration=False
             if previous and previous.get('headTokenDigest') is not None and previous['headTokenDigest'] not in proof.token_hashes:
-                raise PlayVerificationError('PLAY_TRANSITION_UNSUPPORTED')
+                require_transition(payload['intent']=='PURCHASE' and not cross_account_restore
+                    and proof.access_until_epoch==proof.period_end_epoch
+                    and len(proof.token_hashes)==1 and proof.subscription_identity==proof.token_hashes[0]
+                    and all(owner is None for owner in observed.owners)
+                    and previous.get('store')=='google_play' and previous.get('productId')==PRODUCT
+                    and integral(previous.get('validUntilEpoch')) is not None
+                    and previous['validUntilEpoch']<=self.a.now()
+                    and previous['validUntilEpoch']<=proof.period_start_epoch,
+                    'PAID_HEAD_OUTSIDE_LINEAGE')
+                migration=True
+            actions=[] if migration else self.ownership.prepare_claim_actions(observed,proof.token_hashes,product_id=PRODUCT)
             if self.lifecycle_enabled:
                 if self.token_cipher is None or not isinstance(self.token_table,str) or not self.token_table or self.token_table==self.a.s.authority_table:raise PlayVerificationError('PURCHASE_SERVICE_UNAVAILABLE')
                 from shared_play_lifecycle.tokens import key as token_key,prepare_put
@@ -63,7 +76,13 @@ class Handoff:
                 actions.append(prepare_put(self.token_table,pk,payload['purchaseToken'],access_until_epoch=proof.access_until_epoch,next_attempt_epoch=min(self.a.now()+(60 if proof.acknowledgment=='pending' else 3600),proof.access_until_epoch+604800),now=self.a.now(),cipher=self.token_cipher,observed=retained,acknowledgment=proof.acknowledgment))
             revision=1 if previous is None else int(previous['sourceRevision'])+1
             decision=VerifiedMonthlyDecision(account=account,store='google_play',product_id=PRODUCT,subscription_id=proof.subscription_identity,source_revision=revision,verified_at_epoch=proof.verified_at_epoch,active=True,period_id=proof.order_digest,period_start_epoch=proof.period_start_epoch,period_end_epoch=proof.period_end_epoch,require_existing_usage=cross_account_restore and (not known_owned_lineage or sources.get('paid') is None),access_until_epoch=proof.access_until_epoch,head_token_digest=proof.token_hashes[0])
-            self.writer.commit_verified_paid(event,decision,payload['requestId'],observation={'access':access,'device':device},transaction_extras=actions,request_digest=request_digest)
+            if migration:
+                self.writer.commit_verified_resubscription(event,proof,payload['requestId'],intent=payload['intent'],
+                    observation={'access':access,'device':device},ownership=self.ownership,
+                    previous_ownership=previous_ownership,new_ownership=observed,
+                    transaction_extras=actions,request_digest=request_digest)
+            else:
+                self.writer.commit_verified_paid(event,decision,payload['requestId'],observation={'access':access,'device':device},transaction_extras=actions,request_digest=request_digest)
         # A lost transaction acknowledgment is reconciled only by the exact owned
         # request receipt. Never acknowledge a purchase from an uncertain grant.
         receipt=self.a._get(self.a.s.authority_table,receipt_key)

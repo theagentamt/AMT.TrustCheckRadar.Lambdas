@@ -33,3 +33,22 @@ def record_failure(event, code, status, stage):
         return True
     except Exception:
         return False
+
+
+def record_transition_failure(event, predicate):
+    """Original-site enum only, separately from the existing public-code event."""
+    try:
+        if (os.environ.get('STAGE') != 'dev' or os.environ.get('PLAY_HANDOFF_ENABLED') != 'true'
+                or type(event) is not dict or event.get('version') != '2.0'
+                or event.get('routeKey') != 'POST /v1/purchases/google-play/verify'
+                or type(event.get('requestContext')) is not dict
+                or type(event['requestContext'].get('http')) is not dict
+                or event['requestContext']['http'].get('method') != 'POST'):
+            return False
+        from shared_play_verification.proof import TRANSITION_PREDICATES
+        value = {'event': 'dev_play_transition_failure', 'schemaVersion': 1,
+                 'predicate': predicate if type(predicate) is str and predicate in TRANSITION_PREDICATES else 'UNKNOWN'}
+        logging.getLogger(__name__).warning('%s', json.dumps(value, separators=(',', ':')))
+        return True
+    except Exception:
+        return False

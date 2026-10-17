@@ -1,0 +1,28 @@
+{
+  "allPassed": true,
+  "networkForbidden": true,
+  "hostJsonschemaUsed": true,
+  "runtimeArchitectureQualified": false,
+  "rows": [
+    {
+      "name": "url_consumer",
+      "exitCode": 0
+    },
+    {
+      "name": "url_lease_recovery",
+      "exitCode": 0
+    },
+    {
+      "name": "v1_entitlements",
+      "exitCode": 0
+    },
+    {
+      "name": "v1_authority_deletion",
+      "exitCode": 0
+    },
+    {
+      "name": "v1_play_handoff",
+      "exitCode": 0
+    }
+  ]
+}

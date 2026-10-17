@@ -195,17 +195,19 @@ def test_invalid_existing_period_revision_cannot_commit_new_handoff(handoff,revi
  assert a.ddb.Table('authority').scan()['Items']==before and h.ownership.table.scan()['Items']==owners and h.client.acks==1
 
 
-def test_expired_previous_head_still_requires_explicit_new_root_migration(handoff):
- """Qualify a coverage limit, not permission to remove the lineage fence."""
+def test_expired_previous_head_uses_explicit_foreground_migration(handoff):
+ """The explicit proof API closes the old limit without a generic bypass."""
  h,w,p=handoff;a,e,_,row,_,_=w;h.handle(e,p);old=row('ACCESS');advance_renewal(h,w)
  new_token='synthetic-independent-repurchase-token'
  h.client.ordered['purchaseToken']=new_token
  h.client.head['acknowledgementState']='ACKNOWLEDGEMENT_STATE_PENDING'
- before=a.ddb.Table('authority').scan()['Items'];owners=h.ownership.table.scan()['Items']
+ old_period=row('PERIOD#'+old['periodId']);old_owner=h.ownership._get(owner_key(token_hash(TOKEN)))
  assert old['sources']['paid']['validUntilEpoch']<=a.now()
- with pytest.raises(PlayVerificationError,match='^PLAY_TRANSITION_UNSUPPORTED$'):
-  h.handle(e,{**p,'purchaseToken':new_token,'requestId':'e3b9c62a-4e6f-4b38-9d1a-233341aec322'})
- assert a.ddb.Table('authority').scan()['Items']==before and h.ownership.table.scan()['Items']==owners and h.client.acks==1
+ out=h.handle(e,{**p,'purchaseToken':new_token,'requestId':'e3b9c62a-4e6f-4b38-9d1a-233341aec322'})
+ assert out['status']=='committed' and out['acknowledgment']=='acknowledged'
+ assert row('ACCESS')['sources']['paid']['headTokenDigest']==token_hash(new_token)
+ assert row(old_period['SK'])==old_period and h.ownership._get(owner_key(token_hash(TOKEN)))==old_owner
+ assert row('PERIOD#'+row('ACCESS')['periodId'])['usedChecks']==0 and h.client.acks==2
 
 
 def test_writer_independently_rejects_new_root_after_old_expiry(handoff):

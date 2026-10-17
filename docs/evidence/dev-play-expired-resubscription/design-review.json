@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T10:59:27.536284+00:00",
+  "result": "MINIMAL_DESIGN_ACCEPTABLE_WITH_REQUIRED_FENCES_AND_EXPLICIT_LIMITS",
+  "reviewScope": "Independent source-only design challenge before implementation; no production edits or runtime operations",
+  "proposal": "Explicit foreground PURCHASE replacement of expired stored Google paid authority by a newly verified independent unlinked same-account funded root",
+  "oldProviderExpiryDecision": {
+    "recommendation": "Stored-source expiration can authorize replacement of LOCAL authority when all new independent funding/ownership/CAS constraints hold. Old raw provider token/expiry proof is not needed for that bounded claim.",
+    "mandatoryLimit": "It does not prove old Play subscription is actually expired, canceled, nonrenewing or globally nonoverlapping with every provider period; source may be stale. Do not revoke/delete old ownership or modify old usage.",
+    "ifStrongerProductPolicyRequired": "If product policy forbids replacing authority unless every old provider subscription is presently inactive, actual trusted old-provider evidence is required; stored expiry cannot meet that stronger requirement.",
+    "noExtraDecisionForAllowance": "Existing200 per independently funded period/no carryover policy can remain unchanged; no blanket200 regrant when a matching global usage row already exists."
+  },
+  "requiredMigrationEligibility": [
+    "Only explicit foreground PURCHASE; no RESTORE, general synchronize or background capability.",
+    "Fresh canonical package/product/base-plan, normal funded P1M proof, exact current account obfuscated binding, single unlinked root, strict expiry/funding equality and existing test-only policy retained.",
+    "Previous source validated same-account Google/product with valid head and immutable period; stored access end <= now and <= new funded start, previous funded end <= new start.",
+    "New root owner AND locator absent in the same inventoried ownership observation; all new ownership claims remain conditional absent.",
+    "Old head owner AND locator exact validated same account/product; readonly exact conditions in the SAME funding transaction.",
+    "Source revision EXACT previous+1; new root identity differs; malformed/missing legacy evidence stops rather than bypass.",
+    "Typed memory-only capability binds account, old paid source/head, new root, funded dates and exact observed ACCESS. Writer independently revalidates required constraints; a marker type or client/body bool alone is not authorization.",
+    "Exact previous ACCESS condition attached to ACCESS Put; old immutable period condition retained once.",
+    "All auth/profile/age/deletion/device/key inventory/ownership inventory and request receipt conditions remain transactional.",
+    "Old period/global usage and ownership never reset/deleted; new period uses current global funding_actions preserving preexisting used/reserved or failing reconciliation.",
+    "No migration backwards to an already owned different root; same-current-root callbacks and exact historical receipt replay remain normal."
+  ],
+  "transactionCompositionWarnings": [
+    "DynamoDB forbids multiple actions on the same item. New claim actions already contain inventory guard; old-head evidence adds only readonly owner+locator conditions, not prepare_claim_actions(old).",
+    "Existing writer adds previous period condition on a new period; do not append duplicate old-period condition.",
+    "Exact ACCESS CAS belongs on the existing ACCESS Put, never a second ACCESS ConditionCheck.",
+    "A simultaneous historical settlement may conflict with old-period exact condition; fail atomically and require fresh observations, no partial ownership grant or blind retry."
+  ],
+  "outOfAppScope": {
+    "recommendation": "Keep outOfAppPurchaseContext explicitly unsupported in this minimal change.",
+    "reason": "Its expiredPurchaseToken pointer is not linkedPurchaseToken and does not satisfy fresh current account binding by itself. Treating it as lineage would broaden provider association/restore policy.",
+    "futurePrerequisite": "Separate verified predecessor/provider context mapping, exact retained head ownership/locator and account association policy; fresh old-provider inactivity evidence only if claiming actual provider expiration.",
+    "sameCurrentUnsupportedCasesRetained": [
+      "deferredItemReplacement",
+      "deferredItemRemoval",
+      "itemReplacement",
+      "pending linked transition",
+      "unsupported funded/access extension"
+    ]
+  },
+  "fixedPredicateInstrumentation": {
+    "recommendation": "Attach only finite internal original-site reason to the existing fixed-code exception; read that reason at exact Dev verify logger under existing gates, retaining public status/code/retryable semantics.",
+    "suggestedSites": [
+      "proof replacement-field presence",
+      "proof out-of-app context presence",
+      "proof pending-linked lineage",
+      "proof funded/access end mismatch",
+      "handoff previous head disconnected and scoped migration precondition failure",
+      "writer unscoped root change or backwards source revision"
+    ],
+    "privacy": "No token/hash/account/order/request ID, dates or raw provider fields/claims/exception text; no extra provider read or rejected-request re-evaluation.",
+    "collectorCompatibility": "Use a versioned/new fixed event or explicitly coordinate strict collector schema; do not silently add arbitrary keys to an existing exact-schema event."
+  },
+  "testRequirements": [
+    "expiry/start equality accepted and1sec overlap rejected",
+    "missing/malformed old source/head/period/product/revision refused",
+    "old owner/locator/inventory/ACCESS/period race causes no writes or ACK",
+    "two different new roots race: one ACCESS CAS winner",
+    "same root duplicate and lost commit reconcile exact owned receipt, no second allowance",
+    "same-root normal callback/renewal retained",
+    "retired old root cannot become current again",
+    "generic/background/RESTORE cannot use migration capability",
+    "old spent/reserved counters and historical settlement preserved",
+    "new global preexisting usage preserved or refused, never reset",
+    "deletion/profile/device races fail whole transaction",
+    "durable schema/audit SYNC_PAID/request digest stay rollback-compatible",
+    "fixed diagnostic hostile-value/gate/privacy/logger failure tests"
+  ],
+  "exactObservedTransitionPredicate": "UNKNOWN; independent source coverage does not attribute historical or current live409",
+  "sourceChangeAuthorizedByParent": true,
+  "deploymentEndpointProofReplayAndNewTransactionAuthorizedByThisReview": false,
+  "reviewerActions": {
+    "sourceReadOnlyInspection": true,
+    "implementationEdits": false,
+    "awsNetworkDeviceProviderProofOrLiveControl": false
+  }
+}

@@ -25,6 +25,17 @@ ORDER=re.compile(r'GPA\.[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{5}(?:\.\.[0-9]+)?')
 class PlayVerificationError(RuntimeError):
     """Fixed code only; never raw provider errors, identifiers or response content."""
 
+
+TRANSITION_PREDICATES = frozenset({'LINE_ITEM_REPLACEMENT', 'OUT_OF_APP_CONTEXT',
+    'PENDING_LINKED_LINEAGE', 'ACCESS_FUNDED_BOUNDARY', 'PAID_HEAD_OUTSIDE_LINEAGE'})
+
+
+def require_transition(condition, predicate, code='PLAY_TRANSITION_UNSUPPORTED'):
+    if not condition:
+        error = PlayVerificationError(code)
+        error._play_transition_predicate = predicate if type(predicate) is str and predicate in TRANSITION_PREDICATES else 'UNKNOWN'
+        raise error
+
 @dataclass(frozen=True)
 class PlayProof:
     state: str
@@ -72,7 +83,8 @@ def _item(row,*,head=True):
     item=items[0]
     require(item.get('productId')==PRODUCT and type(item.get('offerDetails')) is dict and item['offerDetails'].get('basePlanId')==BASE_PLAN,'PLAY_PLAN_UNSUPPORTED')
     require(type(item.get('autoRenewingPlan')) is dict and 'prepaidPlan' not in item,'PLAY_PLAN_UNSUPPORTED')
-    require(not any(k in item for k in ('deferredItemReplacement','deferredItemRemoval','itemReplacement')) and 'outOfAppPurchaseContext' not in row,'PLAY_TRANSITION_UNSUPPORTED')
+    require_transition(not any(k in item for k in ('deferredItemReplacement','deferredItemRemoval','itemReplacement')), 'LINE_ITEM_REPLACEMENT')
+    require_transition('outOfAppPurchaseContext' not in row, 'OUT_OF_APP_CONTEXT')
     require(not item['offerDetails'].get('offerId'),'PLAY_PLAN_UNSUPPORTED')
     return item
 
@@ -104,7 +116,7 @@ def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_ha
     linked=head.get('linkedPurchaseToken');require((linked is None and len(tokens)==1) or (len(tokens)>1 and linked==tokens[1]),'PLAY_OBSERVATION_CHANGED')
     require(head.get('subscriptionState') in STATES and head.get('acknowledgementState') in ACKS)
     state=STATES[head['subscriptionState']];ack=ACKS[head['acknowledgementState']]
-    require(not (state in {'pending','pending_canceled'} and len(hashes)>1),'PLAY_TRANSITION_UNSUPPORTED')
+    require_transition(not (state in {'pending','pending_canceled'} and len(hashes)>1), 'PENDING_LINKED_LINEAGE')
     identifiers=head.get('externalAccountIdentifiers',{});require(type(identifiers) is dict)
     obfuscated=identifiers.get('obfuscatedExternalAccountId');require(obfuscated is None or isinstance(obfuscated,str) and 1<=len(obfuscated)<=64)
     test='testPurchase' in head;require(not test or allow_test,'PLAY_TEST_PURCHASE_NOT_ALLOWED')
@@ -126,7 +138,7 @@ def verify(purchase_token,*,fetch_subscription,fetch_order,now_epoch,expected_ha
     phase=details.get('offerPhaseDetails');require(type(phase) is dict and set(phase)=={'baseDetails'} and type(phase['baseDetails']) is dict and not phase['baseDetails'],'PLAY_PLAN_UNSUPPORTED')
     start,end=timestamp(details.get('servicePeriodStartTime')),timestamp(details.get('servicePeriodEndTime'))
     require(start<end and start<=now_epoch and (allow_access_extension or now_epoch<end),'PLAY_FUNDED_PERIOD_UNAVAILABLE')
-    require(type(allow_access_extension) is bool and (expiry>=end if allow_access_extension else expiry==end),'PLAY_PERIOD_EXTENSION_UNSUPPORTED')
+    require_transition(type(allow_access_extension) is bool and (expiry>=end if allow_access_extension else expiry==end), 'ACCESS_FUNDED_BOUNDARY', 'PLAY_PERIOD_EXTENSION_UNSUPPORTED')
     after=_read(fetch_subscription,purchase_token)
     # Compare only protocol-relevant fields; order/customer/address/pricing never persist.
     keys=('subscriptionState','acknowledgementState','lineItems','linkedPurchaseToken','externalAccountIdentifiers','testPurchase','outOfAppPurchaseContext')

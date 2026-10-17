@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T11:20:00.737554+00:00",
+  "result": "FINAL_PASS_SOURCE_COMPONENT_HANDOFF",
+  "sourceRoot": "/tmp/amt-dev-play-expired-resubscription",
+  "componentIssue": "SECUR4ALL-343",
+  "reviewedBaseRelease": "034e566ac3f5a79b9034d9b50a5cbf145b11ac41",
+  "reviewedFileSha256": {
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb",
+    "src/shared_play_verification/proof.py": "81fb9bfccd200b97e51a639b706cf2cfa0d01d773c6f92a462ada334e6697e3b",
+    "src/shared_purchase_ownership/service.py": "c133a769ae101b3330e484ac75acc4b58786161f1acaca81e49f2ec322686bf1",
+    "src/v1_play_handoff/app.py": "7fe01208f4d22c59eaaee6eb74e8e72840a8a8b9ca90835ca6ade65ef7720fcf",
+    "src/v1_play_handoff/diagnostics.py": "c68fa64d1cb94224b57f76f84bf54ab7ab8636e7b9189286a14531feaa5fa80f",
+    "src/v1_play_handoff/service.py": "4d134557dca8a8c54dcb962bed51cb3890088ba6ae97808317ca3643b39bb57a",
+    "tests/v1_play_handoff/test_service.py": "d871255123c043d4e280ebb3d63559f8e22878581a12b4d5208d63fe4a8300e1",
+    "tests/v1_play_handoff/test_expired_resubscription.py": "8c3267b81089fba818cfc648961240e5ea9555e67fe54734e088e4044f21fd7d",
+    "tests/v1_play_handoff/test_transition_predicates.py": "f41535e4ff2b3dd7caa2d04edd7fbb734f7b9f957a5bd3f63217fcd2ab7e0706",
+    "docs/evidence/dev-play-expired-resubscription/design-review.json": "9a9d00bcbbec39db2db666f58f52764caaf8ac072b188bd9104002ea3d94d461",
+    "docs/evidence/dev-play-expired-resubscription/disabled-package-smokes.json": "a9974dc05416cdb4559bfb4989568a81048f7982315833aaac3eb8a9a461e4fd",
+    "docs/evidence/dev-play-expired-resubscription/local-suites.json": "1279b99447c4a1e640c797db76f1659339e256fc507514217e7bb2eff2fd5492",
+    "docs/evidence/dev-play-expired-resubscription/source-packages.json": "6c4a6b0ac7a11b73724c9d14bb5c0ddad1ca099e4e168841c5b1d4362dad0584",
+    "docs/evidence/dev-play-expired-resubscription/source-review.json": "fe0921bce4afe6549f92fa7189f524d5392552d854db807699b17179437b3051",
+    "docs/dev-play-expired-resubscription.md": "78929dafc6134c9d1a2b024de26753f0346ff52ab5c56feabe48527f32b8614f",
+    "docs/dev-play-expired-resubscription.json": "79b3f409bfd8cc69a1575f594bbd8a12e7d09f2e8053e08d9e720124b5c3c0da"
+  },
+  "reviewedSourceAndTestUnchangedFromIndependent200Pass": true,
+  "priorDesignReviewSha256": "9a9d00bcbbec39db2db666f58f52764caaf8ac072b188bd9104002ea3d94d461",
+  "priorSourceReviewSha256": "fe0921bce4afe6549f92fa7189f524d5392552d854db807699b17179437b3051",
+  "findings": [
+    {
+      "id": "R1",
+      "status": "RESOLVED",
+      "component": "migration scope invariant",
+      "originalFinding": "Existing correctly keyed new global usage allowed direct proof API to migrate with extended access beyond funded end.",
+      "resolution": "Explicit equal access/funded end now required at Handoff candidate, proof-facing writer API and capability invariant. Independent original exploit recheck rejected; source and lifecycle-option regressions pass."
+    },
+    {
+      "id": "D1",
+      "status": "RESOLVED",
+      "component": "handoff test count wording",
+      "originalFinding": "Initial description called aggregate JUnit tests collected/top-level cases despite included subtests.",
+      "resolution": "MD/manifest now explicitly identify JUnit-reported counts including subtests and skipped entries; overlapping suites are not additive unique acceptance cases."
+    }
+  ],
+  "outstandingBlockers": [],
+  "independentChecks": {
+    "focusedSyntheticTests": {
+      "passed": 200,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsedSeconds": 11.59,
+      "log": "/tmp/amt-resubscription-independent-focused-final.log"
+    },
+    "retainedFullReportsIndependentlyRecounted": {
+      "childSuites": 63,
+      "totals": {
+        "default": {
+          "tests": 2775,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 73
+        },
+        "integration": {
+          "tests": 1206,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      },
+      "countSemantics": "JUnit-reported tests include subtests and skips; not unique top-level cases"
+    },
+    "nonDeployableSourcePackages": {
+      "hashCheckedZips": 41,
+      "pythonEntriesIndependentlyCompiled": 944,
+      "changedModulesAllDeclaredCopiesByteEqual": 6,
+      "completeDependenciesOrArm64RuntimeQualified": false
+    },
+    "fiveDisabledNetworkForbiddenImportReportsQualified": true,
+    "allManifestSourceTestEvidenceAndDocumentationPinsExact": true,
+    "privacyNoRawLiveIdentityTokenProofProviderPayloadExceptionText": true,
+    "sourceScenarioVersusHistoricalLiveCauseClearlySeparated": true,
+    "explicitStoredAuthorityExpiryNotActualOldProviderTermination": true,
+    "funding200NoCarryoverOldGlobalUsageAndOwnedLocksPreserved": true,
+    "exactTransactionalAccessCasOldOwnerLocatorPeriodGlobalUsageAndNewClaimsFenced": true,
+    "genericBackgroundRestoreAndOutOfAppStillExcluded": true,
+    "newFixedEventSchemaRequiresExplicitFutureCollectorQualification": true,
+    "futureExactOverlayMustPreserveDeployedComplimentaryRetentionBlocks": true,
+    "noDeployableArtifactOrNewPurchaseScopeClaim": true,
+    "linkedOpenReleaseStoriesAndPhysicalFollowupPreserved": true
+  },
+  "skillApplied": "amt-release-test-handoff",
+  "completionBoundary": "Source/component review is approved. Root still must commit/push/verify release-V01 integration and update/verify tracker source and reciprocal open release acceptance links before declaring Dev story Done. No unperformed live criterion is passed.",
+  "remainingGates": [
+    "Future exact deployment overlay with existing deployed _commit audit-expiry, _operation_sk and related complimentary overlays retained; generic source ZIPs are not candidates.",
+    "Separate deployment authorization, artifact/dependency/architecture/rollback/protected metadata qualification.",
+    "Separate real supported migration/ACK/fresh paid-access and interruption acceptance under new explicit transaction authority; all five old budgets consumed.",
+    "Out-of-app association and physical-only followups remain unsupported/pending."
+  ],
+  "reviewerActions": {
+    "localReadOnlySourceEvidenceInspection": true,
+    "localSyntheticTestsAndInMemoryCompile": true,
+    "implementationEdits": false,
+    "networkAwsRuntimeEndpointsEmulatorProviderProofOrFinancialActions": false
+  }
+}

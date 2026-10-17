@@ -410,6 +410,35 @@ def locator_item(account_id, digest):
             "accountId": account_id, "purchaseTokenHash": digest}
 
 
+def expired_resubscription_guards(previous, current, *, account_id, product_id):
+    """Only exact old-owner/locator checks; new claims supply the inventory guard.
+
+    Both observations are immutable server-created snapshots. Never rewrite or
+    release the old purchase lock, and never accept a previously owned new root.
+    """
+    if (type(previous) is not ClaimObservation or type(current) is not ClaimObservation
+            or previous.account_id != account_id or current.account_id != account_id
+            or previous.product_id != product_id or current.product_id != product_id
+            or previous.environment != current.environment or previous.table_name != current.table_name
+            or previous.inventory != current.inventory or len(previous.hashes) != 1 or len(current.hashes) != 1
+            or previous.hashes == current.hashes or current.owners != (None,) or current.locators != (None,)):
+        raise OwnershipError('PURCHASE_OBSERVATION_INVALID')
+    digest = previous.hashes[0]
+    owner, locator = previous.owners[0], previous.locators[0]
+    validate_owner(owner, digest, account_id, product_id)
+    if validate_locator(locator, account_id) != digest:
+        raise OwnershipError('PURCHASE_LOCATOR_INVALID')
+    actions = []
+    for row in (owner, locator):
+        fields = sorted(row)
+        actions.append({'ConditionCheck': {'TableName': previous.table_name,
+            'Key': {k: row[k] for k in ('PK', 'SK')},
+            'ConditionExpression': ' AND '.join(f'#f{i} = :v{i}' for i in range(len(fields))),
+            'ExpressionAttributeNames': {f'#f{i}': name for i, name in enumerate(fields)},
+            'ExpressionAttributeValues': {f':v{i}': row[name] for i, name in enumerate(fields)}}})
+    return actions
+
+
 def validate_locator(item, account_id):
     if not isinstance(item, dict):
         raise OwnershipError("PURCHASE_LOCATOR_INVALID")

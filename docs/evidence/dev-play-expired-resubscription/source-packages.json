@@ -1,0 +1,226 @@
+{
+  "sourceOnlyNonDeployable": true,
+  "skipDependencies": true,
+  "zipCount": 41,
+  "pythonEntriesCompiled": 944,
+  "sharedSourceExactCoverage": {
+    "shared_check_authority/entitlements.py": [
+      "account_export_api.zip",
+      "message_consumer.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "recovery_consumer.zip",
+      "result_feedback.zip",
+      "url_consumer.zip",
+      "url_lease_recovery.zip",
+      "v1_authority_deletion.zip",
+      "v1_entitlements.zip",
+      "v1_play_handoff.zip"
+    ],
+    "shared_play_verification/proof.py": [
+      "account_export_api.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "v1_play_handoff.zip"
+    ],
+    "shared_purchase_ownership/service.py": [
+      "account_data_api.zip",
+      "account_export_api.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "purchase_handoff.zip",
+      "v1_play_handoff.zip"
+    ],
+    "v1_play_handoff/app.py": [
+      "account_export_api.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "v1_play_handoff.zip"
+    ],
+    "v1_play_handoff/service.py": [
+      "account_export_api.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "v1_play_handoff.zip"
+    ],
+    "v1_play_handoff/diagnostics.py": [
+      "account_export_api.zip",
+      "play_lifecycle_ingress.zip",
+      "play_lifecycle_worker.zip",
+      "play_token_deletion.zip",
+      "v1_play_handoff.zip"
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "account_data_api.zip",
+      "sha256": "2031fc831ec11d2be65f7d28ccdd53f3226cfbd451d0d7b76e5f4eca9fb535a0"
+    },
+    {
+      "name": "account_export_api.zip",
+      "sha256": "6d5464de427b4a4a53c349a23dd33781783c2ac9342f064e11d8abdc26dfa8e2"
+    },
+    {
+      "name": "age_attestation.zip",
+      "sha256": "116352197114bfb70168f905c4ace9d62cab15c60f9d8322eab33779f4b05057"
+    },
+    {
+      "name": "campaign-contracts-1.0.0.zip",
+      "sha256": "5bdcfb6f73993f9340f011b551821b490273baab23857bdf85695ba07b7a9072"
+    },
+    {
+      "name": "campaign_cluster_aggregator.zip",
+      "sha256": "e2d7eb0b3bc228eab15e684b01f970854e991b2940816a812d7eb95aeb84e0b9"
+    },
+    {
+      "name": "campaign_deletion_bridge.zip",
+      "sha256": "d7ba66f6ccd133cf377ad8edf398e32316ea9a162dd4c5988ce7b3beb67dbe2f"
+    },
+    {
+      "name": "campaign_lifecycle.zip",
+      "sha256": "bc65a0f7b4ffbebe4da64c19567fa8da25ee800775b492216959a74d41313b62"
+    },
+    {
+      "name": "campaign_observation_publisher.zip",
+      "sha256": "56c7d2f35924986f09e5f2fb10dbdee44a7dfb0a1e2f6f25917b0c3655ded092"
+    },
+    {
+      "name": "campaign_participation.zip",
+      "sha256": "332db53af13b9ea4f7ba931422d9008f9016d03c2d1c53c4161d2235a5c3db28"
+    },
+    {
+      "name": "campaign_review.zip",
+      "sha256": "59af5b4d18691f81f246daf0a7e7b22dbfa5ba63ac5e914a1203a7465e440647"
+    },
+    {
+      "name": "campaign_trends.zip",
+      "sha256": "46561dd956135055e7908d52002ceefc1f25a8dc3ecb41db9d5645082ae4bdf6"
+    },
+    {
+      "name": "conversation_analysis.zip",
+      "sha256": "d2e0d591b746ad56d4beb257b00da947096be5c56e40c7bcb3242a9afd3567a1"
+    },
+    {
+      "name": "demographic_research.zip",
+      "sha256": "1fa26a18d6d93d8d5344859c9d164203218a8088867a1a39aff92beb77df5b46"
+    },
+    {
+      "name": "device-recovery-contracts-1.0.0.zip",
+      "sha256": "383729f8fdd261b935f9b8a35cb3399d66725e6325b304167838488e53856f21"
+    },
+    {
+      "name": "device_recovery.zip",
+      "sha256": "d37d17cae6d7798311538cbfc318297562d6d2685c39d30f3671ac3fdd63cb0c"
+    },
+    {
+      "name": "device_registration.zip",
+      "sha256": "2d98c6292c8f25d4990190a66e9cd1bc0e9fc3bb8abda44cb7bb8eb0753fb9bc"
+    },
+    {
+      "name": "entitlement_snapshot.zip",
+      "sha256": "dc7c71b0402d0042a5b3cf4ec4df7509f350a3579dabab9c36eb38afea36455a"
+    },
+    {
+      "name": "history-contracts-1.0.0.zip",
+      "sha256": "4dd156e55d7912f9313b204eaa67fe90c8dc6638ab2b0461286e24f70cdc0a32"
+    },
+    {
+      "name": "history_account_deletion_bridge.zip",
+      "sha256": "cf7d2859034887ff42e22326830e9bdf54665db2cfd918d97771c58185b6ceec"
+    },
+    {
+      "name": "history_lifecycle.zip",
+      "sha256": "70557c0ee9a9b997c9d27772402b2e328a3f45baa9bf0c145744f4179868d91a"
+    },
+    {
+      "name": "history_mutation_api.zip",
+      "sha256": "c11e1ce5b1cc0fc1eb41eecb1b8f4a093d535a7e0d52f25d8d1bb64a980594ef"
+    },
+    {
+      "name": "history_read_api.zip",
+      "sha256": "ba14a90330a389a553a04f2a7d3bf84392aa477c43e79e5ac2c4c44274de7a5b"
+    },
+    {
+      "name": "message_consumer.zip",
+      "sha256": "ac457fb56046fee6123a08317bfc3717d90ae771cbf8275d0a124847f333481f"
+    },
+    {
+      "name": "message_evaluator.zip",
+      "sha256": "40689c053fea8bf75f2b3b15faf6b1197de5e568165767a3a7a2a1afed15baaf"
+    },
+    {
+      "name": "play_lifecycle_ingress.zip",
+      "sha256": "2969990f0f5c3b176532bf50d5222e3e83df40d9246d613376f265d9a9c1c717"
+    },
+    {
+      "name": "play_lifecycle_worker.zip",
+      "sha256": "2ca70adffd0829b1133c8570dcc759a17f6f823cb3d8a3f332f95d816121b932"
+    },
+    {
+      "name": "play_token_deletion.zip",
+      "sha256": "a4d9b88fc2a98e92d5bcbdac14d4965f4e7bbe8ace7327d351ca9229147036b1"
+    },
+    {
+      "name": "post_confirmation.zip",
+      "sha256": "85e7f948e99c85e026e0df7faa3e5296ae04f203e61afb9d33473026080e5528"
+    },
+    {
+      "name": "purchase_handoff.zip",
+      "sha256": "58d331986575053f11420f24fbf370a26b5d4697779a97cd51376673f42150e3"
+    },
+    {
+      "name": "recovery_consumer.zip",
+      "sha256": "28eed0aba037a9a7dc288ce7ff90638b2f35b7df0b0899d744f544eb44a45639"
+    },
+    {
+      "name": "recovery_evaluator.zip",
+      "sha256": "e6eff6279c2ead3958965853d0ef849b8b0c61ed87d1a80f62308bab585d76df"
+    },
+    {
+      "name": "result_feedback.zip",
+      "sha256": "fe7290fd40793e0cedd842a22dd9e471f31df9eb5051adcfef447264a8b53144"
+    },
+    {
+      "name": "support_account_deletion.zip",
+      "sha256": "26d3c826d1efb26b1b8908912062bded38fa37dc03e23d76dd7b1857bad21fcc"
+    },
+    {
+      "name": "url_assessment.zip",
+      "sha256": "f5f18d5d3494f517660eea259c62c83a96f21ae0ec255ae774907d871a0f6f5c"
+    },
+    {
+      "name": "url_consumer.zip",
+      "sha256": "9d9821693dea947294863d2fde837e8b6cf6837ad0153b4ed1874bacba3c7540"
+    },
+    {
+      "name": "url_lease_recovery.zip",
+      "sha256": "c070b52251b2761d707a7d14dce372be05ee91831da791f897fb99206779673f"
+    },
+    {
+      "name": "url_redirect_resolver.zip",
+      "sha256": "9a9e972126f78e8fcc5f5b020dc72e3986edce71683852a574a8bd9b03075b76"
+    },
+    {
+      "name": "v1_authority_deletion.zip",
+      "sha256": "926f728dcd1fc41d143d59b6849d9f84404216edf7a943f3d3c244549a2b8e93"
+    },
+    {
+      "name": "v1_entitlements.zip",
+      "sha256": "571e7d86c573b8af89da48cb58341065d57b16e406f6a9e6ce4da86577975eb0"
+    },
+    {
+      "name": "v1_play_handoff.zip",
+      "sha256": "9769149cd85fd4e7de49fe92ceeb7b0aa0e38b7debcdde8eee54e4d7ef6b13d4"
+    },
+    {
+      "name": "web_risk_communication.zip",
+      "sha256": "ace17bae50cef21240feed521ce882d5e6d8339237733a1c994b63efbc309c22"
+    }
+  ],
+  "exactDeployedOverlayNotPrepared": true
+}
