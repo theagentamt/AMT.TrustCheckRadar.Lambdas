@@ -1,0 +1,45 @@
+{
+  "observedAtUtc": "2026-10-17T10:40:14.327916+00:00",
+  "windowStartUtc": "2026-10-17T10:37:00Z",
+  "windowEndExclusiveUtc": "2026-10-17T10:40:00Z",
+  "windowClosedAtObservation": true,
+  "timingDoesNotEstablishRequestAttribution": true,
+  "routes": [
+    {
+      "route": "GET /v1/access",
+      "statusCounts": [
+        {
+          "status": 200,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "route": "POST /device-registration",
+      "statusCounts": []
+    },
+    {
+      "route": "POST /v1/purchases/google-play/prepare",
+      "statusCounts": [
+        {
+          "status": 200,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "route": "POST /v1/purchases/google-play/verify",
+      "statusCounts": [
+        {
+          "status": 409,
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "accountOrRequestAttributionAvailable": false,
+  "noEventsIsNotProofOfNoCallsOrWrites": true,
+  "noEndpointInvocation": true,
+  "noRuntimeMutation": true,
+  "noRawIdentityTokenProofPayloadOutputOrRetention": true
+}

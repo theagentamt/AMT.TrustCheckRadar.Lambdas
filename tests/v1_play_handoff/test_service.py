@@ -193,3 +193,36 @@ def test_invalid_existing_period_revision_cannot_commit_new_handoff(handoff,revi
  before=a.ddb.Table('authority').scan()['Items'];owners=h.ownership.table.scan()['Items']
  with pytest.raises(AuthorityError,match='PURCHASE_USAGE_INVALID'):h.handle(e,{**p,'requestId':'e3b9c62a-4e6f-4b38-9d1a-233341aec322'})
  assert a.ddb.Table('authority').scan()['Items']==before and h.ownership.table.scan()['Items']==owners and h.client.acks==1
+
+
+def test_expired_previous_head_still_requires_explicit_new_root_migration(handoff):
+ """Qualify a coverage limit, not permission to remove the lineage fence."""
+ h,w,p=handoff;a,e,_,row,_,_=w;h.handle(e,p);old=row('ACCESS');advance_renewal(h,w)
+ new_token='synthetic-independent-repurchase-token'
+ h.client.ordered['purchaseToken']=new_token
+ h.client.head['acknowledgementState']='ACKNOWLEDGEMENT_STATE_PENDING'
+ before=a.ddb.Table('authority').scan()['Items'];owners=h.ownership.table.scan()['Items']
+ assert old['sources']['paid']['validUntilEpoch']<=a.now()
+ with pytest.raises(PlayVerificationError,match='^PLAY_TRANSITION_UNSUPPORTED$'):
+  h.handle(e,{**p,'purchaseToken':new_token,'requestId':'e3b9c62a-4e6f-4b38-9d1a-233341aec322'})
+ assert a.ddb.Table('authority').scan()['Items']==before and h.ownership.table.scan()['Items']==owners and h.client.acks==1
+
+
+def test_writer_independently_rejects_new_root_after_old_expiry(handoff):
+ """Removing only the Handoff check would not implement safe migration."""
+ from shared_check_authority.entitlements import VerifiedMonthlyDecision
+ from shared_play_verification.proof import verify
+ h,w,p=handoff;a,e,_,row,_,_=w;h.handle(e,p);advance_renewal(h,w)
+ new_token='synthetic-independent-repurchase-token'
+ h.client.ordered['purchaseToken']=new_token
+ verified=verify(new_token,fetch_subscription=h.client.subscription,fetch_order=h.client.order,now_epoch=a.now(),allow_test=True)
+ previous=row('ACCESS')['sources']['paid']
+ decision=VerifiedMonthlyDecision(account=ACCOUNT,store='google_play',product_id=PRODUCT,
+  subscription_id=verified.subscription_identity,source_revision=int(previous['sourceRevision'])+1,
+  verified_at_epoch=verified.verified_at_epoch,active=True,period_id=verified.order_digest,
+  period_start_epoch=verified.period_start_epoch,period_end_epoch=verified.period_end_epoch,
+  access_until_epoch=verified.access_until_epoch,head_token_digest=verified.token_hashes[0])
+ before=a.ddb.Table('authority').scan()['Items']
+ with pytest.raises(AuthorityError,match='^STORE_AUTHORITY_MIGRATION_REQUIRED$'):
+  h.writer.commit_verified_paid(e,decision,'e3b9c62a-4e6f-4b38-9d1a-233341aec322')
+ assert a.ddb.Table('authority').scan()['Items']==before and h.client.acks==1
