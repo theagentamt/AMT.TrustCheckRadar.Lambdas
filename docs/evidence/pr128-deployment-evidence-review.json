@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T04:09:46.988197+00:00",
+  "result": "PASS_DEPLOYMENT_EVIDENCE",
+  "reviewType": "Independent retained metadata/journal/artifact reconciliation; no network AWS or device actions",
+  "runnerSha256": "a6d503c2cf6255481c62617616f5d89a59eaa074cc79802fb0170d8f9b0510f5",
+  "guardReviewSha256": "215b3f5d72c0d23671985fbdccade75d77ee2a4b74f65ecde6e650382010487f",
+  "sourceReviewSha256": "a418e333d2bd2654f7c22d7254469946d84b81d413d1cdd895c85ecb398d6b4f",
+  "reviewedEvidenceSha256": {
+    "/tmp/amt-pr128-deployed-prepare-auth-verified.json": "03bebc276aeb278ed954308bf1b9b02a24c455e91daafb61da94e2d6c61c637e",
+    "/private/tmp/amt-pr128-prepare-auth-rollout/plan.json": "49f126c3848636e97b09eeb94b1b7aecc2f1e9a4f3c1731ad0e560d21e396448",
+    "/private/tmp/amt-pr128-prepare-auth-rollout/journal.json": "742637a79c334653e35835016def470c26d5db2f24dfd2eda39e0eba523bc55a",
+    "/private/tmp/amt-pr128-prepare-auth-rollout/post-metadata-private.json": "8f61107ab6621a8bb5d15d4c0e668688a7a482cec73943882d06bee950024a4e",
+    "/private/tmp/amt-pr128-prepare-auth-rollout/evidence.json": "d8dfb6d578f4588f6a4501d19f574310c6c53f6864bbed6d76b141e1c18b5f61",
+    "/tmp/amt-pr128-postdeploy-readonly-evidence.py": "04dec4c36d495bdd7d14f97db2e21e765a38e80d49702f94bfd181cb165e136b"
+  },
+  "actualDeploymentReadbackAtUtc": "2026-10-17T04:08:08.996125+00:00",
+  "independentMetadataCaptureAtUtc": "2026-10-17T04:08:30.668376+00:00",
+  "target": {
+    "functionName": "trustcheckradar-dev-v1-play-handoff",
+    "previousLiveVersion": "8",
+    "actualLiveVersion": "9",
+    "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+    "artifactSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1"
+  },
+  "checks": {
+    "journalExactlyTwoOrderedAttemptsBothConfirmed": true,
+    "sourceArtifactAndPlanPinsExact": true,
+    "approvedSingleCodeOnlyTarget": true,
+    "unweightedLive9LatestExactCandidate": true,
+    "rollback8CodeAndConfigurationPreserved": true,
+    "allTwelveOtherRuntimeRowsIdentical": true,
+    "access18Cleanup17Preserved": true,
+    "configurationAdmissionCapacityUnchanged": true,
+    "routesSchedulesCleanupStreamsInlineManagedTrustLogAndApiExtrasIdentical": true,
+    "publicPrivateHashesAndResultRowsMatch": true,
+    "boundedPostCaptureNotContinuousStateProof": true,
+    "newPrepareDiagnosticNotExercisedHistorical401Unknown": true
+  },
+  "outstandingBlockers": [],
+  "limits": [
+    "Retained journal and exact pinned runner support two approved code/alias mutation calls without retries; this is not an exhaustive audit of other actors.",
+    "Protected metadata equality is qualified at captured times, not continuous monitoring.",
+    "The new prepare-auth predicate logger has not been exercised through a live endpoint; historical401 predicate remains unknown.",
+    "Evidence does not authorize any endpoint replay, purchase, auth operation or further runtime change."
+  ],
+  "reviewerActions": {
+    "networkAwsDeviceEndpointAuthMutation": false,
+    "localReadOnlyEvidenceReconciliation": true
+  },
+  "publicationHandoff": "Source and deployment evidence are separate; final deployment documentation can be reviewed after it is written."
+}

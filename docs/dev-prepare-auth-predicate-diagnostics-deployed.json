@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-17T04:11:02.678064+00:00",
+  "ownerApprovalId": "Sentinel_7b16043a492c8191a9f54d1dfa6959be",
+  "ownerProposalId": "Sentinel_e9c5f572ab8481918fc86bc31daa3a71",
+  "approvedScope": "Exact PR128 single existing Dev handoff code overlay only",
+  "actualDeployment": {
+    "apiAuthorizersAndStagesUnchanged": true,
+    "cleanupLiveVersion17Preserved": true,
+    "deployed": true,
+    "entitlementsLiveVersion18Preserved": true,
+    "fourRoutesIAMManagedAndInlinePoliciesTrustLogsCapacityCleanupSchedulesAndLifecycleUnchanged": true,
+    "historicalPrepare401PredicateRemainsUnknown": true,
+    "independentPostCaptureAtUtc": "2026-10-17T04:08:30.668376+00:00",
+    "mutationRetried": false,
+    "noNewInfrastructureConfigurationPurchaseReplayOrEndpointInvocation": true,
+    "observedAtUtc": "2026-10-17T04:08:08.996125+00:00",
+    "other12RuntimeFingerprintsUnchanged": true,
+    "ownerApprovalId": "Sentinel_7b16043a492c8191a9f54d1dfa6959be",
+    "postCapturePassedAllProtectedComparisons": true,
+    "privateJournalSha256": "742637a79c334653e35835016def470c26d5db2f24dfd2eda39e0eba523bc55a",
+    "privatePlanSha256": "49f126c3848636e97b09eeb94b1b7aecc2f1e9a4f3c1731ad0e560d21e396448",
+    "privatePostMetadataSha256": "8f61107ab6621a8bb5d15d4c0e668688a7a482cec73943882d06bee950024a4e",
+    "releaseMergeCommit": "9ff94866163e03ceb36d09c12686bb5e4d772d77",
+    "rollbackExecuted": false,
+    "secretValuesRead": false,
+    "sourceCommit": "38500849a18d231a27c536adeb89cd20baf89df5",
+    "targets": [
+      {
+        "artifactSha256": "4c9f18d5c3d64c596487a35d7e1f1287cf711507ac87f7ff6756466c793bb4f1",
+        "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+        "configurationAdmissionAndCapacityUnchanged": true,
+        "functionName": "trustcheckradar-dev-v1-play-handoff",
+        "latestAndLiveCodeMatch": true,
+        "liveVersion": "9",
+        "rollbackCodeSha256": "riLQ3bwsUr95HPJyjCviZCqPfmloyoG515TjucsmjAY=",
+        "rollbackVersion": "8",
+        "unweightedAliasVerified": true
+      }
+    ],
+    "newDiagnosticsNotIntentionallyExercisedByInfra": true,
+    "otherActorRequestsBetweenCapturesNotEstablished": true
+  },
+  "technicalReadinessBaseline": {
+    "actorInventoryAndAliasReadbackAtUtc": "2026-10-17T04:09:32.434104+00:00",
+    "androidRunnerLive8PinsRequireReviewedLive9UpdateBeforeAnyAttempt": true,
+    "backendReadback": {
+      "authorityPreparationRemainEnabled": true,
+      "catalogQualified": true,
+      "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+      "enabled": true,
+      "entitlementsCodeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+      "fourRoutesIAMLogsCapacitySchedulesStreamsUnchanged": true,
+      "functionName": "trustcheckradar-dev-v1-play-handoff",
+      "immutableRollbackVersion8CodeAndConfigurationVerified": true,
+      "lifecycleRTDNRemainDisabled": true,
+      "liveVersion": "9",
+      "metadataDoesNotProveCurrentAppSessionOrGoogleAccount": true,
+      "observedAtUtc": "2026-10-17T04:08:30.668376+00:00",
+      "other12RuntimeFingerprintsUnchanged": true,
+      "priorCleanupCoveragePreserved": true,
+      "purchaseOwnershipInventoryVerifiedComplete": true,
+      "sameSoleSelectedTesterMetadataAndEligibilityVerified": true,
+      "testOnlyEnforcementRetained": true,
+      "trialAdmissionUnchanged": true
+    },
+    "credentialExpiryAtUtc": "2026-10-17T05:09:29+00:00",
+    "exactAliasReadback": {
+      "aliases": [
+        {
+          "codeSha256": "TJ8Y1cPWTFlkh6Ndfh8Sh89xFQesh/f/Z1ZGbHk7tPE=",
+          "function": "trustcheckradar-dev-v1-play-handoff",
+          "liveVersion": "9",
+          "unweighted": true
+        },
+        {
+          "codeSha256": "up0e++Jc3y5oVOQ9oaPB3w10RioidfPVg1UDilJVhlo=",
+          "function": "trustcheckradar-dev-v1-entitlements",
+          "liveVersion": "18",
+          "unweighted": true
+        },
+        {
+          "codeSha256": "EgY9o17ASfGm9RhY3Zfl7naFlw2fkrz6ZSSSyFQ4mjo=",
+          "function": "trustcheckradar-dev-play-token-deletion",
+          "liveVersion": "17",
+          "unweighted": true
+        }
+      ],
+      "observedAtUtc": "2026-10-17T04:09:32.434104+00:00"
+    },
+    "independentDeploymentEvidenceReviewPending": false,
+    "newDiagnosticsNotIntentionallyExercised": true,
+    "noEndpointInvocationOrRuntimeMutationByInfra": true,
+    "noPurchaseRestoreAuthResetAccountSecurityEmulatorAction": true,
+    "notFrozenAndroidExecutionReceipt": true,
+    "privatePostSnapshotSha256": "8f61107ab6621a8bb5d15d4c0e668688a7a482cec73943882d06bee950024a4e",
+    "readinessAtUtc": "2026-10-17T04:08:30.668376+00:00",
+    "ready": true,
+    "schemaVersion": 1,
+    "scope": "Independently verified backend deployment/readiness baseline; Android still requires matching reviewed live9 runner pins and fresh device/session/payer/baseline prerequisites",
+    "independentDeploymentEvidenceReviewed": true,
+    "endorsedAtUtc": "2026-10-17T04:10:05.995679+00:00",
+    "readinessCollectionOnly": true,
+    "approvedCodeDeploymentRecordedSeparately": true
+  },
+  "guardedMutationAttempts": 2,
+  "guardedMutationConfirmations": 2,
+  "noMutationRetry": true,
+  "privateEvidenceReferences": [
+    {
+      "path": "/tmp/amt-pr128-prepare-auth-rollout.py",
+      "sha256": "a6d503c2cf6255481c62617616f5d89a59eaa074cc79802fb0170d8f9b0510f5"
+    },
+    {
+      "path": "/private/tmp/amt-pr128-prepare-auth-rollout/plan.json",
+      "sha256": "49f126c3848636e97b09eeb94b1b7aecc2f1e9a4f3c1731ad0e560d21e396448"
+    },
+    {
+      "path": "/private/tmp/amt-pr128-prepare-auth-rollout/journal.json",
+      "sha256": "742637a79c334653e35835016def470c26d5db2f24dfd2eda39e0eba523bc55a"
+    },
+    {
+      "path": "/private/tmp/amt-pr128-prepare-auth-rollout/post-metadata-private.json",
+      "sha256": "8f61107ab6621a8bb5d15d4c0e668688a7a482cec73943882d06bee950024a4e"
+    },
+    {
+      "path": "/tmp/amt-pr128-deployed-prepare-auth-verified.json",
+      "sha256": "03bebc276aeb278ed954308bf1b9b02a24c455e91daafb61da94e2d6c61c637e"
+    },
+    {
+      "path": "/tmp/amt-pr128-verified-backend-readiness.json",
+      "sha256": "fba5c4f3c6fc44b225c5a7b67e6211ebd50a8db9f3eab2d54238b9640207ec6f"
+    },
+    {
+      "path": "/tmp/amt-pr128-deployment-runner-independent-review.json",
+      "sha256": "215b3f5d72c0d23671985fbdccade75d77ee2a4b74f65ecde6e650382010487f"
+    },
+    {
+      "path": "/tmp/amt-pr128-deployment-evidence-independent-review.json",
+      "sha256": "dc3d7b723bc91a7ab68c97899ed312565340ab8baf595bb888958eb39f4446fc"
+    },
+    {
+      "path": "/tmp/amt-pr128-runner-offline-probes.json",
+      "sha256": "6742444ba81b4c76bf282ffcd209d07aaf831329f55b4b1fce24c67f8e960cf5"
+    }
+  ],
+  "publicSourceAndReviewPins": {
+    "docs/dev-prepare-auth-predicate-diagnostics-deployed.md": "646166a6dc0ed58e6b9670af5074d9f8e7d6caa63f6071ae8b569e8770cd63b6",
+    "docs/evidence/pr128-deployment-runner-review.json": "215b3f5d72c0d23671985fbdccade75d77ee2a4b74f65ecde6e650382010487f",
+    "docs/evidence/pr128-deployment-evidence-review.json": "dc3d7b723bc91a7ab68c97899ed312565340ab8baf595bb888958eb39f4446fc"
+  },
+  "noRawEnvironmentAccountsCredentialsClaimsProofsTokensPayloadsPublished": true,
+  "metadataSnapshotNotContinuousObservation": true,
+  "publicReadinessNotFrozenAndroidExecutionReceipt": true,
+  "diagnosticEventRuntimeAcceptanceNotClaimed": true,
+  "historicalPrepare401Predicate": "UNKNOWN",
+  "sourceContractMismatchNotDemonstrated": true,
+  "rollBackExecuted": false,
+  "entitlementsDeployment": false,
+  "newInfrastructure": false,
+  "sourceReviewAndTestsAlreadyRecordedInPr128": true,
+  "tracking": [
+    "ATCR-112",
+    "ATCR-114",
+    "SECUR4ALL-195"
+  ],
+  "trackingStatesPreserved": true,
+  "physicalFollowup": "ATCR-148"
+}

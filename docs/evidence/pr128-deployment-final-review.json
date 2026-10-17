@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T04:11:47.482765+00:00",
+  "result": "PASS_FINAL_DEPLOYMENT_HANDOFF",
+  "reviewedRoot": "/tmp/amt-pr128-deployment-evidence",
+  "reviewedFileSha256": {
+    "docs/dev-prepare-auth-predicate-diagnostics-deployed.md": "646166a6dc0ed58e6b9670af5074d9f8e7d6caa63f6071ae8b569e8770cd63b6",
+    "docs/dev-prepare-auth-predicate-diagnostics-deployed.json": "43cb178b2b3663bb96be1a41397ca58dac74b7e0c40bf79fb79bc2b25a1fe02a",
+    "docs/evidence/pr128-deployment-runner-review.json": "215b3f5d72c0d23671985fbdccade75d77ee2a4b74f65ecde6e650382010487f",
+    "docs/evidence/pr128-deployment-evidence-review.json": "dc3d7b723bc91a7ab68c97899ed312565340ab8baf595bb888958eb39f4446fc"
+  },
+  "sourceReviewSha256": "a418e333d2bd2654f7c22d7254469946d84b81d413d1cdd895c85ecb398d6b4f",
+  "runnerReviewSha256": "215b3f5d72c0d23671985fbdccade75d77ee2a4b74f65ecde6e650382010487f",
+  "actualEvidenceReviewSha256": "dc3d7b723bc91a7ab68c97899ed312565340ab8baf595bb888958eb39f4446fc",
+  "outstandingBlockers": [],
+  "checks": {
+    "allFourFileAndPrivateReferencesHashPinsExact": true,
+    "actualTwoWritesSeparateFromReadinessCollection": true,
+    "nineIndependentPlusSixRootOfflineProbeCountsAccurate": true,
+    "actualLive9ExactApprovedArtifactRollback8AndTwelveOthersProtected": true,
+    "noRawPrivateEnvironmentIdentityClaimsTokensProofPayloadOrExceptionTextPublished": true,
+    "rawStaticLoggerFlagNormalizedToOperatorOnlyNoIntentionalInfraReproduction": true,
+    "otherActorOrGlobalEventAbsenceNotClaimed": true,
+    "snapshotsNotContinuousObservation": true,
+    "readiness91817GenericNotFrozenAndroidExecutionAuthorization": true,
+    "androidLive8RunnerPinsNeedReviewedLive9UpdateAndFreshDeviceSessionPayerBaselinePreconditions": true,
+    "backendMetadataCannotProveActualAppOrGoogleSessionOrBinding": true,
+    "historical401UnknownNoProvenLoginForceRefreshOrAuthRelaxationRemedy": true,
+    "noNewDeploymentEndpointTransactionOrRollbackScopeConferred": true,
+    "broadIssueStatesAndPhysicalFollowupUnchanged": true
+  },
+  "readOnlyCollectorSourceReviewed": "/tmp/amt-pr128-technical-readiness-readonly.py",
+  "readOnlyCollectorSourceSha256": "a207102fa677606b6dd095a644268543b0eb1e4f50be6066ea3ac12f8826c9ef",
+  "collectorAssessment": "Source contains metadata-only selected Cognito/profile/deletion/inventory and alias reads; no app endpoint or runtime mutation. Existing approved deployment is recorded separately. Reviewer did not execute collector.",
+  "publicationStatus": "Four-file documentation approved for normal reviewed release-V01 publication/integration; this review does not itself verify a future push or merge.",
+  "reviewerActions": {
+    "localReadOnlyInspectionAndHashComparisons": true,
+    "awsNetworkDeviceEndpointAuthMutation": false
+  },
+  "limits": "Actual runtime predicate behavior remains unexercised by Infra; live prepare/auth/recovery/ACK/paid acceptance still pending separately scoped supported observations."
+}
