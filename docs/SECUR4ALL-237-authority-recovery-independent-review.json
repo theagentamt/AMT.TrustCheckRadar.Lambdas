@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_HMAC_RECOVERY_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:49:18.343734+00:00",
+  "files": {
+    "src/shared_check_authority/recovery.py": "c5822690f883fe376a04de5d102a70955bf7020000d132c73d4bd6b5b13dab1c",
+    "src/shared_operations/receipts.py": "b88ebdb71934aae36e04fffa23e1dc37f83713fbf70ab060f6110abe24baf7f5",
+    "tests/shared_check_authority/test_operations_producer.py": "1ae1c6b5d7d24f263da29cd179605c3411e77e16012d811f5a2416b53eb5e1fd",
+    "tests/shared_check_authority/test_operations_producer_independent.py": "3b7031a8675770b4881a7a88e2921323c5d95c3f36d7bead5316bc90c7023633",
+    "src/shared_check_authority/core.py": "d9aa30ab588db626bf917842c5f54bd7d4e335f2bc9f949c7ea8953cd3c42772",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    "tests/governed_history/test_release_preservation.py": "c91b25bb01a05f633a7a49a2554daee05d2ef7148576a6360834c4443bb29ff5"
+  },
+  "supersededFinalHandoffReview": {
+    "path": "/tmp/amt-sec237-authority-producer-final-handoff-review.json",
+    "sha256": "2d0350a3e9456e6ef7d76fffe2393ef2860282f585217976e781671f3adb7f57",
+    "reason": "Additional HMAC-only recovery source writer and receipt-ID projection rule reviewed; earlier final evidence does not qualify changed snapshots"
+  },
+  "independentTests": {
+    "addedRecoveryCases": 8,
+    "totalIndependentProducerCases": 22,
+    "combinedCurrentProducerIndependentAndPreservationCases": 75,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "runSeconds": 6.75,
+    "cases": [
+      "Actual default-off recovery keeps original no-operations receipt shape and exact zero-charge cleanup",
+      "Exact logical operations expiry adds no terminal operations reason or assessment and projects no facts",
+      "Lost recovery response after actual Moto commit permits read reconciliation without replaying accounting/event",
+      "Account ACCESS deletion race blocks full recovery transaction including terminal reason and counters",
+      "Four nonexpired-failure reason/outcome combinations reject expired_ receipt-ID allowance"
+    ]
+  },
+  "sourceChecks": [
+    "Existing HMAC-only writer supplies known failed/zero/OPERATION_EXPIRED rather than unknown cause",
+    "Same recovery accounting transaction stamps assessment and finite reason only on currently unexpired preexisting operations metadata",
+    "Captured operationsReceipt equality prevents changed reference metadata from committing with accounting",
+    "Recovery no-metadata update remains baseline-shaped; no new references or per-subject locator created",
+    "Special expired_ receipt-ID form accepted only for failed plus OPERATION_EXPIRED and never copied into projected events"
+  ],
+  "remainingReviewBlockers": [],
+  "requiredFinalEvidenceRefresh": [
+    "Source/test/doc hash pins and final broad source JUnit",
+    "Inspection packages embedding current recovery/core/runtime/shared_operations",
+    "Retained disabled host-import evidence and copied final source review"
+  ],
+  "limits": [
+    "Source-only local Moto review; no real AWS/auth/worker/service/endpoint/runtime actions",
+    "Prior source finding and safe projection boundaries remain applicable",
+    "Physical operations-field removal from longer-lived History receipts/backups/deletion remains activation blocker",
+    "Trusted atomic canonical-receipt/deletion/expiry ingestion and producer authentication still absent",
+    "No new live readiness, full SEC237/243 Done, provider behavior or activation qualification"
+  ],
+  "operatorActions": {
+    "services": 0,
+    "credentials": 0,
+    "network": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}

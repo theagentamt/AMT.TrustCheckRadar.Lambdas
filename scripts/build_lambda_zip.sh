@@ -306,6 +306,7 @@ build_function() {
   fi
   if [[ -d "$build_dir/shared_check_authority" ]]; then
     cp -R "$ROOT_DIR/src/shared_governed_history" "$build_dir/shared_governed_history"
+    cp -R "$ROOT_DIR/src/shared_operations" "$build_dir/shared_operations"
   fi
 
   # Every shared-authority consumer can recover a recovery lease without the

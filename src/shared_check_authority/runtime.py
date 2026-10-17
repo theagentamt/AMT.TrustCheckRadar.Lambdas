@@ -21,6 +21,8 @@ def load_authority(*, projected_inventory=False):
         positive = lambda name: int(os.environ[name])
         history = os.environ.get('GOVERNED_HISTORY_SETTLEMENT_ENABLED', 'false')
         if history not in ('true', 'false'): raise ValueError()
+        operations = os.environ.get('OPERATIONS_PRODUCER_ENABLED', 'false')
+        if operations not in ('true', 'false'): raise ValueError()
         settings = Settings(
             users_table=text('USERS_TABLE_NAME'), devices_table=text('DEVICE_BINDINGS_TABLE_NAME'),
             deletion_table=text('DELETION_LEDGER_TABLE_NAME'), authority_table=text('AUTHORITY_TABLE_NAME'),
@@ -32,7 +34,8 @@ def load_authority(*, projected_inventory=False):
             receipt_retention_seconds=positive('RECEIPT_RETENTION_SECONDS'), counter_retention_seconds=positive('COUNTER_RETENTION_SECONDS'),
             attempt_window_seconds=positive('ATTEMPT_WINDOW_SECONDS'), attempts_per_window=positive('ATTEMPTS_PER_WINDOW'),
             max_inflight=positive('MAX_INFLIGHT'), enabled=True,
-            governed_history_settlement_enabled=history == 'true')
+            governed_history_settlement_enabled=history == 'true',
+            operations_producer_enabled=operations == 'true', operations_environment=os.environ['STAGE'])
         settings.validate()
         if settings.receipt_retention_seconds != 7*86400 or settings.counter_retention_seconds != 7*86400:
             raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')

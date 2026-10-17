@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_DEFAULT_OFF_AUTHORITY_PRODUCER_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:44:22.333516+00:00",
+  "files": {
+    "src/shared_operations/__init__.py": "ba29b428d1da035b1070064a93e62b38a79ae63a255970df977afd9c7345f91f",
+    "src/shared_operations/receipts.py": "5dc1534f78b46f350544ba925e8cf12030fe7aeefb39e15656f2750d062e8f89",
+    "src/shared_check_authority/core.py": "d9aa30ab588db626bf917842c5f54bd7d4e335f2bc9f949c7ea8953cd3c42772",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    "tests/shared_check_authority/test_operations_producer.py": "3fc74c97259b77442b0ee95ef88820cbd12b9b9a1f9e0ad41f64dd0c86638ca1",
+    "tests/shared_check_authority/test_operations_producer_independent.py": "e9d439d415d7af35f313b3862d0f18d29277a3fb90c194d8ba91ac366674df8c",
+    "tests/governed_history/test_release_preservation.py": "c91b25bb01a05f633a7a49a2554daee05d2ef7148576a6360834c4443bb29ff5"
+  },
+  "independentTests": {
+    "addedFile": "tests/shared_check_authority/test_operations_producer_independent.py",
+    "independentCasesPassed": 14,
+    "combinedFocusedProducerAndPreservationPassed": 64,
+    "failures": 0,
+    "errors": 0,
+    "checks": [
+      "Invalid/missing/unknown message input kinds cannot mint schema-invalid admitted events",
+      "All3 admitted message source dimensions yield approved-schema facts",
+      "Lost admission acknowledgement reads committed metadata without new ref/reservation",
+      "Lost settlement acknowledgement retains exactly committed charge/cause; replay never replaces first cause",
+      "Account deletion before settlement blocks both accounting and terminal metadata write",
+      "Concurrent removal of captured metadata fails atomic settlement condition",
+      "Short original receipt deadline caps operations linkage; exact expiry returns no events",
+      "Forged settled charge cannot be projected"
+    ]
+  },
+  "resolvedFindings": [
+    {
+      "id": "R1",
+      "finding": "Unknown fallback admitted inputKind produced schema-invalid accepted event from helper",
+      "normalCorePathReachable": false,
+      "resolution": "Admitted input kinds exclude unknown; invalid/missing message source type rejects instead of fallback",
+      "independentRegressionsPassed": true
+    }
+  ],
+  "staticChecks": [
+    "Operations metadata and terminal reason are added only to existing receipt atomic transactions, not a second account/index mapping",
+    "New settings and runtimeflag defaultfalse; unknown textualflag fails configuration; private operations fields remain absent from public receipt whitelist",
+    "Existing defaultoff rows/transaction/clock parity tests remain passing",
+    "Settlement CAS includes exact captured operations metadata, preserving accounting all-or-nothing behavior",
+    "Unique outcome reason mapping does not infer provider cause; ambiguous omitted cause returns explicit incomplete coverage",
+    "ADMITTED inconsistent accounting and SETTLED missing actual receipt ID reject",
+    "Operations accepted-based deadline remains fixed and independent from longer History settlement-based expiry",
+    "Preservation test permits exactly existing PR139 validate_revision wrapper while preserving all original planner AST",
+    "Packaging copies minimal shared helper for existing authority archives without creating handler or registry entry"
+  ],
+  "remainingSourceBlockers": [],
+  "limits": [
+    "Source-only producer/reference slice; caller dictionaries are not authenticated authority by projection alone",
+    "Future ingestion must atomically bind canonical receipt, account deletion, source absence/replay and fixed expiry before persistence/publication",
+    "No pre-dispatch attempt producer, rejection publisher, pending correction queue, source-backed cost catalog, schedule, alert or delivery implemented/qualified",
+    "Operations fields may remain physically present in longer-lived History receipts; cleanup/backups and actual removal require separate implementation/qualification and block activation",
+    "All runtime flags/accounts/resources remain unchanged; local Moto outcomes do not prove real AWS/client/provider behavior",
+    "SEC237/SEC243 full Dev acceptance remains open; exact broad final-source gate and handoff publication remain parent responsibilities"
+  ],
+  "operatorActions": {
+    "realServices": 0,
+    "credentials": 0,
+    "network": 0,
+    "endpoint": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "deployment": 0
+  }
+}
