@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-191",
+  "purpose": "Selective governed component source integration; not runtime/artifact activation",
+  "recordedAtUtc": "2026-10-17T23:23:18.075251+00:00",
+  "baseRelease": "29138fffefe06a398ffb224d0de3cda42d7f73a4",
+  "selectedMainCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+  "wholeMainTreeMerged": false,
+  "exactCopiedGitObjects": [
+    {
+      "path": "src/governed_history/__init__.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "5b7423aae268651297b65c217923295c9d33672a9b38a3f85d70d69aefa210c1"
+    },
+    {
+      "path": "src/governed_history/app.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "2c751363a4185fe38f8aed4fac55cca2620ebf9cd28566d7d7df0a1528416773"
+    },
+    {
+      "path": "src/governed_history/security.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "2a13e87c4f0fd14bc35d4dc11f8d021b134e3416dcbb8a61f63b5948bd1af4dc"
+    },
+    {
+      "path": "src/shared_governed_history/__init__.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "235adc2e4efc2470eb9db64bc78ed91125a14ccde4d3fba54ec7794255fdd8eb"
+    },
+    {
+      "path": "src/shared_governed_history/projection.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "4a4bc57c216fe9b45a9c21d88c74fe6327d8e68ed39a191e4766ed436667cd1f"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/README.md",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "e49f0fa559119d1d2ef0f44ee1225ccbf315efa87a5f05c72c52fd1def5ec7c3"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/SHA256SUMS",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "e57e7ee251c3913a26cbfb2ce3a950147f164bb98958bc103925200f2d5bc669"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/contract-set.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/detail.schema.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "3e9e32154b4c80b363dfb5e8aaf5adeec0d873f213279e6a4a3b0f6b3e70c4ac"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/fixtures.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "7b16fdfa74b2090650f9c1af1518b2fc57684b2ca191c95f77fb1484a55a352a"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/item.schema.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "c291ffaa55ee7a35786dea3fd6104599438d62b353cf5d4c70a5bc189e07b3f6"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/list.schema.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "d4f2c1f73dfb0804c1f3b2ec239f71b24098bc33c6055f24f5b3cd41b9b3c7f6"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/message-outcome.schema.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "8eaea6f42855fcb4ab134a593996a7c2328bb2f88f717aca6af4ba7b793ab8f2"
+    },
+    {
+      "path": "contracts/governed-history/1.0.0-candidate.1/url-outcome.schema.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "7f429ae789c36d07f18eb887a6d23e63d42ec85edfb93fc2196133c7bc63a70d"
+    },
+    {
+      "path": "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/README.md",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "4143aff1c0320bd3c1728f5a88f41d89fa42ddaff3aabbe1f3569c71ab634c74"
+    },
+    {
+      "path": "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/SHA256SUMS",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "c13c51a6a808614879891d7ea0143e75fc13ff3570137d41ebe64cc4a329e741"
+    },
+    {
+      "path": "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/evaluation-fixtures.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "6d280ffc7ec14d41c323b1eab1b3658576b727d8c8a1d4f4b6c732112de11df2"
+    },
+    {
+      "path": "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/profile.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "51cb8571745b75fe91bc24d8e13b2ff6a78530abe0dc2cbb72ff2673a1dc37da"
+    },
+    {
+      "path": "contracts/message-consumer/1.0.0-candidate.3-rules-only.1/transport-state-fixtures.json",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "ea8ab98aacd92d1fddd16ad2c1845d16d178dd7cedd4a58ffacd8607b405eb0a"
+    },
+    {
+      "path": "tests/governed_history/test_contract_and_handler.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "58d90ea98a93cbb2b1c4a5e9aa3143e5f3102eeaaeea7df7fb390a4947d155a3"
+    },
+    {
+      "path": "tests/governed_history/test_packaging.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "0266ca8f93ad35d92843dadd6425f9f1353f065edb7fdfec18069e91ad58ed7c"
+    },
+    {
+      "path": "tests/governed_history/test_security.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "fd5ce9bc6ed9446dea8d2bd544c60053e9bafb0cd102c5b5e64abf604002aa5a"
+    },
+    {
+      "path": "tests/governed_history/test_service.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "ddbc3f427eb22ae63ce322d4fcbd939f2431c2635521622e8bb0c18935470645"
+    },
+    {
+      "path": "scripts/build_lambda_zip.sh",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "83a8857f5e958e388e72ae5542fe015fc2e2e960630213cab281081b2be386f7"
+    },
+    {
+      "path": "scripts/verify_v1_packages.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "804b6795d162100ad02595265e27adeca60fd2a2a15cf1b9007416447c5f03b0"
+    },
+    {
+      "path": "src/shared_check_authority/inventory.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "09c885746a928ce8951e3f256e7a97dfaf4dbf22396d457c1f2b7db45538696a"
+    },
+    {
+      "path": "src/shared_check_authority/runtime.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "2b0c73df47d2fece9d00b9af34294e78b946b0c2e914005b9ce0fed1354d6bc1"
+    },
+    {
+      "path": "src/message_consumer/app.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "5923050e4b685b56ec8cae2f1daa42555b005f2c969d73fd494edb8f3619544e"
+    },
+    {
+      "path": "src/message_consumer/service.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "6955166939c081831bbe151ee871ab345998f53b11298554d46de5c962787f67"
+    },
+    {
+      "path": "src/message_evaluator/app.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "11f33b70bb5c78ea73b29208da6a14cbef9802752b8a1ba446b1257609a86a13"
+    },
+    {
+      "path": "src/message_evaluator/policy_v2.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "f5a3065283b6a4e30edb672b569f01a7cfcc43c5030cab20252262a984660e93"
+    },
+    {
+      "path": "src/message_evaluator/policy_v3.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "7b998e3eeab35c90c6cf24ff7802414def206e3c16981420a93824efd672bbdb"
+    },
+    {
+      "path": "tests/shared_check_authority/test_governed_history.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "da4f49a136d86c7122cb3b04f213efd1d35582c3f32819d37a627a21b0a333aa"
+    },
+    {
+      "path": "tests/message_evaluator/test_candidate3_rules_only.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "4c8a3701bda47ed690a4f2a5d67f82b81d3d3ba4fd14c9b51032081f721a3725"
+    },
+    {
+      "path": "tests/message_evaluator/test_policy.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "7a4794612a452dd2762107eb7bd5089c6acd2b7542bbbc3d6e1d9450cc0277be"
+    },
+    {
+      "path": "tests/message_consumer/test_freshness_integration.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "d82eb8f2bf7bbdfb9d916d3ec6d6ffa4d89bb03896be2524d702f182ce45ced5"
+    },
+    {
+      "path": "tests/shared_check_authority/test_transactions.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "8a4e8cbf732b2b953837dd526f8ea2d2e9aa29e9fc25964b0aeef65cc1188eba"
+    },
+    {
+      "path": "tests/message_consumer/test_integration.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "4b64b9ce9fbc92fbfdf4a4decb458b4a683168cb50e31f1aeb139a530b7cb32a"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "5c9f4e2586422e5fe2f0b6db008335666f90dc0e601294478e75c224cc8830bb"
+    }
+  ],
+  "manualAdaptations": [
+    {
+      "path": "src/shared_check_authority/core.py",
+      "currentSha256": "c49f57e05a2e3da58c6291d0cc485db3f2462efc51dc5577c421ad9438824992"
+    },
+    {
+      "path": "src/governed_history/service.py",
+      "currentSha256": "1ed2f34b562c3eaf41bbe5425627a643f11e7f87f9d6e842ba179be92d21868d"
+    }
+  ],
+  "adaptedMainSourceInputs": [
+    {
+      "path": "src/governed_history/service.py",
+      "sourceCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+      "sha256": "a36d427f5c3ec77b3cb4ddccfed7f529db7126affcd15de7005d067c20577752"
+    }
+  ],
+  "releasePreservedFilePins": {
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb",
+    "src/shared_check_authority/purchase_usage.py": "9ab54eccbf73ec58d70acd09e03986b76a8dd5481aac4ff2abae77ba6408e97e",
+    "src/shared_check_authority/prepare_auth_diagnostics.py": "b843a7423f4413255498f56c2ea7d56241f77761547299cec998d7e8c29534d0",
+    "src/v1_play_handoff/app.py": "7fe01208f4d22c59eaaee6eb74e8e72840a8a8b9ca90835ca6ade65ef7720fcf",
+    "src/v1_play_handoff/service.py": "4d134557dca8a8c54dcb962bed51cb3890088ba6ae97808317ca3643b39bb57a",
+    "src/shared_purchase_ownership/service.py": "c133a769ae101b3330e484ac75acc4b58786161f1acaca81e49f2ec322686bf1",
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "13a2e6403a57bfad19ee349704ca74cd8b5a9bc3b81c9e2a94feac4bcb526e3e",
+    "scripts/lambda_release_scope.py": "6fde81a9051e89ef8d17d16248c91307c3331d577e781841a4af9fc59e58b2ff",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd"
+  },
+  "defaultOffCompatibility": "Independent actual Moto row/transaction/ticking-clock parity; optional-setting absence stays disabled",
+  "readerSourceCorrections": [
+    "R1 storage/clock/envelope failure503 instead of empty/missing",
+    "R2 bounded limit parsing422 instead of runtime int conversion error"
+  ],
+  "initialFailuresResolved": [
+    "Six initial govquery cases lacked selected existing mainGSI2 Moto test fixture",
+    "Two inherited reader failure semantics gaps found by independent tests",
+    "Two existing archived URLworker probes required optional defaultoff lookup"
+  ],
+  "localValidation": {
+    "pytestPassed": 1376,
+    "pytestSubtestsPassed": 21,
+    "junitTotalsIncludingSubtests": {
+      "tests": 1397,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "junitSha256": "83f422b7698e3d88078317c077dfc9d9e67e9e56522c3790165fb51543242cd7",
+    "actionlintAllWorkflows": "PASS",
+    "shellcheckAllShellScripts": "PASS",
+    "sourceOnlyPackages": 9,
+    "disabledHostPackageImports": 5,
+    "hostNetworkBlockedDuringImport": true
+  },
+  "sourceOnlyArtifacts": [
+    {
+      "name": "governed_history.zip",
+      "sha256": "04c506d02f35d66a5917e9914521ece18237f3a2fbeb69aa4fd8dd7de9b9da99",
+      "bytes": 98716,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_consumer.zip",
+      "sha256": "b4f3155d16d26192915a62feeda21ee3e3da541c7e4e3ed9337dc16735febefa",
+      "bytes": 237689,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_evaluator.zip",
+      "sha256": "30001c5cfa5bfd95bf5544d6d53540e910f34a464d6ea5fec6dde1fff168f50c",
+      "bytes": 164405,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "play_token_deletion.zip",
+      "sha256": "ce6874af22bfcec750f20ef95b0ed85e18f1fbbd705d69f99e7b2fddf976c6cb",
+      "bytes": 110756,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_consumer.zip",
+      "sha256": "7e5ef2ac6b126bc19cb8c65c2be058388d8be593b82a8e372740f727fd1e4b94",
+      "bytes": 170232,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_lease_recovery.zip",
+      "sha256": "c315845d9122628a76ef0984b2dcb8fc479f007041033fc5ba01c566604ddc66",
+      "bytes": 56319,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_authority_deletion.zip",
+      "sha256": "9fbb91f3997961415585dd643d1a7f0a3d3aa0b16bda29367baabd5317876163",
+      "bytes": 74206,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_entitlements.zip",
+      "sha256": "de4ac790f070813f9d2db3ff715380953f387d35e6b8904c95f9e6d6f530412c",
+      "bytes": 67380,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_play_handoff.zip",
+      "sha256": "fe32c0895533ee87c9d5b04476935fe5bd8cd4683f14e9cd121f8de9596f78c1",
+      "bytes": 97382,
+      "sourceOnlySkipDependencies": true,
+      "distributionQualified": false
+    }
+  ],
+  "androidContractJoins": {
+    "schemaVersion": 1,
+    "androidRelease": "225cf63d5e62bcce4661aac617dfa2cca171be66",
+    "contractCount": 8,
+    "all8ByteEqual": true,
+    "sourceOnly": true,
+    "joins": [
+      {
+        "backendPath": "contracts/message-consumer/1.0.0-candidate.3/response.schema.json",
+        "sha256": "331135ca1e51978e06fb66a1f8c2dad8dd17388c87e3cfd2543fe2cfaf4226a3",
+        "androidPaths": [
+          "contracts/message-consumer/1.0.0-candidate.3/response.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/url-consumer/1.0.0-candidate.2/response.schema.json",
+        "sha256": "1a3c43dd306d962a489c8ea7cfaf01ae3aba8a30a67d728e394fa5183f2410ad",
+        "androidPaths": [
+          "contracts/url-consumer/1.0.0-candidate.2/response.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/url-assessment/0.3.0-candidate.1/result.schema.json",
+        "sha256": "a9d593e8de3958b8c9d0fd156ca664440e681d02710d4db299ed4790b83fef9f",
+        "androidPaths": [
+          "contracts/url-assessment/0.3.0-candidate.1/result.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/governed-history/1.0.0-candidate.1/contract-set.json",
+        "sha256": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1",
+        "androidPaths": [
+          "contracts/governed-history/1.0.0-candidate.1/contract-set.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/v1-access/v1/snapshot.schema.json",
+        "sha256": "968d1407602d2d32c43c95edc057c31633cd522d409f88f125d0f4df8e86813c",
+        "androidPaths": [
+          "contracts/url-service/access/snapshot.schema.json",
+          "contracts/v1-access/v1/snapshot.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/v1-play-handoff/candidate.1/request.schema.json",
+        "sha256": "68468e6c68444d6dc31cb46c62aac7ad593f2d795e1488b437978d8ba095f66d",
+        "androidPaths": [
+          "contracts/v1-play-handoff/candidate.1/request.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/v1-play-handoff/candidate.1/response.schema.json",
+        "sha256": "9d9d88700631b469dcfddd2e166ccea190fa4899ccb62b639ae0d5153317a781",
+        "androidPaths": [
+          "contracts/v1-play-handoff/candidate.1/response.schema.json"
+        ]
+      },
+      {
+        "backendPath": "contracts/recovery-selection/1.0.0/selection-output.schema.json",
+        "sha256": "b635b855a200228307405f691f79a63e38701083a917be90a56d5241d61f936e",
+        "androidPaths": [
+          "docs/contracts/recovery-selection/1.0.0/selection-output.schema.json"
+        ]
+      }
+    ]
+  },
+  "retainedRuntimeManifest": "docs/SECUR4ALL-191-COMPONENT-MANIFEST.json",
+  "newServiceOrInventoryReadback": false,
+  "runtimeFlagsOrActorsOrIamOrRoutesChanged": false,
+  "realAwsOrAuthOrEndpointOrEmulatorOrProviderActions": false,
+  "newStoreProfileOrVersionSelected": false,
+  "independentSourceReview": "docs/SECUR4ALL-191-governed-source-independent-review.json",
+  "independentFinalHandoffReview": "docs/SECUR4ALL-191-governed-final-handoff-review.json",
+  "SEC191Done": false,
+  "remaining": [
+    "Fresh authorized target inventory/immutableartifact/config/rollbackreview",
+    "Actual new reader failure/recovery qualification only after explicitly reviewed deployment",
+    "Separately reviewed integratedAndroidprofile/build/journeys; no scopeunion",
+    "SEC237/243 trustedproducers/storage/delivery implementation andactualDev acceptance",
+    "Explicitmainpromotion/CI forSEC341; no deploymentimplied"
+  ]
+}
