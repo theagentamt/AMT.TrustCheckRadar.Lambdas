@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T03:23:30.548027+00:00",
+  "disposition": "PASS_DEPLOYMENT_EVIDENCE_AND_HANDOFF",
+  "blockingFindings": [],
+  "reviewedDocuments": [
+    {
+      "path": "/tmp/amt-pr126-deployment-evidence/docs/dev-purchase-admission-diagnostics-deployed.md",
+      "sha256": "4ac8ef82528ca4e5d0ed04e318f8e51de51f2d724c98575c1c85cd250aa76132"
+    },
+    {
+      "path": "/tmp/amt-pr126-deployment-evidence/docs/dev-purchase-admission-diagnostics-deployed.json",
+      "sha256": "1559aad39d810ee9ebf576048fb140ef82ea750c5ac30fac82a9825b2dcf00f5"
+    },
+    {
+      "path": "/tmp/amt-pr126-deployment-evidence/docs/evidence/pr126-deployment-runner-review.json",
+      "sha256": "09ac83fe1acef81b75de56267b97f74b6c57ef7c36924a2a812b3e04b93d4a4c"
+    }
+  ],
+  "publicDeploymentReceipt": {
+    "path": "/tmp/amt-pr126-deployed-diagnostics-verified.json",
+    "sha256": "3a5ea6255aae85a4b4a057af059b550c38c5378bd3635f31641ca8e71e4aef4f"
+  },
+  "privateEvidenceHashJoins": [
+    {
+      "path": "/private/tmp/amt-pr126-diagnostics-rollout/plan.json",
+      "sha256": "d6c5b87203d53e399440ab1c8c43dd94cc9a8d40a05df3b22423a94d319494e5"
+    },
+    {
+      "path": "/private/tmp/amt-pr126-diagnostics-rollout/journal.json",
+      "sha256": "d9f9cd87e68d63066b604e7196046f03776c30bee8e68b49768a3ad3a33dca49"
+    },
+    {
+      "path": "/private/tmp/amt-pr126-diagnostics-rollout/post-metadata-private.json",
+      "sha256": "cd3d32e1087cbf15c549f38fee77d7a65277c9c12dc90dc8c47a7bc12ef95ab9"
+    }
+  ],
+  "runner": {
+    "path": "/tmp/amt-pr126-diagnostics-rollout.py",
+    "sha256": "5acf50dbc6acb1e9c292a26078a93f354e26d44f2a192dbd60de1b75f7b11e7a"
+  },
+  "localDocsValidation": {
+    "path": "/tmp/amt-pr126-deployment-docs-validation.json",
+    "sha256": "cb2b8a57fb6245285129e183760fe5ce4c7f3978ceb76f553f15f35ddea9037b"
+  },
+  "independentComparisons": {
+    "privateFileShaMatchesPublicReceipt": true,
+    "publicReceiptEqualsDocumentActualDeployment": true,
+    "source94fReleaseF66fLocalAncestryVerified": true,
+    "planDigestMatchesCompletedJournal": true,
+    "planBoundToFinalReviewedRunnerHash": true,
+    "uniqueAttemptCount": 4,
+    "confirmedCount": 4,
+    "attemptsEqualConfirmedInOrder": true,
+    "noDuplicateOrConfigurationMutationJournalEntries": true,
+    "twoNewVersionsMatchJournalAliasAndReadback": true,
+    "targetLatestAndLiveCodeMatchApprovedArtifacts": true,
+    "targetConfigurationExceptCodeUnchanged": true,
+    "oldRollbackConfigurationsEqualPreflight": true,
+    "aliasesUnweighted": true,
+    "other11RuntimeSnapshotsUnchanged": true,
+    "cleanupVersion17Preserved": true,
+    "routesSecurityCleanupSchedulesEqual": true,
+    "extraRoleTrustManagedPoliciesResourcePoliciesAuthorizersStagesEqual": true,
+    "copiedRunnerFinalReviewByteExact": true
+  },
+  "qualifiedTargets": [
+    {
+      "component": "verification",
+      "liveVersion": "8",
+      "rollbackVersion": "7",
+      "artifactSha256": "ae22d0ddbc2c52bf791cf2728c2be2642a8f7e6968ca81b9d794e3b9cb268c06"
+    },
+    {
+      "component": "admission",
+      "liveVersion": "18",
+      "rollbackVersion": "17",
+      "artifactSha256": "ba9d1efbe25cdf2e6854e43da1a3c1df0d74462a2275f3d58355038a5255865a"
+    }
+  ],
+  "claimsReview": [
+    "Exact owner-approved two-Dev-code deployment is distinguished from source completion and financial acceptance.",
+    "Four confirmed journal entries plus reviewed SDK max-one attempt and durable pre-call runner semantics support no-replay reporting; no configuration-update operation exists in mutation allowlist.",
+    "Private configuration/identity-bearing metadata remains local; reviewed public docs expose fixed function names, versions, hashes, approval references and booleans, without environments, identity values, credentials, proof or request payload.",
+    "Actual diagnostic event behavior was not qualified by this metadata readback; no new events were intentionally generated. Historical409 cause remains UNKNOWN.",
+    "Unfinished interruption/ACK/paid-access acceptance remains open; new transaction, proof replay, settings change, rollback and deployment retry are not authorized by the handoff.",
+    "Previous live7/access17 readiness remains historical; future qualification must use verifier8/access18 and unchanged cleanup17."
+  ],
+  "remainingGates": [
+    "Normal evidence publication and verified release integration",
+    "State-preserving tracker evidence update",
+    "Any future live observation requires its own applicable authorization and current readiness"
+  ],
+  "liveActionsByReviewer": {
+    "aws": 0,
+    "network": 0,
+    "provider": 0,
+    "emulator": 0,
+    "endpoint": 0,
+    "proofReplay": 0,
+    "runtimeMutation": 0
+  },
+  "repositoryEditsByReviewer": false,
+  "deploymentEvidenceDoesNotProveNewDiagnosticBehaviorOrFinancialAcceptance": true
+}

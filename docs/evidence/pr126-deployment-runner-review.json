@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-17T03:19:35.036786+00:00",
+  "disposition": "PASS_EXACT_DEPLOYMENT_RUNNER",
+  "runner": {
+    "path": "/tmp/amt-pr126-diagnostics-rollout.py",
+    "sha256": "5acf50dbc6acb1e9c292a26078a93f354e26d44f2a192dbd60de1b75f7b11e7a"
+  },
+  "previousChangesRequestedRecord": {
+    "path": "/tmp/amt-pr126-deployment-runner-independent-review.json",
+    "sha256": "3cc2141e1e8127c3a7e8f3a079629f902d8705a65131d323d14c4dce74ae5698"
+  },
+  "blockingFindings": [],
+  "resolvedFindings": [
+    {
+      "id": "R1",
+      "issue": "Malformed errors could escape safe failure handler.",
+      "resolution": "Strict dict guards for response/Error and string guards for provider/local codes before whitelist membership. Three previously failing local malformed-error cases now return safe JSON and exit1."
+    },
+    {
+      "id": "R2",
+      "issue": "Exclusive-create loser and concurrent readback could overwrite mutation journal.",
+      "resolution": "journal_owned set only after successful exclusive apply creation; error persistence requires ownership. Readback never rewrites journal on success or failure. All three local ownership/readback probes pass."
+    }
+  ],
+  "localSyntheticProbes": {
+    "passed": 7,
+    "failed": 0,
+    "cases": [
+      "RuntimeError non-string arg safely suppressed",
+      "SDK Error non-dict safely suppressed",
+      "SDK Error.Code non-string safely suppressed",
+      "Exclusive journal loser performs no journal write",
+      "Readback failure performs no journal write",
+      "Readback success performs no journal write",
+      "Lost mutation response retains one journaled attempt, no confirmed response and rejects replay"
+    ]
+  },
+  "reviewedGuards": [
+    "Exact two Dev functions, fixed baseline live7/17 and fixed candidate ZIP hashes/lengths",
+    "Clean exact source HEAD/manifest hashes and release ancestry; runner SHA bound in new plan and checked at each mutation",
+    "Private plan/journal paths with exclusive initial journal and fsynced attempted-call records before mutation",
+    "Exact update_function_code bytes, PublishTrue, latest RevisionId CAS; immutable version/config/code qualification before alias",
+    "Exact live alias, unweighted candidate version and alias RevisionId CAS; latest requalified immediately before alias",
+    "Protected13-runtime snapshots, routes/schedules/cleanup/security plus role trusts/managed policy documents, resource policies, authorizers and paginated stages",
+    "Pinned SDK utility uses total_max_attempts1; no mutation retries or automatic rollback",
+    "Original immutable versions qualified as available rollback targets; no rollback executed by runner",
+    "Fixed safe error summaries and explicit read-only reconciliation requirement after uncertain mutation"
+  ],
+  "scopeLimits": [
+    "Two function changes are sequential, not an atomic cross-function transaction. An error may leave partial deployment requiring read-only state reconciliation.",
+    "Uncertain call outcomes are never replay authorization; readback does not automatically repair missing allocation/completion records.",
+    "Review establishes runner guards only; actual deployment success and post-deployment evidence require separate qualification.",
+    "No app endpoint, purchase/proof replay, secrets-value read, configuration/IAM/lifecycle change is included."
+  ],
+  "liveActionsByReviewer": 0,
+  "repositoryEditsByReviewer": false,
+  "runtimeDeploymentPerformedByReviewer": false
+}
