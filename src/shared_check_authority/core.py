@@ -14,6 +14,14 @@ from decimal import Decimal
 from shared_history.security import jwt_subject, SUBJECT_PATTERN, FINGERPRINT_PATTERN
 from shared_history.errors import HistoryError
 
+def _record_prepare_auth_failure(event, error):
+    try:
+        from .prepare_auth_diagnostics import record_failure
+        record_failure(event, getattr(error, '_jwt_auth_predicate', None))
+    except Exception:
+        pass  # Observability cannot alter authentication, responses or retries.
+
+
 OWNER_POLICY = 'owner-2026-09-20-v1'
 PAID_COMPLETED_CHECKS = 200
 TRIAL_COMPLETED_CHECKS = 10
@@ -168,7 +176,8 @@ class Authority:
 
     def _account(self, event):
         try: account = jwt_subject(event, self.s, now=self.now)
-        except (HistoryError, TypeError, ValueError, AttributeError):
+        except (HistoryError, TypeError, ValueError, AttributeError) as error:
+            _record_prepare_auth_failure(event, error)
             raise AuthorityError('AUTHENTICATION_REQUIRED') from None
         self._assert_account(account)
         return account

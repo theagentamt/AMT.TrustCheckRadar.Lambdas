@@ -14,22 +14,33 @@ SUBJECT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,199}$")
 def jwt_subject(event: dict, settings, *, now=lambda: int(time.time())) -> str:
     claims = (((event.get("requestContext") or {}).get("authorizer") or {}).get("jwt") or {}).get("claims")
     if not isinstance(claims, dict):
-        raise HistoryError("UNAUTHORIZED", "A verified Cognito access token is required.")
+        raise _jwt_rejection("CLAIMS_UNAVAILABLE")
     subject = claims.get("sub")
     expiration = _exact_epoch(claims.get("exp"))
     scopes = claims.get("scope", "").split() if isinstance(claims.get("scope"), str) else []
-    if (
-        not isinstance(subject, str)
-        or not SUBJECT_PATTERN.fullmatch(subject.strip())
-        or claims.get("iss") != settings.cognito_issuer
-        or claims.get("client_id") != settings.cognito_app_client_id
-        or claims.get("token_use") != "access"
-        or expiration is None
-        or expiration <= now()
-        or settings.cognito_required_scope not in scopes
-    ):
-        raise HistoryError("UNAUTHORIZED", "A verified Cognito access token is required.")
+    # Preserve the original short-circuit order and clock sampling. Only a fixed
+    # first-failure code is attached internally; response text/details stay fixed.
+    if not isinstance(subject, str) or not SUBJECT_PATTERN.fullmatch(subject.strip()):
+        raise _jwt_rejection("SUBJECT_INVALID")
+    if claims.get("iss") != settings.cognito_issuer:
+        raise _jwt_rejection("ISSUER_MISMATCH")
+    if claims.get("client_id") != settings.cognito_app_client_id:
+        raise _jwt_rejection("CLIENT_MISMATCH")
+    if claims.get("token_use") != "access":
+        raise _jwt_rejection("TOKEN_USE_MISMATCH")
+    if expiration is None:
+        raise _jwt_rejection("EXPIRY_INVALID")
+    if expiration <= now():
+        raise _jwt_rejection("EXPIRY_NOT_FUTURE")
+    if settings.cognito_required_scope not in scopes:
+        raise _jwt_rejection("SCOPE_MISSING")
     return subject.strip()
+
+
+def _jwt_rejection(predicate):
+    error = HistoryError("UNAUTHORIZED", "A verified Cognito access token is required.")
+    error._jwt_auth_predicate = predicate
+    return error
 
 
 def _exact_epoch(value):
