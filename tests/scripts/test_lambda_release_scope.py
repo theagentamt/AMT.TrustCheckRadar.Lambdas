@@ -21,6 +21,22 @@ def test_no_resolver_change_does_not_claim_resolver_only_scope():
     assert module.classify(['src/url_redirect_resolver_evil/app.py']) == 'all'
 
 
+def test_only_nonempty_canonical_docs_namespace_is_nonpublishing():
+    assert module.classify(['docs/SECUR4ALL-230-ACCOUNTING-AUDIT.md']) == 'docs_only'
+    assert module.classify(['docs/url-assessment-private-dev.md', 'docs/evidence/check.json']) == 'docs_only'
+    assert module.classify(['docs/README.md', 'docs/nested/operator.py']) == 'docs_only'
+    for path in ('README.md', 'docs', 'docs-other/readme.md', 'docs/../src/app.py',
+                 '/docs/readme.md', 'docs//readme.md', 'docs/./readme.md'):
+        assert module.classify([path]) != 'docs_only'
+
+
+def test_docs_do_not_hide_other_or_unknown_changes():
+    for changed in ('src/conversation_analysis/app.py', 'scripts/build_lambda_zip.sh',
+                    '.github/workflows/publish.yml', 'requirements-dev.txt', 'unknown.file'):
+        assert module.classify(['docs/SECUR4ALL-230-ACCOUNTING-AUDIT.md', changed]) != 'docs_only'
+    assert module.classify([]) == 'all'
+
+
 def test_contract_only_handoff_never_publishes_runtime_artifacts():
     assert module.classify([
         'contracts/url-assessment/v1-draft/contract-set.json',

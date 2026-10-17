@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-341",
+  "reviewOutcome": "PASS_SOURCE_ONLY",
+  "reviewedBaseRelease": "7647a910cb656cd701b1b6d7db9b769ead4e57e0",
+  "reviewedMainReference": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+  "files": {
+    "scripts/lambda_release_scope.py": "6fde81a9051e89ef8d17d16248c91307c3331d577e781841a4af9fc59e58b2ff",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd",
+    "tests/scripts/test_lambda_release_scope.py": "dc3f059e4f724baf5f0166b69a265fc5681d1e7007ae1e75fd88ea3e63dc395b",
+    "tests/scripts/test_docs_publication_workflow.py": "f512b43655c5a383de6fb2de13266269ee67c149f87d00c4ff64e2f7d7220a36"
+  },
+  "independentTests": {
+    "file": "tests/scripts/test_docs_publication_workflow.py",
+    "passed": 20,
+    "baselineBeforeImplementation": {
+      "failed": 3,
+      "passed": 14
+    },
+    "combinedClassifierAndWorkflowPassed": 32,
+    "checks": [
+      "real Git diff CLI docs-only and empty diffs",
+      "actual local scope-validator shell: valid docs scope accepted; wrong head/schema/base and unknown scope fail before output",
+      "all primary publication credential/account/bucket/upload guards skip docs scope",
+      "AWS environment configuration occurs after scope and skips docs scope",
+      "actual release summary states no publication/credentials/uploads and has no S3 location",
+      "real R100 moves both src-to-docs and docs-to-src preserve conservative all",
+      "resolver, assessment, authority and contract specialization preserved"
+    ]
+  },
+  "findings": [],
+  "limits": [
+    "No GitHub workflow dispatch or main CI run occurred",
+    "No AWS/service/endpoint or immutable artifact mutation occurred",
+    "Main-only entitlements/governed scope logic was inspected, not imported into divergent release source",
+    "SEC341 acceptance criterion 5 (reviewed main integration and main CI behavior) remains pending; release source integration alone is not full story acceptance",
+    "Unchanged validator assert pattern assumes ordinary unoptimized workflow Python; optimization hardening recommended separately if source changes"
+  ],
+  "writtenAtUtc": "2026-10-17"
+}
