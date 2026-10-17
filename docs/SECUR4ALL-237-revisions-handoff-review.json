@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_SOURCE_AND_HANDOFF_ONLY",
+  "reviewedAtUtc": "2026-10-17T23:10:27.396612+00:00",
+  "document": {
+    "path": "docs/SECUR4ALL-237-AGGREGATE-REVISIONS.md",
+    "sha256": "2ed8ba1943f4fcc927291e037c26bb7d00e56e32c369c6089020ffb654c586bc"
+  },
+  "sourceReview": {
+    "path": "/tmp/amt-sec237-revisions-independent-review.json",
+    "sha256": "f621df285f50fae8e9238f1db6ff33e1ec03b4c22f8715b239a05065084d9d25",
+    "allPinnedFilesUnchanged": true
+  },
+  "verifiedClaims": [
+    "Three initial semantic validation findings and fixes accurately reported as source-only",
+    "Unkeyed canonical JSON content hashes explicitly exclude own digest field and do not authenticate caller/history",
+    "Per-local-day revision/CAS preconditions are plans, not durable concurrency, scheduling or delivery",
+    "Conservative cohort-start seven-day correction cutoff and fixed original-cohort90day TTL are not physical deletion/backup enforcement",
+    "Replay does not renew generated time or expiry",
+    "Missing trusted producers/deletion fences/durable correction store/cost/alerts/delivery remain explicit",
+    "SEC237/243 retain unfinished Dev criteria; SEC180 release followup does not replace them"
+  ],
+  "minorDocumentationPrecisionResolved": "Hash wording now specifies canonical record payload excluding its own recordSha256 field",
+  "findings": [],
+  "tests": "Prior exact-source165case pass retained; no extra rerun for prose-only change",
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "endpoint": 0,
+    "emulator": 0,
+    "runtime": 0,
+    "deployment": 0
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "result": "PASS_SOURCE_ONLY_REVISION_PLANNER",
+  "recordedAtUtc": "2026-10-17T23:10:53.223493+00:00",
+  "baseRelease": "e0a5f02b228e97c86c635d246fb7cd6e166c5119",
+  "policyVersion": "1.0.0-policy.1",
+  "operationsSuite": {
+    "tests": 165,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "independentNewRevisionCounterexamples": 19,
+  "exactChangedSourceAndHandoffPins": {
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "13a2e6403a57bfad19ee349704ca74cd8b5a9bc3b81c9e2a94feac4bcb526e3e",
+    "tests/operations_reporting/test_revisions.py": "cdd8e01d09024a2463da140d2e6a0561cbaefbeba1208305dd252c5e1e930853",
+    "tests/operations_reporting/test_revisions_independent.py": "1c2e2953899a8b13630d54a16b87dc275317073ee77cd0e584d0672c05c42313",
+    "docs/SECUR4ALL-237-AGGREGATE-REVISIONS.md": "2ed8ba1943f4fcc927291e037c26bb7d00e56e32c369c6089020ffb654c586bc"
+  },
+  "suiteXmlSha256": "c8a4e23c2652e06fdbe070f6b31a5ad6d499e47101d15f0b29d6161b0641fb95",
+  "sourceAndFinalHandoffReviewsPassed": true,
+  "resolvedFindings": [
+    "R1 per-access completion coherence",
+    "R2 outcome/reason feasibility",
+    "R3 canonical exact first-revision delta"
+  ],
+  "additionalCapturedSnapshotFix": true,
+  "noSourceAuthorityClaimFromUnkeyedHash": true,
+  "noDurableCompareAndSwapOrStoreOrScheduleOrDelivery": true,
+  "runtimeServiceAuthOrInfrastructureChanges": false,
+  "SEC237Done": false,
+  "SEC243Done": false
+}
