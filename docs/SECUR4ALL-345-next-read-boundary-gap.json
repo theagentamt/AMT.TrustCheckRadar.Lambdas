@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "sourceBoundary": "HistoryMutationService._receipt get_item -> handler generic except/logger.exception",
+  "injectedFailure": "SDK EndpointConnectionError on dependency read",
+  "actualStatus": 500,
+  "actualCode": "INTERNAL_ERROR",
+  "actualRetryable": false,
+  "syntheticExceptionTextPresentInLogs": true,
+  "syntheticExceptionTextInPublicBody": false,
+  "sourceConfirmed": true,
+  "deployedObserved": false,
+  "serviceCalls": 0,
+  "rawLogRetained": false,
+  "bodyOrSecretRetained": false,
+  "nextGap": "Dependency reads bypass finite unavailable diagnostic boundary; raw SDK exception text reaches logs and transient failure is reported as nonretryable500.",
+  "separateFrom344": "344 fixes only transaction failure classification. No read-boundary implementation in this batch."
+}

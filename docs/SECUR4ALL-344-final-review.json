@@ -1,0 +1,162 @@
+{
+  "baseCommit": "2f17cc0be0c61b072a0afa9585593f931d5c125d",
+  "bug": "SECUR4ALL-344",
+  "checks": [
+    "Only complete exact exclusivelyconditional vector maps409. All other transaction exceptions map existing fixed503; no raw SDK items/messages/endpoint cause in transaction response or transaction-failure logs.",
+    "Bootstrap conditional eligibility/readback and sameaccount state idempotency retained. Unknown mutation writes require deliberate original-operation reconciliation, never inferred rollback/new action or automatic retry.",
+    "Application SDK call count is not an SDKnetworkattempt guarantee; unchanged SDK configuration explicitly documented.",
+    "Initial two local failures retained as first-two-STATEread barrier fixture defect; production unchanged by fixture repair, assertions retained.",
+    "Bounded Dev component may complete only after normal reviewed source publication/verified integration. No claim deployed fault behavior, fullSEC226/governed mutation bridge or actual target qualification.",
+    "OpenSEC226 page supplies ready synthetic local command, artifact/config/principal prerequisites, disposable fixtures, unchanged baselines, exact sameop recovery, cleanup, retention/privacy limits and explicitly not-run target fault cases pending reviewed harness.",
+    "Physicalcases remain ATCR148. No newretention, route, permissions, auth/session, SDKconfiguration, runtimegate, deployment or main promotion."
+  ],
+  "currentSourceMatchesPriorPass": true,
+  "finalPartition": {
+    "baseCaseKeyOverlap": 0,
+    "collectionDisposition": "Independent file added after History collection, run separately; cross-family process isolation and all three partitions explicit, no claim one monolithic run collected all cases.",
+    "disjointBaseCases": 2221,
+    "disjointJUnitTotal": 2262,
+    "errors": 0,
+    "failures": 0,
+    "historyBaseCases": 211,
+    "historyPassedSubtests": 20,
+    "independentAdditionalCases": 12,
+    "passedSubtests": 41,
+    "preservationBaseCases": 1998,
+    "preservationPassedSubtests": 21,
+    "skipped": 0
+  },
+  "findings": [],
+  "parentQualificationOpen": "SECUR4ALL-226",
+  "qualityEvidence": {
+    "contractsScriptsGithubBaseByteJoins": 411,
+    "record": "/tmp/amt-history-mapping-quality.json",
+    "requirementsDevByteExact": true,
+    "sha256": "83d45beef5b58a9550761b0b75591ed728bb5d68285c72c2e18a3a4d7bec7929",
+    "sourceOnlyArchive": {
+      "allPythonMembersParse": true,
+      "dependenciesIncluded": false,
+      "deployableQualified": false,
+      "independentHostImportAndPackagedThroughput503Conditional409": "PASS",
+      "members": 8,
+      "path": "/tmp/amt-history-mapping-package/history_mutation_api.zip",
+      "serviceBytesExact": true,
+      "sha256": "837b8998dc6defda690876c8f6550ebd78c8aa252ca02cf2c56f7e9872699123",
+      "socketOrSdkConstructorAttempts": 0
+    }
+  },
+  "remainingLimits": [
+    "Existing read-boundary diagnostic leak/transient classification is the separateSEC345 defect, not fixed or waived by this record.",
+    "Live-safe disposable-target fault harness/dependencycomplete artifact/runtime verification and fullSEC226 end-to-end acceptance remain open.",
+    "No actual AWS, service endpoints, auth/actor/session, emulator/device, provider, runtimefault, purchase, deployment or Gitpublication by reviewer."
+  ],
+  "result": "PASS_BOUNDED_HISTORY_TRANSACTION_MAPPING_FINAL_HANDOFF",
+  "reviewedAtUtc": "2026-10-18T03:06:11.329075+00:00",
+  "reviewedFilePins": {
+    "docs/SECUR4ALL-344-HISTORY-TRANSACTION-ERRORS.md": "b13626f17a1c14dac29830b4f5173d481c3ebf8b79ef30104dfe78cd23945802",
+    "docs/SECUR4ALL-344-source-review.json": "c91b5d3615367d5d3586ade4a0173011b8074bedeeff871005e9c8cb576ebc72",
+    "docs/SECUR4ALL-344-validation.json": "b39dd2ed96bebde76bb5ec7c30dbd380cf0a5f84cfc84f58cff92b2505c7f2ad",
+    "docs/SECUR4ALL-345-next-read-boundary-gap.json": "5e49b62bfeb4cc17c34c4f959410459384cf39e5399405feedee9256b684a54b",
+    "src/history_mutation_api/service.py": "da9111b208b36ec0838c7dad20aebb5a2b22c8e33d4d867c0418ff2b9226b40b",
+    "tests/history_mutation_api/test_transaction_errors.py": "873d14ef7de6e77b50620ad433d14acd73d58590a911bc05af8521ba34377033",
+    "tests/history_mutation_api/test_transaction_errors_independent.py": "2d3d370d16cfbbd2b5254b641a9ff5a5d35895c13b47b9c56d6f690ae7277e8e"
+  },
+  "schemaVersion": 1,
+  "separateSEC345Probe": {
+    "actualCode": "INTERNAL_ERROR",
+    "actualRetryable": false,
+    "actualServiceCalls": 0,
+    "actualStatus": 500,
+    "deployedIncidentClaim": false,
+    "evidence": "docs/SECUR4ALL-345-next-read-boundary-gap.json",
+    "implementedBy344": false,
+    "independentlyConfirmedInMemory": true,
+    "injectedRead": "MockedEndpointConnectionError at actual_receipt/get_item boundary through actual handler",
+    "rawLogsOrExceptionTextRetained": false,
+    "separateState": "To Do",
+    "syntheticCanaryInPublicBody": false,
+    "syntheticCanaryPresentInLogs": true
+  },
+  "testEvidenceJoins": {
+    "additionalIndependent": {
+      "junit": {
+        "path": "/tmp/amt-history-mapping-additional.xml",
+        "sha256": "fc87b66a1d3bdde295c4deae3c050052edb5c8bdf580a005035b12e987b2cf6f"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-additional.log",
+        "sha256": "52193057efe54b5177f0eda17a84317c696b6b96dbef8a85a8f26e87b91a3015"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 12
+      }
+    },
+    "focused": {
+      "junit": {
+        "path": "/tmp/amt-history-mapping-focused-complete.xml",
+        "sha256": "348616e569cd58f26c493d4ac5db40db5b99e56b6589fef29d47cd664145fe67"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-focused-complete.log",
+        "sha256": "7b49aa5498ca6aa88ed9c38ecb327bfed4c7875d733d60b00b7cf1f5fe7dd5a6"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 126
+      }
+    },
+    "historyFamily": {
+      "junit": {
+        "path": "/tmp/amt-history-mapping-history-final.xml",
+        "sha256": "3a461fb4270748c2b30f78534986255ec57350f60100928f6f9b50a1b682058a"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-history-final.log",
+        "sha256": "21cd4d33db178072ba7130435bde627fdbafd12cfdc3533f169fdbb49b8f5e6a"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 231
+      }
+    },
+    "initialRetainedNotPass": {
+      "junit": {
+        "path": "/tmp/amt-history-mapping-focused.xml",
+        "sha256": "2cfd6fa6249ddcd4cb759ea2d72ff9b05f82b3e31768e3ec23a3301882fe0cf1"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-focused.log",
+        "sha256": "0cf466e6e09fdfb454d63adcc8530cb03da6f0727fd45414fea44ff0fed8e403"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 2,
+        "skipped": 0,
+        "tests": 122
+      }
+    },
+    "preservation": {
+      "junit": {
+        "path": "/tmp/amt-history-mapping-preservation-final.xml",
+        "sha256": "54b59d8ebdf51ce47b9b1882851dd6d22cb08ed5a92e370164d793d8dc9b37c2"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-preservation-final.log",
+        "sha256": "c891a60d7d74f69031cdcb3d0b1033d93caa07a466aff1b7f9eae870956773af"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 2019
+      }
+    }
+  }
+}

@@ -60,8 +60,8 @@ class HistoryMutationService:
         try:
             self.client.transact_write_items(TransactItems=transaction)
         except Exception as err:
-            if _error_code(err) != "TransactionCanceledException":
-                raise
+            if not _conditional_transaction_failure(err, len(transaction)):
+                raise _transaction_unavailable() from None
             self._assert_foundation_eligible(account_id)
             existing = self.control_table.get_item(
                 Key={"PK": f"USER#{account_id}", "SK": "STATE"}, ConsistentRead=True
@@ -70,7 +70,7 @@ class HistoryMutationService:
                 return self._public_bootstrap(existing)
             raise HistoryError(
                 "CONFLICT", "The account changed during History bootstrap.", retryable=True
-            ) from err
+            ) from None
         return self._public_bootstrap(state)
 
     def delete_one(self, account_id, request_id, operation_id):
@@ -313,9 +313,9 @@ class HistoryMutationService:
         try:
             self.client.transact_write_items(TransactItems=items)
         except Exception as err:
-            if getattr(err, "response", {}).get("Error", {}).get("Code") == "TransactionCanceledException":
-                raise HistoryError("CONFLICT", "History state changed during the mutation.", retryable=True) from err
-            raise
+            if _conditional_transaction_failure(err, len(items)):
+                raise HistoryError("CONFLICT", "History state changed during the mutation.", retryable=True) from None
+            raise _transaction_unavailable() from None
 
     @staticmethod
     def _public_receipt(item):
@@ -375,5 +375,32 @@ def _exact_nonnegative_int(value):
     return integer if integer == value and integer >= 0 else None
 
 
-def _error_code(err):
-    return getattr(err, "response", {}).get("Error", {}).get("Code")
+def _conditional_transaction_failure(error, action_count):
+    """Only a complete, exclusively conditional cancellation proves a race.
+
+    SDK reasons may contain messages/items. Inspect codes only and never expose
+    those details. Missing, mixed or malformed reasons stay unavailable/unknown.
+    """
+    try:
+        response = error.response
+        if (type(response) is not dict or type(response.get("Error")) is not dict
+                or type(response["Error"].get("Code")) is not str
+                or response["Error"].get("Code") != "TransactionCanceledException"):
+            return False
+        reasons = response.get("CancellationReasons")
+        if type(reasons) is not list or len(reasons) != action_count:
+            return False
+        codes = [r["Code"] for r in reasons
+                 if type(r) is dict and type(r.get("Code")) is str]
+        return (len(codes) == action_count and "ConditionalCheckFailed" in codes
+                and all(code in ("None", "ConditionalCheckFailed") for code in codes))
+    except Exception:
+        return False
+
+
+def _transaction_unavailable():
+    # Outcome can be unknown after a transport failure. Do not retry here or
+    # invent a conflict, completed receipt, new operation ID or diagnostic cause.
+    return HistoryError(
+        "SERVER_UNAVAILABLE", "The History transaction could not be confirmed.", retryable=True
+    )
