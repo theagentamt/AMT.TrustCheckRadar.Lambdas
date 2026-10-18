@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T01:12:06.697568+00:00",
+  "outcome": "PASS_TERMINAL_REASON_CONSUMER_SOURCE_ONLY",
+  "worktree": "/tmp/amt-sec237-terminal-source",
+  "baseCommit": "5b3379f55ac88fdeb445e1cb3d5246f65197ef24",
+  "sourceAndTestPins": {
+    "src/message_consumer/service.py": "80722124dc15e542005fa1500b9d59b71d7bb734092fb4b6ef54aca5c0ff1c61",
+    "src/recovery_consumer/service.py": "e69efa5258e420f48c3e8e79ab01ab9669d0b8493470082cf775efa713c35efc",
+    "src/url_consumer/service.py": "9e0d4e604447cdb03b6613826e0ea2024bd4a3149127e4cb674623799ea85259",
+    "src/shared_operations/__init__.py": "30aeaf90ec3d373824d6de22d1d21beb940391146957783d8a6cb9c964f323eb",
+    "src/shared_operations/receipts.py": "03e08e257d7c5f0214e2507bf7fb723a79d09b4f10168a9bc3a8971b13748c02",
+    "tests/shared_check_authority/test_operations_terminal_consumers.py": "3e4c4f1dfd8568cccb6adc9b9076d4ddad68897ffa5a8fe53d8eeb57687e057b",
+    "tests/shared_check_authority/test_terminal_consumer_reasons_independent.py": "8d55d6f2ae0802ff932a02c8ee3f6c9ff0f6072030f7fb3348cf97dcaf6c54b9"
+  },
+  "protectedUnchangedPins": {
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/shared_check_authority/operations_ingestion.py": "50d50d14bcd623ecb87d619281dc30d582e9fd07a3763e9a862ec0a5a279fd38",
+    "src/shared_check_authority/operations_callers.py": "4855eed6060b213f06cf882c0edc16bf9a633e96eb7d90e490d933dc33c889ea",
+    "src/shared_check_authority/purchase_usage.py": "65b815f88bb38e111d72f0421a5e958fff99dfc31404970d61d0ecbf07899998",
+    "src/operations_reporting/event.schema.json": "1e714de421c2f14527cc08b91d239815acba032f3665d5eec9c1e968eb53a958",
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "4c078b187c16d0ce1516f234a812005cfb75d178b5f395a54bfa1abcce561a9a",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd"
+  },
+  "requirementsPins": {
+    "SECUR4ALL-237-next-source-requirements.json": "2570cf94903e606cb2cd149a561e0ea14311f0e1c725af6a19e48f9e1fe1b06e",
+    "SECUR4ALL-198-next-source-requirements.json": "5bb5dd843596cdfaed6e994fb8288035908bcfeb6eff24a48d5b5b9ed16786d7"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "blocking_before_fix",
+      "finding": "Existing message/recovery broad fallback maps a local budget.reserve exception to singleton public PROVIDER_UNAVAILABLE before provider dispatch. New telemetry initially would have inferred a provider cause from that local failure.",
+      "resolution": "provider_entered captured only immediately before existing provider boundary; predispatch budget exception/refusal supplies no provider code. Existing public response, authoritative zero settlement and replay preserved.",
+      "independentValidation": "Two actual Moto consumer budget-reserve exception cases assert no provider calls, no provider-specific terminal metadata, unchanged replay and zero used/reserved accounting."
+    },
+    {
+      "id": "R2",
+      "severity": "blocking_before_fix",
+      "finding": "A helper return drawn from global finite code set but incompatible with processing outcome could reach authoritative settlement and change business behavior.",
+      "resolution": "All three consumers enforce exact outcome-specific codes and unavailable singleton equality with actual source facts, swallowing optional helper exceptions/missing/invalid results.",
+      "independentValidation": "Wrong-listed code matrix across three consumers, malformed/exception helpers, disabled flags and source-singleton disagreement probes.",
+      "historicalEvidenceLimit": "Both findings were identified by static source counterexamples and fixed before the first retained independent regression run; no historical failing test execution is claimed."
+    }
+  ],
+  "validation": [
+    {
+      "scope": "Actual consumer/producer/message/recovery/URL focused compatibility suites",
+      "passed": 258,
+      "elapsedSeconds": 26.63,
+      "services": "Local Moto and injected synthetic provider/budget only",
+      "testCaptureNote": "This run collected20 independent cases before15 final source-singleton cases were added."
+    },
+    {
+      "scope": "Final independent counterexamples",
+      "passed": 35,
+      "elapsedSeconds": 0.61,
+      "junitPath": "/tmp/amt-sec237-terminal-independent-tests.xml",
+      "junitSha256": "aea7be13a68159bf6b964cb71960c1b22da6810f208d4a5da5ec31c6ca3af5d5"
+    }
+  ],
+  "conclusions": [
+    "Only existing three validated consumer settlement boundaries receive optional finite metadata; no changes to contracts, response schemas, authoritative accounting/CAS, authentication, replay or provider calls.",
+    "Default-off uses only original result_summary keyword; exact boolean True is required before helper import/call.",
+    "Generic partial and failed facts do not assert provider root cause. Unavailable provider metadata requires one recognized source code and actual boundary entry; mixed, budget, absent and unknown cases remain unrecorded.",
+    "Freshness fallback retains original settlement retry/no provider retry and recomputes only safe finite metadata.",
+    "Optional helper failures cannot alter validated summary identity or add raw diagnostics; independent tests verify original result object preserved.",
+    "Accepted/terminal source events remain reconciled by logical ref and existing reducer; duplicate facts do not inflate denominator. No provider attempts, duration, costs or external provider provenance are invented."
+  ],
+  "limits": [
+    "Source-only review and local Moto tests; no AWS/auth/endpoints/runtime/provider/emulator or installed mobile actions.",
+    "No actual operations producer activation, new flag, resource, handler, schedule, store delivery or cost implementation.",
+    "producerCoverage remains not_qualified; full SEC237 requirements including attempts/cost/deletion/expiry/backup/actual deployment/delivery remain open as applicable.",
+    "SEC198 requirements were inspected for compatibility only; this telemetry slice does not implement or complete minimum-version/service messaging.",
+    "Final docs, full frozen suite and package evidence require separate handoff review."
+  ],
+  "blockers": []
+}

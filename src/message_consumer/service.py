@@ -56,6 +56,22 @@ class Consumer:
 
     def access(self,event):return UrlConsumer.access(self,event)
 
+    def _settlement_options(self, outcome, summary, provider_codes=None):
+        options = {'result_summary': summary}
+        if getattr(getattr(self.a, 's', None), 'operations_producer_enabled', False) is True:
+            try:
+                from shared_operations import consumer_terminal_reason
+                reason = consumer_terminal_reason(outcome, provider_codes=provider_codes)
+                allowed = {'partial': {'COVERAGE_PARTIAL'}, 'failed': {'SETTLED_FAILED'},
+                           'unavailable': {'PROVIDER_UNAVAILABLE', 'PROVIDER_RESPONSE_INVALID'}}
+                if (type(reason) is str and reason in allowed.get(outcome, ())
+                        and (outcome != 'unavailable' or type(provider_codes) is list
+                             and len(provider_codes) == 1 and provider_codes[0] == reason)):
+                    options['operations_reason_code'] = reason
+            except Exception:
+                pass  # Missing optional classification preserves unknown coverage.
+        return options
+
     def envelope(self,event,client,proof,state,*,row=None,error=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
@@ -139,7 +155,7 @@ class Consumer:
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
-            outcome=None;window=None
+            outcome=None;window=None;provider_entered=False
             limited=limited_result_v3 if self.version==v3.VERSION else (limited_result_v2 if self.version==v2.VERSION else limited_result)
             validator=v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
@@ -152,6 +168,7 @@ class Consumer:
                              'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,
                              'intent':intent,'executionBudgetMs':budget_ms}
                     if rules_only:request['runtimeMode']='rules_only'
+                    provider_entered=True
                     raw_result=self.provider(request)
                     outcome=validator(raw_result,client)
             except Exception:
@@ -160,11 +177,11 @@ class Consumer:
             if window is not None and set(outcome['limitationCodes'])&{'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
                 except Exception:pass  # Attempt cap remains consumed even if failure accounting is unavailable.
-            try:row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],result_summary=outcome)
+            try:row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],**self._settlement_options(outcome['processingOutcome'],outcome,outcome['limitationCodes'] if provider_entered else None))
             except AuthorityError as error:
                 if error.code!='PROVIDER_EVIDENCE_EXPIRED' or self.version!=v3.VERSION:raise
                 outcome=v3.present(outcome,self.a.freshness_now())
-                row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],result_summary=outcome)
+                row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],**self._settlement_options(outcome['processingOutcome'],outcome,outcome['limitationCodes'] if provider_entered else None))
             return 200,self.envelope(event,client,proof,'settled',row=row)
         except (AuthorityError,MessageError) as error:
             code=error.code

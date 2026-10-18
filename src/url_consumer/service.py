@@ -82,6 +82,22 @@ class Consumer:
         self.mapper.validate('access.schema.json',snapshot)
         return snapshot
 
+    def _settlement_options(self, outcome, summary, provider_codes=None):
+        options = {'result_summary': summary}
+        if getattr(getattr(self.a, 's', None), 'operations_producer_enabled', False) is True:
+            try:
+                from shared_operations import consumer_terminal_reason
+                reason = consumer_terminal_reason(outcome, provider_codes=provider_codes)
+                allowed = {'partial': {'COVERAGE_PARTIAL'}, 'failed': {'SETTLED_FAILED'},
+                           'unavailable': {'PROVIDER_UNAVAILABLE', 'PROVIDER_RESPONSE_INVALID'}}
+                if (type(reason) is str and reason in allowed.get(outcome, ())
+                        and (outcome != 'unavailable' or type(provider_codes) is list
+                             and len(provider_codes) == 1 and provider_codes[0] == reason)):
+                    options['operations_reason_code'] = reason
+            except Exception:
+                pass  # Missing optional classification preserves unknown coverage.
+        return options
+
     def envelope(self,event,client,proof,state,*,row=None,error=None,outcome=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
@@ -175,11 +191,11 @@ class Consumer:
                 from shared_lookup_freshness import current
                 if result.get('schemaVersion')!=2 or not current(result['lookupObservedAt'],result['lookupValidUntil'],self.a.freshness_now()):
                     result=None;outcome='failed'
-            try:row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],outcome,result_summary=result)
+            try:row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],outcome,**self._settlement_options(outcome,result,result.get('reasonCodes') if result else None))
             except AuthorityError as error:
                 if error.code!='PROVIDER_EVIDENCE_EXPIRED':raise
                 # No provider retry: release this original reservation without charging.
-                row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],'failed',result_summary=None)
+                row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],'failed',**self._settlement_options('failed',None))
                 result=None
             return 200,self.envelope(event,client,proof,'settled',row=row,error='SERVICE_UNAVAILABLE' if result is None else None)
         except AuthorityError as error:

@@ -97,6 +97,24 @@ def admission_fields(payload, *, accepted_at, receipt_deadline, access_class, en
         _fail()
 
 
+def consumer_terminal_reason(processing_outcome, *, provider_codes=None):
+    """Coarse existing facts from a validated consumer result, not provenance.
+
+    Generic partial/failed labels assert no provider root cause. An unavailable
+    result carries a provider label only when its closed result has exactly one
+    recognized code. Budget/mixed/unknown causes stay explicitly unrecorded.
+    """
+    if processing_outcome == 'partial':
+        return 'COVERAGE_PARTIAL'
+    if processing_outcome == 'failed':
+        return 'SETTLED_FAILED'
+    if (processing_outcome == 'unavailable' and type(provider_codes) is list
+            and len(provider_codes) == 1 and type(provider_codes[0]) is str
+            and provider_codes[0] in {'PROVIDER_UNAVAILABLE', 'PROVIDER_RESPONSE_INVALID'}):
+        return provider_codes[0]
+    return None
+
+
 def settlement_fields(row, processing_outcome, *, reason_code=None, expired_recovery=False):
     """Retain a source-backed finite cause; ambiguous omitted causes stay unknown."""
     if type(row) is not dict or type(expired_recovery) is not bool:
