@@ -8,6 +8,7 @@ import re
 import importlib.util
 from copy import deepcopy
 import time
+import math
 from shared_check_authority.core import AuthorityError, TrustedWorkerContext
 from shared_check_authority.recovery import Recovery
 
@@ -55,6 +56,52 @@ def unique_pairs(pairs):
     return result
 
 
+def _begin_attempt(consumer, event, proof, execution_token, *, family, client, version,
+                   request_started, provider_budget_ms):
+    """Default-off is exact legacy work; enabled optional time is not free."""
+    if getattr(getattr(consumer.a, 's', None), 'operations_producer_enabled', False) is not True:
+        return None, provider_budget_ms, None
+    scope, ticket = object(), None
+    try:
+        from shared_check_authority.operations_callers import begin_authenticated_attempt
+        ticket = begin_authenticated_attempt(consumer.a, event, proof, execution_token,
+            family=family, client_check_id=client, transport_version=version, scope=scope,
+            request_started=request_started, provider_budget_ms=provider_budget_ms,
+            remaining_ms=consumer.remaining, clock=consumer.clock)
+    except Exception:
+        pass
+    # No acknowledgement grants execution. Independently bound existing provider
+    # time after any optional work, including a response-unknown start.
+    try:
+        current, left = consumer.clock(), consumer.remaining()
+        if (type(current) not in (int, float) or not math.isfinite(current)
+                or type(request_started) not in (int, float) or not math.isfinite(request_started)
+                or current < request_started or type(left) is not int):
+            raise ValueError()
+        budget = max(0, min(provider_budget_ms, int((25 - (current - request_started) - 5) * 1000), left - 6000))
+    except Exception:
+        budget = 0
+    return ticket, budget, scope
+
+
+def _enter_attempt(consumer, ticket):
+    if ticket is None: return None
+    try:
+        from shared_check_authority.operations_callers import enter_internal_attempt
+        return enter_internal_attempt(ticket, clock=consumer.clock)
+    except Exception:
+        return None
+
+
+def _complete_attempt(consumer, ticket, *, succeeded):
+    if ticket is None: return None
+    try:
+        from shared_check_authority.operations_callers import complete_internal_attempt
+        return complete_internal_attempt(ticket, succeeded=succeeded, clock=consumer.clock)
+    except Exception:
+        return None
+
+
 class Consumer:
     def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic,remaining_ms=lambda:0):
         self.a,self.mapper,self.provider,self.refresh,self.clock=authority,mapper,provider,refresh,clock
@@ -98,7 +145,7 @@ class Consumer:
                 pass  # Missing optional classification preserves unknown coverage.
         return options
 
-    def envelope(self,event,client,proof,state,*,row=None,error=None,outcome=None):
+    def envelope(self,event,client,proof,state,*,row=None,error=None,outcome=None,attempt=None,attempt_scope=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
         if state in ('pending','unknown'):
@@ -124,7 +171,8 @@ class Consumer:
             try:
                 from shared_check_authority.operations_callers import capture_authenticated
                 capture_authenticated(self.a,event,proof,family='url_check',client_check_id=client,
-                    transport_version=self.version,remaining_ms=self.remaining)
+                    transport_version=self.version,remaining_ms=self.remaining,
+                    **({'attempt': attempt, 'attempt_scope': attempt_scope} if attempt is not None else {}))
             except Exception:
                 pass  # Optional capture cannot change the validated business response.
         return response
@@ -180,13 +228,21 @@ class Consumer:
                 row=admitted['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000))
-            result=None
+            result=None;attempt=None;attempt_scope=None;provider_entered=False
             if budget_ms>=14000:
-                try:result=self.provider({'schemaVersion':1,'checkId':client,'url':intent['target']['url'],'scope':intent['target']['scope'],'executionBudgetMs':budget_ms})
+                attempt,budget_ms,attempt_scope=_begin_attempt(self,event,proof,admitted['executionToken'],
+                    family='url_check',client=client,version=self.version,request_started=started,provider_budget_ms=budget_ms)
+            if budget_ms>=14000:
+                request={'schemaVersion':1,'checkId':client,'url':intent['target']['url'],'scope':intent['target']['scope'],'executionBudgetMs':budget_ms}
+                attempt=_enter_attempt(self,attempt)
+                provider_entered=True
+                try:result=self.provider(request)
                 except Exception:pass
             outcome='failed'
-            if self.mapper.supported_private(result,client,intent['target']['scope']):outcome=result['processingOutcome']
+            valid_result=self.mapper.supported_private(result,client,intent['target']['scope'])
+            if valid_result:outcome=result['processingOutcome']
             else:result=None
+            if provider_entered:attempt=_complete_attempt(self,attempt,succeeded=valid_result)
             if result is not None and result.get('verdict')=='high_risk':
                 from shared_lookup_freshness import current
                 if result.get('schemaVersion')!=2 or not current(result['lookupObservedAt'],result['lookupValidUntil'],self.a.freshness_now()):
@@ -197,7 +253,8 @@ class Consumer:
                 # No provider retry: release this original reservation without charging.
                 row=self.a.settle(TrustedWorkerContext(account),proof,admitted['executionToken'],'failed',**self._settlement_options('failed',None))
                 result=None
-            return 200,self.envelope(event,client,proof,'settled',row=row,error='SERVICE_UNAVAILABLE' if result is None else None)
+            return 200,self.envelope(event,client,proof,'settled',row=row,error='SERVICE_UNAVAILABLE' if result is None else None,
+                attempt=attempt if provider_entered else None,attempt_scope=attempt_scope)
         except AuthorityError as error:
             allowed={'AUTHENTICATION_REQUIRED','ACCOUNT_UNAVAILABLE','ACTIVE_DEVICE_REQUIRED','EXTERNAL_ACCESS_UNAVAILABLE','ALLOWANCE_EXHAUSTED','INPUT_REJECTED','CHECK_ID_CONFLICT','OPERATION_EXPIRED','RATE_LIMITED','OPERATION_PENDING','CONTRACT_UNSUPPORTED'}
             code=error.code if error.code in allowed else 'SERVICE_UNAVAILABLE'

@@ -10,7 +10,7 @@ from shared_recovery_contract.constants import VERSION, POLICY, PLAYBOOK, Recove
 from shared_recovery_contract.validation import validate_intent, validate_outcome, outcome as limited_outcome
 from shared_recovery_contract.usage import validate_usage
 from shared_message_contract.runtime import unique_pairs, url_mapper
-from url_consumer.service import Consumer as UrlConsumer, timestamp, plain
+from url_consumer.service import Consumer as UrlConsumer, timestamp, plain, _begin_attempt, _enter_attempt, _complete_attempt
 
 ROUTES={'POST /v1/recovery-clarifications/prepare','POST /v1/recovery-clarifications','POST /v1/recovery-clarifications/reconcile'}
 CHECK=re.compile(r'[A-Za-z0-9_-]{1,64}')
@@ -64,7 +64,7 @@ class Consumer:
                 pass  # Missing optional classification preserves unknown coverage.
         return options
 
-    def envelope(self,event,client,proof,state,*,row=None,error=None,fresh_outcome=None):
+    def envelope(self,event,client,proof,state,*,row=None,error=None,fresh_outcome=None,attempt=None,attempt_scope=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
         if state in ('unknown','pending'):
@@ -89,7 +89,8 @@ class Consumer:
             try:
                 from shared_check_authority.operations_callers import capture_authenticated
                 capture_authenticated(self.a,event,proof,family='recovery_clarification',client_check_id=client,
-                    transport_version=VERSION,remaining_ms=self.remaining)
+                    transport_version=VERSION,remaining_ms=self.remaining,
+                    **({'attempt': attempt, 'attempt_scope': attempt_scope} if attempt is not None else {}))
             except Exception:
                 pass  # Optional capture cannot change the validated business response.
         return response
@@ -141,22 +142,31 @@ class Consumer:
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
-            result=None;window=None;provider_entered=False
+            result=None;window=None;provider_entered=False;attempt=None;attempt_scope=None;internal_success=False
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
                 window=self.budget.reserve() if budget_ms>=1000 else None
                 if window is None:result=limited_outcome(client,'unavailable','BUDGET_LIMIT')
                 else:
-                    provider_entered=True
-                    raw_result=self.provider({'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'playbookVersion':PLAYBOOK,'intent':intent,'executionBudgetMs':budget_ms})
-                    result=validate_outcome(raw_result,client)
+                    attempt,budget_ms,attempt_scope=_begin_attempt(self,event,proof,admission['executionToken'],
+                        family='recovery_clarification',client=client,version=VERSION,request_started=started,provider_budget_ms=budget_ms)
+                    if budget_ms<1000:result=limited_outcome(client,'unavailable','BUDGET_LIMIT')
+                    else:
+                        request={'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'playbookVersion':PLAYBOOK,'intent':intent,'executionBudgetMs':budget_ms}
+                        attempt=_enter_attempt(self,attempt)
+                        provider_entered=True
+                        raw_result=self.provider(request)
+                        result=validate_outcome(raw_result,client)
+                        internal_success=True
             except Exception:
                 result=limited_outcome(client,'unavailable','PROVIDER_UNAVAILABLE')
+            if provider_entered:attempt=_complete_attempt(self,attempt,succeeded=internal_success)
             if window is not None and result['reasonCode'] in {'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
                 except Exception:pass
             row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],result['processingOutcome'],**self._settlement_options(result['processingOutcome'],result,[result['reasonCode']] if provider_entered else None))
-            return 200,self.envelope(event,client,proof,'settled',row=row,fresh_outcome=result)
+            return 200,self.envelope(event,client,proof,'settled',row=row,fresh_outcome=result,
+                attempt=attempt if provider_entered else None,attempt_scope=attempt_scope)
         except (AuthorityError,RecoveryError) as error:
             code=error.code
             statuses={'AUTHENTICATION_REQUIRED':401,'ACCOUNT_UNAVAILABLE':403,'ACTIVE_DEVICE_REQUIRED':403,'EXTERNAL_ACCESS_UNAVAILABLE':403,

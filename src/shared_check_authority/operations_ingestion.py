@@ -59,13 +59,13 @@ class ReceiptIngestion:
     def capture(self, worker, check_id, *, binding=None):
         return self._capture(worker, check_id, binding=binding)
 
-    def start_attempt(self, worker, check_id, execution_token):
+    def start_attempt(self, worker, check_id, execution_token, *, binding=None):
         """Record one internal start; acknowledgement is not a dispatch permit."""
-        return self._capture(worker, check_id, attempt=('start', execution_token))
+        return self._capture(worker, check_id, binding=binding, attempt=('start', execution_token))
 
-    def finish_attempt(self, worker, check_id, execution_token, attempt_ref, *, outcome, duration_ms):
+    def finish_attempt(self, worker, check_id, execution_token, attempt_ref, *, outcome, duration_ms, binding=None):
         """Record only a matching internal finish; no provider/cost inference."""
-        return self._capture(worker, check_id,
+        return self._capture(worker, check_id, binding=binding,
             attempt=('finish', execution_token, attempt_ref, outcome, duration_ms))
 
     def _capture(self, worker, check_id, *, binding=None, attempt=None):

@@ -15,7 +15,7 @@ from message_evaluator.policy_v2 import result as limited_result_v2
 from shared_message_contract.validation import MessageError
 from shared_message_contract.runtime import unique_pairs, url_mapper
 from message_evaluator.policy import result as limited_result
-from url_consumer.service import Consumer as UrlConsumer, timestamp, plain
+from url_consumer.service import Consumer as UrlConsumer, timestamp, plain, _begin_attempt, _enter_attempt, _complete_attempt
 
 ROUTES={'POST /v1/message-checks/prepare','POST /v1/message-checks','POST /v1/message-checks/reconcile'}
 CHECK=re.compile(r'[A-Za-z0-9_-]{1,64}')
@@ -72,7 +72,7 @@ class Consumer:
                 pass  # Missing optional classification preserves unknown coverage.
         return options
 
-    def envelope(self,event,client,proof,state,*,row=None,error=None):
+    def envelope(self,event,client,proof,state,*,row=None,error=None,attempt=None,attempt_scope=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
         if state in ('unknown','pending'):
@@ -99,7 +99,8 @@ class Consumer:
             try:
                 from shared_check_authority.operations_callers import capture_authenticated
                 capture_authenticated(self.a,event,proof,family='message_check',client_check_id=client,
-                    transport_version=self.version,remaining_ms=self.remaining)
+                    transport_version=self.version,remaining_ms=self.remaining,
+                    **({'attempt': attempt, 'attempt_scope': attempt_scope} if attempt is not None else {}))
             except Exception:
                 pass  # Optional capture cannot change the validated business response.
         return response
@@ -155,7 +156,7 @@ class Consumer:
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
-            outcome=None;window=None;provider_entered=False
+            outcome=None;window=None;provider_entered=False;attempt=None;attempt_scope=None;internal_success=False
             limited=limited_result_v3 if self.version==v3.VERSION else (limited_result_v2 if self.version==v2.VERSION else limited_result)
             validator=v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
@@ -164,15 +165,23 @@ class Consumer:
                 window=None if rules_only else (self.budget.reserve() if budget_ms>=1000 else None)
                 if not rules_only and window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
                 else:
-                    request={'schemaVersion':3 if self.version==v3.VERSION else (2 if self.version==v2.VERSION else 1),'checkId':client,
-                             'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,
-                             'intent':intent,'executionBudgetMs':budget_ms}
-                    if rules_only:request['runtimeMode']='rules_only'
-                    provider_entered=True
-                    raw_result=self.provider(request)
-                    outcome=validator(raw_result,client)
+                    attempt,budget_ms,attempt_scope=_begin_attempt(self,event,proof,admission['executionToken'],
+                        family='message_check',client=client,version=self.version,request_started=started,provider_budget_ms=budget_ms)
+                    if budget_ms<1000 and (not rules_only or getattr(self.a.s,'operations_producer_enabled',False) is True):
+                        outcome=limited(client,limits=['BUDGET_LIMIT'])
+                    else:
+                        request={'schemaVersion':3 if self.version==v3.VERSION else (2 if self.version==v2.VERSION else 1),'checkId':client,
+                                 'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,
+                                 'intent':intent,'executionBudgetMs':budget_ms}
+                        if rules_only:request['runtimeMode']='rules_only'
+                        attempt=_enter_attempt(self,attempt)
+                        provider_entered=True
+                        raw_result=self.provider(request)
+                        outcome=validator(raw_result,client)
+                        internal_success=True
             except Exception:
                 outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])
+            if provider_entered:attempt=_complete_attempt(self,attempt,succeeded=internal_success)
             if self.version==v3.VERSION:outcome=v3.present(outcome,self.a.freshness_now())
             if window is not None and set(outcome['limitationCodes'])&{'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
@@ -182,7 +191,8 @@ class Consumer:
                 if error.code!='PROVIDER_EVIDENCE_EXPIRED' or self.version!=v3.VERSION:raise
                 outcome=v3.present(outcome,self.a.freshness_now())
                 row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],outcome['processingOutcome'],**self._settlement_options(outcome['processingOutcome'],outcome,outcome['limitationCodes'] if provider_entered else None))
-            return 200,self.envelope(event,client,proof,'settled',row=row)
+            return 200,self.envelope(event,client,proof,'settled',row=row,
+                attempt=attempt if provider_entered else None,attempt_scope=attempt_scope)
         except (AuthorityError,MessageError) as error:
             code=error.code
             statuses={'AUTHENTICATION_REQUIRED':401,'ACCOUNT_UNAVAILABLE':403,'ACTIVE_DEVICE_REQUIRED':403,'EXTERNAL_ACCESS_UNAVAILABLE':403,
