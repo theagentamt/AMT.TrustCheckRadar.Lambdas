@@ -1,0 +1,104 @@
+{
+  "baseCommit": "3a494561b86683fab940b2ba95a3e878147f5d20",
+  "coveragePartition": {
+    "additionalIndependentCases": 11,
+    "collectionTimingExplicit": "Independent file added after main collection; current-file11cases ran separately. No claim that a single monolithic run collected all final files.",
+    "disjointBaseCases": 1998,
+    "disjointJUnitTotal": 2019,
+    "errors": 0,
+    "failures": 0,
+    "mainPassedSubtests": 21,
+    "mainPytestPassed": 1987,
+    "overlap": 0,
+    "skipped": 0
+  },
+  "currentSourceMatchesPriorIndependentPass": true,
+  "dataDurationDestination": [
+    "Data: existing closed receipt-local reference and1-4 lifecycle/internal-attempt events, existing selected summary, no new fields or account mappings.",
+    "Duration: each snapshot before original possibly-shorter expiresAt plus existing conservative day-cohort correction limit; no remint or deadline extension. Caller must discard/recompute result under original deadlines and deletion boundaries.",
+    "Destination: calculation process memory only. No output storage, logging, archive, queue or delivery; selected AggregateStore read/commit refusal unchanged.",
+    "Selected report remains linkable to caller context; UUID does not prove randomness, identity separation or unlinkability. No90d selected persistence authorization.",
+    "Supplied snapshots/asOf provide neither fresh clock/authentication/deletion revalidation nor atomic complete selection. No automatic disposal claim; actual caller remains to be wired and qualified."
+  ],
+  "findings": [],
+  "nextSec226Gap": {
+    "currentServiceSourceSha256": "6033dfc76f1adf1dddca46e7d1af3da2619e81c3ac7db614d7e19a72366f93ed",
+    "deployedIncidentClaim": false,
+    "implementedInThisBatch": false,
+    "independentLocalExceptionProbe": "SDK-shaped TransactionCanceledException with documented ProvisionedThroughputExceeded maps toCONFLICT409 retryabletrue in actual current _transact; one mocked call, no service.",
+    "installedBotocoreReasonDocumentationHashJoined": true,
+    "record": "docs/SECUR4ALL-226-next-source-gap.json",
+    "remainingAcceptanceAcknowledgesExistingCoreRoutesAndJobs": true,
+    "retainedProbeBytesExact": true,
+    "sha256": "1161807a92ac6cb543588e0e1a998932ca9e1961e1b03c691861bc00b9ce2d93"
+  },
+  "qualityJoins": {
+    "contractsScriptsGithubBaseByteJoins": 411,
+    "noRuntimeArchiveBuilt": true,
+    "productionAst": 285,
+    "record": "/tmp/amt-selected-preview-quality.json",
+    "sha256": "71f9dd2a6d2ea2035ef2fa139918191cdc5f773ba5f10705a91dba92d7cdd91c"
+  },
+  "remaining": [
+    "SEC237 discovery/current guarded selection/clock/deletion and source-to-aggregate preservation, provider/rate/rejection facts, scheduling/delivery and actual Dev acceptance remain open.",
+    "SEC226 governed capability/migration contract, complete idempotent concurrent mutation/all-copy deletion/recognition/lifecycle/target acceptance remain open; next source defect identified only.",
+    "No new owner retention choice needed for this approved transient use; no new stored selected-report purpose or mapping is approved. SEC198 held; physicalcases remain ATCR148."
+  ],
+  "result": "PASS_NONCOMMITTING_SELECTED_PREVIEW_FINAL_HANDOFF",
+  "reviewedAtUtc": "2026-10-18T02:46:17.923528+00:00",
+  "reviewedFilePins": {
+    "docs/SECUR4ALL-226-next-source-gap.json": "1161807a92ac6cb543588e0e1a998932ca9e1961e1b03c691861bc00b9ce2d93",
+    "docs/SECUR4ALL-237-SELECTED-RECEIPT-PREVIEW.md": "8578574978ed51b391e8b7d22147597e691b16b42fe67716bb0ee2cab0007018",
+    "docs/SECUR4ALL-237-selected-preview-source-review.json": "0951970b44cd6f5e6415eaa5ce5824e629260fdc832b6be128818967cb2678c3",
+    "docs/SECUR4ALL-237-selected-preview-validation.json": "451afee2236793d170f2134b51fab1f13a1d60f8e00aff17fcf26b13b13f6710",
+    "src/operations_reporting/reducer.py": "0fd557daaca5c78890c196b8dfbcb624286e8c25bdcefd287f02d9a8e3649834",
+    "tests/operations_reporting/test_selected_preview.py": "d1c61a2d610e175d858cb5a20412f9805ee75977a55762d279603d3b832ac5df",
+    "tests/operations_reporting/test_selected_preview_independent.py": "b2ee162ff085c9dee5a5fc61f43f56f98a351f821aa6aa9d8f44a5069fd7cfc2",
+    "tests/shared_check_authority/test_operations_selected_preview.py": "1424f802edc0ab730fe19e95799c086149a6e23d66f4a5f4da3fdd51a7720950"
+  },
+  "reviewerOperations": {
+    "actualAwsCalls": 0,
+    "authActions": 0,
+    "deviceOrEmulatorActions": 0,
+    "gitPublication": false,
+    "runtimeMutations": 0,
+    "serviceEndpointCalls": 0
+  },
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "storyCompletionClaim": false,
+  "validation": {
+    "additionalIndependentFile": {
+      "junit": {
+        "path": "/tmp/amt-selected-preview-additional.xml",
+        "sha256": "01079a85a1adc391866e0204ecb3b4284c0d5ad6dd26e89df609f5f302b18d8f"
+      },
+      "log": {
+        "path": "/tmp/amt-selected-preview-additional.log",
+        "sha256": "bef02fe18c206353337187db84524e59e29564442c4adac0853e97ff7383203b"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 11
+      }
+    },
+    "mainSuite": {
+      "junit": {
+        "path": "/tmp/amt-selected-preview-full.xml",
+        "sha256": "52af5a3c55cc6fcedae09a53af4a93e0c45365caacb7a2dc6af4e81a303ca038"
+      },
+      "log": {
+        "path": "/tmp/amt-selected-preview-full.log",
+        "sha256": "36cb8e4cc23eda50617b83367fbbd8606b75a664a0930fad8fb6ee94843f0744"
+      },
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 2008
+      }
+    }
+  }
+}

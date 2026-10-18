@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "result": "PASS_NONPERSISTENT_SELECTED_CAPTURE_SOURCE_COMPONENT",
+  "story": "SECUR4ALL-237",
+  "storyState": "In Progress",
+  "baseCommit": "3a494561b86683fab940b2ba95a3e878147f5d20",
+  "sourcePins": [
+    {
+      "path": "src/operations_reporting/reducer.py",
+      "sha256": "0fd557daaca5c78890c196b8dfbcb624286e8c25bdcefd287f02d9a8e3649834"
+    },
+    {
+      "path": "tests/operations_reporting/test_selected_preview.py",
+      "sha256": "d1c61a2d610e175d858cb5a20412f9805ee75977a55762d279603d3b832ac5df"
+    },
+    {
+      "path": "tests/operations_reporting/test_selected_preview_independent.py",
+      "sha256": "b2ee162ff085c9dee5a5fc61f43f56f98a351f821aa6aa9d8f44a5069fd7cfc2"
+    },
+    {
+      "path": "tests/shared_check_authority/test_operations_selected_preview.py",
+      "sha256": "1424f802edc0ab730fe19e95799c086149a6e23d66f4a5f4da3fdd51a7720950"
+    },
+    {
+      "path": "docs/SECUR4ALL-237-SELECTED-RECEIPT-PREVIEW.md",
+      "sha256": "8578574978ed51b391e8b7d22147597e691b16b42fe67716bb0ee2cab0007018"
+    },
+    {
+      "path": "docs/SECUR4ALL-226-next-source-gap.json",
+      "sha256": "1161807a92ac6cb543588e0e1a998932ca9e1961e1b03c691861bc00b9ce2d93"
+    },
+    {
+      "path": "docs/SECUR4ALL-237-selected-preview-source-review.json",
+      "sha256": "0951970b44cd6f5e6415eaa5ce5824e629260fdc832b6be128818967cb2678c3"
+    }
+  ],
+  "exactApprovedUse": {
+    "data": "Existing closed receipt-local capture reference plus1-4 accepted/terminal/internal-attempt events. Existing closed selected-subset summary only. No new stored fields.",
+    "duration": "Input must precede every original expiresAtEpoch; maximum acceptance+7days and conservative cohort boundary. No deadline renewal. Returned summary has no independent disposal mechanism; caller must discard/recompute at shorter deadline and deletion boundary.",
+    "destination": "Calculation process memory only; no output table/file/log/archive/queue/delivery. Existing receipt stores/lifecycle unchanged.",
+    "linkability": "Explicitly linkable selected Dev subset, never anonymous or environment total. UUIDshape does not prove randomness/unlinkability.",
+    "ownerNewDecisionRequired": false,
+    "newFieldsStorePermissions": false,
+    "ninetyDaySelectedPersistenceAllowed": false
+  },
+  "scope": {
+    "calculationImplemented": true,
+    "discoveryOrAuthenticatedCallerImplemented": false,
+    "clockOrDeletionRevalidationImplemented": false,
+    "automaticOutputErasureImplemented": false,
+    "existingCaptureLifecycleReused": true,
+    "existingSelectedStoreRefusalUnchanged": true,
+    "runtimeRegistryChanged": false,
+    "legacyReducerASTUnchanged": true,
+    "actorReferenceWork": "Already complete; no join repeated."
+  },
+  "validation": {
+    "mainSuite": {
+      "tests": 2008,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-selected-preview-full.xml",
+        "sha256": "52af5a3c55cc6fcedae09a53af4a93e0c45365caacb7a2dc6af4e81a303ca038"
+      },
+      "log": {
+        "path": "/tmp/amt-selected-preview-full.log",
+        "sha256": "36cb8e4cc23eda50617b83367fbbd8606b75a664a0930fad8fb6ee94843f0744"
+      }
+    },
+    "additionalIndependentFile": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-selected-preview-additional.xml",
+        "sha256": "01079a85a1adc391866e0204ecb3b4284c0d5ad6dd26e89df609f5f302b18d8f"
+      },
+      "log": {
+        "path": "/tmp/amt-selected-preview-additional.log",
+        "sha256": "bef02fe18c206353337187db84524e59e29564442c4adac0853e97ff7383203b"
+      }
+    },
+    "disjointJUnitTotal": 2019,
+    "collectionDisposition": "Independent test file was added after main collection; its11 cases were run separately. Main suite includes18 new parent cases including2 actual localMoto integration scenarios. No test skip used.",
+    "independentReview": {
+      "path": "docs/SECUR4ALL-237-selected-preview-source-review.json",
+      "sha256": "0951970b44cd6f5e6415eaa5ce5824e629260fdc832b6be128818967cb2678c3"
+    },
+    "quality": {
+      "schemaVersion": 1,
+      "baseCommit": "3a494561b86683fab940b2ba95a3e878147f5d20",
+      "onlyProductionAddition": "aggregate_selected_captures in existing reducer",
+      "existingReducerASTUnchanged": true,
+      "changedProductionFiles": [
+        "src/operations_reporting/reducer.py"
+      ],
+      "productionPythonParsed": 285,
+      "contractsScriptsWorkflowsByteJoins": 411,
+      "actionlint": "PASS",
+      "shellcheck": "PASS",
+      "runtimeArchiveOrDeploymentBuilt": false,
+      "sourceRegistryChanged": false,
+      "storagePermissionsChanged": false,
+      "actorJoinsPerformed": 0
+    },
+    "initialLocalFixtureImportFailure": "New test initially lacked existing test-directory sys.path setup; corrected to established fixture import pattern. No runtime change."
+  },
+  "sec226": {
+    "state": "To Do",
+    "remainingAcceptance": "Existing legacy core routes/receipt generations/erasure jobs are present; governed mutation capability/migration, complete concurrent/idempotent/generation/all-copy lifecycle/restore/account/cache and target acceptance remain unqualified. Physicalcases ATCR148.",
+    "nextConfirmedBug": {
+      "path": "docs/SECUR4ALL-226-next-source-gap.json",
+      "sha256": "1161807a92ac6cb543588e0e1a998932ca9e1961e1b03c691861bc00b9ce2d93"
+    },
+    "nextBugImplemented": false
+  },
+  "gates": {
+    "sec198PolicyHeld": true,
+    "fullSec237CompletionClaim": false,
+    "newAwsReads": 0,
+    "serviceEndpointCalls": 0,
+    "authActions": 0,
+    "runtimeMutations": 0,
+    "storageCreation": 0,
+    "emulatorActions": 0,
+    "deployments": 0,
+    "mainPromotions": 0
+  }
+}
