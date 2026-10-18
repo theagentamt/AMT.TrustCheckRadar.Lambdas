@@ -22,7 +22,7 @@ PROTOCOL_FILES = frozenset({
         'operations_ingestion', 'operations_retirement', 'prepare_auth_diagnostics',
         'purchase_usage', 'recovery', 'runtime', 'summary')
 }) | frozenset({'shared_operations/__init__.py', 'shared_operations/receipts.py',
-               'shared_operations/projection.py'})
+               'shared_operations/projection.py', 'shared_operations/attempts.py'})
 CALLERS = frozenset({'url_consumer', 'message_consumer', 'recovery_consumer'})
 
 

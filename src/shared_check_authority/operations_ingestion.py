@@ -5,6 +5,7 @@ The projection lives on its owning receipt, so existing partition deletion owns
 it and the original operations deadline controls both copies of linkage.
 """
 import hashlib
+import hmac
 import re
 from copy import deepcopy
 
@@ -56,6 +57,18 @@ class ReceiptIngestion:
             raise AuthorityError('OPERATIONS_INGESTION_READ_UNAVAILABLE') from None
 
     def capture(self, worker, check_id, *, binding=None):
+        return self._capture(worker, check_id, binding=binding)
+
+    def start_attempt(self, worker, check_id, execution_token):
+        """Record one internal start; acknowledgement is not a dispatch permit."""
+        return self._capture(worker, check_id, attempt=('start', execution_token))
+
+    def finish_attempt(self, worker, check_id, execution_token, attempt_ref, *, outcome, duration_ms):
+        """Record only a matching internal finish; no provider/cost inference."""
+        return self._capture(worker, check_id,
+            attempt=('finish', execution_token, attempt_ref, outcome, duration_ms))
+
+    def _capture(self, worker, check_id, *, binding=None, attempt=None):
         if self.a.s.operations_producer_enabled is not True:
             raise AuthorityError('OPERATIONS_INGESTION_DISABLED')
         if not isinstance(worker, TrustedWorkerContext):
@@ -84,6 +97,13 @@ class ReceiptIngestion:
                     raise ValueError()
             except Exception:
                 raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+        if attempt is not None:
+            token = attempt[1]
+            if (type(token) is not str or not re.fullmatch(r'[0-9a-f]{32}', token)
+                    or type(row.get('executionToken')) is not str
+                    or not re.fullmatch(r'[0-9a-f]{32}', row['executionToken'])
+                    or not hmac.compare_digest(row['executionToken'], token)):
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
         if 'operationsReceipt' not in row:
             if 'operationsProjection' in row:
                 try: orphan = validate_capture(row['operationsProjection'])
@@ -121,6 +141,8 @@ class ReceiptIngestion:
         try:
             projected = capture_projection(row, now_epoch=observed)
             prior = validate_capture(row['operationsProjection']) if 'operationsProjection' in row else None
+            if attempt is not None:
+                projected = self._attempt_projection(row, projected, attempt, observed)
             if prior is not None and (prior['reference'] != metadata
                     or prior['sourceState'] == 'SETTLED' and projected['sourceState'] != 'SETTLED'
                     or any(event not in projected['events'] for event in prior['events'])):
@@ -150,6 +172,9 @@ class ReceiptIngestion:
             raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE')
         if dispatch_time >= metadata['expiresAtEpoch']:
             return {'decision': 'EXPIRED', 'projection': None}
+        if attempt is not None and row['state'] == 'ADMITTED':
+            if integral(row.get('settleByEpoch')) is None or dispatch_time >= row['settleByEpoch']:
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
         condition = exact_condition(row)
         for optional in ('operationsProjection', 'operationsTerminalReasonCode', 'assessmentEpoch',
                          'chargedChecks', 'receiptId', 'processingOutcome', 'clientCheckId', 'projectionScope',
@@ -158,6 +183,8 @@ class ReceiptIngestion:
                 condition['ConditionExpression'] += f' AND attribute_not_exists({optional})'
         condition['ConditionExpression'] += ' AND operationsReceipt.expiresAtEpoch > :dispatchTime'
         condition['ExpressionAttributeValues'][':dispatchTime'] = dispatch_time
+        if attempt is not None and row['state'] == 'ADMITTED':
+            condition['ConditionExpression'] += ' AND settleByEpoch > :dispatchTime'
         action = {'TableName': self.a.s.authority_table, 'Key': key, **condition}
         unchanged = prior == projected and (due_sort is None or row['GSI1SK'] == due_sort)
         if unchanged:
@@ -200,7 +227,33 @@ class ReceiptIngestion:
             raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE')
         if finished >= metadata['expiresAtEpoch']:
             return {'decision': 'EXPIRED', 'projection': None}
+        if attempt is not None and row['state'] == 'ADMITTED' and finished >= row['settleByEpoch']:
+            raise AuthorityError('OPERATIONS_INGESTION_TIME_BUDGET')
         return {'decision': 'REVALIDATED' if unchanged else 'CAPTURED', 'projection': deepcopy(projected)}
+
+    def _attempt_projection(self, row, projected, attempt, observed):
+        from shared_operations.attempts import start_internal_attempt, finish_internal_attempt, duration_bucket
+        prior = [event for event in projected['events'] if event['eventType'].startswith('attempt_')]
+        if attempt[0] == 'start':
+            if row['state'] != 'ADMITTED':
+                raise ValueError()
+            if not prior:
+                prior = [start_internal_attempt(projected['reference'], observed_at=observed)]
+        else:
+            _, _, reference, outcome, duration = attempt
+            if (not prior or type(reference) is not str or reference != prior[0]['attemptRef']
+                    or outcome not in ('succeeded', 'failed')):
+                raise ValueError()
+            if len(prior) == 2:
+                if prior[1]['attemptOutcome'] != outcome or prior[1]['durationBucket'] != duration_bucket(duration):
+                    raise ValueError()
+            else:
+                prior.append(finish_internal_attempt(projected['reference'], prior[0], observed_at=observed,
+                    outcome=outcome, duration_ms=duration))
+        check_events = [event for event in projected['events'] if not event['eventType'].startswith('attempt_')]
+        if observed < prior[-1]['eventTimeEpoch']:
+            raise ValueError()
+        return validate_capture({**projected, 'schemaVersion': 2, 'events': check_events + prior})
 
     def _retire_expired(self, partition, sort_key):
         from .operations_retirement import OperationsRetirement

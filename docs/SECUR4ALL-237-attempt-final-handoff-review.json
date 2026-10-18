@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T01:33:36.077509+00:00",
+  "outcome": "PASS_INTERNAL_ATTEMPT_COMPONENT_HANDOFF_SOURCE_ONLY",
+  "filePins": {
+    "docs/SECUR4ALL-237-INTERNAL-ATTEMPTS.md": "7202789a4bb6522c28a500ce7d7b225b9b09cdec0580fb34219b35d77abd461d",
+    "docs/SECUR4ALL-237-INTERNAL-ATTEMPTS.json": "895cc002ba7cd8f87c5936c4f50ee51e2d2451889e71f77a6ee4389715c058f1",
+    "docs/SECUR4ALL-198-OWNER-CHOICES.md": "e8171c24a6979427d5d5ca47eaffaa73b887d1670f77081a5c504d45e3352e39",
+    "docs/SECUR4ALL-237-ATTEMPT-DEPENDENCIES.json": "259b62697f8cefdda1addbd37aeafc4c8c57ba1cada25e0d94b48953f3b9423c",
+    "docs/SECUR4ALL-237-attempt-source-independent-review.json": "41521053a6b20ffd6542ee974db47c9881d5b81a807b391c72f18be7cb848fc7"
+  },
+  "currentSourceReviewSha256": "41521053a6b20ffd6542ee974db47c9881d5b81a807b391c72f18be7cb848fc7",
+  "retainedOfflineQuality": {
+    "path": "/tmp/amt-sec237-attempt-offline-quality.json",
+    "sha256": "5f83cf32dcd15eaa38b01641aa04181939d36f4065495d6dc009b8af5bbefdb0",
+    "parentCompletedHostSourceImports": 13,
+    "socketsBlockedReported": true,
+    "nativeRuntimeQualified": false,
+    "independentHostImportRerun": false
+  },
+  "frozenJUnitSha256": "1210f59c38952999a85fef5aa92ab63e68addd632abc889d97258b63b25046ab",
+  "validation": {
+    "sourceTestDocPins": 11,
+    "protectedBaseByteJoins": 16,
+    "frozenPassedTests": 1879,
+    "passedSubtests": 21,
+    "junitCases": 1900,
+    "failuresErrorsSkips": 0,
+    "independentCases": 16,
+    "currentIndependentCombinedCases": 164,
+    "actualArchiveChecksRerunOffline": 15,
+    "authorityCarriersWithAttemptProtocol": 13,
+    "sourcePins": 146,
+    "contractPins": 158,
+    "requirementsPins": 11,
+    "sourceMemberByteJoins": 756,
+    "contractMemberByteJoins": 650,
+    "oldAndroidReadinessHashJoinsUnchanged": 2,
+    "awsNetworkOrDeviceCallsByReviewer": 0
+  },
+  "claimsReviewed": [
+    "All four independent source failures and their exact fixes are preserved; current16 independent and164 focused pass distinct from older364 pre-R4 evidence.",
+    "Explicit internal projection v2 carries only one fixed internal start/finish while closed legacy v1 remains compatible; at most4 events, original7day deadline and same receipt/deletion owner preserved.",
+    "No actual evaluator/consumer dispatch wiring, observed vendor call, authenticated public ingestion or dispatch permission is claimed. Internal success differs from check completion; duration bins await actual monotonic caller measurement.",
+    "Costs/units/provider family are NULL, not zero; actual provider-attempt completeness, rates, units and delivery remain source and acceptance gates.",
+    "Unknown write claim correctly limited to no adapter application-level retry; no SDK or server-clock/physical erasure guarantee is implied.",
+    "All15 skip-dependency inspection archives satisfy current source/contract/requirements checker, with mandatory attempts module in all13 authority carriers. Historical15-package manifest is unchanged, not silently repurposed.",
+    "Host imports are retained reported source-only closure with sockets blocked; native ARM64 dependencies, compatible rollout/rollback, IAM/resources/cost/backup and actual Dev remain unqualified.",
+    "SEC198 packet cleanly separates proposed prelogin nonpersonal access, one-hour single-snapshot expiry and all-online waiting fallback from selected policy; availability/abuse and enforcement-trust tradeoffs are explicit.",
+    "SEC198 guidance is not proof of backend-installed-build identity; future enforcement must state its actual trust guarantees. No new issuer, path, signing system, minimum build, permanent deny or retention approval is invented.",
+    "SEC237 remains In Progress and SEC198 Draft/ToDo; no full story completion, production enablement, native distribution, runtime invocation or main promotion is inferred."
+  ],
+  "limits": [
+    "Local exact-source/doc/artifact/result joins only; no full test rerun, AWS/auth/endpoint/provider/emulator or Git publication action by final reviewer.",
+    "Final review record is separate to avoid a self-referential companion hash. Copying it requires parent normal final staged scan before commit.",
+    "Current frozen broad-suite evidence and inspection manifest do not replace future end-to-end caller/dispatch/crash-recovery/cost/delivery or actual runtime acceptance."
+  ],
+  "blockers": []
+}
