@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T03:58:26.923779+00:00",
+  "outcome": "DESIGN_ACCEPTABLE_ONLY_WITH_REQUIRED_FENCES_NOT_IMPLEMENTATION_PASS",
+  "sourceBase": "3669762055f344bd4129e18449b047ef99b28454",
+  "reviewedFiles": {
+    "src/governed_history/security.py": "2a13e87c4f0fd14bc35d4dc11f8d021b134e3416dcbb8a61f63b5948bd1af4dc",
+    "src/governed_history/service.py": "1ed2f34b562c3eaf41bbe5425627a643f11e7f87f9d6e842ba179be92d21868d",
+    "src/shared_governed_history/projection.py": "4a4bc57c216fe9b45a9c21d88c74fe6327d8e68ed39a191e4766ed436667cd1f",
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/operations_ingestion.py": "1aaaa36202ff680a039e776efd9021c04cd09bd7ea37e1b22648940a4f8f4767",
+    "src/shared_check_authority/operations_retirement.py": "0d99d2f3403e45e977623e861906640e148b1e01955722a767398ec8f8fb6c96",
+    "src/url_consumer/service.py": "04e3491495177ea8714ed2bb4dcb60a39579be7ff725798abd4a92632a84ef30",
+    "src/message_consumer/service.py": "57983fa5e2bb6903ff01baccdee3a39f2abef4dc663e997ca2d2ef14537521a3",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2"
+  },
+  "actualOfflineProbe": {
+    "existingReadProjectionValidatorDoesNotValidateReceiptAccountingTimeOrProof": true,
+    "meaning": "Validator is intentionally sufficient for minimized read projection, not a standalone erasure authorization/accounting validator. Pure synthetic mismatch accepted; not an actual service bug or incident."
+  },
+  "requiredFences": [
+    "No HTTP dispatch, SDK writes, returned mutation success, retained plan, new marker, flags or implicit idempotency. Missing/expired/already-erased is not PREPARED and not proof of previous successful erasure.",
+    "Use validated request-context owner and current active binding, complete verified key inventory; derive owned partition from server-selected proof, cryptographically verify check/payload token and exact PK/SK/checkId. Expected result ID alone is not authority.",
+    "Join actual SETTLED receiptId,chargedChecks,processingOutcome,assessmentEpoch and resultSummary to validated governedHistory projection; preserve original deadline and state. Reject mixed, corrupt, foreign or unresolved rows.",
+    "Every used read must be acknowledged, strongly consistent and finitely classified. Construct atomic snapshot conditions for inventory/profile/deletion absence/current device pointer+binding/existing canonical receipt, no subscription eligibility requirement.",
+    "Remove only governedHistory,governedHistoryDigest,GSI2PK,GSI2SK,resultSummary. Preserve accounting/proofs/dedup/state/operations/GSI1/TTL and all unrelated fields, no upsert.",
+    "Full canonical captured-map equality, plus existence/state/deadline conditions, must prevent removal based on a replaced or recreated row. No split profile/device/receipt writes.",
+    "Raw transaction material is private and inherently identifying: opaque in-memory object, safe repr, finite public summary only, never call raw condition dictionaries redacted.",
+    "Preparation is not fresh execution permission; future dispatch needs current revalidation and unknown-commit/idempotency design. Existing consumers retain generic SERVICE_UNAVAILABLE rather than invented erased semantics.",
+    "Source-only tests must prove no writes at preparation, exact synthetic future action field preservation, stale-index canonical suppression, late-settlement/reconciliation no resurrection and read/device/deletion/inventory/row drift fail-closed.",
+    "Keep adapter local or verify imports: governed_history package absent from other shared-authority archives."
+  ],
+  "scopeDisposition": {
+    "boundedPreparationPrimitivePotentiallyUseful": true,
+    "fullyDeterminedRuntimeMutationFeature": false,
+    "designBeforeImplementationRecommended": true,
+    "deleteClearDesignBlockedByG1G2": false,
+    "fullClearStillRequires": [
+      "generation+admission/settlement ordering",
+      "T1 compatible mutation/erased replay",
+      "P1 exact markers and all-copy/restore lifecycle"
+    ],
+    "recognitionStillAdditionallyRequires": [
+      "G1",
+      "G2"
+    ]
+  },
+  "operations": {
+    "aws": 0,
+    "endpoint": 0,
+    "auth": 0,
+    "device": 0,
+    "writes": 0,
+    "publication": 0
+  }
+}
