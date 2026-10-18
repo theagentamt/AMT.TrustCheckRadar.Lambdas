@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "source": "src/history_mutation_api/service.py HistoryMutationService._transact",
+  "inputError": "TransactionCanceledException",
+  "knownSdkCancellationReason": "ProvisionedThroughputExceeded",
+  "reasonConfirmedInInstalledBotocoreDynamoModel": true,
+  "actualMappedCode": "CONFLICT",
+  "actualStatus": 409,
+  "actualRetryable": true,
+  "expectedBoundary": "Do not report a state-condition conflict for throughput cancellation; qualify known conditional vs service/unknown reasons before choosing existing error envelope.",
+  "sourceConfirmed": true,
+  "deployedObserved": false,
+  "sdkServiceCalls": 0,
+  "scope": "Independent next bug identified only; no second implementation in this batch.",
+  "botocoreVersion": "1.43.114",
+  "reasonDocumentationSha256": "6b9d7cbb4b970baeeb06253701164c160b002337aba8ab7609ce82acd999fe0c",
+  "serviceSourceSha256": "6033dfc76f1adf1dddca46e7d1af3da2619e81c3ac7db614d7e19a72366f93ed"
+}

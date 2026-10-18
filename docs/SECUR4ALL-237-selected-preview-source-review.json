@@ -1,0 +1,72 @@
+{
+  "checks": [
+    "Reuses existing capture validator, reducer, attempt/lifecycle deduplication and original deadlines; no provider/attempt finish invented.",
+    "Only explicit closed selected_dev Dev scope accepted; foreign environments, mismatched original-reference metadata, conflicting events and future timestamps fail finite.",
+    "Original shorter expiry is authoritative even for a capture outside requested day; one invalid/expired input aborts whole preview rather than silently undercounting.",
+    "Both capture count and total event count bounded; each captured plain JSON snapshot owned before projection validation; malformed/unencodable fields fail finite.",
+    "Actual local Moto admission, guarded capture, start, settlement, finish and replay feed one-count preview; preview itself changes no tables/counters; existing retirement owns source erasure.",
+    "No rejection inputs/new telemetry or zero-coverage claim; producerCoverage not_qualified, localIntakeCoverage not_collected and null provider costs unchanged.",
+    "Existing90d AggregateStore still unconditionally refuses selected read/commit; no new fields, routes, storage, permissions, handler, discovery runner or generation minting."
+  ],
+  "filePins": {
+    "src/operations_reporting/reducer.py": "0fd557daaca5c78890c196b8dfbcb624286e8c25bdcefd287f02d9a8e3649834",
+    "src/operations_reporting/store.py": "02f7fdb2a3ac3f2e862165f7bffdb82f993599ee0062ccd7c1f3a665f6684941",
+    "src/shared_check_authority/operations_ingestion.py": "1aaaa36202ff680a039e776efd9021c04cd09bd7ea37e1b22648940a4f8f4767",
+    "src/shared_operations/projection.py": "3d1ea915e637fc4a7ede5a105aae4b806d54792df09260754f3d264c418343ff",
+    "tests/operations_reporting/test_selected_preview.py": "d1c61a2d610e175d858cb5a20412f9805ee75977a55762d279603d3b832ac5df",
+    "tests/operations_reporting/test_selected_preview_independent.py": "b2ee162ff085c9dee5a5fc61f43f56f98a351f821aa6aa9d8f44a5069fd7cfc2",
+    "tests/shared_check_authority/test_operations_selected_preview.py": "1424f802edc0ab730fe19e95799c086149a6e23d66f4a5f4da3fdd51a7720950"
+  },
+  "findings": [],
+  "limits": [
+    "Preview remains linkable to selected caller context even without identifiers in the report; no unlinkability assertion or90d selected persistence authorization.",
+    "Supplied snapshots and asOf are not caller authentication, actual clock, live deletion revalidation or complete source discovery. Trusted future caller must supply current guarded captures.",
+    "Returned existing summary has no independent expiry/disposal enforcement. Any caller must discard/revalidate or recompute under every contributing original possibly-shorter deadline and deletion boundary; no retained preview policy is introduced.",
+    "No source-to-aggregate preservation guarantee across deletion/expiry, runtime provider/cost coverage, real Dev acceptance, scheduling or delivery. SEC237 remains incomplete.",
+    "Reviewer used mock_aws/pure local code only; no actual AWS, endpoints, auth/session, emulator/device, provider, runtime, purchase or Gitpublication."
+  ],
+  "outcome": "PASS_SOURCE_ONLY_NONCOMMITTING_SELECTED_PREVIEW",
+  "preservation": {
+    "allOtherTrackedSrcScriptsGithubBytesExact": 348,
+    "captureProjectionSchemaAndGuardedIngestionUnchanged": true,
+    "existingReducerStatementsAstExact": true,
+    "onlyProductionChange": "src/operations_reporting/reducer.py",
+    "selectedStoreReadCommitRefusalUnchanged": true
+  },
+  "reviewedAtUtc": "2026-10-18T02:42:58.949802+00:00",
+  "schemaVersion": 1,
+  "sourceBase": "3a494561b86683fab940b2ba95a3e878147f5d20",
+  "testEvidence": {
+    "allNewSelectedTests": {
+      "path": "/tmp/amt-selected-preview-complete-focused.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 29
+      },
+      "sha256": "23ff580b77b4009d91a2f9cf27280480d22867577ad36d9809c625d3308f8c34"
+    },
+    "independent": {
+      "path": "/tmp/amt-selected-preview-independent-tests.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 11
+      },
+      "sha256": "7bcece5e0a042defd517bbb6ca6750f9377e36ad93ca3f676e0cd248ec4d663e"
+    },
+    "reportingAndCaptureCompatibility": {
+      "path": "/tmp/amt-selected-preview-focused-independent.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 371
+      },
+      "sha256": "416b40eaf2aa1909ad2638107f9180dae3de15244ecd9a788b81f9d9b98a9f1e"
+    }
+  },
+  "worktree": "/private/tmp/amt-sec237-selected-preview"
+}

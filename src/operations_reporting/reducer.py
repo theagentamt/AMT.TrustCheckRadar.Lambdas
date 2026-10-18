@@ -316,3 +316,52 @@ def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_
         from .scope import SUMMARY_V2
         report.update(schemaVersion=SUMMARY_V2, sourceScope=source_scope)
     return report
+
+
+def aggregate_selected_captures(captures, *, local_day, as_of_epoch, source_scope):
+    """In-memory Dev subset only, linkable to the caller's selected test.
+
+    Reuse existing receipt-local captures and their original deadlines. This is
+    not source discovery, authentication, deletion revalidation or a report
+    store. The trusted caller must supply the current guarded snapshots; no
+    account selector, new fields, rejection totals or persistence is introduced.
+    AggregateStore continues to refuse selected_dev read/commit operations.
+    """
+    from .scope import validate_scope, ScopeFault
+    from shared_operations.projection import validate_capture
+
+    if (type(captures) is not list or len(captures) > MAX_BATCH_FACTS
+            or type(as_of_epoch) is not int or as_of_epoch < 0):
+        _fail("INVALID_ARGUMENT")
+    try:
+        scope = validate_scope(source_scope, environment="dev")
+    except ScopeFault:
+        _fail("INVALID_ARGUMENT")
+    if scope["population"] != "selected_dev":
+        _fail("INVALID_ARGUMENT")
+    events, references = [], {}
+    for raw in captures:
+        # Capture plain JSON once before the existing validator's deepcopy.
+        # This also prevents caller copy hooks or unbounded extra fields.
+        try:
+            if type(raw) is not dict:
+                raise ValueError()
+            wire = _canonical(raw)
+            if len(wire.encode("utf-8")) > 5 * MAX_FACT_BYTES:
+                raise ValueError()
+            captured = validate_capture(json.loads(wire))
+        except Exception:
+            _fail("INVALID_EVENT")
+        reference = captured["reference"]
+        if reference["environment"] != "dev":
+            _fail("ENVIRONMENT_MISMATCH")
+        if as_of_epoch < reference["acceptedAtEpoch"]:
+            _fail("INVALID_EVENT_TIME")
+        if as_of_epoch >= reference["expiresAtEpoch"]:
+            _fail("LINKAGE_EXPIRED")
+        _put_unique(references, reference["logicalCheckRef"], reference)
+        events.extend(captured["events"])
+        if len(events) > MAX_BATCH_FACTS:
+            _fail("BATCH_BOUND_EXCEEDED")
+    return aggregate_day(events, [], local_day=local_day, environment="dev",
+                         as_of_epoch=as_of_epoch, source_scope=scope)
