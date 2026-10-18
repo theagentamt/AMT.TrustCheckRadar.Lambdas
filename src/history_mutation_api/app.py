@@ -80,7 +80,12 @@ def _body(event):
         value = json.loads(raw) if isinstance(raw, str) else raw
     except (TypeError, ValueError) as err:
         raise HistoryError("INVALID_REQUEST", "The mutation body must be valid JSON.") from err
-    if not isinstance(value, dict) or set(value) != {"schemaVersion", "operationId"} or value.get("schemaVersion") != 1:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"schemaVersion", "operationId"}
+        or isinstance(value.get("schemaVersion"), bool)
+        or value.get("schemaVersion") != 1
+    ):
         raise HistoryError("INVALID_REQUEST", "The mutation body does not match the approved contract.")
     import uuid
     try:
@@ -98,7 +103,12 @@ def _bootstrap_body(event):
         value = json.loads(raw) if isinstance(raw, str) else raw
     except (TypeError, ValueError) as err:
         raise HistoryError("INVALID_REQUEST", "The bootstrap body must be valid JSON.") from err
-    if value != {"schemaVersion": 1}:
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"schemaVersion"}
+        or isinstance(value.get("schemaVersion"), bool)
+        or value.get("schemaVersion") != 1
+    ):
         raise HistoryError("INVALID_REQUEST", "The bootstrap body does not match the approved contract.")
     return value
 

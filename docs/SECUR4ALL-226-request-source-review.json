@@ -1,0 +1,82 @@
+{
+  "conclusions": [
+    "Existing JSON Schema const1 rejects JSONbooleans while treating numeric1 and1.0 as equivalent. Both parser fixes match this existing contract.",
+    "Five actual route dispatch paths tested with prior auth/account/binding/SDK substituted; invalid requests perform no service mutation. These tests do not qualify actual authorization or service behavior.",
+    "No new route, error code, governed mutation/recognition bridge, store, retention, transaction or runtime change. SEC226 remains open.",
+    "Recommendation accepted: SEC178 already approves at-most7d operational linkage for its approved purpose. A ceiling is not automatic authorization for new copies, selected-report purpose or90d pseudonymous linkage.",
+    "MinimumV1 selected validation remains noncommitting. UUID syntax/TTL do not prove unlinkability, physical erasure or trusted scope provenance.",
+    "A genuine product decision arises only for new persistent selected/per-account report meaning, purpose, fields or linkage beyond existing approval; no such choice or implementation made here."
+  ],
+  "filePins": {
+    "contracts/history/v1/api-schemas.json": "62d826a302e9d379ee322709031a9107b7c4c43c6d37e89528c768cafa496826",
+    "docs/SECUR4ALL-226-REQUEST-VALIDATION.md": "4bf5c151ce0879527f9ebcab4126c28629a50570286ea1c8464ffb4d3ebf8452",
+    "docs/SECUR4ALL-237-OPERATIONS-KERNEL.md": "862197334c4d23b46edfdff09c4492a9e2d20e4d28fe73945558891ce2f9654d",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.md": "777796f553a37432800633bb57b87a37e170f7e7e0ec330bfa077bfbc7fef0f3",
+    "src/history_mutation_api/app.py": "0a01acda216afed7febd3183eb40dc5bb92f5ea4893e687c114f09617d58d79f",
+    "tests/history_mutation_api/test_request_contract.py": "b7a91d2b2c51a832e2b30d43f82405aef87719d8bf1652982a6993bf3180748b"
+  },
+  "findings": [],
+  "independentAdversarialProbes": {
+    "actualMockedHandlerOracleCases": 238,
+    "currentBooleanRejectedBothParsers": true,
+    "oldBooleanAcceptanceActuallyReproducedBothParsers": true,
+    "path": "/tmp/amt-history-schema-independent-probes.json",
+    "rejectedWithoutServiceMutation": 210,
+    "sha256": "126a6e77501f4bd2648036b3f017d12b262d9d716e9bd236e93e36b911c561de",
+    "validServiceDispatches": 28
+  },
+  "independentTestRun": {
+    "junit": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 79
+    },
+    "passedSubtests": 3,
+    "path": "/tmp/amt-history-schema-independent-tests.xml",
+    "pytestPassed": 76,
+    "sha256": "72721cd275177c5c93897f41434f46b419ddce3e04a191ea1079eb9881b24a7f"
+  },
+  "parentFocusedRunJoined": {
+    "junit": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 135
+    },
+    "passedSubtests": 17,
+    "path": "/tmp/amt-history-schema-focused.xml",
+    "pytestPassed": 118,
+    "sha256": "8442cfa09b366f2eab89beb7be2da98c535c74b3088462371dd494c9bd7b5d1a"
+  },
+  "preservation": {
+    "allAppStatementsOutsideTwoParsersAstExact": true,
+    "contractsRequirementsWorkflowsGitByteJoins": 387,
+    "onlyProductionFileChanged": "src/history_mutation_api/app.py"
+  },
+  "remainingLimits": [
+    "Broader relevant suite was still running at this review snapshot and is not asserted passed by this record.",
+    "Physical/source-to-store/runtime/targetenvironment acceptance and governed migration/capability bridge remain unperformed.",
+    "No actual AWS, endpoints, auth/session/actor operations, device, provider, runtime, purchase or Git publication actions by reviewer."
+  ],
+  "result": "PASS_SOURCE_ONLY_EXISTING_HISTORY_REQUEST_CONTRACT",
+  "retainedQualityRecord": {
+    "path": "/tmp/amt-history-schema-quality.json",
+    "sha256": "6800ab175f7121f1b5dbb6f57e20e3ca50765b8de0df2bb65b9221690d83f1c2"
+  },
+  "reviewedAtUtc": "2026-10-18T02:30:08.812733+00:00",
+  "schemaVersion": 1,
+  "sourceBase": "3f0648fe0fbdc19d987d22adcf60964fa44fbec0",
+  "sourceInspectionArchive": {
+    "allPythonMembersParse": true,
+    "changedAppMemberBytesExact": [
+      "app.py"
+    ],
+    "dependenciesIncluded": false,
+    "deployableQualified": false,
+    "members": 8,
+    "path": "/tmp/amt-history-schema-package/history_mutation_api.zip",
+    "sha256": "5a7907704dc5eef54ebf3a7289a7ac031227f23ccf10eb8682d5d0ce39327124"
+  },
+  "worktree": "/private/tmp/amt-history-mutation-schema-guard"
+}
