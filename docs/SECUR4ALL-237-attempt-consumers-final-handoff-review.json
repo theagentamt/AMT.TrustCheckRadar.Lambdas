@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T01:52:12.299440+00:00",
+  "outcome": "PASS_RECEIPT_BOUND_CONSUMER_ATTEMPT_HANDOFF_SOURCE_ONLY",
+  "filePins": {
+    "docs/SECUR4ALL-237-ATTEMPT-CONSUMERS.md": "13ec648d19bf23badbb2a5beeb52b8922ff4cf68f8541624986785fae877e3c4",
+    "docs/SECUR4ALL-237-ATTEMPT-CONSUMERS.json": "373a19677746ebdfb08ef24a26bb4f5a0ec91b58c0c35d689b48a0e8b8b31b84",
+    "docs/SECUR4ALL-237-ATTEMPT-CONSUMER-DEPENDENCIES.json": "a8fc308f7437a1c0bda0ff47a04758175c06b8d0dfe1e6de5db4b9e2ad57ecf7",
+    "docs/SECUR4ALL-237-attempt-consumers-source-independent-review.json": "9e9aed1f50316e8f1c11f93e9d3b7ba60e605a9d0ad1513e987fd966df3586e3"
+  },
+  "sourceReviewSha256": "9e9aed1f50316e8f1c11f93e9d3b7ba60e605a9d0ad1513e987fd966df3586e3",
+  "offlineQuality": {
+    "path": "/tmp/amt-sec237-attempt-consumers-offline-quality.json",
+    "sha256": "d25fd1ff5eba16b74d65194fb8c69bdb11f9ce79168e7d36b1ef732b2f1e945a",
+    "parentCompletedSocketBlockedAuthorityImports": 13,
+    "packageNamesJoinCurrentManifest": true,
+    "nativeArm64Qualified": false,
+    "independentImportRerun": false
+  },
+  "validation": {
+    "sourceTestDocPins": 10,
+    "protectedSourceRequirementsHistoryWorkflowByteJoins": 33,
+    "reportedFullJUnitIncludingSubtests": 1941,
+    "pytestFullPassed": 1920,
+    "passedSubtests": 21,
+    "fullFailErrorSkip": 0,
+    "fullPytestSeconds": 119.24,
+    "independentCases": 16,
+    "independentAlreadyCollectedInFull": 4,
+    "independentAdditionalSeparatelyPassed": 12,
+    "currentIndependentFocusedCases": 68,
+    "actualArchiveCheckerRerunOffline": 15,
+    "authorityCarriers": 13,
+    "sourcePins": 146,
+    "contractPins": 158,
+    "requirementsPins": 11,
+    "sourceMemberByteJoins": 756,
+    "contractMemberByteJoins": 650,
+    "frozenAndroidReadinessFilesUnchanged": 2
+  },
+  "claimsReviewed": [
+    "Source R1 actual invocation-entry timing and R2 enabled rules-only late-budget corrections are accurately retained as static findings fixed before independent execution; parent initial misplaced message completion failure is distinguished.",
+    "Consumer wiring covers actual newly admitted top-level internal invocation/result validation under default-off producer flag. It is not vendor dispatch/cost, complete report coverage or activation.",
+    "Opaque exact-identity once ticket remains private to request, bound to current authority/owner/proof/execution/binding/scope; malformed/unknown/duplicate input cannot remint/replay or alter authoritative charge.",
+    "Corrected privacy prose distinguishes in-memory private owner/proof/token/request-scope/timing identity from intentionally stored opaque attemptRef and approved finite event context.",
+    "Budget/time guards only reduce original provider budget; late/no invocation leaves an awaiting finish rather than fictional failed invocation. Default-off original clock/budget/provider arguments remain tested.",
+    "Unknown acknowledgements have no new adapter retry/redispatch; existing validated lifecycle capture and current owner/deletion/source CAS protect finish while preserving business result. No hard synchronous SDK or enabled latency/availability parity is claimed.",
+    "Costs/units/provider family remain NULL; one internal envelope does not implement subattempts, actual provider HTTP/units/rates, crash/missing-finish recovery or assembled report delivery.",
+    "Fifteen current skip-dependency archives join13compatible authority carriers and two evaluator dependencies. Historical manifests, requirements, CI/publishing and SEC198 packet are unchanged; actual native artifacts/rollout/IAM/cost/backup/Dev remain open.",
+    "SEC198 owner availability answer remains pending; neither earlier failclosed proposal nor new parent warning/continue suggestion is implemented or selected by this reporting batch.",
+    "SEC237 remains In Progress, frozen Android readbacks unchanged, no real service/auth/device/financial/runtime/main activity attributed to this source batch."
+  ],
+  "resolvedHandoffFinding": {
+    "finding": "Draft implied all ticket fields absent from projection despite intentionally persisted attempt reference/context.",
+    "resolution": "Final prose now explicitly separates private in-memory identity/proof context from approved persisted opaque reference and finite event facts.",
+    "sourceChangeRequired": false
+  },
+  "limits": [
+    "Final review is local exact source/doc/artifact/retained result verification only; no full suite rerun, AWS, endpoint, auth, provider, emulator, runtime or Git publication.",
+    "Full gate reported1941including21subtests; four independent cases overlap full collection and twelve separately passed, not sixteen added to the full count.",
+    "Retained host import metadata is joined and explicitly source-only; no independent native runtime or synchronous completion guarantee.",
+    "Separate final review record avoids self-referential hashes. Parent must run normal staged scan after adding this record before commit.",
+    "This PASS does not complete SEC237, authorize producer activation, update SEC198 policy, or replace actual selected Dev/cost/delivery/release acceptance."
+  ],
+  "blockers": []
+}
