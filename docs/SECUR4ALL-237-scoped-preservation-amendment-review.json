@@ -1,0 +1,44 @@
+{
+  "filePins": {
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "bd844ea6277ac1e8b19896d64b267874c05d2f71b6280e574355685fcee3a7c0",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.md": "777796f553a37432800633bb57b87a37e170f7e7e0ec330bfa077bfbc7fef0f3",
+    "src/operations_reporting/reducer.py": "a1589d500eea9fe30032d191cf0080b6057ea536984e52cd9274905fb82b2b26",
+    "src/operations_reporting/revisions.py": "776fabc79a3f4c97d5a208e6ba5234923351f5f68eb9c6a7dbae7f9ec76aff92",
+    "src/operations_reporting/scope.py": "63733bdca47a47f0c1808066769eaf0539b5bc05129acbf070bb6c6aad6c5a35",
+    "src/operations_reporting/store.py": "02f7fdb2a3ac3f2e862165f7bffdb82f993599ee0062ccd7c1f3a665f6684941",
+    "tests/governed_history/test_release_preservation.py": "194979927f837bc52afedea79507ab6291b0f2199eec0654b89a2fd01b477f50",
+    "tests/operations_reporting/test_scoped_store.py": "ec4722c267fc29fbcd5e75af882c4d15949b81ff3e7c6e85f5c51e2a9f9abd3e",
+    "tests/operations_reporting/test_scoped_store_independent.py": "15c3787c22cc910cf89280720ce3ae2efa70d338313a6465405459b900119767"
+  },
+  "findings": [],
+  "limits": [
+    "Source-only/mock_aws tests, no actual services/auth/runtime/device calls.",
+    "Does not qualify selected scope persistence, stable trusted configuration, runtime coverage or full SEC237 completion."
+  ],
+  "outcome": "PASS_TEST_ONLY_LEGACY_PRESERVATION_AMENDMENT",
+  "priorSourceReview": {
+    "path": "/tmp/amt-sec237-scoped-aggregation-independent-review.json",
+    "sha256": "a45111b4a711e63b9f4ab1716e5f4ce124e6287c07d1369924704fc6e69c7902"
+  },
+  "review": {
+    "exactLegacyRelease": "29138fffefe06a398ffb224d0de3cda42d7f73a4",
+    "handoff": "Current MD explicitly retains initial two obsolete preservation assertion failures, exact fixed-base six-case comparison, untouched other fences, selected persistence refused, no discovery or deployment and SEC237 remains In Progress.",
+    "independentImmediateBase": "762184b5a32847cfae0a9798a1b35f0a6ed24c35",
+    "newContractComparison": "Actual isolated old package vs current: nonempty/empty/deduplicated report+CREATE_REVISION+NO_CHANGE; invalid environment/invalid clock/private extension exact finite errors. Six cases independently inspected and run, excluding vacuous identical failures.",
+    "supersedes": "Prior review independent-test SHA only is superseded by this immutable baseline pin amendment; production-source PASS remains exact.",
+    "unchangedFences": "Auth diagnostic/transaction function AST checks, all other billing/publication byte/AST checks unchanged. Only authorized scoped reducer/revisions preservation branch replaced obsolete whole-file equality."
+  },
+  "reviewedAtUtc": "2026-10-18T02:16:08.420110+00:00",
+  "schemaVersion": 1,
+  "sourceUnchanged": true,
+  "testEvidence": {
+    "path": "/tmp/amt-sec237-scoped-preservation-independent-recheck.xml",
+    "result": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 274
+    },
+    "sha256": "d8171af06475b53e83100f2ba8a5e0d534a50c5e6b1464c50e4928872ddb8575"
+  }
+}

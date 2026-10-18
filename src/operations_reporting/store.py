@@ -13,6 +13,7 @@ import re
 from botocore.exceptions import ClientError
 
 from .reducer import CORRECTION_SECONDS, ProjectionFault, day_bounds
+from .scope import SUMMARY_V2, validate_scope, ScopeFault
 from .revisions import (
     MAX_RECORD_BYTES, RETENTION_SECONDS, RevisionFault, plan_revision,
     validate_revision, validate_summary,
@@ -22,7 +23,7 @@ from .revisions import (
 _CODES = frozenset({
     "INVALID_CONFIGURATION", "INVALID_INPUT", "CLOCK_UNAVAILABLE",
     "READ_UNAVAILABLE", "INVALID_STORED_RECORD", "CONDITIONAL_CONFLICT",
-    "WRITE_OUTCOME_UNKNOWN", "CORRECTION_WINDOW_CLOSED", "AGGREGATE_EXPIRED",
+    "WRITE_OUTCOME_UNKNOWN", "CORRECTION_WINDOW_CLOSED", "AGGREGATE_EXPIRED", "SCOPE_MISMATCH", "SCOPE_UNQUALIFIED",
 })
 
 
@@ -76,7 +77,7 @@ def _conditional_failure(error):
 
 
 class AggregateStore:
-    def __init__(self, client, table_name, *, environment, now):
+    def __init__(self, client, table_name, *, environment, now, source_scope=None):
         try:
             valid = (type(table_name) is str and re.fullmatch(r"[A-Za-z0-9_.-]{3,255}", table_name)
                      and environment in ("dev", "uat", "prod") and callable(now)
@@ -85,8 +86,21 @@ class AggregateStore:
             valid = False
         if not valid:
             _fail("INVALID_CONFIGURATION")
+        try:
+            self._report_scope = None if source_scope is None else validate_scope(source_scope, environment=environment)
+        except ScopeFault:
+            _fail('INVALID_CONFIGURATION')
         self.client, self.table_name = client, table_name
         self.environment, self.now = environment, now
+
+    @property
+    def source_scope(self):
+        from copy import deepcopy
+        return deepcopy(self._report_scope)
+
+    def _scope_matches(self, report):
+        return (report.get('sourceScope') == self._report_scope
+                and (report.get('schemaVersion') == SUMMARY_V2) == (self._report_scope is not None))
 
     def _clock(self):
         try:
@@ -102,7 +116,10 @@ class AggregateStore:
             start, _ = day_bounds(local_date)
         except (ProjectionFault, TypeError, ValueError):
             _fail("INVALID_INPUT")
-        return f"OPS_AGGREGATE#{self.environment}#{local_date}", start
+        if self._report_scope is None:
+            return f"OPS_AGGREGATE#{self.environment}#{local_date}", start
+        scope = self._report_scope
+        return f"OPS_AGGREGATE_V2#{self.environment}#{scope['population']}#{scope['generation']}#{local_date}", start
 
     def _get(self, pk, sk):
         try:
@@ -157,12 +174,14 @@ class AggregateStore:
         if (record["revision"] != revision or record["recordSha256"] != digest
                 or record["expiresAtEpoch"] != expiry
                 or record["report"]["environment"] != self.environment
-                or record["report"]["localDate"] != local_date):
+                or record["report"]["localDate"] != local_date or not self._scope_matches(record['report'])):
             _fail("INVALID_STORED_RECORD")
         return {"state": "PRESENT", "record": record}
 
     def read(self, local_date):
         """Strong head read plus immutable revision read; expired is never zero."""
+        if self._report_scope is not None and self._report_scope['population'] == 'selected_dev':
+            _fail('SCOPE_UNQUALIFIED')
         observed = self._clock()
         result = self._read(local_date, observed)
         finished = self._clock()
@@ -184,6 +203,13 @@ class AggregateStore:
             _fail("INVALID_INPUT")
         if report["environment"] != self.environment:
             _fail("INVALID_INPUT")
+        if not self._scope_matches(report):
+            _fail('SCOPE_MISMATCH')
+        # No lasting selected-actor pseudonym or asserted-scope bypass.
+        # Scope generation/selection provenance and unlinkability are not
+        # established by a syntactically valid UUID or by this store.
+        if self._report_scope is not None and self._report_scope['population'] == 'selected_dev':
+            _fail('SCOPE_UNQUALIFIED')
         observed = self._clock()
         pk, start = self._scope(report["localDate"])
         if observed >= start + RETENTION_SECONDS:

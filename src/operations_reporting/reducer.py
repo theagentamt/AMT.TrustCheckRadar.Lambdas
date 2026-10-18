@@ -131,7 +131,7 @@ def reconcile_rejection_snapshot(previous, incoming):
     return new
 
 
-def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_epoch):
+def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_epoch, source_scope=None):
     """Calculate one bounded, in-window cohort; never declare live completeness.
 
     Exact replay is a no-op. Conflicting same-phase facts abort the calculation,
@@ -152,6 +152,10 @@ def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_
     if as_of_epoch >= start + CORRECTION_SECONDS:
         _fail("CORRECTION_WINDOW_CLOSED")
 
+    if source_scope is not None:
+        from .scope import validate_scope, ScopeFault
+        try: source_scope = validate_scope(source_scope, environment=environment)
+        except ScopeFault: _fail("INVALID_ARGUMENT")
     ids, checks, attempts = {}, {}, {}
     for raw in events:
         event = _validated(raw, _EVENT, "INVALID_EVENT")
@@ -286,7 +290,7 @@ def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_
     settled = {outcome: sum(s["settled"][outcome] for s in service_counts.values()) for outcome in OUTCOMES}
     accepted_total = sum(s["accepted"] for s in service_counts.values())
     pending = sum(s["pending"] for s in service_counts.values())
-    return {
+    report = {
         "schemaVersion": "1.0.0-operations-summary-candidate.1",
         "environment": environment, "trafficClass": "customer",
         "localDate": local_day, "timezone": TIMEZONE,
@@ -307,3 +311,8 @@ def aggregate_day(events, rejection_snapshots, *, local_day, environment, as_of_
                                "attemptWithoutAccepted": missing_attempt_accepted},
         "deliveryPerformed": False,
     }
+
+    if source_scope is not None:
+        from .scope import SUMMARY_V2
+        report.update(schemaVersion=SUMMARY_V2, sourceScope=source_scope)
+    return report

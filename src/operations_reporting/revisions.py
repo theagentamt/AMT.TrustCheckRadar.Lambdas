@@ -13,6 +13,8 @@ from zoneinfo import ZoneInfo
 
 from jsonschema import Draft202012Validator
 
+from .scope import SUMMARY_V2, REVISION_V2, SCOPE_SCHEMA, validate_scope, ScopeFault
+
 from .reducer import (
     ACCESS_CLASSES, CORRECTION_SECONDS, OUTCOMES, PROVIDERS, SERVICES,
     TIMEZONE, ProjectionFault, day_bounds,
@@ -89,6 +91,11 @@ SUMMARY_SCHEMA = _object({
     "deliveryPerformed": {"const": False},
 })
 _SUMMARY = Draft202012Validator(SUMMARY_SCHEMA)
+SCOPED_SUMMARY_SCHEMA = deepcopy(SUMMARY_SCHEMA)
+SCOPED_SUMMARY_SCHEMA['properties']['schemaVersion'] = {'const': SUMMARY_V2}
+SCOPED_SUMMARY_SCHEMA['properties']['sourceScope'] = deepcopy(SCOPE_SCHEMA)
+SCOPED_SUMMARY_SCHEMA['required'].append('sourceScope')
+_SCOPED_SUMMARY = Draft202012Validator(SCOPED_SUMMARY_SCHEMA)
 _STAT_FIELDS = ("accepted", "pending", "settled", "byService", "byAccessClass", "terminalReasons",
                 "providerAttemptsByFamily", "internalAttempts", "requestRejectionsByService", "reconciliationGaps")
 
@@ -116,7 +123,11 @@ def _validated(value, validator, code):
 
 def validate_summary(summary):
     """Reject extensions and inconsistent denominators before persistence."""
-    value = _validated(summary, _SUMMARY, "INVALID_SUMMARY")
+    scoped = type(summary) is dict and summary.get('schemaVersion') == SUMMARY_V2
+    value = _validated(summary, _SCOPED_SUMMARY if scoped else _SUMMARY, "INVALID_SUMMARY")
+    if scoped:
+        try: value['sourceScope'] = validate_scope(value['sourceScope'], environment=value['environment'])
+        except ScopeFault: _fail('INVALID_SUMMARY')
     try:
         start, end = day_bounds(value["localDate"])
     except ProjectionFault:
@@ -202,6 +213,10 @@ _REVISION_SCHEMA = _object({
     "numericDelta": _object({p: {"type": "integer", "minimum": -(10**13), "maximum": 10**13} for p in _PATHS}, False),
 })
 _REVISION = Draft202012Validator(_REVISION_SCHEMA)
+_SCOPED_REVISION_SCHEMA = deepcopy(_REVISION_SCHEMA)
+_SCOPED_REVISION_SCHEMA['properties']['schemaVersion'] = {'const': REVISION_V2}
+_SCOPED_REVISION_SCHEMA['properties']['report'] = SCOPED_SUMMARY_SCHEMA
+_SCOPED_REVISION = Draft202012Validator(_SCOPED_REVISION_SCHEMA)
 
 
 def _content(report):
@@ -230,7 +245,8 @@ def _date(epoch):
 
 
 def _prior(record):
-    old = _validated(record, _REVISION, "INVALID_PREVIOUS_REVISION")
+    scoped = type(record) is dict and record.get('schemaVersion') == REVISION_V2
+    old = _validated(record, _SCOPED_REVISION if scoped else _REVISION, "INVALID_PREVIOUS_REVISION")
     try:
         normalized = validate_summary(old["report"])
     except RevisionFault:
@@ -270,7 +286,8 @@ def plan_revision(previous, summary, *, generated_at_epoch):
     old = None if previous is None else _prior(previous)
     if old is not None:
         before = old["report"]
-        if any(before[k] != report[k] for k in ("environment", "localDate", "windowStartEpoch", "windowEndEpoch")):
+        if (before.get('sourceScope') != report.get('sourceScope')
+                or any(before[k] != report[k] for k in ("environment", "localDate", "windowStartEpoch", "windowEndEpoch"))):
             _fail("INVALID_PREVIOUS_REVISION")
         if report["asOfEpoch"] < before["asOfEpoch"] or generated_at_epoch < old["generatedAtEpoch"]:
             _fail("STALE_SNAPSHOT")
@@ -292,7 +309,7 @@ def plan_revision(previous, summary, *, generated_at_epoch):
             _fail("REVISION_EXHAUSTED")
     previous_report = {} if old is None else old["report"]
     record = {
-        "schemaVersion": "1.0.0-operations-revision-candidate.1",
+        "schemaVersion": REVISION_V2 if report['schemaVersion'] == SUMMARY_V2 else "1.0.0-operations-revision-candidate.1",
         "revision": 1 if old is None else old["revision"] + 1,
         "report": report, "reportSha256": _sha(report),
         "previousRecordSha256": None if old is None else old["recordSha256"],

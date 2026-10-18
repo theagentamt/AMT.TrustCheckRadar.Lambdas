@@ -1,0 +1,63 @@
+{
+  "baseCommit": "762184b5a32847cfae0a9798a1b35f0a6ed24c35",
+  "checks": [
+    "Closed primitive scope validation and exact coverage/population pairing; scope descriptor copied and cannot retarget through input or public property aliases.",
+    "Distinct environment/population/generation/date candidate2 namespace; legacy namespace and closed candidate1 summary/revision contract unchanged.",
+    "Scope mismatches fail before storage; validly rehashed other-scope or legacy records under scoped keys rejected; mixed revision/report versions rejected.",
+    "Both selected_dev read and commit always refuse SCOPE_UNQUALIFIED before clock/read/write; no override or selected runner introduced.",
+    "Existing conditional append/head atomicity, single application write, unknown-ACK reconciliation, fixed original90d expiry and7d correction fences exercised.",
+    "Docs and completion checklist keep SEC237 In Progress, selected execution stopped, unqualified source completeness explicit, SEC198 separately held."
+  ],
+  "combinedReportingTests": {
+    "path": "/tmp/amt-sec237-scoped-reporting-tests.xml",
+    "result": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 251
+    },
+    "sha256": "606cc55b4d2e0bf0f53736bdb4de246f31ce965d67c786cfe392312d47c5659e"
+  },
+  "filePins": {
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "bd844ea6277ac1e8b19896d64b267874c05d2f71b6280e574355685fcee3a7c0",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.md": "37657dcd00cdc435e1c8d55b7574b874b3866fc4005ebde4582b4985a82fe4b3",
+    "src/operations_reporting/reducer.py": "a1589d500eea9fe30032d191cf0080b6057ea536984e52cd9274905fb82b2b26",
+    "src/operations_reporting/revisions.py": "776fabc79a3f4c97d5a208e6ba5234923351f5f68eb9c6a7dbae7f9ec76aff92",
+    "src/operations_reporting/scope.py": "63733bdca47a47f0c1808066769eaf0539b5bc05129acbf070bb6c6aad6c5a35",
+    "src/operations_reporting/store.py": "02f7fdb2a3ac3f2e862165f7bffdb82f993599ee0062ccd7c1f3a665f6684941",
+    "tests/operations_reporting/test_scoped_store.py": "ec4722c267fc29fbcd5e75af882c4d15949b81ff3e7c6e85f5c51e2a9f9abd3e",
+    "tests/operations_reporting/test_scoped_store_independent.py": "58070a6c534867a713e4404a8ca7fdf28f6fe317ba9c56715caa8d14d66529b5"
+  },
+  "findings": [],
+  "independentTests": {
+    "path": "/tmp/amt-sec237-scoped-independent-tests.xml",
+    "result": {
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 15
+    },
+    "sha256": "8816a13d9ade19053c87f9c0f0b8975cc82fb01a3a53bbe768277a10d46f425c"
+  },
+  "limits": [
+    "UUID format and in-memory scope capture do not authenticate source configuration or prove historical population stability.",
+    "Environment-scoped persistence assumes reviewed trusted stable nonpersonal source configuration; a selected scan must never be mislabeled environment_customer.",
+    "Same-generation actor-swap remains a warning; no selected account-to-generation join or approved90d pseudonym retention is established.",
+    "No discovery runner, source-to-aggregate deletion/expiry preservation guarantee, runtime coverage, deployment, scheduler, delivery, IAM, physical TTL or backup qualification.",
+    "Local mock_aws only; reviewer made no actual AWS, API, auth, device, runtime, Git publication or service call."
+  ],
+  "outcome": "PASS_SOURCE_ONLY_SELECTED_PERSISTENCE_REFUSED",
+  "preservation": {
+    "existingSourceEdits": [
+      "src/operations_reporting/reducer.py",
+      "src/operations_reporting/revisions.py",
+      "src/operations_reporting/store.py"
+    ],
+    "legacySummaryAndFirstRevisionMatchExactBaseExecution": true,
+    "newSource": "src/operations_reporting/scope.py",
+    "trackedSrcScriptsGithubUnchangedExcludingReviewedExistingThree": 345
+  },
+  "reviewedAtUtc": "2026-10-18T02:13:38.589956+00:00",
+  "schemaVersion": 1,
+  "worktree": "/tmp/amt-sec237-scoped-aggregation"
+}

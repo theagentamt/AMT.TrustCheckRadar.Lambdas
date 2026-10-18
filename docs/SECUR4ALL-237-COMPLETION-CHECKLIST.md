@@ -27,3 +27,9 @@ report facts. Activation/deployment and actual delivery remain separately gated.
 Any need for new linkable storage, retention, collection, recipient, rate/dollar
 budget or broader actor scope must be surfaced before implementation. SEC198 is
 independent and remains held pending the parent's owner policy answer.
+
+Scoped source follow-up: [versioned aggregate isolation](SECUR4ALL-237-SCOPED-AGGREGATES.md) separates candidate2 namespaces, binds revisions to exact scope
+and refuses selected-Dev storage before I/O. This does not qualify a selected
+account-to-generation join as unlinkable or authorize its90-day retention.
+Selected execution remains noncommitting until that precise privacy/provenance
+boundary is resolved; no subset may be relabeled an environment total.
