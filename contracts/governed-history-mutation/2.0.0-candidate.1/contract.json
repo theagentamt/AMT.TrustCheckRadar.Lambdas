@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "transportVersion": "2.0.0-governed-history-mutation-candidate.1",
+  "status": "TECHNICAL_CONTRACT_DRAFT_POLICY_BLOCKED",
+  "executionAuthorized": false,
+  "productionImplementationAdded": false,
+  "existingContractsModified": false,
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/v1/users/history/bootstrap",
+      "requestSchemas": [
+        "bootstrapInspect",
+        "bootstrapPrepare",
+        "bootstrapStartFresh"
+      ],
+      "meaning": "Inspect state/status; prepare expiring source-free intent authorization; explicit authorized StartFresh. No automatic state creation."
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/users/history/{requestId}",
+      "requestSchemas": [
+        "mutationRequest"
+      ],
+      "meaning": "Body family/version explicitly selects governed resultId; canonical owned gh1 result only, never lexical legacy conversion."
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/users/history",
+      "requestSchemas": [
+        "mutationRequest"
+      ],
+      "meaning": "Clear governed projections by authoritative state transition, not enumeration snapshot."
+    }
+  ],
+  "compatibility": {
+    "legacyV1": "Unchanged exact routes/body/response. Never route by ID prefix. Reject unsupported explicit versions before SDK writes. No progress/reset/export scope added.",
+    "governedReads": "Existing governed item/read wire unchanged in this draft; readers and all receipt-summary replay producers MUST gain internal state fences before mutation activation. Coordinated Android client must inspect state before cache reuse and tag/drop stale asynchronous responses. No old-client invalidation success claimed.",
+    "newApiPaths": [],
+    "newQueryParameters": [],
+    "newHeaders": [],
+    "recognitionEnabled": false
+  },
+  "identity": {
+    "source": "validated unexpired Cognito access-token subject only",
+    "device": "current active pointer version/fingerprint and owned ACTIVE binding",
+    "account": "ACTIVE adult profile, deletion ledger absent, verified complete retained HMAC key inventory",
+    "subscriptionRequired": false,
+    "atomicFences": "Exact current inventory/profile/deletion/pointer/binding/control/receipt/operation intent snapshot as applicable; acknowledged strong reads, one no-auto-retry SDK write attempt."
+  },
+  "stateIdentity": {
+    "incarnation": "fresh random128-bit lowercase hex; never reused on fresh state or restore",
+    "generation": "nonnegative monotonic integer per account/incarnation; no wrap or client-time ordering",
+    "missing": "UNAVAILABLE; never infer original generation0, lawful expiry or erasure success",
+    "expiry": "Expired state cannot authorize ordinary read/admission/delete/clear. It may only be replaced by explicitly approved StartFresh after exact supported expired-state/identity/inventory checks. Retirement needs original deadline/job proof; missing never inferred generation0. Valid live control cannot be StartFresh-replaced.",
+    "restore": "Externally authoritative restore epoch outside restored resources; gates closed, old handlers drained, all old incarnations/proofs/cursors/caches/summary replay invalidated before any reopening.",
+    "capture": "Restore incarnation + account incarnation + generation + controlKeyId, never only an integer."
+  },
+  "atomicTransitions": {
+    "admit": [
+      "Read current live control, current auth fences and funding separately.",
+      "Transaction captures exact incarnation+generation on authoritative check receipt, conditions same control version, and extends bounded control hold for NEW admission only. Existing quota/accounting reservation transaction remains atomic."
+    ],
+    "settle": [
+      "Use admitted cryptographic proof/execution owner and settle accounting at most once.",
+      "Transaction conditions SAME captured current control used to decide projection. Current incarnation/generation may write governedHistory AND resultSummary; stale/missing state writes neither copy, records only fixed disposition, preserving accounting/outcome/expiry.",
+      "On clear/control race reread and select suppression branch with bounded CAS retry; never rerun evaluator/provider or reserve/charge twice. Duplicate SETTLED never reconstructs assessment."
+    ],
+    "deleteOne": [
+      "Resolve owned canonical settled result and both five-field copies; bind exact result identity/proof/accounting and current control/auth.",
+      "ONE transaction removes the five assessment/index fields, sets fixed ERASED disposition on existing receipt, and conditionally creates owner-scoped operation receipt. No upsert, accounting/proof/TTL/operations changes."
+    ],
+    "clear": [
+      "ONE transaction CAS increments current History generation, creates immutable owner/intent-bound operation receipt and purge job covering prior state. An expired lease may not execute; check final deadline before enqueue.",
+      "All governed reads AND core reconcile/consumer/worker cached summary replay filter current control immediately; asynchronous physical purge is separate <=24h obligation.",
+      "Both settlement-before-clear and clear-before-settlement leave old History excluded and accounting unchanged. New-generation admissions remain eligible.",
+      "Purge uses bounded strongly consistent canonical owner-partition CHECK-range traversal across complete retained-key inventory. GSI empty pages are not absence evidence. Each removal checks captured old state/result identity and never removes current-generation admissions; unfinished/unknown records keep completion unqualified."
+    ],
+    "startFresh": [
+      "Only separately approved explicit customer StartFresh with a fresh server-issued lease, for ABSENT control or an exact supported control whose hold has logically expired. Valid live control, malformed/duplicate state and unqualified restore-incompatible state are refused; ordinary live invalidation uses clear.",
+      "ONE transaction checks current ABSENT or exact expected state, current identity/inventory/deletion, creates NEW random incarnation with generation0 and original op receipt/purge job.",
+      "Suppress/purge ALL other or missing incarnations including restored old rows and proofs; do not rewrite them into current generation. Accounting dedup/charged usage remains independent."
+    ],
+    "read": [
+      "Canonical receipt+control must be read atomically or by equivalent verified snapshot/final fence; stale GSI/cursor is discovery only.",
+      "Every public summary path filters ERASED, wrong/missing/expired incarnation/generation and original expiry. A response already linearized/in flight cannot be recalled; Android drops responses tagged before known invalidation.",
+      "Before showing caches on reconnect, inspect current state. Offline devices cannot promise immediate remote erasure."
+    ]
+  },
+  "operations": {
+    "key": "owner-HMAC partition plus operation UUID and explicit governed family; never client owner selector",
+    "intent": "version/family/action/target-result binding/original expected state + server-issued UUID/lease binding; purpose-separated intent HMAC, no submitted content",
+    "firstCommit": "Conditional receipt absence and all state/target fences in SAME transaction as effects; response immutable original commit time/state.",
+    "sameOperationWithinWindow": "Exact original intent returns original immutable committed result; changed intent conflicts. Current auth/owner/deletion still required.",
+    "afterWindow": "No lifetime UUID registry. Original expired intentLease cannot execute even if state/receipt missing; identical old clear also has stale expected state. New intentional operation requires explicit prepare, NEW server-issued UUID/nonce and current state. No reissued old UUID under fresh lease.",
+    "unknownCommit": "Strong read exact owner/UUID/family receipt and intent. Exact receipt proves logical commit only; unreadable/absent/unacknowledged is UNRESOLVED, not success or fresh-ID retry. A later same-intent transaction can only win conditional receipt absence; original expected state prevents re-clear.",
+    "response": "schemaVersion2/family/operationId/action/commitTime/committedHistoryState/invalidationStatus=COMMITTED/purgeStatusAtCommit=PENDING|COMPLETE/purgeDueAtEpoch. It never calls physical cleanup COMPLETE merely because invalidation committed. Inspect returns separately timestamped current purge status; original retry response does not change.",
+    "intentLease": {
+      "issuedBy": "Existing bootstrap route explicit schema2 prepare; server generates NEW UUIDv4 operationId and fresh nonce, client cannot choose/reissue old operationId.",
+      "leaseSeconds": 600,
+      "signedBindings": [
+        "key version",
+        "nonce",
+        "original issued/expiry epoch",
+        "server-issued operation UUID",
+        "governed family/action",
+        "target result HMAC or absence",
+        "original expected incarnation/generation or explicit ABSENT",
+        "current external restore incarnation",
+        "authenticated owner/device pointer version/fingerprint and inventory revision via purpose-separated MAC"
+      ],
+      "retainedAtIssue": false,
+      "checks": "At dispatch freshly reauthorize, verify MAC/bindings/fixed original expiry and exact expected state. No authz from a supplied lease alone.",
+      "expired": "May verify old MAC solely to read exact committed same-intent receipt within its7day window. Missing/expired receipt or expired lease without committed evidence means CONFLICT/UNRESOLVED, never new execution.",
+      "lostIssueResponse": "No mutation has occurred. A new explicit prepare generates a different logical operation; never run both responses. No server issue-side accounting/content write.",
+      "keyRotation": "Retained original signing/intent key version must remain verified/available through the live7day operation-receipt window, not only the600second execution lease. Unavailable key means unresolved/refused; never re-sign/reissue oldUUID or reconstruct success. Key retirement/restore requires separately qualified inventory; no automatic key-retention permission."
+    },
+    "responseSchemaVersion": "Existing response types are not silently reused; full V2 response field contract specified here is a draft and must be shipped with coordinated Android strict decoder before activation."
+  },
+  "erasedReplay": "Within original accounting receipt lifetime return existing versioned envelope with accounting but no outcome and current generic unavailable mapping; do not invent current public erased code. Mutation response explicitly differentiates committed invalidation from purge; future consumer UI refinement requires its own versioned schema before adding new public codes.",
+  "generationDomains": "History generation does not reset recognition; recognition reset does not clear History. No points/quota/cash/campaign effects or historical backfill.",
+  "cutover": "Fail closed until every serving writer/read/reconcile/summary/cache path is covered. Existing rows without capture are unqualified; no inferred generation0/backfill. Drain original windows or separately reviewed explicit StartFresh/migration under closed gates.",
+  "controlLocation": {
+    "stateKey": "Existing authority table owned V1#<retainedKeyId>#<accountHMAC> / GOVERNED#STATE",
+    "operationKey": "Same selected control partition / GOVERNED#MUTATION#<serverUUID>; purge job GOVERNED#ERASURE#<serverUUID>",
+    "resolver": "Acknowledged strong GetItem exact state key under EVERY retained HMAC key in verified inventory. Exactly one supported canonical state allowed; duplicates/malformed/unknown fail closed. Missing is not current generation0.",
+    "keyRotation": "Keep existing control at its original retained controlKeyId until qualified retirement. New admissions may use active check key but MUST capture/reference SAME canonical controlKeyId/incarnation/generation. No second state silently created on active-key rotation; no move/redirect record introduced.",
+    "creation": "Explicit approved StartFresh requires exact prior-state CAS or state-absence conditions under ALL retained keys, plus exact inventory revision/keyset, in SAME transaction as one new state/op receipt/job.",
+    "bounds": "Candidate requires <=16 retained control key versions and <=100 transaction actions, <=4MiB payload and <=4KiB each condition; exceeding a bound refuses activation/operation, never splits safety fence or truncates inventory. No actual inventory cardinality claimed.",
+    "retirement": "Control key remains verified/available for current state hold, operation receipts and qualified purge/account deletion. Key removal cannot strand owned data; no automatic retirement or extended-key authorization."
+  },
+  "purgeWorker": {
+    "scope": "Trusted lifecycle worker consumes only immutable job originally committed with current customer authorization; no public account-targeted event or new owner locator. Job stores owned HMAC partition/inventory binding, not raw subject.",
+    "continuity": "Device move/session expiry/subscription loss cannot cancel already committed erasure. Background purge does not require original device to remain active or create new grants/identity. Global account deletion independently derives all retained owned partitions and removes controls/jobs through existing authority inventory.",
+    "atomicRemoval": "Each candidate removal requires exact existing canonical receipt/job/verified inventory and exact observed CURRENT control to prove result is logically excluded. Protect actual current incarnation/generation, including incarnations created after an older StartFresh job; never compare random incarnation strings for ordering.",
+    "laterControlChange": "A control race cancels the CAS and rereads. An earlier purge may remove an assessment subsequently invalidated by a newer explicit clear, but never a currently valid assessment. Completion uses bounded complete canonical traversal plus unchanged scope/control fence, not empty GSI.",
+    "noResurrection": "Only conditional REMOVE/update-existing/delete actions. Never recreate missing receipt, control, job or operation receipt after account cleanup or operation TTL. Missing/malformed commit evidence stays unresolved unless exact acknowledged absence/completion contract establishes that bounded scope; no new receipt is fabricated."
+  }
+}

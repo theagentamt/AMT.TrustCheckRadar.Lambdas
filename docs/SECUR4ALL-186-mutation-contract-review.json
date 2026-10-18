@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T04:29:23.121500+00:00",
+  "outcome": "PASS_TECHNICAL_DRAFT_AND_EXACT_POLICY_CHOICE_NOT_IMPLEMENTATION_OR_APPROVAL",
+  "baseCommit": "8663029cb88aa7603936cd5595edac79d1fe1e8e",
+  "reviewedFiles": {
+    "contracts/governed-history-mutation/2.0.0-candidate.1/README.md": "9c6e339cecdbb744901b591a9beec889059cf32608794223b87cfcda8aad61b4",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/SHA256SUMS": "75ffd5af2fc7684c97e5090c8d816ed8f1189957b66cf62f949b25eced844642",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/contract.json": "9e18c763046f138387968da92f4f881548110e0c5c5fadf2993d93ca9445dd9c",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/fixtures.json": "8e68b68739594e96404e120b4d6315921a1a97500916bfd96ad6e23157fc3918",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/policy-decision.json": "1fc264554bbbe6e26ea35fd2915af087e57bea8ddf28503a6370c1b25b483d92",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/schemas.json": "79499aaf06f0ae828e2f4768fbe260c4c9c95c6f687fa0d667612ca8529d6c3d",
+    "tests/history_capabilities/test_mutation_policy_contract.py": "0781f4fa053ff080ff3119b73865322e47e1da9ba1f3b6f522f8cae1dc8a9977",
+    "tests/history_capabilities/test_mutation_policy_independent.py": "b4a72e2f0499ce0e9dc250b776c59ec60ce74dcf713d1e0ed37fcddf3fd50f77"
+  },
+  "retainedApproval": {
+    "path": "/tmp/amt-workstream-current-story-read.json",
+    "sha256": "b3edf558dd7ded31bc743d5faea6781a46d0873fb024455e56bf594780f255e5",
+    "issue": "SECUR4ALL-185",
+    "descriptionSha256": "5b15d6f30b1ef5dbc1a52132b69c07af1f48a3abf967e17ea7afb69d7fa34eb1",
+    "approvalGatesAccuratelySeparated": true
+  },
+  "sourceAudit": {
+    "existingProtectedBytesExact": 724,
+    "productionChanges": 0,
+    "legacyAndReadWireChanges": 0,
+    "newEndpointOrHeader": false,
+    "newAdapter": false,
+    "newRetainedData": false,
+    "newIAMOrRuntime": false
+  },
+  "independentExecution": {
+    "junitPath": "/tmp/amt-governed-mutation-current-independent.xml",
+    "sha256": "eca54b3d668dcd7d57220abe48becfdfb06544ec8ce794d1ada46435a4ed23d1",
+    "passed": 114,
+    "existingCapabilityCases": 60,
+    "newPolicyContractCases": 40,
+    "independentAdditionalCases": 14,
+    "failure": 0,
+    "error": 0,
+    "skip": 0
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "origin": "actual independent schema probe",
+      "problem": "Draft ^...$ identifier framing accepted trailing LF for incarnation,UUID,intentLease,resultId.",
+      "initialProbe": {
+        "path": "/tmp/amt-governed-mutation-pattern-initial-probe.json",
+        "sha256": "ccf4dce6f5a93227dde4b76f7a0dd67fb37722168b47672bdb8bc669132a0905"
+      },
+      "resolution": "Recursive interoperable explicit CR/LF exclusion plus parent fixtures and independent all-nested identifier/control-suffix probes; valid r/n ASCII lease letters retained.",
+      "status": "RESOLVED"
+    },
+    {
+      "id": "R2",
+      "origin": "independent scope consistency review",
+      "problem": "Owner proposal described missing-state StartFresh while transition could replace any exact state, including live state.",
+      "resolution": "Contract,ownerwording and model now allow only ABSENT or exact supported logically expired control; live/malformed/duplicate/unqualified-restore control refused.",
+      "status": "RESOLVED"
+    }
+  ],
+  "verifiedTechnicalBoundaries": [
+    "Explicit existing-route schema2/family selection, unchanged schema1 and governed read contracts; no ID-prefix routing or runtime decoder implementation.",
+    "Stateless600s originalMAC intent lease binds server UUID,originalexpectedstate,target/action,owner/device/inventory and external restore epoch. Expired lease can only find already-committed original receipt, never execute on ABSENT after evidence retirement.",
+    "7day operation receipt is first-commit immutable evidence, not lifetime UUID registry; unavailable original verification key is unresolved/refused, not permission to reissue old UUID.",
+    "Admission and settlement/clear ordering binds same authoritative incarnation+generation/controlKeyId; both governed projection and replay summary are fenced while accounting remains once.",
+    "Exactly one control across complete retained-key inventory; rotation retains canonical controlKeyId, creation needs all-key absence/exactprior CAS and exactinventory in one transaction; bounded refusal never truncates or splits fence.",
+    "Read/reconcile/worker/cache exclusion, canonical strong purge traversal and originaldeadline handling are requirements, not executed service acceptance.",
+    "StartFresh cannot infer lawful retirement from absence; explicit destructive recovery suppresses all old/missing incarnations. Valid live control uses clear.",
+    "Control691680s candidate assumes future enforced<=480s History-producing lease and24hpurge; no current cap/compliance asserted; no read/retry renewal or inherited120d retention.",
+    "Backup/PITR7day cap and discardALL pre-restore History before traffic are separately unapproved purpose/availability choices; externally authoritative restore epoch must survive outside rollback set, not randomsame-table proof.",
+    "Originalreceiptflagdeadline,new7dayoperationintentclock,and minimal bounded control/job fields are explicitly new owner approval scope. HMAC metadata is linked, not anonymous."
+  ],
+  "remainingBlockers": [
+    "Exact owner approval for listed fields/purposes/clocks,StartFresh,and backup-discard recovery tradeoff.",
+    "No persistent mutation implementation authorized by this draft; dependent atomic code held, no new preparation adapter.",
+    "Future coherent implementation/strict signed-lease codec+response schemas/source regressions/allcopy/restore/keyretirement and actual target gates remain.",
+    "Recognition G1/G2 still held; thresholds/no-points/clear-reset/same-ID approved invariants not reopened.",
+    "SEC185/186/224/225/226 remain open; local specification/schema models are not service/cloud/device/physical acceptance."
+  ],
+  "operations": {
+    "aws": 0,
+    "endpoint": 0,
+    "auth": 0,
+    "device": 0,
+    "runtime": 0,
+    "publication": 0
+  }
+}

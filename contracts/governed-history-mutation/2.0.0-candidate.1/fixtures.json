@@ -1,0 +1,361 @@
+{
+  "schemaVersion": 1,
+  "scope": "OFFLINE REQUEST DRAFT ONLY; no signature or service acceptance",
+  "cases": [
+    {
+      "name": "inspect",
+      "schema": "bootstrapInspect",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "inspect"
+      },
+      "valid": true
+    },
+    {
+      "name": "inspect-operation",
+      "schema": "bootstrapInspect",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "inspect",
+        "operationId": "12345678-1234-4123-8123-123456789abc"
+      },
+      "valid": true
+    },
+    {
+      "name": "prepare-clear",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "clear",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "prepare-start_fresh",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "start_fresh",
+        "expectedHistoryState": null
+      },
+      "valid": true
+    },
+    {
+      "name": "prepare-delete_one",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "delete_one",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "targetResultId": "gh1_1800000000_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "valid": true
+    },
+    {
+      "name": "delete-or-clear",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": true
+    },
+    {
+      "name": "fresh-absence-explicit",
+      "schema": "bootstrapStartFresh",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": null,
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw",
+        "mode": "start_fresh"
+      },
+      "valid": true
+    },
+    {
+      "name": "legacy",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 1,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "wrong-family",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "legacy",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "no-lease",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": null
+      },
+      "valid": false
+    },
+    {
+      "name": "owner-selector",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw",
+        "accountId": "synthetic-owner"
+      },
+      "valid": false
+    },
+    {
+      "name": "client-clock",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw",
+        "clientTime": 1
+      },
+      "valid": false
+    },
+    {
+      "name": "implicit-zero",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": null,
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "negative-gen",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": -1
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "bad-incarnation",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "old",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "overflow",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 9007199254740992
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "non-v4",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-1123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "prepare-delete-needs-target",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "delete_one",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "prepare-clear-no-target",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "clear",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "targetResultId": "gh1_1_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "valid": false
+    },
+    {
+      "name": "prepare-clear-no-null-state",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "clear",
+        "expectedHistoryState": null
+      },
+      "valid": false
+    },
+    {
+      "name": "no-silent-bootstrap",
+      "schema": "bootstrapInspect",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "start_fresh"
+      },
+      "valid": false
+    },
+    {
+      "name": "reject-trailing-lf-incarnation",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "reject-trailing-lf-operationId",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc\n",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw"
+      },
+      "valid": false
+    },
+    {
+      "name": "reject-trailing-lf-intentLease",
+      "schema": "mutationRequest",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "operationId": "12345678-1234-4123-8123-123456789abc",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "intentLease": "b3BhcXVlLW5vbi1zZWNyZXQ.aW50ZW50LW1hYw\n"
+      },
+      "valid": false
+    },
+    {
+      "name": "reject-trailing-lf-targetResultId",
+      "schema": "bootstrapPrepare",
+      "value": {
+        "schemaVersion": 2,
+        "family": "governed-history",
+        "mode": "prepare",
+        "action": "delete_one",
+        "expectedHistoryState": {
+          "incarnation": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "generation": 7
+        },
+        "targetResultId": "gh1_1800000000_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+      },
+      "valid": false
+    }
+  ]
+}

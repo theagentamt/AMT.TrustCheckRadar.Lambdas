@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-18T04:31:23.836085+00:00",
+  "baseCommit": "8663029cb88aa7603936cd5595edac79d1fe1e8e",
+  "milestone": "T1 exact technical contract + P1 minimum numeric purpose/restore decision, dependent atomic code STOPPED by explicit retained owner-policy gate",
+  "sourcePins": {
+    "contracts/governed-history-mutation/2.0.0-candidate.1/README.md": "a3bd9f0d260fdfa8e80dfc1e9f58d49955e4f2c0fc2bc6b5708e30c374b8df09",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/policy-decision.json": "1fc264554bbbe6e26ea35fd2915af087e57bea8ddf28503a6370c1b25b483d92",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/schemas.json": "79499aaf06f0ae828e2f4768fbe260c4c9c95c6f687fa0d667612ca8529d6c3d",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/fixtures.json": "8e68b68739594e96404e120b4d6315921a1a97500916bfd96ad6e23157fc3918",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/SHA256SUMS": "66b3da70e6b49b473bb60e434bce36327cdd8b20746f332dcb1f39d5f265a8f4",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/contract.json": "9737188816b44609e412fc6e7a80b39e9deda33416db52de613423f1424ac008",
+    "tests/history_capabilities/test_mutation_policy_contract.py": "0781f4fa053ff080ff3119b73865322e47e1da9ba1f3b6f522f8cae1dc8a9977",
+    "tests/history_capabilities/test_mutation_policy_independent.py": "b4a72e2f0499ce0e9dc250b776c59ec60ce74dcf713d1e0ed37fcddf3fd50f77",
+    "docs/SECUR4ALL-186-mutation-privacy-review.json": "d78a21796c39bb66b5d8beb130f4d5c8dfa5664c1b64e0ec810053004a54c6af",
+    "docs/SECUR4ALL-186-mutation-contract-review.json": "227887b22465946751313445275af3679bd5123b5ffb9dbf331e0af0f1813a71"
+  },
+  "quality": {
+    "schemaVersion": 1,
+    "baseCommit": "8663029cb88aa7603936cd5595edac79d1fe1e8e",
+    "protectedExistingBytesExact": 724,
+    "productionChanges": 0,
+    "existingWireChanges": 0,
+    "dependenciesCIAndRuntimeUnchanged": true,
+    "newAdapterOrMutationCode": false,
+    "productionASTParsed": 286
+  },
+  "localValidation": {
+    "path": "/tmp/amt-erasure-contract-final.xml",
+    "sha256": "b5f99a51c971c1acac691f0d5f8a2490a6d633965cfc1584f8a266d8e89f9dfb",
+    "uniqueCases": 253,
+    "reportedJUnit": 253,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "newCases": 54,
+    "independentAdditional": 14,
+    "limits": "Specification/schema/concurrency models plus existing governed source tests. No production mutation or signature/provider/restore acceptance."
+  },
+  "independentValidation": {
+    "path": "/tmp/amt-governed-mutation-current-independent.xml",
+    "sha256": "eca54b3d668dcd7d57220abe48becfdfb06544ec8ce794d1ada46435a4ed23d1",
+    "cases": 114,
+    "addedToTotal": false
+  },
+  "independentFindings": [
+    {
+      "id": "R1",
+      "problem": "Four anchored schema patterns accepted trailing LF",
+      "resolution": "Portable explicit CR/LF prohibition for all pattern strings and four negativefixtures; independent14 counterexamples pass",
+      "initialProbe": "/tmp/amt-governed-mutation-pattern-initial-probe.json",
+      "initialProbeSha256": "ccf4dce6f5a93227dde4b76f7a0dd67fb37722168b47672bdb8bc669132a0905",
+      "liveExploitOrImplementationClaimed": false
+    },
+    {
+      "id": "R2",
+      "problem": "StartFresh request permitted live-state replacement beyond proposed owner scope",
+      "resolution": "Server semantics only ABSENT or exact supported logicallyexpired; model negative for live state. Missing/malformed/duplicate/restore state never silently repaired."
+    }
+  ],
+  "afterReviewDocClarification": "Canonical control across all retained keys; purge protects actual current state even after newer StartFresh and never recreates cleaned jobs/receipts. Current final handoff review pins these clarified files; initial source-review pins retained as prior review, not current full-handoff gate.",
+  "decision": {
+    "existingPolicyCoversNewMarkers": false,
+    "productionAtomicMutationAdded": false,
+    "newNonDispatchAdapterAdded": false,
+    "ownerQuestionPath": "contracts/governed-history-mutation/2.0.0-candidate.1/README.md#exact-minimal-owner-question--not-yet-asked-or-approved",
+    "recommendedUnapprovedBounds": {
+      "resultDisposition": "original seven-day receipt deadline, no extension",
+      "mutationReceiptSeconds": 604800,
+      "controlAdmissionHoldSeconds": 691680,
+      "enforcedFutureHistoryWorkerLeaseMaxSeconds": 480,
+      "activePurgeSeconds": 86400,
+      "backupMaximumSeconds": 604800
+    },
+    "newCustomerBehaviors": [
+      "explicit StartFresh for absent/knownexpired control, not live replacement or inferred recovery",
+      "discard and purge all pre-restore governed History before serving; independently preserve accounting/usage"
+    ],
+    "alternative": "Keep dependent mutation implementation held; recovery of undeleted backup History needs separately approved nonrollback journal purpose/lifetime.",
+    "recognitionG1G2": "HELD with user-ready tradeoffs in packet, not prerequisite to this technical design"
+  },
+  "remaining": [
+    "Explicit owner P1 bundle choice; no approval inferred",
+    "After approval implement coherent atomic mutation/admission/settlement/read/replay/purge path and coordinated Android codec/invalidation, not another preparation layer",
+    "Qualify physical erasure/backup restore/key inventories/unknown-commit/concurrency and actual target deployment separately; no current pass",
+    "Broader SEC185/186/224/225/226 open, physical-only ATCR148"
+  ],
+  "operations": {
+    "aws": 0,
+    "endpoint": 0,
+    "realDelete": 0,
+    "auth": 0,
+    "device": 0,
+    "runtime": 0,
+    "financial": 0,
+    "deployment": 0,
+    "main": 0
+  }
+}
