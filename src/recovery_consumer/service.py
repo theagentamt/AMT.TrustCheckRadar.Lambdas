@@ -48,6 +48,22 @@ class Consumer:
 
     def access(self,event):return UrlConsumer.access(self,event)
 
+    def _settlement_options(self, outcome, summary, provider_codes=None):
+        options = {'result_summary': summary}
+        if getattr(getattr(self.a, 's', None), 'operations_producer_enabled', False) is True:
+            try:
+                from shared_operations import consumer_terminal_reason
+                reason = consumer_terminal_reason(outcome, provider_codes=provider_codes)
+                allowed = {'partial': {'COVERAGE_PARTIAL'}, 'failed': {'SETTLED_FAILED'},
+                           'unavailable': {'PROVIDER_UNAVAILABLE', 'PROVIDER_RESPONSE_INVALID'}}
+                if (type(reason) is str and reason in allowed.get(outcome, ())
+                        and (outcome != 'unavailable' or type(provider_codes) is list
+                             and len(provider_codes) == 1 and provider_codes[0] == reason)):
+                    options['operations_reason_code'] = reason
+            except Exception:
+                pass  # Missing optional classification preserves unknown coverage.
+        return options
+
     def envelope(self,event,client,proof,state,*,row=None,error=None,fresh_outcome=None):
         access=self.access(event)
         accounting={'state':'not_started','chargedChecks':0,'receiptId':None,'requiresReconciliation':False}
@@ -125,12 +141,13 @@ class Consumer:
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
-            result=None;window=None
+            result=None;window=None;provider_entered=False
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
                 window=self.budget.reserve() if budget_ms>=1000 else None
                 if window is None:result=limited_outcome(client,'unavailable','BUDGET_LIMIT')
                 else:
+                    provider_entered=True
                     raw_result=self.provider({'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'playbookVersion':PLAYBOOK,'intent':intent,'executionBudgetMs':budget_ms})
                     result=validate_outcome(raw_result,client)
             except Exception:
@@ -138,7 +155,7 @@ class Consumer:
             if window is not None and result['reasonCode'] in {'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:
                 try:self.budget.failed(window)
                 except Exception:pass
-            row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],result['processingOutcome'],result_summary=result)
+            row=self.a.settle(TrustedWorkerContext(account),proof,admission['executionToken'],result['processingOutcome'],**self._settlement_options(result['processingOutcome'],result,[result['reasonCode']] if provider_entered else None))
             return 200,self.envelope(event,client,proof,'settled',row=row,fresh_outcome=result)
         except (AuthorityError,RecoveryError) as error:
             code=error.code
