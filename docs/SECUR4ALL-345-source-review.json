@@ -1,0 +1,92 @@
+{
+  "baseCommit": "3099e1fa459fac313b5cfda376f2e6e65e7ef69c",
+  "bug": "SECUR4ALL-345",
+  "checks": [
+    "Only four named botocore connection/timeout exceptions or typed ClientError+exactplainGetItemQuery+exactfour documented transient readcodes yield existingretryable503. Local installed Dynamo model contains allfour codes for both operations.",
+    "Malformed metadata, ducktyped nonSDK exceptions, wrong operation, permissions/conditional/unknown readcodes and programming exceptions retain fixednonretryable500; HTTP503 alone never qualifies.",
+    "No arbitrary exceptionstring/type/stack/SDKmessage/items/request metadata logged. Toxicexception __str__ is nevercalled. Application diagnostic consists of fixedfinitecategory; existing businessHistoryError catch and metric/no-store envelopes preserved.",
+    "Actual Moto tests reach originalaccount/binding/source readpaths, refuse mutations on failure and recheckcurrentauthority during explicitsameoperation recovery. No new retry, receipt inference, authority bypass, schema/route, storedfield, SDKconfiguration or retention.",
+    "Existing transaction409/503 behavior is in unchangedservice and passes family tests; genericread handling does not inferconditionalwriterace or specificauth/accountcause."
+  ],
+  "filePins": {
+    "contracts/history/v1/api-schemas.json": "62d826a302e9d379ee322709031a9107b7c4c43c6d37e89528c768cafa496826",
+    "docs/SECUR4ALL-345-HISTORY-READ-ERRORS.md": "4b042ce66fbd85e109aea7a0b47863b8b3471719b86f2669e9df63068d6c3b4f",
+    "src/history_mutation_api/app.py": "6b91e93d5b217a3309b36f15efc49a87eb3dc6c4a6579a220d5e95d54d8844ca",
+    "src/history_mutation_api/service.py": "da9111b208b36ec0838c7dad20aebb5a2b22c8e33d4d867c0418ff2b9226b40b",
+    "src/shared_history/errors.py": "1a8afc8c4967d818240362b631c74463c9056020fe2b654913868416f4fc26de",
+    "src/shared_history/security.py": "f7267a73326bc47b64ed2d6122f39bd81cd6ddce443821a47d03d038c0f7f7df",
+    "tests/history_mutation_api/test_read_errors.py": "2101ab98978f7051d325215d0802c14d7270a1935420ba83d4791ce71c4fd8e1",
+    "tests/history_mutation_api/test_read_errors_independent.py": "9dfc6a2d16b1aac053fbb515ee5724842e9da6e1a6fa32d791480d3eaa425862"
+  },
+  "independentMutationFamilyPytestPassed": 219,
+  "independentMutationFamilySubtests": 3,
+  "independentTestEvidence": {
+    "independent": {
+      "path": "/tmp/amt-history-read-independent-tests.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 20
+      },
+      "sha256": "fa05ccaf4646d10383588413edc9663ca12637eb8178ef1d1458fd52057590b7"
+    },
+    "mutationFamily": {
+      "path": "/tmp/amt-history-read-family-independent.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 222
+      },
+      "sha256": "7d0641afc41a54b27fede70848d6f2d26674c4f08885cd4f7934341f9a7272b3"
+    }
+  },
+  "initialIndependentFixtureFailure": {
+    "actualPassed": 15,
+    "cause": "Five dependent fixture setup errors: independent module imported api_world but not its world fixture. Added only existing world import to independent test; no production change or assertion relaxation.",
+    "path": "/tmp/amt-history-read-independent-initial-fixture.xml",
+    "result": {
+      "errors": 5,
+      "failures": 0,
+      "skipped": 0,
+      "tests": 20
+    },
+    "sha256": "458a683e6775d95360179609b9a4e0a893e4ea5032b3f8e6ce04eae0a026f7c2"
+  },
+  "parentAcceptanceRemainsOpen": "SECUR4ALL-226",
+  "preservation": {
+    "allOtherAppStatementsAstExact": true,
+    "allOtherTrackedSrcScriptsGithubContractsGitByteJoins": 715,
+    "originalHandlerTryBodyAstExact": true,
+    "originalHistoryErrorFirstCatchAstExact": true,
+    "requirementsDevExact": true,
+    "transactionServiceAndSharedSecurityByteExact": true
+  },
+  "remainingLimits": [
+    "Current broader fullHistory/preservation/package handoff pending separate finalrecords; not asserted complete by this source review.",
+    "Knowntransport category does not prove a particularSDK phase; retryabletrue is not rollback or authorization to choose a newoperation. ExistingSDKinternal retry behavior unchanged.",
+    "This sanitizes only thishandler failure diagnostic, not logging in unrelated handlers or theSDK itself.",
+    "TargetIAM, actual readfault/networkbehavior/concurrency, dependencycomplete artifact/runtime, fullSEC226governed mutation/lifecycle acceptance and physicalcases remainopen.",
+    "No actual AWS, endpoint, auth/session/actor lookup, emulator/device, provider, runtime, faultinjection, purchase or Gitpublication by reviewer."
+  ],
+  "result": "PASS_SOURCE_ONLY_HISTORY_READ_ERROR_BOUNDARY",
+  "reviewedAtUtc": "2026-10-18T03:19:58.593906+00:00",
+  "schemaVersion": 1,
+  "sourceFinding": {
+    "id": "R1",
+    "initialActual": [
+      "SDK_READ_THROTTLED",
+      true
+    ],
+    "initialFindingType": "Actual helper counterexample before fix, not a deployed incident",
+    "malformedInput": "Non-string operation_name object with hash/equality alias ofGetItem",
+    "regression": "Nonstring helper and actual handler spoof, captured-once getter assertions now pass",
+    "required": [
+      "SDK_FAILURE",
+      false
+    ],
+    "resolution": "Operation captured once, exactplainstr guard before whitelist membership",
+    "resolved": true
+  }
+}

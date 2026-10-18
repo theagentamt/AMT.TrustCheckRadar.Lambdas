@@ -3,6 +3,13 @@ import logging
 import os
 
 import boto3
+from botocore.exceptions import (
+    ClientError,
+    ConnectionClosedError,
+    ConnectTimeoutError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+)
 
 from shared_history import HistoryError, HistorySettings
 from shared_history.contracts import validate_request_id
@@ -68,10 +75,46 @@ def lambda_handler(event, _context):
         LOGGER.warning("History mutation rejected | errorCode=%s retryable=%s", err.code, err.retryable)
         _metric(operation, success=False, authorization=err.code in {"UNAUTHORIZED", "FORBIDDEN", "DEVICE_BINDING_REQUIRED", "DEVICE_BINDING_MISMATCH"})
         return _response(err.status_code, _error_body(err))
-    except Exception:
-        LOGGER.exception("Unexpected History mutation failure")
+    except Exception as err:
+        failure_class, retryable = _dependency_failure(err)
+        # Never attach exception text/traceback, SDK metadata, keys or items.
+        # Unknown defects remain nonretryable internal errors, not unavailable.
+        LOGGER.error("History mutation failed | failureClass=%s", failure_class)
         _metric(operation, success=False)
-        return _response(500, _error_body(HistoryError("INTERNAL_ERROR", "An internal error occurred.")))
+        error = (
+            HistoryError("SERVER_UNAVAILABLE", "The History dependency could not be read.", retryable=True)
+            if retryable else HistoryError("INTERNAL_ERROR", "An internal error occurred.")
+        )
+        return _response(error.status_code, _error_body(error))
+
+
+def _dependency_failure(error):
+    """Finite diagnostics; do not infer transient failure from arbitrary text/HTTP status.
+
+    Only SDK read operations and documented DynamoDB read transient codes qualify.
+    Transaction errors are already handled by the service's conditional boundary.
+    Known connection failures can also precede the SDK operation's response.
+    """
+    if isinstance(error, (EndpointConnectionError, ConnectionClosedError, ConnectTimeoutError, ReadTimeoutError)):
+        return "SDK_TRANSPORT_UNAVAILABLE", True
+    if isinstance(error, ClientError):
+        try:
+            response = error.response
+            operation = error.operation_name
+            if type(operation) is not str or operation not in {"GetItem", "Query"} or type(response) is not dict:
+                return "SDK_FAILURE", False
+            detail = response.get("Error")
+            if type(detail) is not dict or type(detail.get("Code")) is not str:
+                return "SDK_FAILURE", False
+            if detail["Code"] in {"ProvisionedThroughputExceededException", "RequestLimitExceeded", "ThrottlingException"}:
+                return "SDK_READ_THROTTLED", True
+            if detail["Code"] == "InternalServerError":
+                return "SDK_READ_INTERNAL", True
+            return "SDK_READ_REJECTED", False
+        except Exception:
+            # Malformed SDK-shaped objects cannot break the safe 500 boundary.
+            return "SDK_FAILURE", False
+    return "UNEXPECTED_FAILURE", False
 
 
 def _body(event):

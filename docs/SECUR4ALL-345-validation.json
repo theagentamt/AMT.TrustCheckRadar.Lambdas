@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-18T03:21:02.593211+00:00",
+  "issue": "SECUR4ALL-345",
+  "owningOpenQualification": "SECUR4ALL-226",
+  "scope": "Source/component retryability and sanitized failure logging only; no deployed qualification.",
+  "baseCommit": "3099e1fa459fac313b5cfda376f2e6e65e7ef69c",
+  "sourcePins": {
+    "src/history_mutation_api/app.py": "6b91e93d5b217a3309b36f15efc49a87eb3dc6c4a6579a220d5e95d54d8844ca",
+    "tests/history_mutation_api/test_read_errors.py": "2101ab98978f7051d325215d0802c14d7270a1935420ba83d4791ce71c4fd8e1",
+    "tests/history_mutation_api/test_read_errors_independent.py": "9dfc6a2d16b1aac053fbb515ee5724842e9da6e1a6fa32d791480d3eaa425862",
+    "docs/SECUR4ALL-345-HISTORY-READ-ERRORS.md": "4b042ce66fbd85e109aea7a0b47863b8b3471719b86f2669e9df63068d6c3b4f",
+    "docs/SECUR4ALL-345-source-review.json": "011d26fb405fae05c5bc6d7fa1c28fe5018d2290cb7030c0858913d2dd1b3df6"
+  },
+  "priorReproduction": "SECUR4ALL-345-next-read-boundary-gap.json",
+  "classification": {
+    "transient": "Typed documented GetItem/Query throttling/internal codes or four explicit SDK transport exceptions return existing retryable503.",
+    "conditional": "Read conditional errors do not imply write races; existing SEC344 transaction409/503 and service bytes unchanged.",
+    "defect": "Unknown/nontransient SDK and programming failures stay fixed nonretryable500, without raw exception logging.",
+    "scopeClarification": "Parent implementation instruction explicitly requires transient classification without masking real defects; no blanket unknown-to503 conversion or acceptance waiver."
+  },
+  "finalValidation": {
+    "disjointPartitions": [
+      {
+        "junitFile": "/tmp/amt-history-read-history.xml",
+        "junitSha256": "f5da43d2586b319117ca0183cd9f06fd5dae932a2c98e460540cdfb4839e491b",
+        "uniqueTestCases": 287,
+        "reportedJUnitTests": 307,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "caseIdentitySha256": "4cdc169cafb1d35aa726171b7baf4be8efc0e42ace455f4aaca277bd1a0439ca"
+      },
+      {
+        "junitFile": "/tmp/amt-history-read-preservation.xml",
+        "junitSha256": "db6fbbe3d0a7c363d78e33f3192122d14e8a4b564b7248deddb6e41c326f4d78",
+        "uniqueTestCases": 1998,
+        "reportedJUnitTests": 2019,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "caseIdentitySha256": "6bb137a89dd49c3ab2def5dccb1d7e6925d1f481f63fbdf59670f8e560aa2a9a"
+      },
+      {
+        "junitFile": "/tmp/amt-history-read-independent-tests.xml",
+        "junitSha256": "fa05ccaf4646d10383588413edc9663ca12637eb8178ef1d1458fd52057590b7",
+        "uniqueTestCases": 20,
+        "reportedJUnitTests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skips": 0,
+        "caseIdentitySha256": "9ddacc7d0d9f45e8f5dcbe19dd01868452c1230ec191d6b041c86fb36b65f396"
+      }
+    ],
+    "uniqueTestCases": 2305,
+    "reportedSubtests": 41,
+    "reportedJUnitTestsIncludingSubtests": 2346,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "history": "287 tests +20 subtests =307 reportedJUnit tests inclsubtests; all64 parent new read-boundary cases included.",
+    "preservation": "1998 tests +21 subtests =2019 reportedJUnit tests inclsubtests.",
+    "additionalIndependent": "20 disjoint tests collected after parent History collection. Reviewer mutation family222 JUnit is extra corroboration, not added to total.",
+    "applicationRetriesAdded": 0,
+    "explicitSameOperationRecoveryAndReplay": "PASS",
+    "actualAuthorityBindingAndNoWriteOnReadFailure": "PASS",
+    "postCommitReceiptReadFailureAndUnrelatedAccountBaseline": "PASS",
+    "malformedMetadataToxicFormattingAndNontransient500": "PASS"
+  },
+  "retainedInitialRuns": [
+    {
+      "path": "/tmp/amt-history-read-focused-final.xml",
+      "sha256": "9f550b5d6b5091d683c0525cc9084178d538cefddd24366faa37df58a25d5c65",
+      "tests": 64,
+      "failures": 2,
+      "errors": 0,
+      "correction": "Test-only clear-history completed-status expectations changed202 to existing200. Production untouched; final History includes all64 passing."
+    },
+    {
+      "path": "/tmp/amt-history-read-independent-initial-fixture.xml",
+      "sha256": "458a683e6775d95360179609b9a4e0a893e4ea5032b3f8e6ce04eae0a026f7c2",
+      "tests": 20,
+      "failures": 0,
+      "errors": 5,
+      "correction": "Imported shared world fixture in independent test module.15 pure tests passed initially; final20 pass."
+    }
+  ],
+  "independentFinding": {
+    "id": "R1",
+    "problem": "Nonstring operation object could spoof set membership asGetItem.",
+    "resolution": "Capture once and require exact str before fixed operation membership. Independent actual-handler safe500/no-write regression passes."
+  },
+  "quality": {
+    "schemaVersion": 1,
+    "baseCommit": "3099e1fa459fac313b5cfda376f2e6e65e7ef69c",
+    "productionParsed": 285,
+    "changedProductionFiles": [
+      "src/history_mutation_api/app.py"
+    ],
+    "existingChangedFunctions": [
+      "lambda_handler"
+    ],
+    "addedPrivateHelper": "_dependency_failure",
+    "allOtherFunctionsASTEqual": true,
+    "allOtherProductionBytesExact": true,
+    "transactionServiceBytesExact": true,
+    "contractsScriptsWorkflowsByteJoins": 411,
+    "requirementsDevExact": true,
+    "actionlint": "PASS",
+    "shellcheck": "PASS",
+    "diffCheck": "PASS",
+    "archive": {
+      "sha256": "6bbc8ed4fd58b821323c9ada87a452970ebc597f12920e0d763b104f55c48e8d",
+      "members": 8,
+      "appBytesExact": true,
+      "hostImportWithSocketsAndSdkConstructorsBlocked": "PASS",
+      "externalAttempts": 0,
+      "dependenciesIncluded": false,
+      "deployableQualified": false
+    }
+  },
+  "localCommands": [
+    "env PYTHONPATH=src AMT_AUTHORITY_INTEGRATION=1 AWS_EC2_METADATA_DISABLED=true AWS_ACCESS_KEY_ID=synthetic AWS_SECRET_ACCESS_KEY=synthetic AWS_SESSION_TOKEN=synthetic AWS_DEFAULT_REGION=us-east-1 python -B -m pytest -q tests/history_mutation_api tests/history_contracts tests/shared_history tests/history_read_api tests/history_lifecycle tests/history_account_deletion_bridge",
+    "same local synthetic environment: python -B -m pytest -q tests/shared_check_authority tests/message_consumer tests/message_evaluator tests/recovery_runtime tests/governed_history tests/operations_reporting tests/scripts",
+    "same local synthetic environment: python -B -m pytest -q tests/history_mutation_api/test_read_errors_independent.py",
+    "actionlint .github/workflows/*.yml; shellcheck scripts/*.sh; git diff --check",
+    "bash scripts/build_lambda_zip.sh --function history_mutation_api --output-dir /tmp/amt-history-read-package --python-version 3.14 --arch arm64 --skip-dependencies"
+  ],
+  "laterTargetQualification": {
+    "story": "SECUR4ALL-226",
+    "state": "To Do",
+    "sprint": null,
+    "pending": "Reviewed dependency-complete artifact/configuration and disposable-target fault harness, auth/isolation/read-failure/explicit replay/cleanup evidence.",
+    "notEstablished": "No live-safe fault runner or deployment qualification; do not throttle existing accounts/tables.",
+    "physicalFollowup": "ATCR-148 where applicable"
+  },
+  "operations": {
+    "awsReads": 0,
+    "endpointCalls": 0,
+    "actorJoins": 0,
+    "authOrSso": 0,
+    "liveFaults": 0,
+    "runtimeChanges": 0,
+    "deployments": 0,
+    "emulatorActions": 0,
+    "mainActions": 0
+  }
+}
