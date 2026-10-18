@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T02:03:31.113209+00:00",
+  "outcome": "PASS_BLOCKED_AGGREGATION_DESIGN_AND_HANDOFF",
+  "filePins": {
+    "docs/SECUR4ALL-237-AGGREGATION-EXECUTION-BOUNDARY.json": "fb3a50936c4e6ad29c6332cb89d8778106ba42a0ac8ba69b92573c1143102085",
+    "docs/SECUR4ALL-237-AGGREGATION-SCOPE-COUNTEREXAMPLE.json": "ae50fce31afb5d26f8beb18721fe2d37d0be3e2437b97db8b0b0787aefbacf2e",
+    "docs/examples/sec237_scope_counterexample.py": "92fa5a3e794fdddef321e2ac093723764e1308e3231cce1a115d7b5e63f71190",
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "2245409888735bf084aeb9b3f09b26e93520f64b6fbb7b4ea147789dc7854a53",
+    "docs/SECUR4ALL-237-AGGREGATION-EXECUTION-BOUNDARY.md": "abf29f16e0cc66bb7ba09038ca367deb01ee0af41ae06f141c99c8dcd77ab16d"
+  },
+  "sourceBaseRelease": "94e89438f7721d668f181692da915be2a2a26f5d",
+  "independentProof": {
+    "result": "REPRODUCED_SCOPE_AMBIGUITY_EXISTING_CONTRACT",
+    "path": "/tmp/amt-sec237-cohort-counterexample-independent.json",
+    "sha256": "9c8e831b0da846db2155d1cc1b4dd77aea34820958ede3ee59f774a3fd1e028f",
+    "originalParentProofUnchanged": true,
+    "rerunMethod": "Same original example AST; exactly one output-path literal redirected to separate O_EXCL file. Inputs/assertions/reducer/planner/store unchanged.",
+    "firstDisjointCohortAccepted": 1,
+    "differentReplacementCohortAccepted": 2,
+    "bothCommittedSameEnvironmentDayHead": true,
+    "monotonicHashChainAndFixed90DayExpiryPass": true,
+    "actualAwsOrRuntimeCalls": 0
+  },
+  "validation": {
+    "declaredExampleSourceDocPins": 4,
+    "trackedSrcScriptsAndAllGithubBlobsByteUnchanged": 348,
+    "sourceScriptsWorkflowsSubset": 347,
+    "additionalDependabotFile": 1,
+    "actualOperationsReportingJUnitCases": 214,
+    "failuresErrorsSkips": 0,
+    "junitSha256": "e2b0141497f8cb29776c2060c6f82da18c94df65e48fd01a7e5d1c61d23e2a1c",
+    "localChecksPath": "/tmp/amt-sec237-aggregation-boundary-local-checks.json",
+    "localChecksSha256": "95a4547eb9df3e2473d7bf7d4575071cfec26c3d9ec77fa688b8ab55bacec9c5",
+    "frozenAndroidReadbackHashJoinsUnchanged": 2,
+    "productionRunnerOrStoreChanges": 0
+  },
+  "reviewConclusions": [
+    "The actual offline Moto proof confirms monotonic aggregate checks and producerCoverage not_qualified do not bind source population. It demonstrates unsafe selected-actor integration, not an existing-store defect or actual deployed incident.",
+    "No DailyAggregation production implementation, schema/store change, actor enumeration, source locator or resources were added. All348src/scripts/all.github bytejoins are exact current release; files changed only underdocs.",
+    "Blocker is correctly technical fixed-cohort/exclusive-store provenance; incompatible heads cannot be accepted merely because counts increase. Proposed90day owner IDs/hashes are explicitly forbidden, with no new collection/retention/storage scope assumed.",
+    "No report policy decision is invented for existing approved aggregate facts. Any future new privacy/storage/actor scope still requires explicit authorization; all runtime/recipient/budget/SEC198 policy gates remain separate.",
+    "Safe later runner contract preserves minimal bounded discovery before capture, no aggregate commit from uncertain source, existing deletion/profile/inventory/CAS/time fences and one explicit store attempt; partial source writes are not misrepresented as rolled back.",
+    "Checklist now distinguishes finite reason hooks/unknown coverage and explicitly puts cohort/provenance qualification before execution wiring. It includes source-to-aggregate deletion/expiry preservation, crash/dispatch uncertainty, rejection/intake boundaries, provider cost and delivery rather than falsely calling deployment the only blocker.",
+    "SEC237 remains In Progress and this milestone remains blocked before implementation. No new Done/activation/native/runtime/main release claim."
+  ],
+  "resolvedHandoffFindings": [
+    "Replaced misleading exhaustive-reason wording with finite allowlist plus explicit unknown-cause coverage.",
+    "Added accepted cohort/store blocker as the checklist next-step dependency.",
+    "Clarified unchanged348files includes347src/scripts/workflow blobs plus.github/dependabot.yml."
+  ],
+  "limits": [
+    "Source-only independent review with actual local Moto proof rerun; no realAWS/auth/service/endpoint/device/provider/financial/Git publication or mutation.",
+    "214reporting regressions are unchanged-module component evidence, not a successful discovery/aggregation runner, source completeness or delivery acceptance.",
+    "New actor-stable scope/provenance solution remains unqualified and no new storage/policy or broader enumeration is authorized by this PASS.",
+    "Final independent record is separate from companion hash to avoid cycles; parent must include it in final staged secret/diff checks before commit."
+  ],
+  "blockersForThisDocumentationMilestone": [],
+  "remainingImplementationBlocker": "SOURCE_COHORT_STORE_SCOPE_UNQUALIFIED"
+}
