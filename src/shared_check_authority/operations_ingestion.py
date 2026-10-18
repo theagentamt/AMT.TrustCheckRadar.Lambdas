@@ -14,17 +14,25 @@ from .core import Authority, AuthorityError, OWNER_POLICY, SUBJECT_PATTERN, Trus
 from .expiry import Expiry
 from .inventory import inventory_condition
 from .purchase_usage import exact_condition
+from .operations_binding import ReceiptBinding
 from shared_operations import retirement_metadata
 from shared_operations.projection import capture_projection, validate_capture
 
 
 class ReceiptIngestion:
-    def __init__(self, authority):
+    def __init__(self, authority, *, can_continue=lambda: True):
         if not isinstance(authority, Authority):
             raise AuthorityError('OPERATIONS_INGESTION_CONFIGURATION_INVALID')
-        self.a, self.client = authority, authority.client
+        self.a, self.client, self.can_continue = authority, authority.client, can_continue
         self.guard = Expiry(authority.ddb, authority.s.authority_table, now=authority.now)
         self.guard._get = lambda key: self._get(self.a.s.authority_table, key)
+
+    def _continue(self):
+        try:
+            if self.can_continue() is True: return
+        except Exception:
+            pass
+        raise AuthorityError('OPERATIONS_INGESTION_TIME_BUDGET')
 
     def _clock(self):
         try:
@@ -36,6 +44,7 @@ class ReceiptIngestion:
             raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE') from None
 
     def _get(self, table, key):
+        self._continue()
         try:
             response = self.a.ddb.Table(table).get_item(Key=key, ConsistentRead=True)
             if (type(response) is not dict or type(response.get('ResponseMetadata')) is not dict
@@ -46,7 +55,7 @@ class ReceiptIngestion:
         except Exception:
             raise AuthorityError('OPERATIONS_INGESTION_READ_UNAVAILABLE') from None
 
-    def capture(self, worker, check_id):
+    def capture(self, worker, check_id, *, binding=None):
         if self.a.s.operations_producer_enabled is not True:
             raise AuthorityError('OPERATIONS_INGESTION_DISABLED')
         if not isinstance(worker, TrustedWorkerContext):
@@ -69,13 +78,26 @@ class ReceiptIngestion:
             self.a._verify_token(account, check_id, row['payloadHmac'], allow_expired=True)
         except Exception:
             raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+        if binding is not None:
+            try:
+                if type(binding) is not ReceiptBinding or not binding.matches(row):
+                    raise ValueError()
+            except Exception:
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
         if 'operationsReceipt' not in row:
             if 'operationsProjection' in row:
-                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
+                try: orphan = validate_capture(row['operationsProjection'])
+                except Exception: raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+                if (observed < orphan['reference']['expiresAtEpoch']
+                        or orphan['reference']['environment'] != self.a.s.operations_environment
+                        or binding is not None and orphan['reference']['service'] != binding.family):
+                    raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
+                return self._retire_expired(partition, key['SK'])
             return {'decision': 'NOT_RECORDED', 'projection': None}
         try:
             metadata = retirement_metadata(row)
-            if metadata['environment'] != self.a.s.operations_environment:
+            if (metadata['environment'] != self.a.s.operations_environment
+                    or binding is not None and metadata['service'] != binding.family):
                 raise ValueError()
             expiry = integral(row.get('retentionDeadlineEpoch'))
             if (expiry is None or expiry < metadata['expiresAtEpoch']
@@ -95,7 +117,7 @@ class ReceiptIngestion:
                     or row.get('GSI1SK') != f'{settle_by:012d}#{partition}#{check_id}'):
                 raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
         if observed >= metadata['expiresAtEpoch']:
-            return {'decision': 'EXPIRED', 'projection': None}
+            return self._retire_expired(partition, key['SK'])
         try:
             projected = capture_projection(row, now_epoch=observed)
             prior = validate_capture(row['operationsProjection']) if 'operationsProjection' in row else None
@@ -130,7 +152,8 @@ class ReceiptIngestion:
             return {'decision': 'EXPIRED', 'projection': None}
         condition = exact_condition(row)
         for optional in ('operationsProjection', 'operationsTerminalReasonCode', 'assessmentEpoch',
-                         'chargedChecks', 'receiptId', 'processingOutcome'):
+                         'chargedChecks', 'receiptId', 'processingOutcome', 'clientCheckId', 'projectionScope',
+                         'urlTransportVersion', 'messageTransportVersion', 'recoveryTransportVersion'):
             if optional not in row:
                 condition['ConditionExpression'] += f' AND attribute_not_exists({optional})'
         condition['ConditionExpression'] += ' AND operationsReceipt.expiresAtEpoch > :dispatchTime'
@@ -152,6 +175,7 @@ class ReceiptIngestion:
                 '#state = :active AND ageVerified = :yes AND #subject = :owner',
                 {':active': 'ACTIVE', ':yes': True, ':owner': account}, {'#state': 'status', '#subject': 'sub'}),
             self.a._check(self.a.s.deletion_table, deletion_key, 'attribute_not_exists(PK)'), source_action]
+        self._continue()
         try:
             response = self.client.transact_write_items(TransactItems=transaction)
             if (type(response) is not dict or type(response.get('ResponseMetadata')) is not dict
@@ -177,3 +201,10 @@ class ReceiptIngestion:
         if finished >= metadata['expiresAtEpoch']:
             return {'decision': 'EXPIRED', 'projection': None}
         return {'decision': 'REVALIDATED' if unchanged else 'CAPTURED', 'projection': deepcopy(projected)}
+
+    def _retire_expired(self, partition, sort_key):
+        from .operations_retirement import OperationsRetirement
+        self._continue()
+        OperationsRetirement(self.a.ddb, self.a.s.authority_table, now=self.a.now,
+            can_continue=self.can_continue).retire(partition, sort_key)
+        return {'decision': 'EXPIRED', 'projection': None}

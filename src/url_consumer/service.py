@@ -56,9 +56,9 @@ def unique_pairs(pairs):
 
 
 class Consumer:
-    def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic):
+    def __init__(self,authority,mapper,provider,refresh,*,clock=time.monotonic,remaining_ms=lambda:0):
         self.a,self.mapper,self.provider,self.refresh,self.clock=authority,mapper,provider,refresh,clock
-        self.legacy_mapper=mapper;self.version=VERSION
+        self.legacy_mapper=mapper;self.version=VERSION;self.remaining=remaining_ms
 
     def access(self,event):
         observed=timestamp(self.a.now())
@@ -100,9 +100,19 @@ class Consumer:
                     assessed_at=timestamp(int(row['assessmentEpoch'])),access=access,accounting=accounting,same_check_replay_authorized=False,**extra)
         if row and row.get('state')=='SETTLED' and not row.get('resultSummary') and error is None:
             error='SERVICE_UNAVAILABLE'
-        return validate_envelope({'transportVersion':self.version,'checkId':client,'operationProof':proof,'state':state,'access':access,'accounting':accounting,
+        response=validate_envelope({'transportVersion':self.version,'checkId':client,'operationProof':proof,'state':state,'access':access,'accounting':accounting,
                 'outcome':outcome,'errorCode':error,'retryAfterSeconds':self.a.s.attempt_window_seconds if error=='RATE_LIMITED' else (2 if state=='pending' else None),
                 'expiresAt':int(row['expiresAt']) if row and row.get('expiresAt') is not None else None})
+        if (row and row.get('state') in ('ADMITTED','SETTLED')
+                and getattr(getattr(self.a,'s',None),'operations_producer_enabled',False) is True):
+            try:
+                from shared_check_authority.operations_callers import capture_authenticated
+                capture_authenticated(self.a,event,proof,family='url_check',client_check_id=client,
+                    transport_version=self.version,remaining_ms=self.remaining)
+            except Exception:
+                pass  # Optional capture cannot change the validated business response.
+        return response
+
 
     def handle(self,event):
         started=self.clock();client=proof=None;admission_uncertain=False

@@ -11,15 +11,23 @@ from .inventory import inventory_condition
 
 
 class OperationsRetirement:
-    def __init__(self, resource, table, *, now):
-        self.ddb, self.table, self.now = resource, table, now
+    def __init__(self, resource, table, *, now, can_continue=lambda: True):
+        self.ddb, self.table, self.now, self.can_continue = resource, table, now, can_continue
         self.guard = Expiry(resource, table, now=now)
         # Apply this helper's acknowledged-read boundary to inventory too,
         # without changing the ordinary full-expiry reader.
         self.guard._get = self._get
         self.client = resource.meta.client
 
+    def _continue(self):
+        try:
+            if self.can_continue() is True: return
+        except Exception:
+            pass
+        raise AuthorityError('OPERATIONS_RETIREMENT_TIME_BUDGET')
+
     def _get(self, key):
+        self._continue()
         try:
             response = self.ddb.Table(self.table).get_item(Key=key, ConsistentRead=True)
             if (type(response) is not dict or type(response.get('ResponseMetadata')) is not dict
@@ -69,7 +77,7 @@ class OperationsRetirement:
             if (expiry is None or expiry <= 0 or integral(row.get('retentionDeadlineEpoch')) != expiry
                     or row.get('GSI1PK') != 'V1_EXPIRING'
                     or row.get('GSI1SK') not in ({f'{min(expiry, metadata["expiresAtEpoch"]):012d}#{partition}#{sort_key}'}
-                        | ({f'{expiry:012d}#{partition}#{sort_key}'} if 'operationsReceipt' not in row else set()))):
+                        | {f'{expiry:012d}#{partition}#{sort_key}'})):
                 raise AuthorityError('OPERATIONS_RETIREMENT_RECORD_INVALID')
             # Keep the full receipt/History expiry and every non-operations field.
             expression = 'SET GSI1SK = :receiptSort ' + expression
@@ -104,6 +112,7 @@ class OperationsRetirement:
         action = {'TableName': self.table, 'Key': key, 'UpdateExpression': expression,
                   'ConditionExpression': condition, 'ExpressionAttributeNames': {'#state': 'state'},
                   'ExpressionAttributeValues': values}
+        self._continue()
         try:
             response = self.client.transact_write_items(TransactItems=[inventory_condition(self.table, inventory),
                 {'ConditionCheck': access_condition}, {'Update': action}])

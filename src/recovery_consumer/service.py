@@ -64,10 +64,20 @@ class Consumer:
         if state=='settled':
             if usage is None:raise AuthorityError('RESULT_SUMMARY_INVALID')
             availability='available' if fresh_outcome is not None else 'not_retained'
-        return validate_envelope({'transportVersion':VERSION,'checkId':client,'operationProof':proof,'state':state,
+        response=validate_envelope({'transportVersion':VERSION,'checkId':client,'operationProof':proof,'state':state,
             'access':access,'accounting':accounting,'outcome':fresh_outcome,'usage':usage,'resultAvailability':availability,'errorCode':error,
             'retryAfterSeconds':self.a.s.attempt_window_seconds if error=='RATE_LIMITED' else (2 if state=='pending' else None),
             'expiresAt':int(row['expiresAt']) if row and row.get('expiresAt') is not None else None})
+        if (row and row.get('state') in ('ADMITTED','SETTLED')
+                and getattr(getattr(self.a,'s',None),'operations_producer_enabled',False) is True):
+            try:
+                from shared_check_authority.operations_callers import capture_authenticated
+                capture_authenticated(self.a,event,proof,family='recovery_clarification',client_check_id=client,
+                    transport_version=VERSION,remaining_ms=self.remaining)
+            except Exception:
+                pass  # Optional capture cannot change the validated business response.
+        return response
+
 
     def handle(self,event):
         client=proof=None;started=self.clock()
