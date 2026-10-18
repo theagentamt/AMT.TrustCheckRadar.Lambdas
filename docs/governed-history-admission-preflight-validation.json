@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "4b49010ad0a74081fa1e134061afda9477294312",
+  "sourceOnly": true,
+  "livePolicyCorrectionApplied": false,
+  "liveRetestPerformed": false,
+  "offlineComponentValidation": {
+    "tests": 1614,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceStage": "Before duplicate-key parser hardening and 10 independent regressions; runtime components unchanged"
+  },
+  "focusedHistoryAndScope": {
+    "passed": 168,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceStage": "Final duplicate-key parser plus independent regressions"
+  },
+  "mainOnlyCiTriggersPermissionsAndPublishersUnchanged": true,
+  "fileSha256": {
+    "scripts/check_governed_history_scope.py": "879d52ac75b3d8e4d847061a07914d77b7ad4cb83e13323ccb8503192e24dbef",
+    "tests/governed_history_scope/test_scope.py": "4ab1dfdd46792df165c1677940b106a8efcda0eb17831b9fb39ee3eb60568371",
+    "tests/governed_history_scope/test_scope_independent.py": "b3d219ebbe12f91d9754ed56ba910c28a2d59848f9e6bf2d992ddd48fa8654ff",
+    ".github/workflows/ci.yml": "023afd72a48431d8abe5d864f3b7edc24b51543a6f6adb310d5fcfd916740557",
+    "docs/governed-history-admission-preflight.md": "3d57c243fc0b20b0525cfea33649fa960e5f69039911ba8a8917c3c23b960a30"
+  },
+  "observedFailure": "One integrated History503 in closed14:24:20\u201314:25:15UTC window; aggregate un-attributed",
+  "deterministicBlocker": "Selected subject admitted by Lambda but excluded from existing constrained History role data namespaces",
+  "actualHistoricalExceptionBranchUniquelyObserved": false,
+  "privateProposal": {
+    "onlyLeadingKeysArraysChanged": 5,
+    "originalNamespacesActionsResourcesProjectionsDeniesPreserved": true,
+    "applied": false,
+    "ownerActionTimeApprovalPending": true
+  },
+  "trackerPublication": "Blocked by automatic approval review after authorized single retry; local sanitized draft only, no issue created",
+  "remaining": [
+    "Action-time approval and coordinated exact IAM correction/readback",
+    "Retained approved bounded real History UI retry and endpoint corroboration",
+    "Tracker publication with destination/payload approval",
+    "Source independent final review and verified release integration"
+  ],
+  "scopeRegressions": 29
+}
