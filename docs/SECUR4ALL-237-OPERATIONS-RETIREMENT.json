@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "recordedAtUtc": "2026-10-18T00:07:52.175186+00:00",
+  "baseRelease": "62768ecc5a80c1bf8466fd5f0d84012bc5f23703",
+  "scope": "Selective physical removal of expired operations fields via existing bounded queues; no runtime activation",
+  "sourceTestDocPins": {
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/expiry.py": "6dbfa9d723576b55e7a4689b0b98697653f7d5fe9f956ea819bf6c165776941a",
+    "src/shared_check_authority/recovery.py": "f2f4b907dd6e2792daac840d3a1e69db9e85611cf9bda0a046e221b93faddd35",
+    "src/shared_operations/__init__.py": "7460c7e86a475430be771e9a5c29a6a5cbfc4fa40014ebc79e5fe08760c5b660",
+    "src/shared_operations/receipts.py": "c44e7bd08fbfbc34ab55c9e388cc354d8c54cca9887e7561c3bf64c13d62481c",
+    "src/url_lease_recovery/app.py": "8c7f40f19498ee16410b19c782d451f1957eb47bc2141c6a522cf397d109b25d",
+    "docs/SECUR4ALL-237-OPERATIONS-RETIREMENT.md": "9abc08c71543692cce2671b818ebc75bb45d19c420041231dbf96f57e6a40c5c",
+    "docs/SECUR4ALL-237-retirement-independent-review.json": "b41f7f518b1464f02449cf122fc7133dcccd97233e244df748a8ae6de39136d7",
+    "docs/SECUR4ALL-237-retirement-initial-findings.json": "b3a92339b8014046b636f60db8a40fe5eb4af7ff93ee63ea54b77d484a185976",
+    "docs/SECUR4ALL-237-retirement-inventory-read-finding.json": "ddff76a550ef1760ffdd2be59aa5a51af31a272e11e66789f8997256885992d8",
+    "src/shared_check_authority/operations_retirement.py": "8ed84eb6128f03654a5fffd704ca55d0cc1b6bbef199e330b80bbf2077a04a2b",
+    "tests/shared_check_authority/test_operations_retirement.py": "5af40816137fa7a6a3f08be601ef1ace73894e14384b37fa6c21aa946935f21e",
+    "tests/shared_check_authority/test_operations_retirement_independent.py": "6fb3a80f57b8023a1234be1f4ce900e3b35b25e76cb81258a5c9af84977f64da"
+  },
+  "independentReview": "docs/SECUR4ALL-237-retirement-independent-review.json",
+  "initialFindings": [
+    "docs/SECUR4ALL-237-retirement-initial-findings.json",
+    "docs/SECUR4ALL-237-retirement-inventory-read-finding.json"
+  ],
+  "resolvedFindings": [
+    "R1 overdue operations-field erasure precedes stricter full deletion",
+    "R2 HMAC settlement queues earliest deadline",
+    "R3 inventory read acknowledgment validation"
+  ],
+  "localValidation": {
+    "passedTests": 1509,
+    "passedSubtests": 21,
+    "junitIncludingSubtests": 1530,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junitSha256": "49478929c823e88c5833de2f156bd13a0117efb1da07287bd11f01c6da28f16f",
+    "focusedRetirementCases": 32,
+    "combinedIndependentProducerPreservationCases": 107,
+    "independentNewCases": 11,
+    "sourceOnlyInspectionPackages": 9,
+    "networkBlockedDisabledHostImports": 5,
+    "hostVerifierStdoutSha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d",
+    "actionlint": "PASS",
+    "shellcheck": "PASS",
+    "astJsonAndStagedSecretPatternCheck": "PASS; final staging rechecked before commit",
+    "initialFixtureCorrection": "Fixed callback-count fixture to pause at actual CHECK metadata removal, not earlier PREPARE expiry; initial failure retained, final frozen suite passes"
+  },
+  "artifacts": [
+    {
+      "name": "url_consumer.zip",
+      "sha256": "6ace3f91fb0dd21964031ef9242feeb08dbcf1d75244c5d43113a28e9aabc907",
+      "bytes": 176811,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_lease_recovery.zip",
+      "sha256": "3a5c1a407575ddc25d2147283dae109d31cd1c61a1b03c412bc3efd8dbafd19e",
+      "bytes": 62933,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_entitlements.zip",
+      "sha256": "b78dc2db390b800dad2f0334e6079023c05cd46ca5405f077bc29a6d6aadd8a8",
+      "bytes": 73959,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_authority_deletion.zip",
+      "sha256": "b88c4b43ec89be3557ace85035f0a89b691975e4c6976d90e01f94cfcf83237e",
+      "bytes": 80785,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "governed_history.zip",
+      "sha256": "67a7ad975bf151d98305ff8fbb464fb3ebcc715559c44f95d2985329e86de29f",
+      "bytes": 105295,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_play_handoff.zip",
+      "sha256": "d25c6319b073cb8e00e889bd33325c2e0e2a6a930d4e65d01c5ad992c148a614",
+      "bytes": 103961,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_consumer.zip",
+      "sha256": "d9c14290a300b2398679aef6d9913a45fc7fbd62d2ad4464cf35a0f89ceec46e",
+      "bytes": 244268,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_evaluator.zip",
+      "sha256": "30001c5cfa5bfd95bf5544d6d53540e910f34a464d6ea5fec6dde1fff168f50c",
+      "bytes": 164405,
+      "includesAuthorityAndSharedOperations": false,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "play_token_deletion.zip",
+      "sha256": "a278ab04873d1b298f9ba03405e0cf87e3c700fced465a2f2fb1d8e5a219361a",
+      "bytes": 117335,
+      "includesAuthorityAndSharedOperations": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    }
+  ],
+  "retention": {
+    "operationsMaximumSeconds": 604800,
+    "deadlineFixedFromAcceptance": true,
+    "fullReceiptAndHistoryDeadlineUnchanged": true,
+    "onlyRemovedFields": [
+      "operationsReceipt",
+      "operationsTerminalReasonCode"
+    ],
+    "queueRescheduledToOriginalFullExpiry": true,
+    "newRetentionGraceApproved": false
+  },
+  "activationGates": {
+    "producerEnabled": false,
+    "paidReservationMetadataCompatibility": "UNRESOLVED_FAIL_CLOSED; purchase_usage and entitlements unchanged",
+    "existingSettledRowIndexCoverage": "NOT_QUALIFIED; no scan or migration",
+    "trustedReceiptIngestionAndAccountDeletionFences": "PENDING",
+    "backupRestoreDeletion": "PENDING",
+    "actualCleanupSchedulingTimeliness": "NOT_QUALIFIED",
+    "resourcesIamCostActualDev": "NOT_QUALIFIED",
+    "providerAttemptsCostReportDeliveryAcceptance": "PENDING",
+    "nativeArm64Distribution": "NOT_QUALIFIED"
+  },
+  "notPerformed": [
+    "AWS authentication or service read",
+    "application endpoint",
+    "provider/emulator/purchase",
+    "runtime flag/resource/permission/deployment",
+    "main promotion"
+  ],
+  "completion": "source increment only; SEC237 remains In Progress"
+}

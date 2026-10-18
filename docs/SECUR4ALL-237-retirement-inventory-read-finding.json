@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "CHANGES_REQUESTED_READ_CONTRACT",
+  "findingId": "R3",
+  "recordedAtUtc": "2026-10-18T00:06:01.291535+00:00",
+  "sourceSha256": "4b55a6040c80979b98f9c5989c3eb00c6b73ac62b753385109469be5f2f7cf89",
+  "testSha256": "6fb3a80f57b8023a1234be1f4ce900e3b35b25e76cb81258a5c9af84977f64da",
+  "finding": "Only receipt/access reads use new acknowledged-HTTP200 validation; inherited Expiry._inventory uses older _get and accepts valid Item without ResponseMetadata, allowing dispatch under malformed inventory read response.",
+  "regression": "test_unacknowledged_inventory_read_does_not_dispatch_retirement",
+  "actualLocalResult": "FAILED: retirement write dispatched once after inventory-only missing ResponseMetadata",
+  "limits": [
+    "No AWS/runtime incident claimed",
+    "Inventory CAS itself still protects current inventory generation",
+    "Concrete new helper read/prose contract gap; do not weaken inherited global expiry behavior just to resolve local boundary"
+  ]
+}

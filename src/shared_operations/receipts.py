@@ -61,6 +61,13 @@ def _metadata(value):
     return m
 
 
+def retirement_metadata(row):
+    """Capture existing metadata for bounded removal; never mint a reference."""
+    if type(row) is not dict:
+        _fail()
+    return _metadata(row.get("operationsReceipt"))
+
+
 def admission_fields(payload, *, accepted_at, receipt_deadline, access_class, environment,
                      random_hex=lambda: secrets.token_hex(16)):
     """Mint only with a new admission; replay must retain original references."""

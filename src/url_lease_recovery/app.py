@@ -77,6 +77,8 @@ def run_passes(resource, table, context, *, now):
         counts['examined'] += result['examined']
         counts['failed'] += result['failed']
         counts['pages'] += result['pages']
+        if result.get('operationsRetired', 0):
+            counts['operationsRetired'] = counts.get('operationsRetired', 0) + result['operationsRetired']
         if index == 'V1_PENDING':
             counts['recovered'] = result['recovered']
             counts['leaseExamined'] = result['examined']

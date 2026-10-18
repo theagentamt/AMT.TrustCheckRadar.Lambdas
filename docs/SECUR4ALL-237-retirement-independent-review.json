@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_SELECTIVE_RETIREMENT_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-18T00:06:46.872827+00:00",
+  "files": {
+    "src/shared_check_authority/operations_retirement.py": "8ed84eb6128f03654a5fffd704ca55d0cc1b6bbef199e330b80bbf2077a04a2b",
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/recovery.py": "f2f4b907dd6e2792daac840d3a1e69db9e85611cf9bda0a046e221b93faddd35",
+    "src/shared_check_authority/expiry.py": "6dbfa9d723576b55e7a4689b0b98697653f7d5fe9f956ea819bf6c165776941a",
+    "src/shared_operations/__init__.py": "7460c7e86a475430be771e9a5c29a6a5cbfc4fa40014ebc79e5fe08760c5b660",
+    "src/shared_operations/receipts.py": "c44e7bd08fbfbc34ab55c9e388cc354d8c54cca9887e7561c3bf64c13d62481c",
+    "src/url_lease_recovery/app.py": "8c7f40f19498ee16410b19c782d451f1957eb47bc2141c6a522cf397d109b25d",
+    "tests/shared_check_authority/test_operations_retirement.py": "5af40816137fa7a6a3f08be601ef1ace73894e14384b37fa6c21aa946935f21e",
+    "tests/shared_check_authority/test_operations_retirement_independent.py": "6fb3a80f57b8023a1234be1f4ce900e3b35b25e76cb81258a5c9af84977f64da"
+  },
+  "protectedBillingFilesUnchanged": {
+    "src/shared_check_authority/purchase_usage.py": "9ab54eccbf73ec58d70acd09e03986b76a8dd5481aac4ff2abae77ba6408e97e",
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb"
+  },
+  "independentTests": {
+    "addedCases": 11,
+    "combinedRetirementProducerAndPreservationCases": 107,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 11.73,
+    "framework": "Local Moto; synthetic process credentials only",
+    "checks": [
+      "Expired operations fields erase under missing/DELETING ACCESS even when full row expiry already passed; full-delete ownership stays strict",
+      "14d non-History HMAC settlement queues7d operations deadline and retires then without shortening receipt TTL",
+      "Concurrent History expiry extension cannot reschedule from stale snapshot",
+      "Concurrent operations erasure prevents stale settlement from recreating references or charging",
+      "Three malformed/unacknowledged write responses dispatch once, never retry or claim successful retirement",
+      "Operations metadata and governed-History-only metadata remain rejected by unchanged paid due-reservation closure; no balance/reservation mutation",
+      "Missing HTTP metadata on inventory-only read prevents retirement dispatch"
+    ]
+  },
+  "resolvedFindings": [
+    {
+      "id": "R1",
+      "initial": "Full-expiry branch skipped erasure under missing/DELETING ACCESS",
+      "fixed": "Retire due operations fields before considering stricter full-row deletion",
+      "independentRegressionsPassed": 2
+    },
+    {
+      "id": "R2",
+      "initial": "HMAC recovery scheduled full14d deadline rather than operations7d deadline",
+      "fixed": "Captured-map guarded earliest deadline scheduling in both settlement writers, independent of producer creation pause",
+      "independentRegressionsPassed": 1
+    },
+    {
+      "id": "R3",
+      "initial": "Inherited inventory read path bypassed helper acknowledged-response validation",
+      "fixed": "Only new helper guard inventory reads delegate to validated direct _get; existing ordinary expiry reader preserved",
+      "independentRegressionsPassed": 1
+    }
+  ],
+  "initialFindingRecords": [
+    {
+      "path": "/tmp/amt-sec237-operations-retirement-initial-findings.json",
+      "sha256": "b3a92339b8014046b636f60db8a40fe5eb4af7ff93ee63ea54b77d484a185976"
+    },
+    {
+      "path": "/tmp/amt-sec237-operations-retirement-inventory-read-finding.json",
+      "sha256": "ddff76a550ef1760ffdd2be59aa5a51af31a272e11e66789f8997256885992d8"
+    }
+  ],
+  "staticChecks": [
+    "Selective transaction removes only operationsReceipt and operationsTerminalReasonCode, and SETTLED GSI1SK moves to unchanged full receipt deadline",
+    "Receipt identity, governedHistory, accounting, full TTL, index generation, inventory and ACCESS observed-state/absence conditions remain intact",
+    "Conditional Update cannot upsert a deleted receipt or recreate authority; replay never remints refs",
+    "Deadline pauses preserve prior cursor before remaining pending recovery/full deletion; existing bounded queue and aggregate diagnostics retained",
+    "No new resources, registry, handler, flag, permission, tombstone, subject locator, grace or policy retention introduced"
+  ],
+  "remainingSourceReviewBlockers": [],
+  "remainingActivationDependencies": [
+    "Unchanged paid due-reservation strict allowlist rejects operations/governed metadata; reconcile before producer activation",
+    "Forward scheduling does not prove existing-row/index coverage for older settled rows with full-expiry-only index",
+    "Trusted atomic canonical receipt/deletion/expiry ingestion and producer authentication still absent",
+    "Backup/restore/account deletion enforcement and actual sweep scheduling/timeliness/physical privacy remain unqualified",
+    "Provider attempts/finish/cost coverage, report dispatch/alert/delivery and actual Dev acceptance remain open",
+    "No actual runtime/service/deployment/flag/provider/emulator/billing activation qualification; source-only packages are not native ARM64 distribution evidence"
+  ],
+  "requiredFinalHandoff": [
+    "Current broad source suite/JUnit",
+    "Inspection archive hashes and embedded current source joins",
+    "Network-blocked host-import evidence and exact MD/JSON final pins"
+  ],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}
