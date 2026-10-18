@@ -251,7 +251,8 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                 continue
             if row.get('periodSK') != period['SK'] and row.get('purchaseUsageKey') != pointer:
                 continue
-            optional = {'urlTransportVersion', 'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'}
+            from .operations_compat import HISTORY_FIELDS, OPERATIONS_FIELDS, pending_metadata
+            optional = {'urlTransportVersion', 'accessUntilEpoch', 'messageTransportVersion', 'recoveryTransportVersion'} | HISTORY_FIELDS | OPERATIONS_FIELDS
             if (not _PENDING_FIELDS <= set(row) or set(row) - _PENDING_FIELDS - optional
                     or row.get('PK') != partition or row.get('periodSK') != period['SK']
                     or row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY
@@ -286,6 +287,7 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                 from shared_recovery_contract.constants import VERSION
                 if row.get('recoveryTransportVersion') != VERSION:
                     raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
+            pending_metadata(row, now=now)
             pending.append(row)
             if len(pending) > count:
                 raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
@@ -304,6 +306,8 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                         **exact_condition(inflight)}}]
     for row in pending:
         condition = exact_condition(row)
+        if 'operationsReceipt' in row and 'operationsProjection' not in row:
+            condition['ConditionExpression'] += ' AND attribute_not_exists(operationsProjection)'
         deadline = row['retentionDeadlineEpoch']
         key = {k: row[k] for k in ('PK', 'SK')}
         if deadline <= now:
@@ -322,5 +326,12 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                 settled.update(resultSummary=usage(row.get('clientCheckId'), 'failed'), assessmentEpoch=now)
             except Exception:
                 raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED') from None
+        metadata = pending_metadata(row, now=now)
+        if metadata is not None and metadata['expiresAtEpoch'] > now:
+            settled.update(operationsTerminalReasonCode='OPERATION_EXPIRED', assessmentEpoch=now,
+                GSI1SK=f'{min(int(deadline), metadata["expiresAtEpoch"]):012d}#{partition}#{row["SK"]}')
+        elif metadata is not None or 'operationsProjection' in row:
+            for name in ('operationsReceipt', 'operationsTerminalReasonCode', 'operationsProjection'):
+                settled.pop(name, None)
         actions.append({'Put': {'TableName': table, 'Item': settled, **condition}})
     return actions

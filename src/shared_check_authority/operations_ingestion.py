@@ -1,0 +1,179 @@
+"""Trusted receipt-local ingestion; no endpoint, standalone locator or dispatch.
+
+Only a server-created worker context and existing check proof are accepted.
+The projection lives on its owning receipt, so existing partition deletion owns
+it and the original operations deadline controls both copies of linkage.
+"""
+import hashlib
+import re
+from copy import deepcopy
+
+from botocore.exceptions import ClientError
+
+from .core import Authority, AuthorityError, OWNER_POLICY, SUBJECT_PATTERN, TrustedWorkerContext, integral
+from .expiry import Expiry
+from .inventory import inventory_condition
+from .purchase_usage import exact_condition
+from shared_operations import retirement_metadata
+from shared_operations.projection import capture_projection, validate_capture
+
+
+class ReceiptIngestion:
+    def __init__(self, authority):
+        if not isinstance(authority, Authority):
+            raise AuthorityError('OPERATIONS_INGESTION_CONFIGURATION_INVALID')
+        self.a, self.client = authority, authority.client
+        self.guard = Expiry(authority.ddb, authority.s.authority_table, now=authority.now)
+        self.guard._get = lambda key: self._get(self.a.s.authority_table, key)
+
+    def _clock(self):
+        try:
+            value = self.a.now()
+            if type(value) is not int or not 0 <= value <= 10**13:
+                raise ValueError()
+            return value
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE') from None
+
+    def _get(self, table, key):
+        try:
+            response = self.a.ddb.Table(table).get_item(Key=key, ConsistentRead=True)
+            if (type(response) is not dict or type(response.get('ResponseMetadata')) is not dict
+                    or response['ResponseMetadata'].get('HTTPStatusCode') != 200
+                    or response.get('Item') is not None and type(response['Item']) is not dict):
+                raise ValueError()
+            return response.get('Item')
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_READ_UNAVAILABLE') from None
+
+    def capture(self, worker, check_id):
+        if self.a.s.operations_producer_enabled is not True:
+            raise AuthorityError('OPERATIONS_INGESTION_DISABLED')
+        if not isinstance(worker, TrustedWorkerContext):
+            raise AuthorityError('TRUSTED_WORKER_REQUIRED')
+        account = worker.account
+        if not isinstance(account, str) or not SUBJECT_PATTERN.fullmatch(account):
+            raise AuthorityError('INVALID_ACCOUNT')
+        observed = self._clock()
+        key_id, _, _, _ = self.a._token_parts(check_id)
+        partition = self.a._partition(account, key_id)
+        key = {'PK': partition, 'SK': 'CHECK#' + check_id}
+        row = self._get(self.a.s.authority_table, key)
+        if row is None:
+            raise AuthorityError('OPERATIONS_INGESTION_SOURCE_UNAVAILABLE')
+        try:
+            if (row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY
+                    or row.get('PK') != partition or row.get('SK') != key['SK'] or row.get('checkId') != check_id
+                    or not isinstance(row.get('payloadHmac'), str) or not re.fullmatch(r'[0-9a-f]{64}', row['payloadHmac'])):
+                raise ValueError()
+            self.a._verify_token(account, check_id, row['payloadHmac'], allow_expired=True)
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+        if 'operationsReceipt' not in row:
+            if 'operationsProjection' in row:
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
+            return {'decision': 'NOT_RECORDED', 'projection': None}
+        try:
+            metadata = retirement_metadata(row)
+            if metadata['environment'] != self.a.s.operations_environment:
+                raise ValueError()
+            expiry = integral(row.get('retentionDeadlineEpoch'))
+            if (expiry is None or expiry < metadata['expiresAtEpoch']
+                    or row.get('state') == 'SETTLED' and integral(row.get('expiresAt')) != expiry):
+                raise ValueError()
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+        due_sort = None
+        if row.get('state') == 'SETTLED':
+            due_sort = f'{min(expiry, metadata["expiresAtEpoch"]):012d}#{partition}#{key["SK"]}'
+            full_sort = f'{expiry:012d}#{partition}#{key["SK"]}'
+            if row.get('GSI1PK') != 'V1_EXPIRING' or row.get('GSI1SK') not in (due_sort, full_sort):
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
+        elif row.get('state') == 'ADMITTED':
+            settle_by = integral(row.get('settleByEpoch'))
+            if (settle_by is None or settle_by < 0 or row.get('GSI1PK') != 'V1_PENDING'
+                    or row.get('GSI1SK') != f'{settle_by:012d}#{partition}#{check_id}'):
+                raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID')
+        if observed >= metadata['expiresAtEpoch']:
+            return {'decision': 'EXPIRED', 'projection': None}
+        try:
+            projected = capture_projection(row, now_epoch=observed)
+            prior = validate_capture(row['operationsProjection']) if 'operationsProjection' in row else None
+            if prior is not None and (prior['reference'] != metadata
+                    or prior['sourceState'] == 'SETTLED' and projected['sourceState'] != 'SETTLED'
+                    or any(event not in projected['events'] for event in prior['events'])):
+                raise ValueError()
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_SOURCE_INVALID') from None
+        inventory = self.guard._inventory(key_id)
+        expected_keys = {kid: hashlib.sha256(material).hexdigest() for kid, material in self.a.s.hmac_keys.items()}
+        if inventory['issuedKeys'] != expected_keys:
+            raise AuthorityError('OPERATIONS_INGESTION_INVENTORY_UNAVAILABLE')
+        access_key = {'PK': partition, 'SK': 'ACCESS'}
+        access = self._get(self.a.s.authority_table, access_key)
+        if (access is None or access.get('recordType') != 'V1_ACCESS_AUTHORITY'
+                or access.get('state') not in ('ACTIVE', 'INACTIVE', 'REVOKED')
+                or access.get('policyVersion') != OWNER_POLICY or integral(access.get('schemaVersion')) != 1
+                or integral(access.get('revision')) is None or access['revision'] < 1):
+            raise AuthorityError('OPERATIONS_INGESTION_ACCOUNT_UNAVAILABLE')
+        profile_key = {'PK': 'USER#' + account, 'SK': 'PROFILE'}
+        profile = self._get(self.a.s.users_table, profile_key)
+        deletion_key = {'PK': 'ACCOUNT#' + account, 'SK': 'ACCOUNT_DELETION'}
+        deletion = self._get(self.a.s.deletion_table, deletion_key)
+        if (profile is None or profile.get('sub') != account or profile.get('status') != 'ACTIVE'
+                or profile.get('ageVerified') is not True or deletion is not None):
+            raise AuthorityError('OPERATIONS_INGESTION_ACCOUNT_UNAVAILABLE')
+        dispatch_time = self._clock()
+        if dispatch_time < observed:
+            raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE')
+        if dispatch_time >= metadata['expiresAtEpoch']:
+            return {'decision': 'EXPIRED', 'projection': None}
+        condition = exact_condition(row)
+        for optional in ('operationsProjection', 'operationsTerminalReasonCode', 'assessmentEpoch',
+                         'chargedChecks', 'receiptId', 'processingOutcome'):
+            if optional not in row:
+                condition['ConditionExpression'] += f' AND attribute_not_exists({optional})'
+        condition['ConditionExpression'] += ' AND operationsReceipt.expiresAtEpoch > :dispatchTime'
+        condition['ExpressionAttributeValues'][':dispatchTime'] = dispatch_time
+        action = {'TableName': self.a.s.authority_table, 'Key': key, **condition}
+        unchanged = prior == projected and (due_sort is None or row['GSI1SK'] == due_sort)
+        if unchanged:
+            source_action = {'ConditionCheck': action}
+        else:
+            action.update(UpdateExpression='SET operationsProjection = :projection')
+            action['ExpressionAttributeValues'][':projection'] = projected
+            if due_sort is not None:
+                action['UpdateExpression'] += ', GSI1SK = :dueSort'
+                action['ExpressionAttributeValues'][':dueSort'] = due_sort
+            source_action = {'Update': action}
+        transaction = [inventory_condition(self.a.s.authority_table, inventory),
+            {'ConditionCheck': {'TableName': self.a.s.authority_table, 'Key': access_key, **exact_condition(access)}},
+            self.a._check(self.a.s.users_table, profile_key,
+                '#state = :active AND ageVerified = :yes AND #subject = :owner',
+                {':active': 'ACTIVE', ':yes': True, ':owner': account}, {'#state': 'status', '#subject': 'sub'}),
+            self.a._check(self.a.s.deletion_table, deletion_key, 'attribute_not_exists(PK)'), source_action]
+        try:
+            response = self.client.transact_write_items(TransactItems=transaction)
+            if (type(response) is not dict or type(response.get('ResponseMetadata')) is not dict
+                    or response['ResponseMetadata'].get('HTTPStatusCode') != 200):
+                raise ValueError()
+        except ClientError as error:
+            try:
+                reasons = error.response.get('CancellationReasons')
+                conditional = (error.response.get('Error', {}).get('Code') == 'TransactionCanceledException'
+                    and type(reasons) is list and len(reasons) == len(transaction)
+                    and all(type(r) is dict and r.get('Code') in ('None', 'ConditionalCheckFailed') for r in reasons)
+                    and any(r.get('Code') == 'ConditionalCheckFailed' for r in reasons))
+            except Exception:
+                conditional = False
+            if conditional:
+                raise AuthorityError('OPERATIONS_INGESTION_CONFLICT') from None
+            raise AuthorityError('OPERATIONS_INGESTION_WRITE_UNKNOWN') from None
+        except Exception:
+            raise AuthorityError('OPERATIONS_INGESTION_WRITE_UNKNOWN') from None
+        finished = self._clock()
+        if finished < dispatch_time:
+            raise AuthorityError('OPERATIONS_INGESTION_CLOCK_UNAVAILABLE')
+        if finished >= metadata['expiresAtEpoch']:
+            return {'decision': 'EXPIRED', 'projection': None}
+        return {'decision': 'REVALIDATED' if unchanged else 'CAPTURED', 'projection': deepcopy(projected)}

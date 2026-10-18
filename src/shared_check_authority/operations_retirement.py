@@ -37,11 +37,15 @@ class OperationsRetirement:
             raise AuthorityError('OPERATIONS_RETIREMENT_REFERENCE_INVALID')
         key = {'PK': partition, 'SK': sort_key}
         row = self._get(key)
-        if row is None or 'operationsReceipt' not in row:
+        if row is None or not {'operationsReceipt', 'operationsProjection'} & set(row):
             return False
         try:
             from shared_operations import retirement_metadata
-            metadata = retirement_metadata(row)
+            if 'operationsReceipt' in row:
+                metadata = retirement_metadata(row)
+            else:
+                from shared_operations.projection import validate_capture
+                metadata = validate_capture(row['operationsProjection'])['reference']
         except Exception: raise AuthorityError('OPERATIONS_RETIREMENT_RECORD_INVALID') from None
         try: now = self.now()
         except Exception: raise AuthorityError('OPERATIONS_RETIREMENT_CLOCK_UNAVAILABLE') from None
@@ -51,14 +55,21 @@ class OperationsRetirement:
         if (row.get('recordType') != 'V1_CHECK_RECEIPT' or row.get('policyVersion') != OWNER_POLICY
                 or state not in ('ADMITTED', 'SETTLED')):
             raise AuthorityError('OPERATIONS_RETIREMENT_RECORD_INVALID')
-        expression = 'REMOVE operationsReceipt, operationsTerminalReasonCode'
+        expression = 'REMOVE operationsReceipt, operationsTerminalReasonCode, operationsProjection'
         values = {':type': 'V1_CHECK_RECEIPT', ':policy': OWNER_POLICY, ':state': state,
-                  ':metadata': metadata, ':index': row.get('GSI1PK'), ':sort': row.get('GSI1SK')}
+                  ':index': row.get('GSI1PK'), ':sort': row.get('GSI1SK')}
+        if 'operationsReceipt' in row:
+            reference_condition = 'operationsReceipt = :metadata'
+            values[':metadata'] = metadata
+        else:
+            reference_condition = 'attribute_not_exists(operationsReceipt) AND operationsProjection = :projection'
+            values[':projection'] = row['operationsProjection']
         if state == 'SETTLED':
             expiry = integral(row.get('expiresAt'))
             if (expiry is None or expiry <= 0 or integral(row.get('retentionDeadlineEpoch')) != expiry
                     or row.get('GSI1PK') != 'V1_EXPIRING'
-                    or row.get('GSI1SK') != f'{min(expiry, metadata["expiresAtEpoch"]):012d}#{partition}#{sort_key}'):
+                    or row.get('GSI1SK') not in ({f'{min(expiry, metadata["expiresAtEpoch"]):012d}#{partition}#{sort_key}'}
+                        | ({f'{expiry:012d}#{partition}#{sort_key}'} if 'operationsReceipt' not in row else set()))):
                 raise AuthorityError('OPERATIONS_RETIREMENT_RECORD_INVALID')
             # Keep the full receipt/History expiry and every non-operations field.
             expression = 'SET GSI1SK = :receiptSort ' + expression
@@ -87,7 +98,7 @@ class OperationsRetirement:
         else:
             raise AuthorityError('OPERATIONS_RETIREMENT_ACCESS_UNAVAILABLE')
         condition = ('recordType = :type AND policyVersion = :policy AND #state = :state '
-                     'AND operationsReceipt = :metadata AND GSI1PK = :index AND GSI1SK = :sort')
+                     f'AND {reference_condition} AND GSI1PK = :index AND GSI1SK = :sort')
         if state == 'SETTLED':
             condition += ' AND expiresAt = :expiry AND retentionDeadlineEpoch = :expiry'
         action = {'TableName': self.table, 'Key': key, 'UpdateExpression': expression,
@@ -104,7 +115,7 @@ class OperationsRetirement:
             # resolves replay, but an ambiguous successful response is not counted.
             try: latest = self._get(key)
             except Exception: raise AuthorityError('OPERATIONS_RETIREMENT_TRANSACTION_UNCERTAIN') from None
-            if latest is None or 'operationsReceipt' not in latest:
+            if latest is None or not {'operationsReceipt', 'operationsProjection'} & set(latest):
                 return False
             raise AuthorityError('OPERATIONS_RETIREMENT_TRANSACTION_UNCERTAIN') from None
         return True

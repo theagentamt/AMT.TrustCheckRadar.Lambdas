@@ -143,7 +143,7 @@ class Expiry:
                     return counts | {'cursor': cursor}
                 counts['examined'] += 1
                 expiry = integral(item.get('expiresAt'))
-                if 'operationsReceipt' in item:
+                if {'operationsReceipt', 'operationsProjection'} & set(item):
                     prefix = str(item.get('GSI1SK', '')).split('#', 1)[0]
                     if len(prefix) == 12 and prefix.isdigit():
                         expiry = int(prefix)
@@ -151,14 +151,14 @@ class Expiry:
                     counts['oldestOverdueSeconds'] = max(counts['oldestOverdueSeconds'], max(0, self.now() - expiry))
                 try:
                     full_expiry = integral(item.get('expiresAt'))
-                    if 'operationsReceipt' in item:
+                    if {'operationsReceipt', 'operationsProjection'} & set(item):
                         from .operations_retirement import OperationsRetirement
                         retired = OperationsRetirement(self.ddb, self.table, now=self.now).retire(item['PK'], item['SK'])
                         if retired:
                             counts['operationsRetired'] = counts.get('operationsRetired', 0) + 1
                         if not can_continue():
                             return counts | {'cursor': cursor}
-                    if 'operationsReceipt' not in item or full_expiry is not None and full_expiry <= self.now():
+                    if not {'operationsReceipt', 'operationsProjection'} & set(item) or full_expiry is not None and full_expiry <= self.now():
                         counts['deleted'] += int(self.expire(item['PK'], item['SK']))
                 except (AuthorityError, KeyError, TypeError):
                     counts['failed'] += 1

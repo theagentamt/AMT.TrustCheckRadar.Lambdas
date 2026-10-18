@@ -103,7 +103,7 @@ class Recovery:
                 deadline=integral(item.get('settleByEpoch'))
                 if deadline is not None:counts['oldestOverdueSeconds']=max(counts['oldestOverdueSeconds'],max(0,self.now()-deadline))
                 try:
-                    if 'operationsReceipt' in item:
+                    if {'operationsReceipt', 'operationsProjection'} & set(item):
                         from .operations_retirement import OperationsRetirement
                         retired = OperationsRetirement(self.ddb, self.table, now=self.now).retire(item['PK'], item['SK'])
                         if retired:

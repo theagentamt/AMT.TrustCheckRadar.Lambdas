@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_TRUSTED_INGESTION_FINAL_SOURCE_HANDOFF",
+  "reviewedAtUtc": "2026-10-18T00:24:52.530583+00:00",
+  "files": {
+    "docs/SECUR4ALL-237-TRUSTED-INGESTION.md": "6f4416989ce663469683598b3566bce3de69c2552d8609de097c271a678f716c",
+    "docs/SECUR4ALL-237-TRUSTED-INGESTION.json": "03f8c8f8aeb0dcc307b7b4cc9c2c3c84d977b35f61c4a62bbe0c314d0c684878",
+    "docs/SECUR4ALL-237-ingestion-independent-review.json": "05aa9a3a8062db9dceac84514d54a74d980e394e18a8bb921d5bb1d321e359d0"
+  },
+  "checks": {
+    "all14SourceTestDocPinsMatch": true,
+    "all12IndependentSourceReviewPinsCurrent": true,
+    "all6ProtectedCoreEntitlementRuntimeSchedulerBuilderPublisherPinsUnchanged": true,
+    "copiedUpdatedSourceReviewExactBytes": true,
+    "junitShaTotalsMatch": {
+      "testsIncludingSubtests": 1602,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "parentPytestTotals": {
+      "passedTests": 1581,
+      "passedSubtests": 21
+    },
+    "focusedReviewedCases": 129,
+    "independentNewCases": 12,
+    "legacyActionEqualityCases": 8,
+    "legacyProjectionScopes": 4,
+    "legacyFullTtlDimensions": [
+      "expired",
+      "surviving"
+    ],
+    "all9ArtifactHashSizeManifestJoinsMatch": true,
+    "all8AuthorityArchivesEmbedExactCurrent11AuthorityAndOperationsSourceFiles": true,
+    "operationsReportingKernelAbsentFromAll9Archives": true,
+    "retained5DisabledHandlersAnd8IsolatedArchiveNewModuleImportEvidenceHashesMatch": true
+  },
+  "retainedEvidence": {
+    "junit": {
+      "path": "/tmp/amt-sec237-ingestion-final-tests.xml",
+      "sha256": "85836ee34172fa19eeff6dac1e516a77ca44102cbe0412e567a88a84e9e4aad1"
+    },
+    "artifacts": {
+      "path": "/tmp/amt-sec237-ingestion-artifacts.json",
+      "sha256": "e7f3786c186ce5243b8a96023c52e3b7287c6adb8744a533dd5f3034789324b9"
+    },
+    "disabledHandlersHostStdout": {
+      "path": "/tmp/amt-sec237-ingestion-host-imports.log",
+      "sha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d"
+    },
+    "newModuleArchiveImportStdout": {
+      "path": "/tmp/amt-sec237-ingestion-isolated-imports.log",
+      "sha256": "c19cfc0da134d0d9addd951be8a3ca6dae78a1415ef83c2b8db5ca1cde27c3b9"
+    }
+  },
+  "handoffClaimsConfirmed": [
+    "Typed context and check proof are internal preconditions; no network/IAM authentication or client JSON boundary newly implemented",
+    "Canonical source/projection capture, strict closed schema, inventory/profile/ACCESS/deletion/exact-source CAS and replay fences accurately described",
+    "Receipt-local captured facts may lag later settlement; no independently current public read API or aggregate producer coverage upgrade",
+    "Original operations deadline unrenewed; postdispatch expiry check never returns expired facts but is not server-clock physical deletion SLA",
+    "Seen known full-expiry-only index is repaired atomically, not full discovery/backfill; mixed old-worker orphan discovery remains unqualified",
+    "Orphan snapshots permit schema-bound expired erasure only and cannot reconstruct missing authority metadata",
+    "Typed paid closure preserves original accounting/full TTL; OPERATION_EXPIRED means expired paid authorization in this path, not necessarily elapsed worker lease or provider cause",
+    "Old two metadata-rejection tests intentionally reconciled to typed planning; eight legacy action comparisons cover four scopes and both expired/surviving receipts",
+    "Inspection archives omit dependencies; retained host imports are not native ARM64/distribution/runtime/IAM proof",
+    "Source default-off is not fresh runtime readback; no AWS/auth/endpoints/provider/emulator/billing/runtime/deployment/main action claimed",
+    "Actual authenticated worker/caller wiring, coordinated package versions, older-row/index coverage, physical cleanup/backups/restore/IAM/cost/Dev and report/delivery acceptance remain prerequisites; SEC237 In Progress/not Done"
+  ],
+  "remainingReviewBlockers": [],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}

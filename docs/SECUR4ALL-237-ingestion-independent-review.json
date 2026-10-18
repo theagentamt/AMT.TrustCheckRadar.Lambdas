@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_TRUSTED_RECEIPT_INGESTION_AND_TYPED_PAID_CLOSURE_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-18T00:22:56.188530+00:00",
+  "files": {
+    "src/shared_check_authority/operations_ingestion.py": "312ff2a26321117d7ee94b80e8bcd48357092de2462e925739d2a1a8077e8bc1",
+    "src/shared_check_authority/operations_compat.py": "c246a8d04c55c1bde37ac715fb9d613bf8ee28451560b87ade88f9d07512c815",
+    "src/shared_operations/projection.py": "4d85652fc8745e39f1d8c21e94123e5272a372a95eda446629db09b2c2e233f1",
+    "src/shared_check_authority/purchase_usage.py": "65b815f88bb38e111d72f0421a5e958fff99dfc31404970d61d0ecbf07899998",
+    "src/shared_check_authority/operations_retirement.py": "e6929096962a3d63354ae6f912fdfe387723b2221b0dab356c1156180f11fc9c",
+    "src/shared_check_authority/expiry.py": "144228ba940424e615d60e9e864b73b74de73a647091ea63f56113296d407179",
+    "src/shared_check_authority/recovery.py": "0d0988e33583c6bc6c8a4c0da1b1305ed0616d4dd3ba55711da3fb161d0bef32",
+    "tests/shared_check_authority/test_operations_ingestion.py": "414c3ea8f5a358b80589b470bddb6d28c62a6c269fc1f690b2488ecf97bdb663",
+    "tests/shared_check_authority/test_operations_ingestion_independent.py": "9ae62706c20082b061d052903925f35cd6e7924790f61387075b88fe3e722abc",
+    "tests/shared_check_authority/test_operations_paid_closure.py": "2156103a860413931cc23c847a361dc533f1b8d9388db846919380d51c1b5d27",
+    "tests/shared_check_authority/test_operations_retirement_independent.py": "3e659c3717749ff30ff35285a11299dc55df7e384d2f6577340313113dbdb31f",
+    "tests/governed_history/test_release_preservation.py": "2ce8e9d143b7ce7112bbe8f0c6afd78d5dc5a2c6888bdde520bcd871ef3f3d4b"
+  },
+  "protectedUnchangedFiles": {
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/url_lease_recovery/app.py": "8c7f40f19498ee16410b19c782d451f1957eb47bc2141c6a522cf397d109b25d",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd"
+  },
+  "independentTests": {
+    "addedCases": 12,
+    "combinedFocusedIngestionClosureRetirementPreservationAndShorteningCases": 129,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 17.71,
+    "framework": "Local Moto plus pure closed-snapshot validation; synthetic process credentials only",
+    "cases": [
+      "Replay executes fresh deletion/source CAS and cannot bypass account deletion",
+      "Unknown replay acknowledgement remains unknown; no automatic retry or revalidated success",
+      "Delayed accepted snapshot cannot overwrite a newer authoritative terminal snapshot",
+      "Selective retirement racing ingestion prevents reference resurrection or accounting mutation",
+      "Profile age-verification revocation racing transaction prevents capture",
+      "Four closed-schema private-field/inconsistent-outcome snapshot cases reject",
+      "Returned mutable snapshot cannot mutate stored projection or future replay",
+      "Paid closure cannot erase concurrently first-captured accepted projection",
+      "Unexpired orphan projection cannot authorize paid closure"
+    ]
+  },
+  "sourceReview": [
+    "Worker context and proof derive actual account partition; actual receipt type/policy/HMAC and inventory are checked, caller rows/events not accepted",
+    "Atomic inventory, non-DELETING exact ACCESS, active owner profile, deletion-marker absence, exact receipt/prior projection and absent-optional conditions protect initial capture and replay",
+    "Stored projection is strict closed content-free schema; immutable original refs and accepted event persist across monotonic terminal enrichment",
+    "Pre/post dispatch clocks and original operations deadline prevent returning expired facts; SDK completion after original expiry is not a server-clock expiry guarantee",
+    "Seen known older full-expiry-only SETTLED index is atomically repaired with projection CAS; full TTL unchanged, pending index validated and not rescheduled",
+    "Selective retirement removes projection with both original linkage fields, also erases schema-qualified expired orphan capture without reminting or accepting it as authority",
+    "Paid closure admits only typed known metadata groups; strict unknown/partial/cross-service/capture validation remains; exact captured-row conditions prevent concurrent projection loss",
+    "Paid closure expired-authorization cause is not evidence worker settleBy elapsed; no provider cause is invented",
+    "Intentional preservation-test update allows only reviewed due_reservation_actions AST change and exact prior PR139 validator wrapper; original remaining statements remain protected",
+    "Eight actual legacy scope/full-TTL action-equality tests and unchanged shortening failure cases preserve default financial behavior"
+  ],
+  "findings": [],
+  "remainingSourceReviewBlockers": [],
+  "activationAndIntegrationLimits": [
+    "TrustedWorkerContext is an in-process precondition, not a network authentication mechanism; no handler/authenticated source adapter is introduced",
+    "No reducer/aggregate provenance upgrade, attempt provider/rejection source, durable predispatch, cost catalog, scheduler/report/alert/delivery qualification",
+    "Receipt-local projection remains linkable only on its existing receipt under original7d-or-shorter deadline; no second table/subject locator created",
+    "A slow service write can complete after a predispatch deadline check; postdispatch check returns no expired facts, physical sweep timeliness remains separate",
+    "Seen-row index repair does not inventory/backfill all older rows or fix mixed older worker orphan discovery by itself",
+    "Backups, restore, account deletion deployment enforcement, actual cleanup scheduling/timeliness and resources/IAM/cost/Dev acceptance remain unqualified",
+    "Source default-off flags unchanged; local Moto/pure checks do not prove live AWS/provider/runtime/physical behavior",
+    "SEC237/243 full acceptance remains open; no runtime activation, endpoints, credentials or purchase operations performed"
+  ],
+  "requiredFinalHandoff": [
+    "Frozen broad source JUnit and exact doc/evidence joins",
+    "Inspection archive byte/hash joins for current new modules",
+    "Disabled network-blocked host imports and native ARM64/dependency limits"
+  ],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  },
+  "testOnlyLegacyStrengthening": {
+    "priorReviewPath": "/tmp/amt-sec237-trusted-ingestion-independent-review-before-legacy-strengthening.json",
+    "priorReviewSha256": "70afb445b9bfb5929f9a7e1e08891e4a80cbc1698ab2d8d4bb30b2371f0870d2",
+    "productionSourceUnchanged": true,
+    "legacyCases": 8,
+    "dimensions": "four projection scopes x full receipt expired/surviving",
+    "result": "129focused cases pass, zero failures/errors/skips; legacy actions byte-for-byte equivalent as Python structures to pinned release"
+  }
+}
