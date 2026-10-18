@@ -53,6 +53,12 @@ class Expiry:
         if expiry is None or expiry <= 0 or expiry > self.now():
             return False
         index_sort = f'{expiry:012d}#{partition}#{sort_key}'
+        if family == 'CHECK' and 'operationsReceipt' in row:
+            try:
+                from shared_operations import retirement_metadata
+                deadline = retirement_metadata(row)['expiresAtEpoch']
+            except Exception: raise AuthorityError('EXPIRY_RECORD_INVALID') from None
+            index_sort = f'{min(expiry, deadline):012d}#{partition}#{sort_key}'
         if (row.get('recordType') != TYPES[family] or row.get('GSI1PK') != 'V1_EXPIRING'
                 or row.get('GSI1SK') != index_sort
                 or (family == 'CHECK' and (row.get('state') != 'SETTLED' or row.get('policyVersion') != OWNER_POLICY))):
@@ -137,10 +143,23 @@ class Expiry:
                     return counts | {'cursor': cursor}
                 counts['examined'] += 1
                 expiry = integral(item.get('expiresAt'))
+                if 'operationsReceipt' in item:
+                    prefix = str(item.get('GSI1SK', '')).split('#', 1)[0]
+                    if len(prefix) == 12 and prefix.isdigit():
+                        expiry = int(prefix)
                 if expiry is not None:
                     counts['oldestOverdueSeconds'] = max(counts['oldestOverdueSeconds'], max(0, self.now() - expiry))
                 try:
-                    counts['deleted'] += int(self.expire(item['PK'], item['SK']))
+                    full_expiry = integral(item.get('expiresAt'))
+                    if 'operationsReceipt' in item:
+                        from .operations_retirement import OperationsRetirement
+                        retired = OperationsRetirement(self.ddb, self.table, now=self.now).retire(item['PK'], item['SK'])
+                        if retired:
+                            counts['operationsRetired'] = counts.get('operationsRetired', 0) + 1
+                        if not can_continue():
+                            return counts | {'cursor': cursor}
+                    if 'operationsReceipt' not in item or full_expiry is not None and full_expiry <= self.now():
+                        counts['deleted'] += int(self.expire(item['PK'], item['SK']))
                 except (AuthorityError, KeyError, TypeError):
                     counts['failed'] += 1
                 # Checkpoint every attempted item, including poison rows; never skip

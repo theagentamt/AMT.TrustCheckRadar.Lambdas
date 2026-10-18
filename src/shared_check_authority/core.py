@@ -654,6 +654,20 @@ class Authority:
             update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
             update['ExpressionAttributeValues'].update({':operationsReason': operations['terminalReasonCode'],
                                                        ':operationsCaptured': operations['capturedMetadata']})
+        if 'operationsReceipt' in row:
+            # Existing obligations survive producer pause. Index the earlier
+            # operations deadline without shortening History's real TTL.
+            try:
+                from shared_operations import retirement_metadata
+                metadata = retirement_metadata(row)
+            except Exception: raise AuthorityError('OPERATIONS_RECEIPT_INVALID') from None
+            update = items[-1]['Update']
+            values = update['ExpressionAttributeValues']
+            due = min(int(values[':expiry']), metadata['expiresAtEpoch'])
+            values[':sort'] = f'{due:012d}#{partition}#{key["SK"]}'
+            if ':operationsCaptured' not in values:
+                update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
+                values[':operationsCaptured'] = metadata
         if result_summary is not None:
             from shared_lookup_freshness import current
             observations = ([(result_summary['lookupObservedAt'], result_summary['lookupValidUntil'])]

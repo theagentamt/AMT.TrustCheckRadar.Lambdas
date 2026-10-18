@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_SELECTIVE_RETIREMENT_FINAL_SOURCE_HANDOFF",
+  "reviewedAtUtc": "2026-10-18T00:08:29.671771+00:00",
+  "files": {
+    "docs/SECUR4ALL-237-OPERATIONS-RETIREMENT.md": "9abc08c71543692cce2671b818ebc75bb45d19c420041231dbf96f57e6a40c5c",
+    "docs/SECUR4ALL-237-OPERATIONS-RETIREMENT.json": "27bc58592acc2ea2faa07673e25f1c9496fae21f4115f22dacc9f16b0e89ab02",
+    "docs/SECUR4ALL-237-retirement-independent-review.json": "b41f7f518b1464f02449cf122fc7133dcccd97233e244df748a8ae6de39136d7",
+    "docs/SECUR4ALL-237-retirement-initial-findings.json": "b3a92339b8014046b636f60db8a40fe5eb4af7ff93ee63ea54b77d484a185976",
+    "docs/SECUR4ALL-237-retirement-inventory-read-finding.json": "ddff76a550ef1760ffdd2be59aa5a51af31a272e11e66789f8997256885992d8"
+  },
+  "checks": {
+    "all13SourceTestDocPinsMatch": true,
+    "all3CopiedIndependentAndInitialFindingRecordsExactBytes": true,
+    "junitShaAndTotalsMatch": {
+      "testsIncludingSubtests": 1530,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "parentPytestTotals": {
+      "passedTests": 1509,
+      "passedSubtests": 21
+    },
+    "focusedRetirementCases": 32,
+    "independentCases": 11,
+    "combinedFocusedProducerPreservationCases": 107,
+    "finalJUnitContainsInventoryReadAndMetadataBoundaryPauseRegressions": true,
+    "all9InspectionArchiveHashSizeAndManifestJoins": true,
+    "all8AuthorityArchivesEmbedExactCurrentCoreRuntimeRecoveryExpiryRetirementAndSharedOperations": true,
+    "schedulerArchiveContainsExactCurrentApp": true,
+    "operationsReportingKernelAbsentFromAll9Archives": true,
+    "retained5DisabledHostImportStdoutHashMatches": true,
+    "noTestRerunForHandoff": true
+  },
+  "retainedEvidence": {
+    "junit": {
+      "path": "/tmp/amt-sec237-retirement-source-frozen-tests.xml",
+      "sha256": "49478929c823e88c5833de2f156bd13a0117efb1da07287bd11f01c6da28f16f"
+    },
+    "artifacts": {
+      "path": "/tmp/amt-sec237-retirement-artifacts.json",
+      "sha256": "ce2df7b834ba0d9f8eacc8c45fee9cf35a16e27ed04422f9aaec3db24b4a0946"
+    },
+    "hostVerifierStdout": {
+      "path": "/tmp/amt-sec237-retirement-host-imports.log",
+      "sha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d"
+    }
+  },
+  "handoffClaimsQualified": [
+    "All3 independent source findings and resolutions accurately retained; no runtime incident claim",
+    "Selective operations erasure preserves History/full TTL/accounting and strict full-delete ownership; no schema or resource expansion",
+    "Both writers schedule earliest deadline even after producer creation pause; replay cannot recreate refs",
+    "Read/write uncertainty and aggregate-only count semantics preserved; no deployed cleanup or sweep timing guarantee claimed",
+    "Pause fixture correction targets actual CHECK metadata boundary; source conditions not weakened"
+  ],
+  "remainingActivationLimits": [
+    "Producer false is source/default-off scope, not a fresh runtime readback",
+    "Unchanged paid due-reservation metadata compatibility remains fail-closed and must be reconciled before producer activation",
+    "Forward queue scheduling does not qualify older settled-row index coverage; no scan/backfill/migration occurred",
+    "Atomic trusted receipt/expiry/deletion ingestion and dict authenticity remain pending",
+    "Backup/restore/deletion and real scheduling/timeliness/resources/IAM/cost/Dev behavior remain unqualified",
+    "Attempt/provider finish/cost coverage and actual report/alert/delivery acceptance remain open",
+    "Inspection ZIPs omit dependencies and retained host imports are not native ARM64/distribution/IAM/runtime proof",
+    "SEC237 remains In Progress, not Done or deployed; no runtime flag or actual service/device/provider/billing action occurred"
+  ],
+  "remainingReviewBlockers": [],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}

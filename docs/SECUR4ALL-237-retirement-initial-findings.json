@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "CHANGES_REQUESTED",
+  "reviewedAtUtc": "2026-10-18T00:03:05.111969+00:00",
+  "files": {
+    "src/shared_check_authority/operations_retirement.py": "4f9441b33f487670605ffd9853ddf6bb47ebdce10968516de4f0f2d896b3a41e",
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/recovery.py": "f72ca380407e96432c4e97889ff01ca86a36b3d6ad0983c4acf1b80a082245a1",
+    "src/shared_check_authority/expiry.py": "ceb41a18ecf04bd0aa16d92cab194ecdb6df097091b4f958e0a1c50cc037784e",
+    "src/shared_operations/receipts.py": "c44e7bd08fbfbc34ab55c9e388cc354d8c54cca9887e7561c3bf64c13d62481c",
+    "src/url_lease_recovery/app.py": "8c7f40f19498ee16410b19c782d451f1957eb47bc2141c6a522cf397d109b25d",
+    "tests/shared_check_authority/test_operations_retirement_independent.py": "d047be24446c430ea6d36190970ebab3b90d486195b842c7ab4b870e7dd91635"
+  },
+  "independentTests": {
+    "cases": 8,
+    "passed": 5,
+    "failed": 3,
+    "services": "local Moto only"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "high",
+      "scope": "Expired linkable field erasure",
+      "finding": "Expiry.sweep selects full-row expiry once full deadline is overdue, skipping selective retirement. Missing/DELETING ACCESS prohibits full CHECK deletion, leaving expired operations references despite explicit selective-erasure permission.",
+      "regressions": "test_expiry_queue_still_erases_operations_when_full_row_delete_is_not_permitted[DELETING,MISSING]",
+      "requiredCorrection": "Preserve full-row deletion ownership restrictions but independently perform due selective operations-field erasure."
+    },
+    {
+      "id": "R2",
+      "severity": "high",
+      "scope": "Original operations deadline scheduling",
+      "finding": "HMAC Recovery.expire still indexes full receipt retention. Valid non-History14d receipt retention with7d operations deadline becomes SETTLED and not queued until14d.",
+      "regression": "test_hmac_settlement_indexes_ops_deadline_when_receipt_retention_is_longer",
+      "requiredCorrection": "Use earliest full/operations deadline and exact captured metadata in HMAC settlement, preserving no-metadata default behavior."
+    }
+  ],
+  "remainingLimits": [
+    "No actual service/credential/runtime/provider/device call",
+    "No live data incident claimed; source/Moto counterexamples only",
+    "No deployment, activation, TTL/backups/restore/timeliness qualification"
+  ]
+}

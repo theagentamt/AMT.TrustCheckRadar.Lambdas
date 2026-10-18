@@ -69,6 +69,17 @@ class Recovery:
                 update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
                 update['ExpressionAttributeValues'].update({':operationsReason': operations['terminalReasonCode'],
                                                            ':operationsCaptured': operations['capturedMetadata']})
+        if 'operationsReceipt' in row:
+            try:
+                from shared_operations import retirement_metadata
+                metadata = retirement_metadata(row)
+            except Exception: raise AuthorityError('OPERATIONS_RECEIPT_INVALID') from None
+            update = items[-1]['Update']
+            values = update['ExpressionAttributeValues']
+            values[':sort'] = f'{min(int(row["retentionDeadlineEpoch"]), metadata["expiresAtEpoch"]):012d}#{partition}#{key["SK"]}'
+            if ':operationsCaptured' not in values:
+                update['ConditionExpression'] += ' AND operationsReceipt = :operationsCaptured'
+                values[':operationsCaptured'] = metadata
         try: self.client.transact_write_items(TransactItems=items)
         except Exception: raise AuthorityError('RECOVERY_TRANSACTION_UNCERTAIN') from None
         return True
@@ -86,11 +97,20 @@ class Recovery:
             counts['pages'] += 1
             for item in result.get('Items', []):
                 if not can_continue():return counts | {'cursor':cursor}
+                previous_cursor = cursor
                 cursor={k:item[k] for k in ('PK','SK','GSI1PK','GSI1SK')}
                 counts['examined'] += 1
                 deadline=integral(item.get('settleByEpoch'))
                 if deadline is not None:counts['oldestOverdueSeconds']=max(counts['oldestOverdueSeconds'],max(0,self.now()-deadline))
-                try: counts['recovered'] += int(self.expire(item['PK'], item['checkId']))
+                try:
+                    if 'operationsReceipt' in item:
+                        from .operations_retirement import OperationsRetirement
+                        retired = OperationsRetirement(self.ddb, self.table, now=self.now).retire(item['PK'], item['SK'])
+                        if retired:
+                            counts['operationsRetired'] = counts.get('operationsRetired', 0) + 1
+                        if not can_continue():
+                            return counts | {'cursor': previous_cursor}
+                    counts['recovered'] += int(self.expire(item['PK'], item['checkId']))
                 except (AuthorityError, KeyError, TypeError): counts['failed'] += 1
             # Advance even after a poison item; persisted cursor resumes next batch.
             cursor = result.get('LastEvaluatedKey')
