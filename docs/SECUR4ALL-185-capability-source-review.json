@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T03:49:03.255161+00:00",
+  "outcome": "PASS_CURRENT_OFFLINE_CAPABILITY_CONTRACT_FIXTURES_AND_MAIN_ONLY_COVERAGE",
+  "sourceBase": "5680fed1db390f76347ac76d6f2ba0b493fad507",
+  "reviewedFiles": {
+    "contracts/history-capabilities/1.0.0-candidate.1/README.md": "94b1229887665d24e1c3693b7e2e50463f60b267cf236f2bee0e00d70c275a60",
+    "contracts/history-capabilities/1.0.0-candidate.1/SHA256SUMS": "02bdae92e8fd4d88088a2f411ec36d19e820c8570a2a94b4478cf27f9f0873c6",
+    "contracts/history-capabilities/1.0.0-candidate.1/anchor-joins.json": "b14e658cdb8a76e4c63c04bee7a677637fdbba0f19ab75ed95f48900bd89be2b",
+    "contracts/history-capabilities/1.0.0-candidate.1/contract-set.json": "55f126ec38fe42b3881aa608e92764bdb6ec2948870abd0d278b39c6e82dafa3",
+    "contracts/history-capabilities/1.0.0-candidate.1/fixtures.json": "fdffb8f786eb6c90d562c00ae0ade2da920253deae457029e498d808243ff557",
+    "contracts/history-capabilities/1.0.0-candidate.1/operation-plan.schema.json": "86c9f730b08f7ef432cc484a861be5250bb44fa87b8b5ad212523562c06d10eb",
+    "tests/history_capabilities/test_contract.py": "35fbbf14b7ab5f7f25eccc1479d475a9d66e88d4de6ccc0fb61b5b8d8b9de63a",
+    "tests/history_capabilities/test_existing_boundaries.py": "ebcec528466bb18bb16267aa84e1734128060aea5000728a3689b63a770f8dd5",
+    "tests/history_capabilities/test_independent.py": "ac26af578979a9a98504cac6edf37721551553bb98bd9e824f0d42a1a5738784",
+    "docs/SECUR4ALL-185-GOVERNED-CAPABILITY.md": "1bd52f55ab58d282213691795750e42e727919d67c1220bd8da436d311d64a7c",
+    ".github/workflows/ci.yml": "0ad87a148026c4d22f93f231b3ed8d3d147cb1368f9e2427db24bc3838e082ad"
+  },
+  "independentExecution": {
+    "command": "synthetic env /tmp/amt-dev-diagnostics-venv/bin/python -B -m pytest -q tests/history_capabilities",
+    "junitPath": "/tmp/amt-governed-capability-current-independent.xml",
+    "junitSha256": "0d7742c42caab68786a94dae01efe82b4b0ed87753b7dae96ab3196bd61acada",
+    "passed": 60,
+    "independentAdditionalCases": 10,
+    "failure": 0,
+    "error": 0,
+    "skip": 0
+  },
+  "joins": {
+    "backendContractPins": 8,
+    "androidSourceFileGitAndBytes": 5,
+    "androidVendoredGovernedSchemaGitAndBytes": 4,
+    "existingOtherSourceContractScriptGithubBytesUnchanged": 715
+  },
+  "findings": [
+    {
+      "id": "COVERAGE_1",
+      "origin": "pre-publication source self-review by implementer",
+      "status": "RESOLVED_REVIEWED",
+      "summary": "Default per-suite test loop can skip gated Moto boundary file. Add suite only to existing authority job integration-enabled pytest command."
+    }
+  ],
+  "reviewedInvariants": [
+    "All eleven offline plans are closed and executionAuthorized is boolean false; added owner/proof/token/generation/award claims are rejected.",
+    "Family/version/path cannot be recombined into unimplemented governed mutations or permission.",
+    "Current governed item schema rejects capability, owner, recognition and award extensions.",
+    "Actual unchanged handler/Moto cases prove unsupported routes, owner/device/deletion guards, eligible second-owner isolation, independent clear/reset, original-deadline read/settlement replay and legacy idempotency.",
+    "A lexically valid gh1-shaped legacy no-op COMPLETE is not a governed deletion; generic AnalysisRequestId and local generation zero provide neither semantic conversion nor reset authority.",
+    "G1/G2 are unapproved recommendations; T1/P1 remain explicit engineering/lifecycle requirements.",
+    "Current workSplit and static regression keep delete/clear design independent of G1/G2, adapter dependent on T1/P1; recognition additionally requires G1/G2; current read-only unblocked."
+  ],
+  "limits": [
+    "Not a new wire contract, endpoint, adapter, bridge, policy approval, feature flag or runtime artifact.",
+    "No actual Cognito, AWS, IAM, device, provider, deployment, credentials or runtime qualification. Moto identity and client substitutes remain synthetic.",
+    "No all-copy deletion/restore, lifetime progress, governed mutation/recognition or full S10 completion inferred. SEC185/186/224/225/226 remain open.",
+    "Current source conclusions do not refresh retained Android installation, profile, metadata or service readiness."
+  ],
+  "coverageAmendment": {
+    "reason": "Actual governed-boundary fixtures import integration-gated authority fixtures; existing main-only authority job now includes the new suite.",
+    "workflowExactlySingleExistingPytestCommandSuiteAddition": true,
+    "triggersJobsPermissionsPublisherUnchanged": true,
+    "priorInitial716AndCiUnchangedClaimSuperseded": true,
+    "history": [
+      {
+        "path": "/tmp/amt-governed-capability-independent-review.json",
+        "sha256": "3c748581b8d9074f655cfeb665a5739a705dde26c1a5c70f545a70435e2c574c"
+      },
+      {
+        "path": "/tmp/amt-governed-capability-ci-amendment-review.json",
+        "sha256": "006034c95150b6357eea7ff048f467dbb8033926787abe917247d653fa75f83c"
+      }
+    ],
+    "actualEnlargedJobExecution": "Parent retains result separately; no CI dispatch claimed."
+  },
+  "scope": "Contract-only source increment plus main-only test command coverage; no production implementation, wire, publisher, dependencies, IAM, configuration or runtime changes.",
+  "workSplitClarification": {
+    "priorCurrentRecordRetained": {
+      "path": "/tmp/amt-governed-capability-source-pre-worksplit-review.json",
+      "sha256": "515dde056c7864e0923562ba877cdb49bbbb7a96bfe9b990b25336927505e818"
+    },
+    "deleteClearDesignAndFixturesWaitForG1G2": false,
+    "deleteClearAdapterPrerequisites": [
+      "T1",
+      "P1"
+    ],
+    "recognitionAdapterAdditionallyRequires": [
+      "G1",
+      "G2"
+    ],
+    "existingReadOnlyBlockedByRecognitionPolicy": false,
+    "newProductionOrWireBehavior": false
+  }
+}

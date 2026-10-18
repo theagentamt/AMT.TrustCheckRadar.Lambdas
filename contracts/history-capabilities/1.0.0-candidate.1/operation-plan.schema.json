@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amt:history-capabilities:1.0.0-candidate.1:offline-operation-plan",
+  "title": "Offline existing-contract operation binding; never an authorization/HTTP payload",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "bootstrap"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "POST"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history/bootstrap"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "list"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "detail"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history/{requestId}"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "export"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history/export"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "progress"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/progress"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "delete_one"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "DELETE"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history/{requestId}"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "clear_history"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "DELETE"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "reset_progress"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "POST"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/progress/reset"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "legacy_history_v1"
+        },
+        "operation": {
+          "const": "delete_history_account_data"
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "method": {
+          "const": "DELETE"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/history/account"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "governed_history_candidate1"
+        },
+        "operation": {
+          "const": "list"
+        },
+        "contractVersion": {
+          "const": "1.0.0-governed-history-candidate.1"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/analysis-history"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "operation",
+        "contractVersion",
+        "method",
+        "pathTemplate",
+        "executionAuthorized"
+      ],
+      "properties": {
+        "family": {
+          "const": "governed_history_candidate1"
+        },
+        "operation": {
+          "const": "detail"
+        },
+        "contractVersion": {
+          "const": "1.0.0-governed-history-candidate.1"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "pathTemplate": {
+          "const": "/v1/users/analysis-history/{resultId}"
+        },
+        "executionAuthorized": {
+          "const": false
+        }
+      }
+    }
+  ]
+}

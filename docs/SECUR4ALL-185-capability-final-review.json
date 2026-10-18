@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T03:50:31.221063+00:00",
+  "outcome": "PASS_FINAL_OFFLINE_CAPABILITY_HANDOFF_ONLY",
+  "baseCommit": "5680fed1db390f76347ac76d6f2ba0b493fad507",
+  "reviewedFiles": {
+    "contracts/history-capabilities/1.0.0-candidate.1/operation-plan.schema.json": "86c9f730b08f7ef432cc484a861be5250bb44fa87b8b5ad212523562c06d10eb",
+    "contracts/history-capabilities/1.0.0-candidate.1/anchor-joins.json": "b14e658cdb8a76e4c63c04bee7a677637fdbba0f19ab75ed95f48900bd89be2b",
+    "contracts/history-capabilities/1.0.0-candidate.1/README.md": "94b1229887665d24e1c3693b7e2e50463f60b267cf236f2bee0e00d70c275a60",
+    "contracts/history-capabilities/1.0.0-candidate.1/fixtures.json": "fdffb8f786eb6c90d562c00ae0ade2da920253deae457029e498d808243ff557",
+    "contracts/history-capabilities/1.0.0-candidate.1/contract-set.json": "55f126ec38fe42b3881aa608e92764bdb6ec2948870abd0d278b39c6e82dafa3",
+    "contracts/history-capabilities/1.0.0-candidate.1/SHA256SUMS": "02bdae92e8fd4d88088a2f411ec36d19e820c8570a2a94b4478cf27f9f0873c6",
+    "tests/history_capabilities/test_independent.py": "ac26af578979a9a98504cac6edf37721551553bb98bd9e824f0d42a1a5738784",
+    "tests/history_capabilities/test_contract.py": "35fbbf14b7ab5f7f25eccc1479d475a9d66e88d4de6ccc0fb61b5b8d8b9de63a",
+    "tests/history_capabilities/test_existing_boundaries.py": "ebcec528466bb18bb16267aa84e1734128060aea5000728a3689b63a770f8dd5",
+    ".github/workflows/ci.yml": "0ad87a148026c4d22f93f231b3ed8d3d147cb1368f9e2427db24bc3838e082ad",
+    "docs/SECUR4ALL-185-GOVERNED-CAPABILITY.md": "1bd52f55ab58d282213691795750e42e727919d67c1220bd8da436d311d64a7c",
+    "docs/SECUR4ALL-185-capability-source-review.json": "5fc0befbe0faec50b93d2673a1eb05cfb300543ede0fdd5a72b851b1efe48488",
+    "docs/SECUR4ALL-185-capability-validation.json": "736109f37cca2ea72d8c045aaa62f0ee5013e202c85af4cae2c163012919d3a3"
+  },
+  "retainedQuality": {
+    "path": "/tmp/amt-s10-quality.json",
+    "sha256": "b549747098674a251f23d97324e81d0597754dd7b9aae4fcdae688b72eb895b8"
+  },
+  "testAudit": {
+    "partitions": [
+      {
+        "path": "/tmp/amt-s10-history-closed.xml",
+        "sha256": "4760b013346dba496d635a672feeeff951c7385aef04f48c3ec2d9e125015179",
+        "uniqueCases": 367,
+        "reportedTests": 387
+      },
+      {
+        "path": "/tmp/amt-s10-preservation.xml",
+        "sha256": "837726d7eb58dc019688dac66347539391563084a992557e8c069a0989087b86",
+        "uniqueCases": 1998,
+        "reportedTests": 2019
+      }
+    ],
+    "uniqueCases": 2365,
+    "reportedSubtests": 41,
+    "reportedJUnitTests": 2406,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "candidate60Included": true,
+    "independentCurrent60AndExactCommand1444NotAddedToTotal": true,
+    "exactCommandCollectedBeforeOneWorkSplitRegression": true
+  },
+  "sourceAudit": {
+    "existingOtherBytesExact": 715,
+    "workflowExactSingleCommandExtension": true,
+    "productionWireDependencyPublisherRuntimeChanges": false,
+    "sourceRecordCopyExact": true
+  },
+  "findings": [],
+  "scopeConclusions": [
+    "Offline11-binding schema does not authorize execution or extend current wire contracts.",
+    "Legacy gh1-shaped no-op success is not governed deletion; actual existing ownership/replay/device/deletion/expiry semantics are preserved.",
+    "G1/G2 remain unapproved recognition candidates. Delete/clear design proceeds without them; implementation needs T1/P1. Recognition additionally needs G1/G2. Existing read-only is unblocked.",
+    "No artifact built or deployment qualified, no actual AWS/Cognito/provider/mobile execution. Retained Android source joins are not current installation or readiness.",
+    "SEC185/186/224/225/226 and full S10 remain open; no approved policy re-asked or new policy selected; later all-copy/restore/concurrency/admission/physical acceptance not passed."
+  ],
+  "supersededInitialClaim": "Initial716 unchanged/CI unchanged review was replaced by explicit715+one-command coverage change; prior source records remain historical, active current copy pinned."
+}

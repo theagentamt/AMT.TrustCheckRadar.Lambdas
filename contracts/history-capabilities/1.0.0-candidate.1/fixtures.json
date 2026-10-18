@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "documentKind": "offline_contract_fixtures",
+  "activationEnabled": false,
+  "positive": [
+    {
+      "name": "legacy_history_v1-bootstrap",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "bootstrap",
+        "contractVersion": "1.0.0",
+        "method": "POST",
+        "pathTemplate": "/v1/users/history/bootstrap",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-list",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "list",
+        "contractVersion": "1.0.0",
+        "method": "GET",
+        "pathTemplate": "/v1/users/history",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-detail",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "detail",
+        "contractVersion": "1.0.0",
+        "method": "GET",
+        "pathTemplate": "/v1/users/history/{requestId}",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-export",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "export",
+        "contractVersion": "1.0.0",
+        "method": "GET",
+        "pathTemplate": "/v1/users/history/export",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-progress",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "progress",
+        "contractVersion": "1.0.0",
+        "method": "GET",
+        "pathTemplate": "/v1/users/progress",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-delete_one",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "delete_one",
+        "contractVersion": "1.0.0",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history/{requestId}",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-clear_history",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "clear_history",
+        "contractVersion": "1.0.0",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-reset_progress",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "reset_progress",
+        "contractVersion": "1.0.0",
+        "method": "POST",
+        "pathTemplate": "/v1/users/progress/reset",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "legacy_history_v1-delete_history_account_data",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "delete_history_account_data",
+        "contractVersion": "1.0.0",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history/account",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed_history_candidate1-list",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "list",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed_history_candidate1-detail",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false
+      }
+    }
+  ],
+  "negative": [
+    {
+      "name": "governed-has-no-bootstrap",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "bootstrap",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "POST",
+        "pathTemplate": "/v1/users/history/bootstrap",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-progress",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "progress",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/progress",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-delete_one",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "delete_one",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history/{requestId}",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-clear_history",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "clear_history",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-reset_progress",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "reset_progress",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "POST",
+        "pathTemplate": "/v1/users/progress/reset",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-delete_history_account_data",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "delete_history_account_data",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "DELETE",
+        "pathTemplate": "/v1/users/history/account",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "governed-has-no-export",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "export",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/history/export",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "reject-extra-accountId",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "accountId": "synthetic-owner-b"
+      }
+    },
+    {
+      "name": "reject-extra-proof",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "proof": "synthetic-not-a-proof"
+      }
+    },
+    {
+      "name": "reject-extra-recognitionGeneration",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "recognitionGeneration": 0
+      }
+    },
+    {
+      "name": "reject-extra-historyGeneration",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "historyGeneration": 0
+      }
+    },
+    {
+      "name": "reject-extra-chargedChecks",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "chargedChecks": 0
+      }
+    },
+    {
+      "name": "reject-extra-points",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false,
+        "points": 1
+      }
+    },
+    {
+      "name": "no-live-permission",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": true
+      }
+    },
+    {
+      "name": "wrong-version",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "no-inferred-prefix-family",
+      "document": {
+        "family": "legacy_history_v1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "no-new-endpoint",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "POST",
+        "pathTemplate": "/v1/users/analysis-history/reset",
+        "executionAuthorized": false
+      }
+    },
+    {
+      "name": "no-path-injection",
+      "document": {
+        "family": "governed_history_candidate1",
+        "operation": "detail",
+        "contractVersion": "1.0.0-governed-history-candidate.1",
+        "method": "GET",
+        "pathTemplate": "/v1/users/analysis-history/{resultId}?account=synthetic",
+        "executionAuthorized": false
+      }
+    }
+  ],
+  "behaviorCases": [
+    {
+      "name": "governed-read-replay",
+      "required": "same result/original seven-day deadline; no writes/charge/award"
+    },
+    {
+      "name": "foreign-account-result",
+      "required": "own identity and device fences; guessed resultId never grants ownership"
+    },
+    {
+      "name": "device-generation-change",
+      "required": "cursor/read ownership revalidated; adapter zero is not server generation"
+    },
+    {
+      "name": "legacy-gh1-shaped-delete",
+      "required": "legacy syntax accepts ID and may acknowledge no-op receipt; governed record unchanged; never claim governed deletion"
+    },
+    {
+      "name": "same-id-retry",
+      "required": "original legacy operationId and target replay once; no new receipt/job/deadline"
+    },
+    {
+      "name": "cross-owner-operation-id",
+      "required": "operationId alone not global ownership; authenticated account partition/fences still required"
+    },
+    {
+      "name": "clear-vs-reset",
+      "required": "existing legacy clear changes only History generation; reset changes only recognition generation"
+    },
+    {
+      "name": "unknown-governed-qualification",
+      "required": "no badge/zero-progress fabrication from absent recognition capability"
+    },
+    {
+      "name": "governed-to-legacy-assessment",
+      "required": "typed governed result cannot satisfy legacy score/confidence/summary contract; no fabricated conversion"
+    }
+  ]
+}
