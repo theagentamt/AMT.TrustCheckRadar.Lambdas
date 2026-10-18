@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-18T01:59:33.078090+00:00",
+  "result": "REPRODUCED_SCOPE_AMBIGUITY_EXISTING_CONTRACT",
+  "offlineMotoOnly": true,
+  "sourceModified": false,
+  "sourceCohortsHaveDisjointLogicalReferences": true,
+  "firstObservedAccepted": 1,
+  "replacementObservedAccepted": 2,
+  "firstDecision": "COMMITTED",
+  "replacementDecision": "COMMITTED",
+  "revisionChainAndMonotonicChecksPass": true,
+  "existingStoreKeyDimensions": [
+    "environment",
+    "localDate"
+  ],
+  "producerCoverage": "not_qualified",
+  "ownerOrCohortIdentityInSummary": false,
+  "retentionUnchanged": true,
+  "actualAwsCalls": 0,
+  "endpointCalls": 0,
+  "runtimeChanges": 0,
+  "scriptSha256": "92fa5a3e794fdddef321e2ac093723764e1308e3231cce1a115d7b5e63f71190",
+  "sourcePins": {
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "4c078b187c16d0ce1516f234a812005cfb75d178b5f395a54bfa1abcce561a9a",
+    "src/operations_reporting/store.py": "4f9278a9486c3bab6c78cc5146adb146d183ed09de8c0215f6f427e09c10ac3a"
+  },
+  "limit": "Synthetic disjoint source populations demonstrate absent scope binding; no actual selected actor or deployed store was read."
+}

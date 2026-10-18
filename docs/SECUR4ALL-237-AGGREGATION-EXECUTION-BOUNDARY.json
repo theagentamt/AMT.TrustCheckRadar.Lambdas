@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "state": "In Progress",
+  "recordedAtUtc": "2026-10-18T02:01:03.312640+00:00",
+  "sourceBaseRelease": "94e89438f7721d668f181692da915be2a2a26f5d",
+  "result": "AGGREGATION_COMMIT_DESIGN_BLOCKED_BEFORE_IMPLEMENTATION",
+  "existingReusableModules": [
+    "shared_check_authority.operations_ingestion.ReceiptIngestion",
+    "operations_reporting.reducer.aggregate_day",
+    "operations_reporting.revisions.plan_revision",
+    "operations_reporting.store.AggregateStore"
+  ],
+  "newRunnerImplemented": false,
+  "existingModulesDuplicatedOrChanged": false,
+  "sourceTestDocPins": {
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "2245409888735bf084aeb9b3f09b26e93520f64b6fbb7b4ea147789dc7854a53",
+    "docs/SECUR4ALL-237-AGGREGATION-EXECUTION-BOUNDARY.md": "abf29f16e0cc66bb7ba09038ca367deb01ee0af41ae06f141c99c8dcd77ab16d",
+    "docs/SECUR4ALL-237-AGGREGATION-SCOPE-COUNTEREXAMPLE.json": "ae50fce31afb5d26f8beb18721fe2d37d0be3e2437b97db8b0b0787aefbacf2e",
+    "docs/examples/sec237_scope_counterexample.py": "92fa5a3e794fdddef321e2ac093723764e1308e3231cce1a115d7b5e63f71190"
+  },
+  "counterexample": {
+    "offlineActualMotoStore": true,
+    "disjointCohorts": true,
+    "firstAccepted": 1,
+    "replacementAccepted": 2,
+    "bothCommitExistingEnvDayHead": true,
+    "monotonicAndHashChainPass": true,
+    "retentionUnchanged": true,
+    "actualDeployedIncidentClaimed": false
+  },
+  "blocker": {
+    "code": "SOURCE_COHORT_STORE_SCOPE_UNQUALIFIED",
+    "explanation": "Selected-actor discovery is not scope-compatible with an unqualified environment/day aggregate head; monotonic counts do not bind the source population.",
+    "missingEngineeringQualification": "Exclusive nonpersonal finite namespace and trusted stable source-cohort provenance across runs, including incompatible existing-head refusal.",
+    "unsafeWorkaroundForbidden": "No owner identifier/hash in90-day aggregates; no automatic provider redispatch, missing-finish inference or broader actor enumeration.",
+    "newReportPolicyDecisionIdentified": false,
+    "newStorageOrPrivacyScopeAuthorized": false
+  },
+  "safeNextExecutionContract": [
+    "Bounded minimal existing-partition discovery with no persistent cursor/locator/content",
+    "Discover all bounded references before capture; abort incomplete or uncertain source",
+    "Reuse current deletion/profile/inventory/exact-source capture and finite run/expiry fences",
+    "Reuse reducer/planner/store; one conditional commit only after cohort scope qualification",
+    "Response-unknown/conflict require explicit fresh reconciliation; no blind retry/evaluator redispatch"
+  ],
+  "remainingStoryChecklist": "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md",
+  "validation": {
+    "reportingCases": 214,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "localChecks": {
+      "path": "/tmp/amt-sec237-aggregation-boundary-local-checks.json",
+      "sha256": "95a4547eb9df3e2473d7bf7d4575071cfec26c3d9ec77fa688b8ab55bacec9c5"
+    }
+  },
+  "sec198PolicyHeld": true,
+  "awsCalls": 0,
+  "endpointInvocations": 0,
+  "newAuthFlows": 0,
+  "providerDeviceFinancialActions": 0,
+  "runtimeResourceIamChanges": 0,
+  "newTelemetryOrRetentionScope": false,
+  "outboundDelivery": false,
+  "mainPromotion": false,
+  "actionReady": false
+}
