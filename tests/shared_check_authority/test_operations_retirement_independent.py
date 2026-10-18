@@ -106,7 +106,7 @@ def test_unacknowledged_retirement_write_never_retries_or_claims_success(world,m
 
 
 @pytest.mark.parametrize('history',[False,True])
-def test_paid_due_reservation_closure_still_fail_closes_for_new_metadata(world,history):
+def test_paid_due_reservation_closure_accepts_reviewed_metadata_without_mutating_on_plan(world,history):
     a,event,_,row,_,clock=world
     enable(a,history=history)
     if history:
@@ -121,9 +121,9 @@ def test_paid_due_reservation_closure_still_fail_closes_for_new_metadata(world,h
     period=row('PERIOD#p1');usage=a._get('authority',period['purchaseUsageKey'])
     clock[0]=int(usage['expiresAt'])+1
     before=deepcopy(row('CHECK#'+proof))
-    with pytest.raises(AuthorityError,match='^PURCHASE_USAGE_RECONCILIATION_REQUIRED$'):
-        purchase_usage.due_reservation_actions(a.ddb,'authority',period,usage,
-                                               period['endEpoch'],now=clock[0])
+    actions=purchase_usage.due_reservation_actions(a.ddb,'authority',period,usage,
+                                                   period['endEpoch'],now=clock[0])
+    assert any(action.get('Delete',{}).get('Key',{}).get('SK')=='CHECK#'+proof for action in actions)
     assert row('CHECK#'+proof)==before
     assert row('PERIOD#p1')['reservedChecks']==1 and row('PERIOD#p1')['usedChecks']==0
 

@@ -44,6 +44,17 @@ def test_release_auth_diagnostic_and_transaction_fences_unchanged(name):
     'scripts/lambda_release_scope.py','.github/workflows/publish.yml',
 ])
 def test_release_billing_operations_and_publication_overlays_byte_exact(path):
+    if path == 'src/shared_check_authority/purchase_usage.py':
+        # SEC237 explicitly extends only typed optional metadata in this one
+        # closure function. Every other original accounting statement stays exact;
+        # legacy closure action equality is independently executed in Moto.
+        before = ast.parse(old_blob(path))
+        after = ast.parse((ROOT/path).read_bytes())
+        original = next(n for n in before.body if isinstance(n, ast.FunctionDef) and n.name == 'due_reservation_actions')
+        current = next(n for n in after.body if isinstance(n, ast.FunctionDef) and n.name == 'due_reservation_actions')
+        after.body[after.body.index(current)] = original
+        assert ast.dump(before, include_attributes=False) == ast.dump(after, include_attributes=False)
+        return
     if path == 'src/operations_reporting/revisions.py':
         # PR139 deliberately exposes the existing private validator for the
         # store. Preserve every original statement; allow exactly that wrapper.

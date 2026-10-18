@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "recordedAtUtc": "2026-10-18T00:23:57.876157+00:00",
+  "baseRelease": "df6c54885e4cfc79646f36d6bc6972bdf09927b7",
+  "scope": "Trusted actual receipt-local capture/deletion fences and typed paid closure; no activation or new reporting scope",
+  "sourceTestDocPins": {
+    "src/shared_check_authority/expiry.py": "144228ba940424e615d60e9e864b73b74de73a647091ea63f56113296d407179",
+    "src/shared_check_authority/operations_retirement.py": "e6929096962a3d63354ae6f912fdfe387723b2221b0dab356c1156180f11fc9c",
+    "src/shared_check_authority/purchase_usage.py": "65b815f88bb38e111d72f0421a5e958fff99dfc31404970d61d0ecbf07899998",
+    "src/shared_check_authority/recovery.py": "0d0988e33583c6bc6c8a4c0da1b1305ed0616d4dd3ba55711da3fb161d0bef32",
+    "tests/governed_history/test_release_preservation.py": "2ce8e9d143b7ce7112bbe8f0c6afd78d5dc5a2c6888bdde520bcd871ef3f3d4b",
+    "tests/shared_check_authority/test_operations_retirement_independent.py": "3e659c3717749ff30ff35285a11299dc55df7e384d2f6577340313113dbdb31f",
+    "docs/SECUR4ALL-237-TRUSTED-INGESTION.md": "6f4416989ce663469683598b3566bce3de69c2552d8609de097c271a678f716c",
+    "docs/SECUR4ALL-237-ingestion-independent-review.json": "05aa9a3a8062db9dceac84514d54a74d980e394e18a8bb921d5bb1d321e359d0",
+    "src/shared_check_authority/operations_compat.py": "c246a8d04c55c1bde37ac715fb9d613bf8ee28451560b87ade88f9d07512c815",
+    "src/shared_check_authority/operations_ingestion.py": "312ff2a26321117d7ee94b80e8bcd48357092de2462e925739d2a1a8077e8bc1",
+    "src/shared_operations/projection.py": "4d85652fc8745e39f1d8c21e94123e5272a372a95eda446629db09b2c2e233f1",
+    "tests/shared_check_authority/test_operations_ingestion.py": "414c3ea8f5a358b80589b470bddb6d28c62a6c269fc1f690b2488ecf97bdb663",
+    "tests/shared_check_authority/test_operations_ingestion_independent.py": "9ae62706c20082b061d052903925f35cd6e7924790f61387075b88fe3e722abc",
+    "tests/shared_check_authority/test_operations_paid_closure.py": "2156103a860413931cc23c847a361dc533f1b8d9388db846919380d51c1b5d27"
+  },
+  "sourceReview": "docs/SECUR4ALL-237-ingestion-independent-review.json",
+  "localValidation": {
+    "passedTests": 1581,
+    "passedSubtests": 21,
+    "junitIncludingSubtests": 1602,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junitSha256": "85836ee34172fa19eeff6dac1e516a77ca44102cbe0412e567a88a84e9e4aad1",
+    "focusedCombinedReviewCases": 129,
+    "independentAdversarialCases": 12,
+    "sourceOnlyInspectionArchives": 9,
+    "isolatedDisabledHostImports": 5,
+    "isolatedNewModuleHostImports": 8,
+    "disabledHostStdoutSha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d",
+    "newModuleImportStdoutSha256": "c19cfc0da134d0d9addd951be8a3ca6dae78a1415ef83c2b8db5ca1cde27c3b9",
+    "actionlint": "PASS",
+    "shellcheck": "PASS",
+    "astJsonDiffAndExplicitStagedSecretPatterns": "PASS, final staging checked before commit"
+  },
+  "artifacts": [
+    {
+      "name": "url_consumer.zip",
+      "sha256": "0494305951098321842a40e4686c08d06a47f80077c961d546fde9e90102da46",
+      "bytes": 182599,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "url_lease_recovery.zip",
+      "sha256": "7186a7c7d3caf79453e2a7622a6759ee4ae0efe6cedadc4ad212f920cefc0f80",
+      "bytes": 68721,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_entitlements.zip",
+      "sha256": "4b2f992ce01bc9454476413c13cadf67943ab555ab03a140bafa912a62b74214",
+      "bytes": 79747,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_authority_deletion.zip",
+      "sha256": "415a9782cad05bceb8c636c8223e2e9ca8c746d23f98e87963accce97c42fbc4",
+      "bytes": 86573,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "governed_history.zip",
+      "sha256": "a0721e9cdab6e3864c95b54a86c53c8ee06f3acd752bd87f9645e8f118a9b79a",
+      "bytes": 111083,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "v1_play_handoff.zip",
+      "sha256": "a5a18afc80a30a07a343ef9ded042d281121df61faadf58a584215c53627fbff",
+      "bytes": 109749,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_consumer.zip",
+      "sha256": "e06d3d43c252cb06a0118f5333e7ce9fbd4b7365d770d9114b55fcd47a940504",
+      "bytes": 250056,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "message_evaluator.zip",
+      "sha256": "30001c5cfa5bfd95bf5544d6d53540e910f34a464d6ea5fec6dde1fff168f50c",
+      "bytes": 164405,
+      "includesCurrentAuthorityAndOperationsSources": false,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    },
+    {
+      "name": "play_token_deletion.zip",
+      "sha256": "5032eb4153b6c6cc39d1926238b073f766d91ca096f27db8c747ad9560e65134",
+      "bytes": 123123,
+      "includesCurrentAuthorityAndOperationsSources": true,
+      "inspectionOnlySkipDependencies": true,
+      "distributionQualified": false
+    }
+  ],
+  "boundaries": {
+    "trustedInput": "existing TrustedWorkerContext +check proof; actual receipt read and proof/partition verified",
+    "clientSuppliedRowsAccepted": false,
+    "sameOwningReceiptField": "operationsProjection",
+    "newAccountLocatorTableHandlerResource": false,
+    "atomicFences": [
+      "verified key inventory",
+      "profile/account/age",
+      "deletion-ledger absence",
+      "exact non-DELETING ACCESS",
+      "actual receipt source fields and prior capture presence/value"
+    ],
+    "replay": "source/deletion/expiry revalidated transaction even if snapshot unchanged",
+    "captureRetentionRenewed": false,
+    "sameFixedSevenDayMaximum": true,
+    "olderSettledIndexRepair": "known full/min shapes only, seen row atomic repair; not full discovery/backfill",
+    "retirementRemoves": [
+      "operationsReceipt",
+      "operationsTerminalReasonCode",
+      "operationsProjection"
+    ],
+    "orphanProjection": "strict original deadline; erase only, never rebuild missing metadata",
+    "paidClosure": "typed optional metadata only; zero-charge closure and original full TTL; no used-check refund/reset",
+    "paidExpiredReason": "expired verified paid authorization/accounting window; not necessarily elapsed worker lease or provider cause",
+    "legacyActionComparisonScopes": 4,
+    "allOtherPurchaseUsageStatementsProtected": true,
+    "storedCaptureMayLagLaterSettlement": true,
+    "aggregateProducerCoverage": "not_qualified",
+    "legacyActionComparisonsIncludingRetainedAndExpired": 8
+  },
+  "deploymentAndAcceptancePrerequisites": [
+    "authenticated actual worker/caller wiring (typed context is not network auth)",
+    "coordinated authority/capture/cleanup package versions",
+    "full older-row/index coverage and mixed-worker qualification",
+    "actual table/index/transaction IAM and execution/storage cost review",
+    "native ARM64 runtime/package qualification",
+    "physical deletion/cleanup timeliness and backup/restore safeguards",
+    "complete source/attempt/cost/discovery/correction consumption and report/alarm/delivery acceptance under SEC243"
+  ],
+  "notPerformed": [
+    "AWS authentication or service call",
+    "application endpoint/provider/emulator/purchase",
+    "deployment/resource/permission/flag/main change"
+  ],
+  "state": "In Progress",
+  "producerEnabled": false
+}
