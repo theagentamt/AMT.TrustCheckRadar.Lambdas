@@ -1,0 +1,89 @@
+{
+  "claimsChecked": [
+    "Legacy candidate1 closed contract and namespace preserved; fixed-base executable tests compare actual reports, first revision, replay and finite errors across six cases, not only shape or stale byte fences.",
+    "Candidate2 closed scope enters content hashes, exact planner context and env/population/generation/day namespace; no implicit migration or adoption of legacy heads.",
+    "Both selected_dev read and commit are unconditionally SCOPE_UNQUALIFIED before clock or storage; no override, selected runner, new generation mint or mapping created.",
+    "UUID syntax is not trusted source provenance, authentication, historic selection stability or unlinkability; same-generation actor swap remains an explicit warning.",
+    "Only nonpersonal environment-scope source storage is supported, subject to trusted configuration qualification; selected snapshots cannot be relabeled environment traffic.",
+    "Original seven-day correction and90-day unlinkable aggregate expiry, atomic append/head CAS, finite write-unknown and application-no-retry behavior retained.",
+    "Retained quality evidence reports local/socket-blocked source import only; library is outside runtime builder registry and no distribution ZIP is claimed.",
+    "SEC237 remains In Progress; source-to-aggregate deletion/expiry preservation, provider/rate/rejection facts, bounded discovery/execution, scheduling/delivery and actual Dev acceptance remain open. SEC198 remains separately held."
+  ],
+  "evidenceChecks": {
+    "allCurrentDeclaredPinsJoined": 11,
+    "fullGateJUnitCases": 1990,
+    "fullGatePassedSubtests": 21,
+    "fullGatePytestPassed": 1969,
+    "localSourceAstParse": "PASS",
+    "protectedSrcScriptsGithubGitByteJoins": 345,
+    "retainedQualityRecord": {
+      "path": "/tmp/amt-sec237-scoped-local-quality.json",
+      "sha256": "ee9d127c78d1f91e8c9ad5ebd39a5b7886a2e4da7d9ad8077c7a44ce37fe257a"
+    },
+    "reviewerNoFullRerun": true,
+    "testResults": {
+      "fullGate": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 1990
+      },
+      "independentPreservationRecheck": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 274
+      },
+      "preservationAndReporting": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 274
+      },
+      "reportingAndIndependent": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 251
+      }
+    }
+  },
+  "findings": [],
+  "outcome": "PASS_SOURCE_ONLY_FINAL_HANDOFF_SELECTED_PERSISTENCE_REFUSED",
+  "remainingBlockers": [
+    "Stable trusted nonpersonal source definition and complete population/provenance qualification before an actual environment aggregation runner.",
+    "Selected account-to-generation linkage has no qualified7-day unlinkability/90-day persistence design; selected storage/execution remains refused, with no retention exception selected.",
+    "Physical TTL, backup/restore, IAM, real cost, scheduling and runtime/delivery acceptance are not established by source tests."
+  ],
+  "reviewedAtUtc": "2026-10-18T02:18:44.907229+00:00",
+  "reviewedFilePins": {
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "bd844ea6277ac1e8b19896d64b267874c05d2f71b6280e574355685fcee3a7c0",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.json": "2c53c716f84d563a34d7a5924554596ab236c987ad5238153aee65282b9be4a8",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.md": "777796f553a37432800633bb57b87a37e170f7e7e0ec330bfa077bfbc7fef0f3",
+    "docs/SECUR4ALL-237-scoped-preservation-amendment-review.json": "81c05a405df30ec7ba99c7bf596dd0e1fb7a7597190d1475cf1db970df1744a8",
+    "docs/SECUR4ALL-237-scoped-source-independent-review.json": "a45111b4a711e63b9f4ab1716e5f4ce124e6287c07d1369924704fc6e69c7902",
+    "src/operations_reporting/reducer.py": "a1589d500eea9fe30032d191cf0080b6057ea536984e52cd9274905fb82b2b26",
+    "src/operations_reporting/revisions.py": "776fabc79a3f4c97d5a208e6ba5234923351f5f68eb9c6a7dbae7f9ec76aff92",
+    "src/operations_reporting/scope.py": "63733bdca47a47f0c1808066769eaf0539b5bc05129acbf070bb6c6aad6c5a35",
+    "src/operations_reporting/store.py": "02f7fdb2a3ac3f2e862165f7bffdb82f993599ee0062ccd7c1f3a665f6684941",
+    "tests/governed_history/test_release_preservation.py": "194979927f837bc52afedea79507ab6291b0f2199eec0654b89a2fd01b477f50",
+    "tests/operations_reporting/test_scoped_store.py": "ec4722c267fc29fbcd5e75af882c4d15949b81ff3e7c6e85f5c51e2a9f9abd3e",
+    "tests/operations_reporting/test_scoped_store_independent.py": "15c3787c22cc910cf89280720ce3ae2efa70d338313a6465405459b900119767"
+  },
+  "reviewerOperations": {
+    "actualAwsCalls": 0,
+    "authActions": 0,
+    "deviceActions": 0,
+    "endpointCalls": 0,
+    "gitPublication": false,
+    "runtimeMutations": 0
+  },
+  "schemaVersion": 1,
+  "sourceBaseRelease": "762184b5a32847cfae0a9798a1b35f0a6ed24c35",
+  "sourceReviews": {
+    "currentProductionEqualsSourcePass": true,
+    "initial": "docs/SECUR4ALL-237-scoped-source-independent-review.json",
+    "initialRecordRemainsHistorical": true,
+    "testOnlyAmendment": "docs/SECUR4ALL-237-scoped-preservation-amendment-review.json"
+  }
+}

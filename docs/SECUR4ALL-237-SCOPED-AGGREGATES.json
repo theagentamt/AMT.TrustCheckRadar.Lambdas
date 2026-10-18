@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "state": "In Progress",
+  "recordedAtUtc": "2026-10-18T02:18:00.398478+00:00",
+  "sourceBaseRelease": "762184b5a32847cfae0a9798a1b35f0a6ed24c35",
+  "result": "SCOPED_SOURCE_ISOLATION_IMPLEMENTED_SELECTED_EXECUTION_REFUSED",
+  "sourceTestDocPins": {
+    "src/operations_reporting/scope.py": "63733bdca47a47f0c1808066769eaf0539b5bc05129acbf070bb6c6aad6c5a35",
+    "src/operations_reporting/reducer.py": "a1589d500eea9fe30032d191cf0080b6057ea536984e52cd9274905fb82b2b26",
+    "src/operations_reporting/revisions.py": "776fabc79a3f4c97d5a208e6ba5234923351f5f68eb9c6a7dbae7f9ec76aff92",
+    "src/operations_reporting/store.py": "02f7fdb2a3ac3f2e862165f7bffdb82f993599ee0062ccd7c1f3a665f6684941",
+    "tests/operations_reporting/test_scoped_store.py": "ec4722c267fc29fbcd5e75af882c4d15949b81ff3e7c6e85f5c51e2a9f9abd3e",
+    "tests/operations_reporting/test_scoped_store_independent.py": "15c3787c22cc910cf89280720ce3ae2efa70d338313a6465405459b900119767",
+    "tests/governed_history/test_release_preservation.py": "194979927f837bc52afedea79507ab6291b0f2199eec0654b89a2fd01b477f50",
+    "docs/SECUR4ALL-237-SCOPED-AGGREGATES.md": "777796f553a37432800633bb57b87a37e170f7e7e0ec330bfa077bfbc7fef0f3",
+    "docs/SECUR4ALL-237-COMPLETION-CHECKLIST.md": "bd844ea6277ac1e8b19896d64b267874c05d2f71b6280e574355685fcee3a7c0",
+    "docs/SECUR4ALL-237-scoped-source-independent-review.json": "a45111b4a711e63b9f4ab1716e5f4ce124e6287c07d1369924704fc6e69c7902",
+    "docs/SECUR4ALL-237-scoped-preservation-amendment-review.json": "81c05a405df30ec7ba99c7bf596dd0e1fb7a7597190d1475cf1db970df1744a8"
+  },
+  "validation": {
+    "fullGate": {
+      "tests": 1990,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 116.677,
+      "path": "/tmp/amt-sec237-scoped-full-final.xml",
+      "sha256": "6932f115ccada7fe87c5a9ccb355b5022f70e91c5a7106ecb777af34ac007f09",
+      "pytestPassed": 1969,
+      "passedSubtests": 21
+    },
+    "reportingAndIndependent": {
+      "tests": 251,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 5.267,
+      "path": "/tmp/amt-sec237-scoped-reporting-tests.xml",
+      "sha256": "606cc55b4d2e0bf0f53736bdb4de246f31ce965d67c786cfe392312d47c5659e"
+    },
+    "preservationAndReporting": {
+      "tests": 274,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 6.802,
+      "path": "/tmp/amt-sec237-scoped-preservation.xml",
+      "sha256": "a1be4bc8441283b883db84cfb53c5385588342e1d5f7ad95e1c131f63a0b3626"
+    },
+    "independentPreservationRecheck": {
+      "tests": 274,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 6.988,
+      "path": "/tmp/amt-sec237-scoped-preservation-independent-recheck.xml",
+      "sha256": "d8171af06475b53e83100f2ba8a5e0d534a50c5e6b1464c50e4928872ddb8575"
+    },
+    "independentAdversarialCases": 15,
+    "localQuality": {
+      "path": "/tmp/amt-sec237-scoped-local-quality.json",
+      "sha256": "ee9d127c78d1f91e8c9ad5ebd39a5b7886a2e4da7d9ad8077c7a44ce37fe257a"
+    },
+    "initialBroadFailures": {
+      "count": 2,
+      "kind": "historical byte/AST preservation assertions on intentionally versioned reducer/planner",
+      "resolution": "Reporting-only branches compare pinned original legacy outputs/errors, no skips; all unrelated preservation fences unchanged"
+    }
+  },
+  "contract": {
+    "legacySummaryRevisionCandidate1ExactClosed": true,
+    "scopedSummaryRevisionCandidate2ExactClosed": true,
+    "scopedKeyIncludesEnvironmentPopulationGenerationDate": true,
+    "sourceScopeCapturedAtConstruction": true,
+    "scopeMismatchBeforeIo": true,
+    "legacyScopedNamespacesNeverAdoptOrMigrateHeads": true,
+    "revisionScopeCannotChange": true,
+    "scopeInExistingHashAndCas": true,
+    "unknownWriteNotRetried": true,
+    "fixedRetentionDays": 90,
+    "fixedCorrectionDays": 7,
+    "providerUnitsAndCostUnknownSemanticsUnchanged": true,
+    "generationIsRandomUuidNotOwnerDerivedOrPerRun": "Trusted configuration requirement, not independently established by UUID syntax"
+  },
+  "selectedBoundary": {
+    "selectedReportCoverage": "selected_subset_not_environment_total",
+    "selectedDevReadAndCommitAlwaysRefused": true,
+    "refusal": "SCOPE_UNQUALIFIED",
+    "beforeClockOrStorage": true,
+    "overrideAvailable": false,
+    "sameGenerationActorSwapProvenanceSolvedByUuid": false,
+    "randomUuidProvesUnlinkability": false,
+    "actualSelectedActorToGenerationJoinRetentionQualified": false,
+    "boundedSelectedRunnerImplementedOrRun": false
+  },
+  "remainingDecision": {
+    "condition": "Only if retained selected-actor reports are required",
+    "exactBoundary": "A selected account-to-generation join is linkable even without owner IDs/hashes. Keep previews noncommitting; choose an existing at-most-seven-day linkable selected-test design or prove a genuinely unlinkable environment source for90-day aggregates. No90-day selected mapping exception approved.",
+    "productEnvironmentReportMeaningChanged": false,
+    "newRetentionPolicySelected": false
+  },
+  "remainingExecution": [
+    "Trusted stable nonpersonal cohort/configuration provenance and full-cohort coverage qualification",
+    "Bounded discovery\u2192atomiccapture\u2192reduce\u2192onecommit with no partial source promoted as environment total",
+    "Source-to-aggregate preservation across deletion/expiry; response-unknown/crash recovery",
+    "Provider HTTP/units/rates and trusted rejection capture; localintake remains notcollected",
+    "Scheduling/corrections/delivery and actual SEC237/SEC243 Dev acceptance"
+  ],
+  "noNewActorIdHashOrClientTelemetryInAggregates": true,
+  "newRetentionOrStorageResources": false,
+  "awsEndpointAuthProviderDeviceFinancialCalls": 0,
+  "runtimeIamChanges": 0,
+  "outboundDelivery": false,
+  "distributionArtifactBuilt": false,
+  "operationsLibraryOutsideRuntimeRegistry": true,
+  "producerActivated": false,
+  "actionReady": false,
+  "sec198PolicyHeld": true,
+  "mainPromotion": false,
+  "frozenAndroidReadinessChanged": false
+}
