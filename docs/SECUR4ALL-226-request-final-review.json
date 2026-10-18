@@ -1,0 +1,163 @@
+{
+  "baseCommit": "3f0648fe0fbdc19d987d22adcf60964fa44fbec0",
+  "finalCoverage": {
+    "baseCaseKeyOverlap": 0,
+    "disjointBaseCases": 2133,
+    "finalErrors": 0,
+    "finalFailures": 0,
+    "finalJUnitCases": 2174,
+    "finalSkips": 0,
+    "historyPassedSubtests": 20,
+    "historyPytestPassed": 164,
+    "passedSubtests": 41,
+    "preservationPassedSubtests": 21,
+    "preservationPytestPassed": 1969,
+    "sameBaseCaseMultisetAsInitialCombined": true
+  },
+  "findings": [],
+  "independentProbeAndArchiveChecks": {
+    "bothPackagedBooleanGuardsReject": true,
+    "contractsRequirementsWorkflowBaseByteJoins": 387,
+    "independentArchiveImportWithSocketsAndSdkConstructorsBlocked": "PASS",
+    "packagedNumeric1Point0Preserved": true,
+    "priorActualHandlerSchemaOracleCases": 238,
+    "rejectedWithoutMutation": 210,
+    "socketOrSdkClientAttempts": 0,
+    "sourceInspectionArchive": {
+      "allPythonParse": true,
+      "changedAppBytesExact": true,
+      "dependenciesIncluded": false,
+      "deployableQualified": false,
+      "members": 8,
+      "path": "/tmp/amt-history-schema-package/history_mutation_api.zip",
+      "sha256": "5a7907704dc5eef54ebf3a7289a7ac031227f23ccf10eb8682d5d0ce39327124"
+    },
+    "validServiceDispatches": 28
+  },
+  "isolationDisposition": [
+    "Initial combined2174JUnit run retains17setup errors and is not relabeled passing.",
+    "Initial baseline29JUnit attempt had differentboto3-stub pollution and1skip; finalJSON distinguishes it from exactPERIOD_SECONDS service collision.",
+    "Corrected baseline43JUnit exact-cause reproduction and independent unchanged-source reproduction both retain17PERIOD_SECONDS setup errors with0skips; source/test bytejoins establish preexisting collection interference.",
+    "Process isolation changes no application/test source or skip selection. Final184History+1990preservation cases are disjoint and their exact base test-key multiset equals initial combined collection."
+  ],
+  "remainingLimits": [
+    "Existing cross-family top-level test-module import collision remains; process-isolated validation is the documented current method, not a production collision fix.",
+    "Source-inspection ZIP omits dependencies; no deployment/runtime/physical acceptance qualification.",
+    "No actual AWS, endpoint, auth/session, actor, device, provider, runtime, deployment or Gitpublication by reviewer."
+  ],
+  "result": "PASS_FINAL_SOURCE_HANDOFF_WITH_DOCUMENTED_TEST_PROCESS_ISOLATION",
+  "reviewedAtUtc": "2026-10-18T02:33:59.615723+00:00",
+  "reviewedFilePins": {
+    "docs/SECUR4ALL-226-REQUEST-VALIDATION.md": "4bf5c151ce0879527f9ebcab4126c28629a50570286ea1c8464ffb4d3ebf8452",
+    "docs/SECUR4ALL-226-request-isolation-review.json": "12849577d59986ef437b008415719efac1059a9a78a8ae48b25f0772e6d72633",
+    "docs/SECUR4ALL-226-request-source-review.json": "d3e1e921664e509c19757a2c4ea290a4a4c55c572693fbb92421999a04771e75",
+    "docs/SECUR4ALL-226-request-validation.json": "258c1dd570ce004d5da3b2c73ea181d03c4609a01a9d6f030f07d6027d952c49",
+    "src/history_mutation_api/app.py": "0a01acda216afed7febd3183eb40dc5bb92f5ea4893e687c114f09617d58d79f",
+    "tests/history_mutation_api/test_request_contract.py": "b7a91d2b2c51a832e2b30d43f82405aef87719d8bf1652982a6993bf3180748b"
+  },
+  "schemaVersion": 1,
+  "scopeAndPolicyConclusions": [
+    "Only explicitbool guards in existing History mutation parsers; code/JSON Schema numeric1and1.0 compatibility preserved, unchanged app statements outside two parsers remain exact.",
+    "Actual auth/account/binding/SDK functions are test substitutes; no claim deployed authorization, service behavior or destructive governed History bridge.",
+    "SEC226 remains open; governed contract GET-only, migration/mutation/deletion/recognition and target acceptance remain separate.",
+    "ExistingSEC178 seven-day ceiling applies to already approved facts/purpose and does not authorize new selected report copies or linkage. No owner decision needed for this existing-contract fix.",
+    "MinimumV1 keeps selected validation noncommitting; UUID andTTL alone do not prove nonpersonal status or physical erasure. No new selected storage or90d mapping authorization inferred; SEC237InProgress/SEC198held."
+  ],
+  "story": "SECUR4ALL-226",
+  "storyCompletionClaim": false,
+  "testEvidenceJoins": {
+    "baselineExactServiceCollisionRetainedNotPass": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 43
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-base-service-collision.xml",
+        "sha256": "3038e06350c54325f13c4b6bf5e9cce9c0b4d27377d3cd67446e40b228c18086"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-base-service-collision.log",
+        "sha256": "153a3b69132486ba64866fccda6f1334a2c40fcb2185bda204946dd45f203e84"
+      }
+    },
+    "baselineInitialDifferentBotoStubErrorRetainedNotPass": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 1,
+        "tests": 29
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-base-isolation.xml",
+        "sha256": "963598cfdf7f03000cff32f2fdebf7de8356ff8208725b5b4cbd5f93a48afd19"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-base-isolation.log",
+        "sha256": "ef26fc7a0f6e77e3f8226e4b4edc391cae82c3f8c07afd9cd2a9385c8d4a26f2"
+      }
+    },
+    "finalProcessIsolatedHistory": {
+      "counts": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 184
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-history-final.xml",
+        "sha256": "f6758e0799fd4aecfd7f8fa7b7bd110178f6245f37167b5574ad76e33c16bfb5"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-history-final.log",
+        "sha256": "364eddb34882ca73ce3816e25cd79bc16b105fac599441725603ce212a0d5565"
+      }
+    },
+    "finalProcessIsolatedPreservation": {
+      "counts": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 1990
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-preservation-final.xml",
+        "sha256": "78503541290edefb629a575449734eed4ec5c6ee99a159430dde786d243d2c11"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-preservation-final.log",
+        "sha256": "3211ccbdc68b4cbbe4fa45b2ac9056e93b8868b6d91dd777f79e0f9b9a7129c6"
+      }
+    },
+    "focusedJUnit": {
+      "counts": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 135
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-focused.xml",
+        "sha256": "8442cfa09b366f2eab89beb7be2da98c535c74b3088462371dd494c9bd7b5d1a"
+      },
+      "log": null
+    },
+    "initialCombinedRetainedNotPass": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 2174
+      },
+      "junit": {
+        "path": "/tmp/amt-history-schema-full.xml",
+        "sha256": "6ed1051e4bd21d3d296f56b5c46cf0d9e9e0ca5fd63cd80ae93d49a5ee588350"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-full.log",
+        "sha256": "4718a7c7e9b14dc120598634e06824526c66a00041fda89fe8b0f6b631784d2a"
+      }
+    }
+  }
+}

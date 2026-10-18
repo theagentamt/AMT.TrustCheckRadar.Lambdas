@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "result": "PASS_SOURCE_INCREMENT",
+  "story": "SECUR4ALL-226",
+  "storyCompletionClaim": false,
+  "baseCommit": "3f0648fe0fbdc19d987d22adcf60964fa44fbec0",
+  "branch": "codex/history-mutation-schema-guard",
+  "confirmedBeforeFix": {
+    "bootstrapAcceptsBooleanTrue": true,
+    "mutationAcceptsBooleanTrue": true,
+    "retainedJSONSchemaRejectsBooleanTrue": true
+  },
+  "behavior": {
+    "allFiveMutationRoutesRejectBooleanVersion": true,
+    "error": "400 INVALID_REQUEST retryable=false",
+    "invalidRequestsReachMutationService": false,
+    "numeric1And1Point0Preserved": true,
+    "governedBridgeImplemented": false
+  },
+  "sourcePins": [
+    {
+      "path": "src/history_mutation_api/app.py",
+      "sha256": "0a01acda216afed7febd3183eb40dc5bb92f5ea4893e687c114f09617d58d79f"
+    },
+    {
+      "path": "tests/history_mutation_api/test_request_contract.py",
+      "sha256": "b7a91d2b2c51a832e2b30d43f82405aef87719d8bf1652982a6993bf3180748b"
+    },
+    {
+      "path": "docs/SECUR4ALL-226-REQUEST-VALIDATION.md",
+      "sha256": "4bf5c151ce0879527f9ebcab4126c28629a50570286ea1c8464ffb4d3ebf8452"
+    }
+  ],
+  "validation": {
+    "focusedJUnit": {
+      "tests": 135,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-schema-focused.xml",
+        "sha256": "8442cfa09b366f2eab89beb7be2da98c535c74b3088462371dd494c9bd7b5d1a"
+      },
+      "log": null
+    },
+    "finalProcessIsolatedHistory": {
+      "tests": 184,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-schema-history-final.xml",
+        "sha256": "f6758e0799fd4aecfd7f8fa7b7bd110178f6245f37167b5574ad76e33c16bfb5"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-history-final.log",
+        "sha256": "364eddb34882ca73ce3816e25cd79bc16b105fac599441725603ce212a0d5565"
+      }
+    },
+    "finalProcessIsolatedPreservation": {
+      "tests": 1990,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-schema-preservation-final.xml",
+        "sha256": "78503541290edefb629a575449734eed4ec5c6ee99a159430dde786d243d2c11"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-preservation-final.log",
+        "sha256": "3211ccbdc68b4cbbe4fa45b2ac9056e93b8868b6d91dd777f79e0f9b9a7129c6"
+      }
+    },
+    "finalDisjointJUnitCases": 2174,
+    "initialCombinedRetainedNotPass": {
+      "tests": 2174,
+      "failures": 0,
+      "errors": 17,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-schema-full.xml",
+        "sha256": "6ed1051e4bd21d3d296f56b5c46cf0d9e9e0ca5fd63cd80ae93d49a5ee588350"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-full.log",
+        "sha256": "4718a7c7e9b14dc120598634e06824526c66a00041fda89fe8b0f6b631784d2a"
+      }
+    },
+    "baselineInitialDifferentBotoStubErrorRetainedNotPass": {
+      "tests": 29,
+      "failures": 0,
+      "errors": 17,
+      "skipped": 1,
+      "junit": {
+        "path": "/tmp/amt-history-schema-base-isolation.xml",
+        "sha256": "963598cfdf7f03000cff32f2fdebf7de8356ff8208725b5b4cbd5f93a48afd19"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-base-isolation.log",
+        "sha256": "ef26fc7a0f6e77e3f8226e4b4edc391cae82c3f8c07afd9cd2a9385c8d4a26f2"
+      }
+    },
+    "baselineExactServiceCollisionRetainedNotPass": {
+      "tests": 43,
+      "failures": 0,
+      "errors": 17,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-schema-base-service-collision.xml",
+        "sha256": "3038e06350c54325f13c4b6bf5e9cce9c0b4d27377d3cd67446e40b228c18086"
+      },
+      "log": {
+        "path": "/tmp/amt-history-schema-base-service-collision.log",
+        "sha256": "153a3b69132486ba64866fccda6f1334a2c40fcb2185bda204946dd45f203e84"
+      }
+    },
+    "isolationDisposition": "Existing top-level service module collision: History account deletion service prevents campaign coverage import of PERIOD_SECONDS. Both disjoint groups pass in separate processes; no production/test workaround or skip introduced. First baseline repro had different boto3 stub pollution; corrected real-boto3 preload reproduces exact collision.",
+    "quality": {
+      "schemaVersion": 1,
+      "baseCommit": "3f0648fe0fbdc19d987d22adcf60964fa44fbec0",
+      "productionFilesParsed": 285,
+      "changedProductionFiles": [
+        "src/history_mutation_api/app.py"
+      ],
+      "allContractsRequirementsWorkflowsByteUnchanged": true,
+      "archive": {
+        "sha256": "5a7907704dc5eef54ebf3a7289a7ac031227f23ccf10eb8682d5d0ce39327124",
+        "members": 8,
+        "allPythonMembersParse": true,
+        "appBytesMatch": true,
+        "dependenciesIncluded": false,
+        "deployableQualified": false,
+        "socketBlockedHostImportAndGuardCheck": "PASS",
+        "networkAttempts": 0,
+        "initialSystemPythonImport": "boto3 unavailable; corrected host check uses existing dependency venv"
+      },
+      "actionlint": "PASS",
+      "shellcheck": "PASS",
+      "diffCheck": "PASS",
+      "runtimeActions": 0,
+      "awsCalls": 0,
+      "endpointCalls": 0
+    },
+    "sourceReview": {
+      "path": "/tmp/amt-history-mutation-schema-guard/docs/SECUR4ALL-226-request-source-review.json",
+      "sha256": "d3e1e921664e509c19757a2c4ea290a4a4c55c572693fbb92421999a04771e75"
+    }
+  },
+  "reportingPolicyDisposition": {
+    "schemaVersion": 1,
+    "selectedWorkstream": "S10 existing History mutation contract",
+    "story": "SECUR4ALL-226",
+    "parentStoryCompletionClaim": false,
+    "reportingPolicyIssue": "SECUR4ALL-178",
+    "reportingPolicyCurrentState": "Done",
+    "reportingPolicyVersion": "1.0.0-policy.1",
+    "alreadyApprovedRetentionDays": {
+      "linkableReconciliationMaximum": 7,
+      "fixedCodeDiagnostics": 14,
+      "unlinkableAggregateRevisions": 90
+    },
+    "ownerChoiceRequiredForThisFix": false,
+    "policyChangeSelected": false,
+    "selectedAggregationHeld": true,
+    "sec198Held": true,
+    "newSelectedReportStorageAuthorized": false,
+    "minimumSafeV1": "Selected Dev validation remains noncommitting; retain only approved receipt-local facts under existing deletion/retirement fences. Preserve environment report meaning.",
+    "remainingPolicyChoiceOnlyIfProductRequests": "Persistent per-account/selected-test report, different report meaning or expanded fields/purpose/linkage beyond existing approval.",
+    "technicalRemaining": "Discovery/provenance/deduplication/deletion/backup/retirement qualification; UUID does not prove unlinkability.",
+    "govHistoryBridge": "GET-only contract remains; no destructive or recognition authority inferred."
+  },
+  "safety": {
+    "newAwsReads": 0,
+    "runtimeMutations": 0,
+    "endpointInvocations": 0,
+    "authActions": 0,
+    "emulatorActions": 0,
+    "deploymentPerformed": false,
+    "frozenAndroidReadinessChanged": false
+  },
+  "remaining": [
+    "SEC226 complete mutation/recognition/lifecycle and target acceptance remains open.",
+    "Governed History is GET-only; no mutation/recognition migration authority inferred.",
+    "SEC237 selected aggregation and SEC198 policy work remain held.",
+    "Source-only inspection ZIP excludes dependencies and is not deployment qualification.",
+    "No physical acceptance; retain ATCR-148."
+  ]
+}

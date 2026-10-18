@@ -1,0 +1,76 @@
+{
+  "actualServiceCalls": 0,
+  "baseCommit": "3f0648fe0fbdc19d987d22adcf60964fa44fbec0",
+  "disposition": [
+    "Candidate combined run retains17setup errors, not a passing combined gate.",
+    "Original baseline-isolation run failed on boto3-stub package pollution and had1skip; it must not be called the exactPERIOD_SECONDS reproduction.",
+    "Independent baseline reproduction preloaded real boto3 with synthetic integration process settings before pytest. All17 exactPERIOD_SECONDS import errors reproduced with0skips,26passes.",
+    "The same top-level service module imported by History tests collides with campaign coverage_assessment import; changed History mutation boolean guards are not in that path.",
+    "Process-isolated History suite184JUnit passes with no fail/error/skip. Remaining non-History/preservation isolated run must independently finish before final handoff.",
+    "No application, test isolation code, import paths or unrelated production source modified by reviewer."
+  ],
+  "exactSourceAndTestBaseJoins": {
+    "src/campaign_deletion_bridge/completion.py": "e542bdd3bf704fb37a9772c98b1157810ddd2fe858120720f1e1a2e2780af2df",
+    "src/campaign_deletion_bridge/coverage_assessment.py": "95efb7d9b482561d70da0e254319aa4e925c13dd077ab65d15fb2ae0baa966fa",
+    "src/history_account_deletion_bridge/service.py": "6c1f5431b407ead3b0f8507335bd56c898fe934fe5ff680e43d822661aa8d034",
+    "tests/history_account_deletion_bridge/test_app.py": "bbdfa547cac1bed0d797a827aa02ecdc5dd96b642ffa3fb48012594d8a73e5e0",
+    "tests/scripts/test_initialize_deletion_inventories.py": "abbf675a6a79b2ed6afc0c23757bdff28df7003e4f25fe93f21016cc5812ae99"
+  },
+  "outcome": "CONFIRMED_PREEXISTING_EXACT_IMPORT_COLLISION",
+  "remainingFinalReview": "Await companionJSON and passing isolated non-History/preservation record; do not erase original combined errors.",
+  "reviewedAtUtc": "2026-10-18T02:32:00.619259+00:00",
+  "runtimeActions": 0,
+  "schemaVersion": 1,
+  "testRecords": {
+    "base-collision-independent": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 43
+      },
+      "errorSummaries": [
+        "failed on setup with \"ImportError: cannot import name 'PERIOD_SECONDS' from 'service' (/private/tmp/amt-sec237-scoped-aggregation/src/history_account_deletion_bridge/service.py)\""
+      ],
+      "path": "/tmp/amt-history-schema-base-collision-independent.xml",
+      "sha256": "cb4092973072c851b94917dd4cfe0031923132a7cebff6a85d8b55ea380c33de"
+    },
+    "base-isolation": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 1,
+        "tests": 29
+      },
+      "errorSummaries": [
+        "failed on setup with \"ModuleNotFoundError: No module named 'boto3.dynamodb'; 'boto3' is not a package\""
+      ],
+      "path": "/tmp/amt-history-schema-base-isolation.xml",
+      "sha256": "963598cfdf7f03000cff32f2fdebf7de8356ff8208725b5b4cbd5f93a48afd19"
+    },
+    "full": {
+      "counts": {
+        "errors": 17,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 2174
+      },
+      "errorSummaries": [
+        "failed on setup with \"ImportError: cannot import name 'PERIOD_SECONDS' from 'service' (/private/tmp/amt-history-mutation-schema-guard/src/history_account_deletion_bridge/service.py)\""
+      ],
+      "path": "/tmp/amt-history-schema-full.xml",
+      "sha256": "6ed1051e4bd21d3d296f56b5c46cf0d9e9e0ca5fd63cd80ae93d49a5ee588350"
+    },
+    "history-final": {
+      "counts": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 184
+      },
+      "errorSummaries": [],
+      "path": "/tmp/amt-history-schema-history-final.xml",
+      "sha256": "f6758e0799fd4aecfd7f8fa7b7bd110178f6245f37167b5574ad76e33c16bfb5"
+    }
+  }
+}
