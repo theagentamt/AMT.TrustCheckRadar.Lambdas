@@ -1,0 +1,243 @@
+{
+  "documentVersion": "1.0.0-candidate.1",
+  "documentKind": "offline_compatibility_not_wire",
+  "status": "candidate_not_bridge_activation",
+  "activationEnabled": false,
+  "newRoutes": [],
+  "newHeaders": [],
+  "existingWireContractsChanged": false,
+  "operationPlanSchema": "operation-plan.schema.json",
+  "sourceContracts": {
+    "contracts/history/v1/contract-set.json": "fc1c0be84479920adf8bf922bc69b87d8ee6a6eb36a5382bcf22bbc22fe00695",
+    "contracts/history/v1/api-schemas.json": "62d826a302e9d379ee322709031a9107b7c4c43c6d37e89528c768cafa496826",
+    "contracts/history/v1/badges.en.json": "3198f6bf4e015b6aff08b2c88bd3f7fe2fd075c3b95dd899bc0c1badb895da71",
+    "contracts/history/v1/badges.es.json": "5ed8a22919d079136e0269e57fdbf2d7e1fd73f0af5afa867c83445c2ce198f8",
+    "contracts/governed-history/1.0.0-candidate.1/contract-set.json": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1",
+    "contracts/governed-history/1.0.0-candidate.1/item.schema.json": "c291ffaa55ee7a35786dea3fd6104599438d62b353cf5d4c70a5bc189e07b3f6",
+    "contracts/governed-history/1.0.0-candidate.1/list.schema.json": "d4f2c1f73dfb0804c1f3b2ec239f71b24098bc33c6055f24f5b3cd41b9b3c7f6",
+    "contracts/governed-history/1.0.0-candidate.1/detail.schema.json": "3e9e32154b4c80b363dfb5e8aaf5adeec0d873f213279e6a4a3b0f6b3e70c4ac"
+  },
+  "existingContractOperationBindings": [
+    {
+      "family": "legacy_history_v1",
+      "operation": "bootstrap",
+      "contractVersion": "1.0.0",
+      "method": "POST",
+      "pathTemplate": "/v1/users/history/bootstrap",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "list",
+      "contractVersion": "1.0.0",
+      "method": "GET",
+      "pathTemplate": "/v1/users/history",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "detail",
+      "contractVersion": "1.0.0",
+      "method": "GET",
+      "pathTemplate": "/v1/users/history/{requestId}",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "export",
+      "contractVersion": "1.0.0",
+      "method": "GET",
+      "pathTemplate": "/v1/users/history/export",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "progress",
+      "contractVersion": "1.0.0",
+      "method": "GET",
+      "pathTemplate": "/v1/users/progress",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "delete_one",
+      "contractVersion": "1.0.0",
+      "method": "DELETE",
+      "pathTemplate": "/v1/users/history/{requestId}",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "clear_history",
+      "contractVersion": "1.0.0",
+      "method": "DELETE",
+      "pathTemplate": "/v1/users/history",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "reset_progress",
+      "contractVersion": "1.0.0",
+      "method": "POST",
+      "pathTemplate": "/v1/users/progress/reset",
+      "executionAuthorized": false
+    },
+    {
+      "family": "legacy_history_v1",
+      "operation": "delete_history_account_data",
+      "contractVersion": "1.0.0",
+      "method": "DELETE",
+      "pathTemplate": "/v1/users/history/account",
+      "executionAuthorized": false
+    },
+    {
+      "family": "governed_history_candidate1",
+      "operation": "list",
+      "contractVersion": "1.0.0-governed-history-candidate.1",
+      "method": "GET",
+      "pathTemplate": "/v1/users/analysis-history",
+      "executionAuthorized": false
+    },
+    {
+      "family": "governed_history_candidate1",
+      "operation": "detail",
+      "contractVersion": "1.0.0-governed-history-candidate.1",
+      "method": "GET",
+      "pathTemplate": "/v1/users/analysis-history/{resultId}",
+      "executionAuthorized": false
+    }
+  ],
+  "families": {
+    "legacy_history_v1": {
+      "identity": "validated_cognito_access_token_sub",
+      "storage": "USER#sub content/control namespace",
+      "recordReference": "requestId",
+      "retentionDays": 90,
+      "mutationReceiptDays": 7,
+      "dedupAndTombstoneDays": 120,
+      "pitrDays": 7,
+      "purgeSlaHours": 24,
+      "recognition": "existing separately gated progress contract; not governed qualification approval"
+    },
+    "governed_history_candidate1": {
+      "identity": "validated Cognito subject plus authoritative account/device/version and verified HMAC-key inventory",
+      "storage": "authority receipt partitions",
+      "recordReference": "gh1 resultId",
+      "retentionDays": 7,
+      "mutation": false,
+      "recognition": false,
+      "export": false,
+      "bootstrap": "Android local read-adapter shim; no bootstrap endpoint",
+      "generation": "Android local zero only; no server mutation/recognition cutoff"
+    }
+  },
+  "approvedInvariants": {
+    "badgeThresholds": [
+      1,
+      5,
+      20
+    ],
+    "points": false,
+    "sameIdRetryCountsOnce": true,
+    "clearResetsBadges": false,
+    "badgeResetClearsHistory": false,
+    "resetOrdering": "server admission generation/order, never client clock",
+    "quotaCashCampaignEffects": false,
+    "historicalBackfill": false,
+    "retentionRenewedByReadOrRetry": false
+  },
+  "identityAndIdempotency": {
+    "lexicalIdDisjointness": false,
+    "androidAnalysisRequestIdWrapperConvertsFamily": false,
+    "sameStringIsOwnershipEvidence": false,
+    "clientFamilyTagIsAuthorization": false,
+    "bodyCanSelectAccount": false,
+    "scope": "original operationId+operation+target within authenticated owner partition; current binding and deletion rechecked",
+    "legacyGh1Shape": "Existing legacy schema permits gh1-shaped request IDs. A legacy no-op COMPLETE is not governed deletion or proof of a bridge."
+  },
+  "settledImplementationBoundary": {
+    "existingReadOnlyRouting": "preserved and tested; no endpoint/response change",
+    "bridgeAdapterImplemented": false,
+    "reason": "No reviewed compatible identity/generation/erased-replay/all-copy lifecycle contract exists. Recognition additionally needs G1/G2; delete/clear design and fixtures do not wait for recognition policy.",
+    "doNot": [
+      "map typed governed verdict to fabricated legacy score/confidence/summary",
+      "use legacy mutation success as governed mutation proof",
+      "remove authority/accounting/dedup receipt to hide History",
+      "persist copies or backfill seven-day receipts into90-day assessments",
+      "treat Android zero as server fence",
+      "infer award eligibility from chargedChecks/risk/SDK/provider success",
+      "change contract by feature flag alone"
+    ]
+  },
+  "openDecisions": [
+    {
+      "id": "G1",
+      "kind": "owner_qualification",
+      "question": "Which future governed completion outcomes and source types count, and does deliberate same-content submission under a new logical ID count?",
+      "recommendation": "Count one server-accepted, typed complete logical check across approved message/URL/QR sources, independent of risk and payment basis; exclude partial/inconclusive/blocked/failed/pending; same-ID replay never counts. Count deliberate new-ID checks without retaining content fingerprints.",
+      "status": "unapproved_candidate",
+      "notReopened": [
+        "thresholds1/5/20",
+        "no points",
+        "same-IDdedup",
+        "clear/reset independence"
+      ]
+    },
+    {
+      "id": "G2",
+      "kind": "owner_catalog_timestamp",
+      "question": "May governed recognition reuse the existing checks_1/checks_5/checks_20 IDs and current EN/ES catalog without adding unlock timestamps?",
+      "recommendation": "Reuse exact existing IDs/thresholds/EN-ES strings and current progress response fields; add no per-result award or new timestamp field. Existing catalog presence is not new governed approval.",
+      "status": "unapproved_candidate"
+    },
+    {
+      "id": "T1",
+      "kind": "engineering_contract",
+      "question": "Specify compatible existing-route capability selection and owner/result/operation identity, atomic admission/completion fences, erased replay behavior and all-copy deletion without altering accounting/dedup.",
+      "recommendation": "Version coordinated existing contracts and Android adapters before dispatch; do not add a guessed endpoint/header/response field or reinterpret old routes implicitly.",
+      "status": "design_required"
+    },
+    {
+      "id": "P1",
+      "kind": "privacy_lifecycle",
+      "question": "Approve exact new marker/progress/receipt fields and lifecycle, including invalidation/PITR/restore/account deletion; which existing approved purpose/lifetime covers each bridge record?",
+      "recommendation": "No new retained store/copy now. Preserve original7-day governed deadline and existing legacy limits as separate facts. Propose minimum marker fields/deadline with erasure/restore proof before implementing; do not inherit120/90-day retention by analogy.",
+      "status": "specific_record_design_required"
+    }
+  ],
+  "allowedNow": [
+    "contract refinement",
+    "synthetic privacy/ownership/idempotency fixtures",
+    "independent review"
+  ],
+  "notEvidenceOf": [
+    "live runtime capability",
+    "server admission",
+    "deployment approval",
+    "mobile integration acceptance",
+    "S10 completion"
+  ],
+  "workSplit": {
+    "deleteAndClear": {
+      "designAndSyntheticFixturesAllowedNow": true,
+      "requiresRecognitionPolicyG1G2": false,
+      "adapterPrerequisites": [
+        "T1_identity_generation_erased_replay",
+        "P1_minimal_record_lifecycle"
+      ]
+    },
+    "recognitionAwardsAndPresentation": {
+      "designAndSyntheticFixturesAllowedNow": true,
+      "adapterPrerequisites": [
+        "G1",
+        "G2",
+        "T1_admission_completion_generation",
+        "P1_progress_lifecycle"
+      ]
+    },
+    "existingReadOnly": {
+      "unchanged": true,
+      "blockedByG1G2": false
+    }
+  }
+}

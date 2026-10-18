@@ -1,0 +1,18 @@
+{
+  "lambdaBase": "5680fed1db390f76347ac76d6f2ba0b493fad507",
+  "androidSource": "a618408aeac5bfb1334a007697709aaee151259f",
+  "androidFiles": {
+    "app/src/dev/java/com/theagentamt/trustcheckradar/platform/history/PlatformHistoryReadApi.kt": "5b93fb21767fa69d9214b1071b12052737b76e3c2f139a75fab81cfa3e60996a",
+    "app/src/dev/java/com/theagentamt/trustcheckradar/platform/history/GovernedHistoryContractResponse.kt": "548fbc2a6032d591fbf88e50e76c03feb7d2f4997d9c5c68e2b1ac828616cc7b",
+    "app/src/main/java/com/theagentamt/trustcheckradar/core/history/HistoryMutations.kt": "97e3e13fe1fb774ac3d7ab3df6b4459004aff3298e362289df2e6c6444e2fd30",
+    "app/src/main/java/com/theagentamt/trustcheckradar/core/history/CloudHistory.kt": "0e74a504514788d008d4d98ed41bfa4794d1b3d62b778399012078ae547af8a9",
+    "app/build.gradle.kts": "0f7fc840347472287e4d2ae2dbe239a86867b1592b4827984d543e498a40e40b"
+  },
+  "byteJoinedGovernedContracts": {
+    "contracts/governed-history/1.0.0-candidate.1/contract-set.json": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1",
+    "contracts/governed-history/1.0.0-candidate.1/item.schema.json": "c291ffaa55ee7a35786dea3fd6104599438d62b353cf5d4c70a5bc189e07b3f6",
+    "contracts/governed-history/1.0.0-candidate.1/list.schema.json": "d4f2c1f73dfb0804c1f3b2ec239f71b24098bc33c6055f24f5b3cd41b9b3c7f6",
+    "contracts/governed-history/1.0.0-candidate.1/detail.schema.json": "3e9e32154b4c80b363dfb5e8aaf5adeec0d873f213279e6a4a3b0f6b3e70c4ac"
+  },
+  "limits": "Retained reviewed Android source; not current installed/runtime/session proof. Legacy parser source reconciled, no claim every legacy schema is vendored."
+}
