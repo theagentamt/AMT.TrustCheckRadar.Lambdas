@@ -1,0 +1,64 @@
+{
+  "checks": [
+    "Only exact top-levelTransactionCanceledException and a complete cancellation vector matching all transaction actions, containing>=1ConditionalCheckFailed and otherwiseNone, proves409conditional conflict.",
+    "Two prepended account/deletion authority conditions are counted; truncated, oversized, mixed, malformed, allNone and other SDK/transport errors map existingSERVER_UNAVAILABLE503 retryabletrue, no application retry or mutation.",
+    "SDK message/item/endpoint canaries absent from fixed errors, handler output/logs and formatted exceptions; fromNone suppresses raw chaining. Brokenresponseproperty also safely classified.",
+    "Bootstrap known conditional path preserves fresh foundation eligibility recheck and existing-state recovery; actual Moto peercommit+age-revocation refusesFORBIDDEN rather than returning state.",
+    "Actual Moto lost-ACK bootstrap commits once; explicit same-account bootstrap replay returns committed state with no second write. Parent local tests also cover competing sameoperation, independent clear/reset generations and mutation receipt replay.",
+    "Auth/binding handler code, operation IDs, receipt/generation/retention/accounting/transaction payloads and existing409/503 error contract unchanged."
+  ],
+  "filePins": {
+    "contracts/history/v1/api-schemas.json": "62d826a302e9d379ee322709031a9107b7c4c43c6d37e89528c768cafa496826",
+    "contracts/history/v1/contract-set.json": "fc1c0be84479920adf8bf922bc69b87d8ee6a6eb36a5382bcf22bbc22fe00695",
+    "src/history_mutation_api/app.py": "0a01acda216afed7febd3183eb40dc5bb92f5ea4893e687c114f09617d58d79f",
+    "src/history_mutation_api/service.py": "da9111b208b36ec0838c7dad20aebb5a2b22c8e33d4d867c0418ff2b9226b40b",
+    "src/shared_history/errors.py": "1a8afc8c4967d818240362b631c74463c9056020fe2b654913868416f4fc26de",
+    "tests/history_mutation_api/test_transaction_errors.py": "873d14ef7de6e77b50620ad433d14acd73d58590a911bc05af8521ba34377033",
+    "tests/history_mutation_api/test_transaction_errors_independent.py": "2d3d370d16cfbbd2b5254b641a9ff5a5d35895c13b47b9c56d6f690ae7277e8e"
+  },
+  "findings": [],
+  "independentHistoryPassedSubtests": 3,
+  "independentHistoryPytestPassed": 135,
+  "limits": [
+    "SDK result success-shape/read-path/error classification outside these existing write boundaries is not changed or newly qualified.",
+    "No claimSDK never retries; this component introduces no application-level retry. Lost response remains unknown until caller deliberately reconciles the sameoperation/context.",
+    "Local synthetic/Moto tests do not establish real target concurrency, service faults, deployed authorization, fullSEC226 lifecycle, physical erasure/restore or governed mutation migration.",
+    "Source-level bounded SEC344 acceptance may proceed through review/integration; no completion or tracker/Gitpublication performed by reviewer.",
+    "No actual AWS/service endpoint, auth/session, emulator/device, provider, runtime or purchase actions."
+  ],
+  "outcome": "PASS_SOURCE_ONLY_HISTORY_TRANSACTION_MAPPING",
+  "parentAcceptanceRemainsOpen": "SECUR4ALL-226",
+  "preservation": {
+    "allOtherTrackedSrcScriptsGithubContractsBaseByteJoins": 715,
+    "allUnaffectedServiceStatementsAstExact": true,
+    "onlyProductionFileChanged": "src/history_mutation_api/service.py",
+    "reviewedChanges": "bootstrap and _transact exception branches; replace private _error_code with finite conditional-vector classifier and fixed unavailable constructor"
+  },
+  "reviewedAtUtc": "2026-10-18T02:59:14.160051+00:00",
+  "schemaVersion": 1,
+  "sourceBase": "2f17cc0be0c61b072a0afa9585593f931d5c125d",
+  "story": "SECUR4ALL-344",
+  "testEvidence": {
+    "independentAdversarial": {
+      "path": "/tmp/amt-history-mapping-independent-tests.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 12
+      },
+      "sha256": "84e5ab4047474ffaceaccd583cca1f1c2b7bd9a5494c9bd6e6c40da9b8632499"
+    },
+    "independentHistoryFamily": {
+      "path": "/tmp/amt-history-mapping-history-independent.xml",
+      "result": {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 138
+      },
+      "sha256": "5254ae472f07dab2aeae5ab637c51d6f70acb110a3707a300c33676911b97cf8"
+    }
+  },
+  "worktree": "/private/tmp/amt-history-transaction-mapping"
+}

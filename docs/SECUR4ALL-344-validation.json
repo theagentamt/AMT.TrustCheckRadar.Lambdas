@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "result": "PASS_BOUNDED_DEV_IMPLEMENTATION",
+  "bug": "SECUR4ALL-344",
+  "parentOpenQualification": "SECUR4ALL-226",
+  "baseCommit": "2f17cc0be0c61b072a0afa9585593f931d5c125d",
+  "duplicateCheck": {
+    "schemaVersion": 1,
+    "queries": [
+      {
+        "query": "project: SECUR4ALL Type: Bug History",
+        "issues": []
+      },
+      {
+        "query": "project: SECUR4ALL Type: Bug transaction",
+        "issues": [
+          {
+            "id": "3-330",
+            "issue": "SECUR4ALL-183",
+            "summary": "Bug: Failed analysis retry is rejected as a duplicate after partial backend processing",
+            "state": "Done"
+          },
+          {
+            "id": "3-861",
+            "issue": "SECUR4ALL-343",
+            "summary": "Google Play: atomically admit a freshly bound new subscription root after stored paid expiry",
+            "state": "Done"
+          },
+          {
+            "id": "3-847",
+            "issue": "SECUR4ALL-342",
+            "summary": "Dev billing deploy role cannot read existing Play lifecycle schedules",
+            "state": "Done"
+          }
+        ]
+      },
+      {
+        "query": "project: SECUR4ALL Type: Bug throughput",
+        "issues": []
+      },
+      {
+        "query": "project: SECUR4ALL Type: Bug cancellation",
+        "issues": []
+      }
+    ]
+  },
+  "bugCreatedAfterNoMatchingBug": true,
+  "reciprocalParentLinkVerified": true,
+  "sourcePins": [
+    {
+      "path": "src/history_mutation_api/service.py",
+      "sha256": "da9111b208b36ec0838c7dad20aebb5a2b22c8e33d4d867c0418ff2b9226b40b"
+    },
+    {
+      "path": "tests/history_mutation_api/test_transaction_errors.py",
+      "sha256": "873d14ef7de6e77b50620ad433d14acd73d58590a911bc05af8521ba34377033"
+    },
+    {
+      "path": "tests/history_mutation_api/test_transaction_errors_independent.py",
+      "sha256": "2d3d370d16cfbbd2b5254b641a9ff5a5d35895c13b47b9c56d6f690ae7277e8e"
+    },
+    {
+      "path": "docs/SECUR4ALL-344-HISTORY-TRANSACTION-ERRORS.md",
+      "sha256": "b13626f17a1c14dac29830b4f5173d481c3ebf8b79ef30104dfe78cd23945802"
+    },
+    {
+      "path": "docs/SECUR4ALL-344-source-review.json",
+      "sha256": "c91b5d3615367d5d3586ade4a0173011b8074bedeeff871005e9c8cb576ebc72"
+    },
+    {
+      "path": "docs/SECUR4ALL-345-next-read-boundary-gap.json",
+      "sha256": "5e49b62bfeb4cc17c34c4f959410459384cf39e5399405feedee9256b684a54b"
+    }
+  ],
+  "publicBoundary": {
+    "knownCompleteExclusivelyConditionalVector": "409 CONFLICT retryable=true",
+    "throughputTransientMixedMissingMalformedOrUnknown": "503 SERVER_UNAVAILABLE retryable=true",
+    "message": "The History transaction could not be confirmed.",
+    "newContractFieldsOrCodes": false,
+    "newApplicationRetry": false,
+    "sdkRetryAndIdempotencyConfigurationChanged": false,
+    "authorizationAndTransactionExpressionsChanged": false,
+    "fixedTransactionFailureDiagnostics": true,
+    "writeOutcomeUnknownPreserved": true
+  },
+  "validation": {
+    "focused": {
+      "tests": 126,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-mapping-focused-complete.xml",
+        "sha256": "348616e569cd58f26c493d4ac5db40db5b99e56b6589fef29d47cd664145fe67"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-focused-complete.log",
+        "sha256": "7b49aa5498ca6aa88ed9c38ecb327bfed4c7875d733d60b00b7cf1f5fe7dd5a6"
+      }
+    },
+    "historyFamily": {
+      "tests": 231,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-mapping-history-final.xml",
+        "sha256": "3a461fb4270748c2b30f78534986255ec57350f60100928f6f9b50a1b682058a"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-history-final.log",
+        "sha256": "21cd4d33db178072ba7130435bde627fdbafd12cfdc3533f169fdbb49b8f5e6a"
+      }
+    },
+    "preservation": {
+      "tests": 2019,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-mapping-preservation-final.xml",
+        "sha256": "54b59d8ebdf51ce47b9b1882851dd6d22cb08ed5a92e370164d793d8dc9b37c2"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-preservation-final.log",
+        "sha256": "c891a60d7d74f69031cdcb3d0b1033d93caa07a466aff1b7f9eae870956773af"
+      }
+    },
+    "additionalIndependent": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-mapping-additional.xml",
+        "sha256": "fc87b66a1d3bdde295c4deae3c050052edb5c8bdf580a005035b12e987b2cf6f"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-additional.log",
+        "sha256": "52193057efe54b5177f0eda17a84317c696b6b96dbef8a85a8f26e87b91a3015"
+      }
+    },
+    "disjointJUnitCases": 2262,
+    "caseKeyOverlap": 0,
+    "partitionReason": "New independent file was added after history-family collection and run separately. Existing top-level module isolation remains; no case is skipped.",
+    "initialRetainedNotPass": {
+      "tests": 122,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "junit": {
+        "path": "/tmp/amt-history-mapping-focused.xml",
+        "sha256": "2cfd6fa6249ddcd4cb759ea2d72ff9b05f82b3e31768e3ec23a3301882fe0cf1"
+      },
+      "log": {
+        "path": "/tmp/amt-history-mapping-focused.log",
+        "sha256": "0cf466e6e09fdfb454d63adcc8530cb03da6f0727fd45414fea44ff0fed8e403"
+      }
+    },
+    "initialFixtureCorrection": "Two concurrent-test barriers incorrectly waited again during later verification; bounded to firsttwo STATEreads. No production change/assertion relaxation.",
+    "quality": {
+      "schemaVersion": 1,
+      "baseCommit": "2f17cc0be0c61b072a0afa9585593f931d5c125d",
+      "productionParsed": 285,
+      "changedProductionFiles": [
+        "src/history_mutation_api/service.py"
+      ],
+      "changedMethods": [
+        "HistoryMutationService._transact",
+        "HistoryMutationService.bootstrap"
+      ],
+      "privateHelperReplacementOnly": true,
+      "allOtherServiceMethodsASTEqual": true,
+      "contractsScriptsWorkflowsByteJoins": 411,
+      "requirementsDevExact": true,
+      "actionlint": "PASS",
+      "shellcheck": "PASS",
+      "diffCheck": "PASS",
+      "archive": {
+        "sha256": "837b8998dc6defda690876c8f6550ebd78c8aa252ca02cf2c56f7e9872699123",
+        "members": 8,
+        "serviceBytesExact": true,
+        "hostImportWithSocketsAndSdkConstructorsBlocked": "PASS",
+        "externalAttempts": 0,
+        "dependenciesIncluded": false,
+        "deployableQualified": false
+      }
+    },
+    "independentSourceReview": {
+      "path": "docs/SECUR4ALL-344-source-review.json",
+      "sha256": "c91b5d3615367d5d3586ade4a0173011b8074bedeeff871005e9c8cb576ebc72"
+    }
+  },
+  "acceptance": {
+    "retainedDevCriteriaPassed": true,
+    "publicationAndIntegrationRequiredBeforeDone": true,
+    "targetDeploymentOrBehavioralQualificationPerformed": false,
+    "laterTargetInstructions": "docs/SECUR4ALL-344-HISTORY-TRANSACTION-ERRORS.md",
+    "laterOpenTracker": "SECUR4ALL-226",
+    "governedBridgeOrFullSEC226CompletionClaim": false,
+    "physicalFollowup": "ATCR-148"
+  },
+  "nextConfirmedBug": {
+    "issue": "SECUR4ALL-345",
+    "state": "To Do",
+    "sourceOnly": true,
+    "implementedInThisBatch": false,
+    "evidence": "docs/SECUR4ALL-345-next-read-boundary-gap.json"
+  },
+  "actions": {
+    "newAwsReads": 0,
+    "serviceEndpointCalls": 0,
+    "liveFaultInjection": 0,
+    "authOrActorReferenceWork": 0,
+    "emulatorActions": 0,
+    "runtimeMutations": 0,
+    "deployments": 0,
+    "mainPromotion": 0
+  }
+}
