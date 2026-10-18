@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_AUTHENTICATED_CALLERS_AND_DEPENDENCY_HANDOFF_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-18T00:47:01.492031+00:00",
+  "files": {
+    "docs/SECUR4ALL-237-AUTHENTICATED-CALLERS.md": "4670119f6200f1f3fb340fda1b166fd2b6d45c2cb30cc0d3d068b48d15f03d96",
+    "docs/SECUR4ALL-237-AUTHENTICATED-CALLERS.json": "123a06d12e017bc2cb2ccfaac1ce59f8fc633d0df525cea68bd76fe8bacba02f",
+    "docs/SECUR4ALL-237-DEPENDENCY-MANIFEST.json": "73a6aa95dddce207561a1b6ce6c4407473cb769757e173a908f017cd2bc35664",
+    "docs/SECUR4ALL-237-callers-independent-review.json": "090e158a4be759a0f729cd0f4cd84780cc8463310fc79d2cefbb483b7745d304",
+    "scripts/verify_operations_dependencies.py": "7d2181faba2fce20868926a29a684d1384bd4d6e2dae46eab61864c5553df940",
+    "tests/scripts/test_operations_dependency_manifest.py": "3373e2a16c53d6c8e0101206325377a5eda33e872c734e38988532841413e6f0"
+  },
+  "checks": {
+    "all15HandoffSourceTestDocPinsMatch": true,
+    "all10CallerIndependentReviewPinsAnd8ProtectedFilesCurrent": true,
+    "copiedFinalCallerReviewExactBytes": true,
+    "frozenJUnitShaTotalsMatch": {
+      "testsIncludingSubtests": 1743,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "parentPytestCounts": {
+      "passedTests": 1722,
+      "passedSubtests": 21
+    },
+    "independentCallerCases": 15,
+    "combinedSourceReviewCases": 219,
+    "independentlyRerunManifestTests": {
+      "passed": 12,
+      "seconds": 0.6
+    },
+    "actualOfflineCheckerArchiveCount": 15,
+    "allManifestPinGroupsMatch": {
+      "source": 145,
+      "contract": 158,
+      "requirements": 11
+    },
+    "actualDeclaredArchiveSourceMemberByteJoins": 743,
+    "actualDeclaredArchiveContractMemberByteJoins": 650,
+    "canonicalGeneratedRootHandlerShims": 11,
+    "allPythonMembersAccountedFor": true,
+    "authorityProtocolCarriers": 13,
+    "contractOnlyEvaluators": 2,
+    "kernelExcludedAll15": true,
+    "sourceOnlySkipDependenciesDistributionFalse": true,
+    "retained13IsolatedAuthorityArchiveImportsAnd5DisabledHandlerImportEvidenceHashesMatch": true
+  },
+  "resolvedReviewFindings": [
+    {
+      "id": "M1",
+      "finding": "Initial checker verified source pins but ignored declared contract/requirements digest drift",
+      "probe": "Tampered sourcePins rejected while tampered contractPins or requirementsPins returned15/PASS",
+      "resolution": "All3 declared pin groups now exact-hash validated;2new negative cases pass",
+      "actualArtifactOrRuntimeMismatchClaimed": false
+    },
+    {
+      "id": "M2",
+      "finding": "Initial manifest omitted actual packaged URL mapper contract directories and did not close all executable member joins",
+      "probe": "12 packaged mapper copies independently matched current builder contract sources but lacked declared pin/member joins",
+      "resolution": "Both actual URL-assessment contract dirs included;158contract pins and per-archive contractMembers; all .py must join source/contract or exact generated shim. Packaged-contract drift and unknown Python negatives pass. Known nested shared_history duplicates explicitly joined without changing source/build behavior.",
+      "actualArtifactOrRuntimeMismatchClaimed": false
+    }
+  ],
+  "retainedEvidence": {
+    "junit": {
+      "path": "/tmp/amt-sec237-callers-frozen-tests.xml",
+      "sha256": "f479fca54f557b802a613dafb46fa5a83eee51cad5e736748f81c9f733ac4e5b"
+    },
+    "fullStdout": {
+      "path": "/tmp/amt-sec237-callers-frozen-tests.log",
+      "sha256": "4d834c82a525ce02fb78bc10a332c671e9d55e8ad68cd797e117866714272aa2"
+    },
+    "disabledHandlers": {
+      "path": "/tmp/amt-sec237-callers-disabled-imports.log",
+      "sha256": "04e1b4d5c44beb72d90db00e35a49891d658bfe115ec43c8e487a8ca37be958d"
+    },
+    "isolatedAuthorityModules": {
+      "path": "/tmp/amt-sec237-callers-module-imports.log",
+      "sha256": "508eb4de1965e37c20063f836d567ca81acf567c9427fbdabfdfb95ae182baaf"
+    }
+  },
+  "handoffBoundariesConfirmed": [
+    "Owner derives from existing validated API Gateway authorizer context through Authority._account; body/evaluator identities never select owner",
+    "Fixed server family/client/scope/version plus metadata environment/family and source optional absence conditions protect capture generation",
+    "Optional capture is after public-envelope validation and fail-contained across all3 consumers; no public projection or reference/log output",
+    "4s monotonic/2s reserve are dispatch guards, not hard end-to-end completion guarantees; two existing account reads lie between outer continuation checks",
+    "Seven extra consistent reads and one transaction are source SDK-operation maxima for successful/replay capture, not cost/IAM/SLA approval",
+    "Seen expired metadata/orphan erasure preserves History/full TTL/accounting and never remints linkage; no legacy client inference or full discovery/backfill qualification",
+    "Source/contract inspection closure does not qualify dependency-complete Python3.14 ARM64 packages, deployed gateway/JWT signature/direct-invoke permissions/IAM/cost/version/rollback",
+    "All13 authority carriers and2 evaluators are an exact later-deployment source manifest, not authorization to deploy or enable them",
+    "Source default-off and actionReady=false remain; mixed workers/older rows/backups/physical sweep timing and actual Dev/report/delivery gates remain pending",
+    "No AWS/auth/readback/endpoint/provider/emulator/purchase/IAM/flag/deployment/main action performed in this source batch; separately approved later backend readback is outside this record",
+    "SEC237 remains In Progress/not Done; SEC243/SEC180 and ATCR148 scope remain separate"
+  ],
+  "remainingReviewBlockers": [],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  }
+}

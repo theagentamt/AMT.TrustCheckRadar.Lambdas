@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "story": "SECUR4ALL-237",
+  "outcome": "PASS_EXISTING_AUTHENTICATED_CONSUMER_CAPTURE_WIRING_SOURCE_ONLY",
+  "reviewedAtUtc": "2026-10-18T00:39:14.388819+00:00",
+  "files": {
+    "src/shared_check_authority/operations_callers.py": "4855eed6060b213f06cf882c0edc16bf9a633e96eb7d90e490d933dc33c889ea",
+    "src/shared_check_authority/operations_binding.py": "c17feaf12cf3d21d129cc083ee3fe27cf50c7d688df452ba99ad2afa74794a38",
+    "src/shared_check_authority/operations_ingestion.py": "50d50d14bcd623ecb87d619281dc30d582e9fd07a3763e9a862ec0a5a279fd38",
+    "src/shared_check_authority/operations_retirement.py": "0d99d2f3403e45e977623e861906640e148b1e01955722a767398ec8f8fb6c96",
+    "src/url_consumer/service.py": "5b1c2b9c1b0e9593dd753997fe0334c93e3eac67146ecff2bc271b86c8e4ea7c",
+    "src/url_consumer/app.py": "c99884de6a29392d7aa63f2caeb99a84763b4da085dafc86a049696d75139600",
+    "src/message_consumer/service.py": "29a1a26d2ddb4e4475e09f0103a63eed126017edac08a63ebbecbd5d83be76d5",
+    "src/recovery_consumer/service.py": "5f79ff4130ea3d29f165d12905bd6e926997d9de78b9830fd5810c0dbd82f090",
+    "tests/shared_check_authority/test_operations_callers.py": "34f5347f2e0627342e827e1d0c09add56a3ba5d855ff0e0f22cbcf729e20f806",
+    "tests/shared_check_authority/test_operations_callers_independent.py": "ca9a4af78c656524cca1416a134fe713444e1f3ffdcd2a3cf0f44795b2fc010f"
+  },
+  "protectedUnchangedFiles": {
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/shared_check_authority/entitlements.py": "0683d8abaa4cd8e16cb9c32db92d63be7767eb5b7a947235e4d5e9ee68311bcb",
+    "src/shared_check_authority/purchase_usage.py": "65b815f88bb38e111d72f0421a5e958fff99dfc31404970d61d0ecbf07899998",
+    "src/shared_operations/receipts.py": "c44e7bd08fbfbc34ab55c9e388cc354d8c54cca9887e7561c3bf64c13d62481c",
+    "src/shared_operations/projection.py": "4d85652fc8745e39f1d8c21e94123e5272a372a95eda446629db09b2c2e233f1",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd"
+  },
+  "independentTests": {
+    "addedCases": 15,
+    "combinedCallerIngestionRetirementAndActualConsumerIntegrationCases": 219,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 30.13,
+    "framework": "Local Moto, pure schema and existing contract imports only",
+    "cases": [
+      "Body owner/worker identities ignored; finite internal result contains no projection and no stdout",
+      "Three client/version/family mismatches refuse capture without mutation",
+      "Two other-JWT-owner/copy-receipt cases cannot target original owner via body",
+      "Missing legacy client is not inferred from request",
+      "Remaining5999ms skips before owner reads",
+      "Monotonic deadline exhausted by source read starts no mutation",
+      "Two seen expired metadata/orphan full-index cases remove only links without remint, History/TTL/accounting preserved",
+      "Capture helper exception cannot change exact validated URL business envelope or accounting",
+      "Caller boundary CAS rejects changed bound client and insertion of previously absent legacy transport version",
+      "Deletion inserted after authentication/read but before capture transaction refuses mutation"
+    ]
+  },
+  "staticAndParentRegressionChecks": [
+    "Fixed family version tuples independently joined to actual existing URL/message/recovery source contract constants",
+    "Default-off check occurs before new time/account/service work",
+    "Existing authorizer context and Authority._account select owner; row proof and strict client/scope/version/family bind actual source",
+    "Binding-optional absence guards share exact receipt/prior projection transaction CAS, so concurrent version/client drift cannot be silently accepted",
+    "All3 consumers hook only after business envelope validation and fully contain optional import/helper/write failures; existing business response/accounting preserved",
+    "Existing consumer tests exercise actual URL/message/recovery completion and replay with no projection/private reference response exposure",
+    "New reads/writes have continuation checks, SDK one-attempt config and bounded connect/read phase requirements; no retry/loop/new delivery exists",
+    "Seen expired metadata/orphan erasure does not recreate metadata or extend full History TTL; known old full/min shape only",
+    "No new endpoint, JWT scheme, source family, resource, permission, cost/retention grace, provider activation or user setting introduced"
+  ],
+  "remainingSourceReviewBlockers": [],
+  "requiredFinalEvidence": [
+    "Current frozen full source JUnit and exact docs/evidence hashes",
+    "Source/package/contract pins and inspection archives with new binding/caller modules",
+    "Network-blocked disabled handler and isolated module import evidence"
+  ],
+  "remainingActivationLimits": [
+    "API Gateway authorizer context trust is inherited; no independent JWT-signature validation or deployed gateway/invocation IAM qualification proved by local fixtures",
+    "Actual authenticated route/role/package versions and transactional permissions/cost must be qualified before activation",
+    "Four-second monotonic and two-second return reserve are dispatch checks, not hard total request/SDK completion guarantees; per-phase SDK timeouts do not provide strict end-to-end bounds",
+    "Existing Authority._account performs2 legacy account reads between outer continuation checks; actual latency/cost remains unqualified",
+    "Legacy unbound client identifiers are skipped rather than inferred; no data coverage upgrade",
+    "Seen-row/orphan erasure and known-index repair do not prove unseen inventory/backfill or mixed-worker version safety",
+    "Physical cleanup scheduling/timeliness, backup/restore/deletion, provider-attempt/cost producers and aggregate/report/delivery acceptance remain pending",
+    "Source flags remain default-off, no actual AWS/auth/endpoint/emulator/provider/purchase/runtime/main action; SEC237/243 not Done"
+  ],
+  "operatorActions": {
+    "network": 0,
+    "services": 0,
+    "credentials": 0,
+    "runtime": 0,
+    "device": 0,
+    "publication": 0
+  },
+  "finalRaceAndFixtureCoverage": {
+    "priorReviewPath": "/tmp/amt-sec237-authenticated-capture-independent-review-before-caller-races.json",
+    "priorReviewSha256": "bd15184546e4816e749ac10f4db8240cb1eed8950cdcf952d323d3a276b8d939",
+    "productionSourceUnchanged": true,
+    "allCurrentParentCallerFixtureStrengtheningIncluded": true,
+    "actualCurrentCombinedCasesPassed": 219,
+    "requestedNewCallerBoundaryRaces": 3,
+    "result": "zero failures/errors/skips"
+  }
+}

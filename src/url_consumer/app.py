@@ -43,7 +43,8 @@ def lambda_handler(event,context):
         from shared_check_authority.entitlements import EntitlementWriter
         authority=load_authority()
         writer=EntitlementWriter(authority,approved_products=frozenset(),operator_principals=frozenset(),verification_max_age_seconds=1)
-        consumer=Consumer(authority,_mapper(),_provider,lambda event:writer.refresh_for_account(event,'consumer-'+secrets.token_hex(8)))
+        consumer=Consumer(authority,_mapper(),_provider,lambda event:writer.refresh_for_account(event,'consumer-'+secrets.token_hex(8)),
+                          remaining_ms=lambda:context.get_remaining_time_in_millis())
         status,body=consumer.handle(event)
     except Exception:
         # No inference about an uncertain transaction; no raw exception or request.
