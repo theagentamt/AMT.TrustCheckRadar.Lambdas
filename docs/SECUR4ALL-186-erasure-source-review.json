@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T04:08:13.134743+00:00",
+  "outcome": "PASS_NONDISPATCHING_ERASURE_PREPARATION_SOURCE_AND_DESIGN_ONLY",
+  "baseCommit": "3669762055f344bd4129e18449b047ef99b28454",
+  "reviewedFiles": {
+    "src/governed_history/erasure_preparation.py": "e4f56860f1335d91d7551adf7773fc093fba68743447f79faa0935a32d51433e",
+    "tests/governed_history/test_erasure_preparation.py": "07e8531364146e12f9502282a0819b35939ecde0723b7ece4c88c1727551ce33",
+    "tests/governed_history/test_erasure_design.py": "4ffa172c9c75ffb0dfb6c3e50c74542eb9162e56d2749bf84be2c4d2d5bef853",
+    "tests/governed_history/test_erasure_preparation_independent.py": "f13cf219af78149678534777ef44433afe60ff225d5e33a7897df39cadc0032e",
+    "docs/SECUR4ALL-186-GOVERNED-ERASURE-DESIGN.md": "06ed204ce032db384c25a4c4355a5dce3496cbb2b0a2a9c123b00deb59ec82af"
+  },
+  "protectedBytesJoined": 723,
+  "newProductionModuleOnly": "src/governed_history/erasure_preparation.py",
+  "unchangedHandlersContractsCoreAccountingDependenciesCI": true,
+  "independentExecution": {
+    "path": "/tmp/amt-erasure-governed-independent.xml",
+    "sha256": "e3971aa19abdce83a8b68c484b02160b2bd85ae08ec11094cb50617b1d964d87",
+    "passed": 139,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "currentCollectionIdentitiesExactlyMatch": true,
+    "ownNewCasesIncluded": 86,
+    "independentAdditionalCasesIncluded": 10,
+    "independentOnlyXml": {
+      "path": "/tmp/amt-erasure-preparation-independent.xml",
+      "sha256": "f8861daf3905e5441da42572bd595041f1dcdb2125efe27912d67f7cbdf297c1",
+      "passed": 10
+    }
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "origin": "independent static source review",
+      "problem": "Frozen private receipt capture differed from mutable SDK Item subsequently validated after callbacks.",
+      "resolution": "Reader returns detached capture and validation thaws exactly private snapshot.",
+      "status": "RESOLVED",
+      "independentRegression": "Both initially-invalid->later-valid and initially-valid->later-invalid SDK-response interleavings.",
+      "counterexample": {
+        "path": "/tmp/amt-erasure-r1-counterexample.json",
+        "sha256": "38b710e0919bd9902aa8d1e1ac46e660961b93b7e6c9807ded3d7860be17b4dc",
+        "limit": "Reconstructed pre-fix read logic, not a retained initial unmodified implementation run; first comparator setup omitted assignment and was corrected without source change."
+      }
+    }
+  ],
+  "verifiedInvariants": [
+    "Preparation performs only acknowledged strong reads; no source writes, public SDK actions, executor or handler wiring.",
+    "Actual account/device/inventory/profile/deletion snapshots and cryptographic proof/owned row/result/accounting/time/summary joins; no subscription eligibility prerequisite.",
+    "Private immutable nested capture, finite repr/summary, no pickle/JSON/export/dispatch method; public status is never execution or mutation success.",
+    "Unknown fields at preparation reject; known optional absence captured; unknown later fields preserved by test-only CAS and not all-copy fenced.",
+    "Actual both-producer earlier operations schedule survives synthetic five-field erasure; all other fields, counters, accounting, identity, expiry and cleanup index unchanged.",
+    "Read failure/absence/expiry/removed state never becomes prior-success proof; replaced row CAS fails; stale GSI canonical reads suppress, settlement/reconcile cannot resurrect summary.",
+    "Offline generation model tests ordering laws only, not implemented generation/marker/lifecycle or live acceptance.",
+    "Delete/clear T1/P1 design is independent of G1/G2; recognition recommendations remain unapproved."
+  ],
+  "remainingGates": [
+    "No dispatch/freshness capability, committed operation receipt or unknown-commit resolution.",
+    "Future executor must reprepare/revalidate and atomically enforce identity/receipt/deadline conditions.",
+    "Full clear generation admission/settlement and all-copy erasure/restore/replay/lifecycle contracts remain unimplemented T1/P1.",
+    "No public erased-replay status introduced; existing generic unavailable presentation remains.",
+    "SEC185/186/224/225/226 remain open; no actual AWS/auth/device/provider/runtime or deployable artifact qualification."
+  ]
+}

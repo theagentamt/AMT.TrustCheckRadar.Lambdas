@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-18T04:09:24.138721+00:00",
+  "baseCommit": "3669762055f344bd4129e18449b047ef99b28454",
+  "milestone": "S10 delete/clear engineering design plus independently reviewed non-dispatching selective erasure preparation, not a mutation service or story completion",
+  "issues": [
+    "SECUR4ALL-185",
+    "SECUR4ALL-186",
+    "SECUR4ALL-224",
+    "SECUR4ALL-225",
+    "SECUR4ALL-226"
+  ],
+  "sourcePins": {
+    "src/governed_history/erasure_preparation.py": "e4f56860f1335d91d7551adf7773fc093fba68743447f79faa0935a32d51433e",
+    "tests/governed_history/test_erasure_preparation.py": "07e8531364146e12f9502282a0819b35939ecde0723b7ece4c88c1727551ce33",
+    "tests/governed_history/test_erasure_design.py": "4ffa172c9c75ffb0dfb6c3e50c74542eb9162e56d2749bf84be2c4d2d5bef853",
+    "tests/governed_history/test_erasure_preparation_independent.py": "f13cf219af78149678534777ef44433afe60ff225d5e33a7897df39cadc0032e",
+    "docs/SECUR4ALL-186-GOVERNED-ERASURE-DESIGN.md": "06ed204ce032db384c25a4c4355a5dce3496cbb2b0a2a9c123b00deb59ec82af",
+    "docs/SECUR4ALL-186-erasure-design.json": "ed3058faf0822ee13c8de457a2e8d63792216020f0e8b9738d97e5ca7c412f92",
+    "docs/SECUR4ALL-186-erasure-design-review.json": "834321ed6158812a808d538852363dd79407fdee32ad81521e9819f0247e1528",
+    "docs/SECUR4ALL-186-erasure-source-review.json": "2c552730e3fdc7a2787b1eb1749f2f0a0adbb723b11a7d877f8ebf29863cc029"
+  },
+  "quality": {
+    "baseCommit": "3669762055f344bd4129e18449b047ef99b28454",
+    "existingSourceContractsScriptsWorkflowsExact": 723,
+    "existingChangedFiles": [],
+    "productionAstParsed": 286,
+    "newSourceModules": 1,
+    "newHandlerWiring": false,
+    "wireChanges": false,
+    "dependenciesChanged": false,
+    "actionlint": "PASS",
+    "shellcheck": "PASS",
+    "diffCheck": "PASS"
+  },
+  "validation": {
+    "partitions": [
+      {
+        "path": "/tmp/amt-erasure-preservation.xml",
+        "sha256": "dacd5bafb30889e8548342ddac29d878b189b2c5ccb829878ee494dbfee69f14",
+        "uniqueCases": 2094,
+        "reportedJUnitTests": 2115,
+        "caseIdentitySha256": "14825bc26fd689bc8e9eb699c65351bcf9efe15eb1853e4ec509199b99e44847",
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      },
+      {
+        "path": "/tmp/amt-erasure-history-preservation.xml",
+        "sha256": "9d4927fabb2351652ba67f4761a914d99ea86007f421a0579157c6ddfff8885c",
+        "uniqueCases": 367,
+        "reportedJUnitTests": 387,
+        "caseIdentitySha256": "c8ed5b39f96abc5ea46176dd5c3f3d515d0364062c0424370a9a0249c95e56d5",
+        "failures": 0,
+        "errors": 0,
+        "skips": 0
+      }
+    ],
+    "uniqueCases": 2461,
+    "subtests": 41,
+    "reportedJUnitTests": 2502,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "newCases": 96,
+    "independentAdditionalCases": 10,
+    "currentGovernedIndependent": {
+      "path": "/tmp/amt-erasure-governed-independent.xml",
+      "sha256": "e3971aa19abdce83a8b68c484b02160b2bd85ae08ec11094cb50617b1d964d87",
+      "passed": 139,
+      "addedToTotal": false
+    },
+    "initialFocusedRun": {
+      "path": "/tmp/amt-erasure-initial.xml",
+      "sha256": "783dafacc8fee0d7029d34c7811a7e19b8d84eb3b02b5e04df5917e9b5529fd0",
+      "passed": 75,
+      "failed": 2,
+      "cause": "Incorrect test mutations repeated original non-charged accounting / equivalent basis. Changed corrupt test values, no source weakening. Final disjoint suites include corrected fixtures."
+    }
+  },
+  "packageChecks": [
+    {
+      "function": "governed_history",
+      "sha256": "7d70853caa3475f0368b4467f9513871b5c1e71e3c28447ea56b17274a392cf9",
+      "sourceOnly": true,
+      "erasureModulePresent": true,
+      "isolatedImport": "PASS",
+      "runtimeQualified": false,
+      "dependencySource": "existing pinned local test venv; source ZIP uses skip-dependencies"
+    },
+    {
+      "function": "url_consumer",
+      "sha256": "080744db2fe2b529111d20a2a24c7180e442136e38f6d665d510f54fb8d1da61",
+      "sourceOnly": true,
+      "erasureModulePresent": false,
+      "isolatedImport": "PASS",
+      "runtimeQualified": false,
+      "dependencySource": "existing pinned local test venv; source ZIP uses skip-dependencies"
+    }
+  ],
+  "packageProbeLimit": "Initial URL import probe incorrectly assumed nested layout; corrected existing flattened service import and pinned local dependencies. Source-only skip-dependencies archives, no deployment qualification.",
+  "independentFindings": [
+    {
+      "id": "R1",
+      "problem": "SDK response could mutate after capture and before validation",
+      "resolution": "Validate exact detached immutable captured receipt; independent invalid-to-valid and valid-to-invalid interleaving regressions pass",
+      "status": "RESOLVED"
+    }
+  ],
+  "implementedBoundary": [
+    "acknowledged strong read-only current owner/device/profile/deletion/inventory capture",
+    "owned cryptographic proof + canonical result/accounting/time/summary validation",
+    "private immutable nonserializable plan; no execute/public transaction/export method",
+    "five-field removal intention only, no mutations/retained data/new wire"
+  ],
+  "remaining": [
+    "T1 compatible mutation/version, per-account generation admission/settlement fences, committed operation receipt, erased replay and Android invalidation",
+    "P1 exact purpose-separated marker/receipt records, replay/inflight/expiry/backup restore/all-copy/account-deletion coverage",
+    "G1/G2 remain held only for recognition wiring, not delete/clear design",
+    "future source executor needs fresh preparation/authorization and reviewed atomic commit/uncertain-outcome handling",
+    "separately approved deployment/activation and real target acceptance; physical-only ATCR148"
+  ],
+  "commands": [
+    "synthetic AMT_AUTHORITY_INTEGRATION=1 PYTHONPATH=src python -B -m pytest -q tests/shared_check_authority tests/message_consumer tests/message_evaluator tests/recovery_runtime tests/governed_history tests/operations_reporting tests/scripts",
+    "same synthetic environment python -B -m pytest -q tests/history_capabilities tests/history_mutation_api tests/history_contracts tests/shared_history tests/history_read_api tests/history_lifecycle tests/history_account_deletion_bridge",
+    "actionlint .github/workflows/*.yml",
+    "shellcheck scripts/*.sh",
+    "git diff --check"
+  ],
+  "operations": {
+    "aws": 0,
+    "endpoints": 0,
+    "runtimeMutations": 0,
+    "realDeletes": 0,
+    "newAuth": 0,
+    "emulator": 0,
+    "financial": 0,
+    "deployment": 0,
+    "main": 0
+  },
+  "scope": "No full-delete/clear/all-copy/replay success or lifetime/recognition policy inferred. All five stories stay open."
+}

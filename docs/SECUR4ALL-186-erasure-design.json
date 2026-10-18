@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "kind": "OFFLINE_ERASURE_DESIGN_NOT_WIRE_CONTRACT",
+  "baseCommit": "3669762055f344bd4129e18449b047ef99b28454",
+  "implementation": "opaque non-dispatching erasure preparation only",
+  "implementedReadBoundary": [
+    "request-context owner and current active device",
+    "acknowledged consistent minimized identity reads",
+    "complete retained HMAC inventory",
+    "cryptographic owned receipt proof and exact accounting/projection joins",
+    "immutable captured snapshot with finite non-success summary"
+  ],
+  "removeIntent": [
+    "GSI2PK",
+    "GSI2SK",
+    "governedHistory",
+    "governedHistoryDigest",
+    "resultSummary"
+  ],
+  "executionAuthorized": false,
+  "fullDeleteImplemented": false,
+  "fullClearImplemented": false,
+  "newRetainedFields": [],
+  "newWireFields": [],
+  "newRoutes": [],
+  "recognitionDecisions": [
+    {
+      "id": "G1",
+      "status": "HELD_UNAPPROVED_CANDIDATE",
+      "recommendation": "Count one future typed-complete logical message/URL/QR check regardless risk/payment; exclude other outcomes, deliberate new-ID counts without content fingerprints."
+    },
+    {
+      "id": "G2",
+      "status": "HELD_UNAPPROVED_CANDIDATE",
+      "recommendation": "Reuse checks_1/5/20 IDs, EN/ES catalog and existing progress fields without per-result award/unlock timestamps."
+    }
+  ],
+  "remainingEngineeringContracts": {
+    "T1": [
+      "compatible capability/version and owner/result/operation resolution",
+      "server per-account generation captured atomically at admission/settlement/clear",
+      "idempotent commit receipt and same-operation unknown-commit readback",
+      "explicit erased replay and Android invalidation"
+    ],
+    "P1": [
+      "minimal purpose-separated generation/erasure/operation records",
+      "reviewed replay/inflight/backup restore retention without legacy lifetime inheritance",
+      "all-copy inventory, erasure and restored-backup fence",
+      "account deletion coverage across all retained HMAC partitions/markers"
+    ]
+  },
+  "generationModel": "offline specification only, not runtime schema or acceptance",
+  "futureCasLimitation": "Bind captured attributes and absence of known optional fields; later unknown top-level fields are not fenced and must be preserved. No all-copy success claim.",
+  "sourcePins": {
+    "src/governed_history/erasure_preparation.py": "e4f56860f1335d91d7551adf7773fc093fba68743447f79faa0935a32d51433e",
+    "tests/governed_history/test_erasure_preparation.py": "07e8531364146e12f9502282a0819b35939ecde0723b7ece4c88c1727551ce33",
+    "tests/governed_history/test_erasure_design.py": "4ffa172c9c75ffb0dfb6c3e50c74542eb9162e56d2749bf84be2c4d2d5bef853",
+    "docs/SECUR4ALL-186-GOVERNED-ERASURE-DESIGN.md": "06ed204ce032db384c25a4c4355a5dce3496cbb2b0a2a9c123b00deb59ec82af"
+  }
+}

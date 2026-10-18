@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T04:10:46.368607+00:00",
+  "outcome": "PASS_FINAL_NONDISPATCHING_ERASURE_PREPARATION_HANDOFF_ONLY",
+  "baseCommit": "3669762055f344bd4129e18449b047ef99b28454",
+  "reviewedFiles": {
+    "src/governed_history/erasure_preparation.py": "e4f56860f1335d91d7551adf7773fc093fba68743447f79faa0935a32d51433e",
+    "tests/governed_history/test_erasure_preparation.py": "07e8531364146e12f9502282a0819b35939ecde0723b7ece4c88c1727551ce33",
+    "tests/governed_history/test_erasure_design.py": "4ffa172c9c75ffb0dfb6c3e50c74542eb9162e56d2749bf84be2c4d2d5bef853",
+    "tests/governed_history/test_erasure_preparation_independent.py": "f13cf219af78149678534777ef44433afe60ff225d5e33a7897df39cadc0032e",
+    "docs/SECUR4ALL-186-GOVERNED-ERASURE-DESIGN.md": "06ed204ce032db384c25a4c4355a5dce3496cbb2b0a2a9c123b00deb59ec82af",
+    "docs/SECUR4ALL-186-erasure-design.json": "ed3058faf0822ee13c8de457a2e8d63792216020f0e8b9738d97e5ca7c412f92",
+    "docs/SECUR4ALL-186-erasure-design-review.json": "834321ed6158812a808d538852363dd79407fdee32ad81521e9819f0247e1528",
+    "docs/SECUR4ALL-186-erasure-source-review.json": "2c552730e3fdc7a2787b1eb1749f2f0a0adbb723b11a7d877f8ebf29863cc029",
+    "docs/SECUR4ALL-186-erasure-validation.json": "97db68677357d0361cd1ef8a4263a70d08f8db4930dabff0892605b0297d5e53"
+  },
+  "retainedEvidence": {
+    "/tmp/amt-erasure-quality.json": "53b053eed08ee9a08581a3489cc327e7f91d8ffad425ddd9997a21d60e12e6cd",
+    "/tmp/amt-erasure-package-check.json": "6ac429b64c566e83d1e7108d71d4830a208322e0822c022fad4fc15b04d19966",
+    "/tmp/amt-erasure-packages-independent-check.json": "9775e0bd87dd874b3506bc3a8246afbc664dabb1bb332caf9c57832373500c2d",
+    "/tmp/amt-erasure-r1-counterexample.json": "38b710e0919bd9902aa8d1e1ac46e660961b93b7e6c9807ded3d7860be17b4dc"
+  },
+  "testAudit": {
+    "partitions": [
+      {
+        "path": "/tmp/amt-erasure-preservation.xml",
+        "sha256": "dacd5bafb30889e8548342ddac29d878b189b2c5ccb829878ee494dbfee69f14",
+        "uniqueCases": 2094,
+        "reportedTests": 2115
+      },
+      {
+        "path": "/tmp/amt-erasure-history-preservation.xml",
+        "sha256": "9d4927fabb2351652ba67f4761a914d99ea86007f421a0579157c6ddfff8885c",
+        "uniqueCases": 367,
+        "reportedTests": 387
+      }
+    ],
+    "uniqueCases": 2461,
+    "reportedSubtests": 41,
+    "reportedTests": 2502,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "all96newCasesIncluded": true,
+    "independent10Included": true,
+    "independent139CorroborationNotAddedToTotal": true,
+    "initial75Passed2FixtureFailuresRetained": true
+  },
+  "artifactAudit": {
+    "inspectionArchives": 2,
+    "pythonSourceByteJoins": 93,
+    "generatedGovernedRootHandlerJoin": 1,
+    "actualCurrentErasureModuleInGovernedRootAndNested": true,
+    "erasureModuleAbsentFromUrlCarrier": true,
+    "independentSdkAndSocketBlockedIsolatedImports": 2,
+    "externalAttempts": 0,
+    "dependenciesIncluded": false,
+    "runtimeOrDeployableArtifactQualified": false
+  },
+  "sourceAndScopeConclusions": [
+    "Current implementation/source review and design are exactly pinned; 723 previously tracked production/contracts/scripts/CI/dependency bytes remain unchanged.",
+    "R1 frozen-capture consistency fix and ten independent cases pass; initial static finding vs reconstructed old-logic probe and initial fixture corrections remain distinct.",
+    "Read-only preparation has no handler wiring, write/dispatch/API/success/idempotency or retained marker. Test-only Moto CAS and generation specification model are not implemented mutation service.",
+    "Only five assessment/index fields are intended for future removal; existing accounting/dedup/operations/original deadlines are preserved. Unknown later attributes are not fenced or all-copy erased.",
+    "Future dispatch requires fresh preparation/authorization and reviewed atomic commit/unknown-outcome protocol. T1/P1 generation/replay/cache/all-copy/backup/marker lifecycle remain open.",
+    "G1/G2 remain unapproved recognition candidates, not blockers for delete/clear design; existing approved milestone/no-points/clear-reset/same-ID invariants are preserved.",
+    "All five stories and full S10 remain open. No actual AWS/auth/device/provider/runtime, real deletion, deployment or target acceptance claimed. Source-only skip-dependencies imports use existing local pinned venv and do not qualify deployed dependencies."
+  ],
+  "findings": []
+}
