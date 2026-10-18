@@ -1,0 +1,70 @@
+{
+  "decision": "PASS",
+  "handoffHonesty": {
+    "historyDoesNotNeedFundingAllowance": true,
+    "iamActionTimeApprovalPending": true,
+    "liveBoundedRetestAndReleaseIntegrationRemainRequired": true,
+    "proposalRemainsNotApplied": true,
+    "selectedNamespaceDenialIsSufficientBlockerNotUniqueHistoricalTraceCause": true,
+    "sourceCheckerDoesNotClaimLive503Resolved": true,
+    "trackerAutomaticReviewBlockAndNoCreatedIssueRetained": true
+  },
+  "privateProposalReview": {
+    "afterDeclaredScopeCovered": true,
+    "allOtherPolicyFieldsIdentical": true,
+    "beforeDocumentEqualsCapturedPolicy": true,
+    "beforeMissingSelectedRequirements": 5,
+    "changedLeadingKeyArrayCount": 5,
+    "directSelectedNamespacesMatchApprovedActor": true,
+    "effectiveIamDecisionEvaluated": false,
+    "liveEndpointAcceptanceProven": false,
+    "originalOrderedNamespacesPreserved": true,
+    "roleAndInlinePolicyMatchCapturedDocument": true,
+    "secretBasedPartitionDerivationIndependentlyRepeated": false,
+    "selectedAuthorityAndIndexPartitionCrossJoin": true
+  },
+  "privateProposalSha256": "40e5277f7ae0aaf84cab6e59cdf085a3ec6e03384a0f31df9699db71abaacc3b",
+  "rawIdentitiesArnsOpaqueNamespaceValuesOrSecretsRetained": false,
+  "remainingActualWork": [
+    "Obtain exact IAM namespace-change approval before policy mutation.",
+    "Coordinate exact correction/readback and approved History UI retry; no silent broader security change.",
+    "Resolve tracker destination/payload approval blocker before claiming publication.",
+    "Complete normal source release integration and verify intended remote branch."
+  ],
+  "resolvedFindings": [
+    {
+      "id": "DUPLICATE_JSON_KEY_REPLACEMENT",
+      "initialBehavior": "Nested duplicate Effect Deny/Allow was accepted using last value and reported covered.",
+      "regression": "tests/governed_history_scope/test_scope_independent.py::test_cli_duplicate_json_keys_cannot_replace_a_deny_with_allow",
+      "resolution": "Recursive object_pairs_hook rejects duplicate keys at every object level with finite unqualified output.",
+      "status": "RESOLVED"
+    }
+  ],
+  "reviewScope": "OFFLINE_SOURCE_EXACT_PRIVATE_PROPOSAL_AND_HANDOFF_ONLY",
+  "reviewedAtUtc": "2026-10-18T14:55:27.486320+00:00",
+  "reviewerNetworkAwsAdbEndpointCalls": 0,
+  "reviewerRuntimePolicyMutations": 0,
+  "schemaVersion": 1,
+  "sourceBase": "4b49010ad0a74081fa1e134061afda9477294312",
+  "sourceFiles": {
+    ".github/workflows/ci.yml": "023afd72a48431d8abe5d864f3b7edc24b51543a6f6adb310d5fcfd916740557",
+    "docs/governed-history-admission-preflight.md": "3d57c243fc0b20b0525cfea33649fa960e5f69039911ba8a8917c3c23b960a30",
+    "scripts/check_governed_history_scope.py": "879d52ac75b3d8e4d847061a07914d77b7ad4cb83e13323ccb8503192e24dbef",
+    "tests/governed_history_scope/test_scope.py": "4ab1dfdd46792df165c1677940b106a8efcda0eb17831b9fb39ee3eb60568371",
+    "tests/governed_history_scope/test_scope_independent.py": "b3d219ebbe12f91d9754ed56ba910c28a2d59848f9e6bf2d992ddd48fa8654ff"
+  },
+  "validation": {
+    "ciChangeOnlyAddsNewTestDirInExistingMainOnlyJob": true,
+    "diffCheckPassed": true,
+    "errors": 0,
+    "exactCurrentScopeSuitePassed": 29,
+    "failures": 0,
+    "independentCasesAdded": 10,
+    "priorBroaderRuntimeComponentsPassed": 1614,
+    "priorBroaderSourceStageAccuratelyQualified": true,
+    "productionHandlerSourceDiffEmpty": true,
+    "retainedFinalFocusedHistoryAndScopePassed": 168,
+    "skipped": 0
+  },
+  "validationRecordSha256": "eaf5081ddaff176f99c8c71451faa4845cf16ea878f9a2f404f6d349cd07f606"
+}
