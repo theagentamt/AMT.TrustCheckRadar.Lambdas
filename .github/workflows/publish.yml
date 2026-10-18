@@ -235,7 +235,7 @@ jobs:
 
       - name: Preserve resolver publication evidence
         if: steps.scope.outputs.value == 'resolver'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: url-resolver-publication
           path: dist/url-resolver-publication.json
@@ -348,7 +348,7 @@ jobs:
           PYTHON
           python scripts/publish_research_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/research-candidate-build.json
       - name: Preserve candidate build evidence
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: research-candidate-packages
           path: |
@@ -369,7 +369,7 @@ jobs:
           [[ "$(aws sts get-caller-identity --query Account --output text)" == '107827791950' ]]
           python scripts/publish_research_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/research-candidate-publication.json
       - name: Preserve exact S3 versions and checksums
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: research-candidate-publication
           path: dist/research-candidate-publication.json
@@ -451,7 +451,7 @@ jobs:
           PYTHON
           python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --smoke --output dist/message-candidate-build.json
       - name: Preserve candidate build evidence
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: message-candidate-packages
           path: |
@@ -472,7 +472,7 @@ jobs:
           [[ "$(aws sts get-caller-identity --query Account --output text)" == '107827791950' ]]
           python scripts/publish_message_candidate.py --dist-dir dist --source-sha "$SOURCE_SHA" --publish --bucket "$ARTIFACT_BUCKET" --region "$AWS_REGION" --output dist/message-candidate-publication.json
       - name: Preserve exact S3 versions and checksums
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: message-candidate-publication
           path: dist/message-candidate-publication.json
