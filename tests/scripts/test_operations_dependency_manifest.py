@@ -44,7 +44,7 @@ def test_complete_source_closure_passes_without_claiming_distribution(joined):
     assert checker.verify(manifest,archives,source_root=source)==15
 
 
-@pytest.mark.parametrize('drift',['missing-cleanup','old-retirement','old-paid-closure','missing-caller','extra-kernel','wrong-source','claims-ready','old-contract-member','unknown-python'])
+@pytest.mark.parametrize('drift',['missing-cleanup','old-retirement','old-paid-closure','missing-caller','extra-kernel','wrong-source','claims-ready','old-contract-member','unknown-python','missing-attempt-protocol'])
 def test_missing_or_old_coordinated_package_is_rejected_even_with_updated_zip_digest(joined,drift):
     manifest,archives,source=joined;manifest=deepcopy(manifest)
     if drift=='missing-cleanup':manifest['artifacts']=[entry for entry in manifest['artifacts'] if entry['function']!='url_lease_recovery']
@@ -54,7 +54,9 @@ def test_missing_or_old_coordinated_package_is_rejected_even_with_updated_zip_di
         name='url_lease_recovery' if drift=='old-retirement' else 'v1_play_handoff' if drift=='old-paid-closure' else 'url_consumer'
         entry=next(entry for entry in manifest['artifacts'] if entry['function']==name);target=archives/entry['file']
         with zipfile.ZipFile(target) as archive:values={key:archive.read(key) for key in archive.namelist()}
-        if drift=='old-retirement':values['shared_check_authority/operations_retirement.py']=b'# previous cleanup\n'
+        if drift=='missing-attempt-protocol':
+            values.pop('shared_operations/attempts.py');entry['sourceMembers'].pop('shared_operations/attempts.py')
+        elif drift=='old-retirement':values['shared_check_authority/operations_retirement.py']=b'# previous cleanup\n'
         elif drift=='old-paid-closure':values['shared_check_authority/purchase_usage.py']=b'# previous paid compatibility\n'
         elif drift=='missing-caller':
             values.pop('shared_check_authority/operations_callers.py');entry['sourceMembers'].pop('shared_check_authority/operations_callers.py')

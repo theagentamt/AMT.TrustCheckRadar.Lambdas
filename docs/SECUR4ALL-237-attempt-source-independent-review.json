@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T01:28:27.485283+00:00",
+  "outcome": "PASS_RECEIPT_LOCAL_INTERNAL_ATTEMPT_SOURCE_ONLY",
+  "worktree": "/tmp/amt-sec237-attempt-source",
+  "baseCommit": "e83b8a1d3147487dab12f60c0a1869501fc23bc8",
+  "sourceAndTestPins": {
+    "src/shared_operations/attempts.py": "37b32ca012030c8e4fd7bb26bf5df089e04ad9a57bc0d51767e4457695a4fc94",
+    "src/shared_operations/projection.py": "3d1ea915e637fc4a7ede5a105aae4b806d54792df09260754f3d264c418343ff",
+    "src/shared_check_authority/operations_ingestion.py": "a388935269977f0ab16cf83a6875e50f0076e871e2a56dc208f8c89d331f587f",
+    "scripts/verify_operations_dependencies.py": "64ed6b6cfcab392442d130f25b1d321665e36e4e9e85bc419d06fcbd6694f0cd",
+    "tests/shared_check_authority/test_operations_internal_attempts.py": "a5e1053cb94300e21b318c5b3db79d99090685cf03f4fd2d43890a50548843f2",
+    "tests/shared_check_authority/test_operations_internal_attempts_independent.py": "1b655e9a2246660a9cfb6d024a8a804184a060f85e9d4982c562133f126b9bf4",
+    "tests/scripts/test_operations_dependency_manifest.py": "44dd59fb442f0e7106371512ca4c7dbb85b244de375fe7dc9c215e7137db50b0"
+  },
+  "protectedUnchangedPins": {
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/shared_check_authority/runtime.py": "8b2da61b7189b6d94616c22050968679ea78be6e2169722a8f08941321d53a39",
+    "src/shared_check_authority/operations_retirement.py": "0d99d2f3403e45e977623e861906640e148b1e01955722a767398ec8f8fb6c96",
+    "src/shared_check_authority/operations_compat.py": "c246a8d04c55c1bde37ac715fb9d613bf8ee28451560b87ade88f9d07512c815",
+    "src/shared_check_authority/operations_callers.py": "4855eed6060b213f06cf882c0edc16bf9a633e96eb7d90e490d933dc33c889ea",
+    "src/shared_check_authority/purchase_usage.py": "65b815f88bb38e111d72f0421a5e958fff99dfc31404970d61d0ecbf07899998",
+    "src/shared_operations/receipts.py": "03e08e257d7c5f0214e2507bf7fb723a79d09b4f10168a9bc3a8971b13748c02",
+    "src/message_consumer/service.py": "80722124dc15e542005fa1500b9d59b71d7bb734092fb4b6ef54aca5c0ff1c61",
+    "src/url_consumer/service.py": "9e0d4e604447cdb03b6613826e0ea2024bd4a3149127e4cb674623799ea85259",
+    "src/recovery_consumer/service.py": "e69efa5258e420f48c3e8e79ab01ab9669d0b8493470082cf775efa713c35efc",
+    "src/operations_reporting/event.schema.json": "1e714de421c2f14527cc08b91d239815acba032f3665d5eec9c1e968eb53a958",
+    "src/operations_reporting/reducer.py": "883d4989471c9f659fa88e011f69a2e4a99cee7d4aeb9462112171bf72ce6bb3",
+    "src/operations_reporting/revisions.py": "4c078b187c16d0ce1516f234a812005cfb75d178b5f395a54bfa1abcce561a9a",
+    "src/operations_reporting/store.py": "4f9278a9486c3bab6c78cc5146adb146d183ed09de8c0215f6f427e09c10ac3a",
+    "scripts/build_lambda_zip.sh": "3f8d438f69641b49f2dd2906371305bbd09fcf501608c72842d8775230c648a2",
+    ".github/workflows/publish.yml": "a44bdc58daebf0b78545e0d2d1b3b57baaa574153bcdec3de5d46ddb4c4915cd"
+  },
+  "findings": [
+    {
+      "id": "R1",
+      "finding": "Ordinary capture carried persisted attempt timestamps later than its observed time after a wall-clock rollback.",
+      "resolution": "Common capture_projection rejects any carried attempt time after normalized observed now.",
+      "retainedFailingProbe": {
+        "path": "/tmp/amt-sec237-attempt-initial-independent.log",
+        "sha256": "abc4ec95791a724af76d405881cc5c70bb500bad0cffbd0cfdc62439e3f3fd8d"
+      }
+    },
+    {
+      "id": "R2",
+      "finding": "Deterministic finish event ID could alias accepted or terminal event ID and pass stored-projection validation, conflicting at reducer dedupe.",
+      "resolution": "Shared attempt validator rejects derived finish ID equal to either lifecycle ID, including prior to finish.",
+      "retainedFailingProbe": {
+        "path": "/tmp/amt-sec237-attempt-id-independent.log",
+        "sha256": "6a9ec5438ff4180f6a6ffab6d45133e09c40d8ae608b6d41fadb5492d8ba57d4"
+      }
+    },
+    {
+      "id": "R3",
+      "finding": "Pre-existing projection pattern validated caller-owned mutable events then copied at return; late mutation could append an identifier to returned validated data.",
+      "resolution": "Entire input is captured once before validation; only owned validated snapshot returned, no late copy of caller references.",
+      "retainedFailingProbe": {
+        "path": "/tmp/amt-sec237-attempt-snapshot-independent.log",
+        "sha256": "b73b583cd27b1edb3a777e589c2a09a599e70160a566f6f9c87adba7746ed7d5"
+      }
+    },
+    {
+      "id": "R4",
+      "finding": "Malformed non-ASCII stored execution token reached hmac.compare_digest and raised unclassified TypeError.",
+      "resolution": "Both supplied and stored token require exact canonical32lowercasehex grammar before constant-time compare; finite source rejection and no mutation.",
+      "retainedFailingProbe": {
+        "path": "/tmp/amt-sec237-attempt-token-independent.log",
+        "sha256": "7630a2c9f6b3e490ca6c5191ea3d5eeb2250a5935b60972732c876753d2a3ddd"
+      }
+    }
+  ],
+  "validation": [
+    {
+      "scope": "Final current source actual Moto attempts, independent races, ingestion, retirement, paid closure and dependency-manifest checker",
+      "passed": 164,
+      "elapsedSeconds": 21.01,
+      "independentCasesIncluded": 16,
+      "junitPath": "/tmp/amt-sec237-attempt-current-independent.xml",
+      "junitSha256": "d3ac3be20cafc1d7ce2929d362c65bd0f7f5b526c5170ceb6b799fcd477a68e7"
+    },
+    {
+      "scope": "Prior current-R1/R2/R3 combined with all operations reporting; before final R4 stored-token guard/test",
+      "passed": 364,
+      "elapsedSeconds": 22.78,
+      "independentCasesIncluded": 15,
+      "junitPath": "/tmp/amt-sec237-attempt-independent-combined.xml",
+      "junitSha256": "810bdefc06212795f2edb2a11d1bc3b8050e0c36da051b79823a96ecede3aac4",
+      "notFinalR4Evidence": true
+    }
+  ],
+  "independentCoverage": [
+    "Ordinary capture wall-clock rollback/future refusal and missing-terminal-reason actual assessment fence.",
+    "Lifecycle/attempt event ID disjointness and captured-data mutation privacy refusal.",
+    "One start and competing finish CAS winner; concurrent authoritative settlement never lost or charged again.",
+    "Lost/uncertain finish write both committed/uncommitted, malformed/no acknowledgement: one write, no implicit retry/dispatch, explicit read reconciliation.",
+    "Slow write past original expiry may commit under captured-time precondition but returns no expired projection; subsequent existing retirement erases refs without changing charge.",
+    "Profile-DELETING and deletion-ledger races at actual write boundary.",
+    "Malformed stored execution token is finite no-write source rejection."
+  ],
+  "conclusions": [
+    "No caller/consumer dispatch wiring is added; new worker adapter acknowledgements are not dispatch permits or proof any evaluator/provider ran.",
+    "One closed internal evaluator attempt ordinal1 is derived from existing receipt service metadata; at most start+finish, with original lifecycle facts preserved in explicit internal schemaVersion2. Legacy schemaVersion1 still accepted without attempt fields.",
+    "Start requires current ADMITTED receipt/execution owner/live lease; finish requires exact original persisted start+execution token and may follow authoritative settlement without rewriting terminal/charge.",
+    "Exact prior row/projection, source proof, inventory, profile, ACCESS and deletion fences retained in same existing receipt transaction. No extra account locator/table/index/retention is introduced.",
+    "Seven-day acceptance-based linkable deadline remains unchanged; one start/finish replay preserves refs and coarse stored fact values, conflicting writes reject. Unknown acknowledgements never cause automatic source write or provider retry.",
+    "Internal success/failure is distinct from logical settlement, including successful internal invocation with unavailable/partial logical outcome. Only NONE or generic SERVICE_UNAVAILABLE used for internal finish; no provider-specific cause claimed.",
+    "Provider family, request units and cost remain NULL. Duration bucket is supplied internal envelope metadata, not measured external vendor latency or price proof.",
+    "Existing selective retirement/account deletion/paid authorization closure accepts new closed projection shape locally. Physical timely erasure/backups/deployed mixed versions remain separate unqualified activation gates.",
+    "Dependency checker now requires attempt protocol in authority carriers; actual rebuilt archive/final handoff review remains separate."
+  ],
+  "limits": [
+    "Local source/Moto and injected synthetic write races only; no AWS, endpoint, auth, device, runtime, purchase, deployment or Git publication by reviewer.",
+    "TrustedWorkerContext/execution proof is an internal owner fence, not public network authentication or independent proof a recorded internal attempt was dispatched.",
+    "Client-side time guards cannot impose a Dynamo server wall clock; delayed commits can complete after cutoff, but no expired fact is returned and actual timely physical erasure remains unqualified.",
+    "Future consumer wiring must handle durable predispatch acknowledgement/unknown states without duplicate dispatch, preserve business outcomes if optional reporting fails, and bound added latency/cost. This is a remaining source/acceptance gate, not merely deployment.",
+    "Provider/internal subattempt completeness, authoritative actual duration/units/rate catalogue, full cost accounting, assembled discovery/revision/delivery and real Dev acceptance remain open.",
+    "Full frozen suite and rebuilt package/manifest/owner-facing docs require final handoff review; this source PASS is not SEC237 Done or activation readiness."
+  ],
+  "blockers": []
+}
