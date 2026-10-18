@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T04:19:33.518000+00:00",
+  "outcome": "P1_NEW_PERSISTENT_MARKER_POLICY_APPROVAL_REQUIRED_T1_TECHNICAL_CONTRACT_REVIEW_CONTINUES",
+  "approvalSource": {
+    "path": "/tmp/amt-workstream-current-story-read.json",
+    "sha256": "b3edf558dd7ded31bc743d5faea6781a46d0873fb024455e56bf594780f255e5",
+    "select": "top-level item idReadable SECUR4ALL-185; description",
+    "descriptionUtf8Sha256": "5b15d6f30b1ef5dbc1a52132b69c07af1f48a3abf967e17ea7afb69d7fa34eb1",
+    "anchors": [
+      {
+        "section": "Approved product baseline item8",
+        "text": "Keep only narrowly justified metadata needed to prevent duplicate charging\n   or resurrection; fields and retention must still be explicitly finalized."
+      },
+      {
+        "section": "Remaining decision and contract gates first bullet",
+        "text": "Exact backup/PITR retention window, restore procedure, and numeric lifetime\n  and minimal field set for dedup, invalidation and deletion metadata."
+      },
+      {
+        "section": "Approved product baseline item7",
+        "text": "Remove deleted/expired content from active stores, including replay copies,\n   within 24 hours of deletion/expiry."
+      }
+    ]
+  },
+  "sourcePins": {
+    "contracts/history/v1/contract-set.json": "fc1c0be84479920adf8bf922bc69b87d8ee6a6eb36a5382bcf22bbc22fe00695",
+    "contracts/governed-history/1.0.0-candidate.1/contract-set.json": "0293c9765758b121789674e9d7422c06d3860f8cb9ed51fb610cbd4d9d358dc1",
+    "contracts/governed-history/1.0.0-candidate.1/README.md": "e49f0fa559119d1d2ef0f44ee1225ccbf315efa87a5f05c72c52fd1def5ec7c3",
+    "src/shared_check_authority/core.py": "7961fc64c086831b0011af0b618f5da0742d27455b84a15a34137a2ec06edacc",
+    "src/history_mutation_api/service.py": "da9111b208b36ec0838c7dad20aebb5a2b22c8e33d4d867c0418ff2b9226b40b",
+    "docs/SECUR4ALL-186-GOVERNED-ERASURE-DESIGN.md": "06ed204ce032db384c25a4c4355a5dce3496cbb2b0a2a9c123b00deb59ec82af"
+  },
+  "policyConclusion": [
+    "Existing approval requires bounded anti-charge/resurrection metadata but explicitly reserves exact fields/lifetimes/backup handling.",
+    "Legacy USER control120day dedup/7day mutation receipt/PITR7day and separate account-deletion120day do not approve governed marker purposes by analogy.",
+    "Governed candidate only7day original settlement projections excludes mutation/recognition. No inherited authority for new account-lifetime controls, mutation receipts or erasure markers.",
+    "No new persistent mutation fields/storage/wiring are fully policy-determined now. Contract/fixtures remain authorized; recognition G1/G2 independent and held."
+  ],
+  "conditionalTechnicalRecommendations": [
+    "Versioned original expected incarnation+generation must be bound to destructive request intent. After a7day operation receipt expires, UUID-only request cannot distinguish late replay from new use; no infinite sameUUID/conflict guarantee after deleting memory.",
+    "One atomic admission transaction captures current History incarnation/generation with receipt. Settlement transaction must fence same current control, settle accounting once, and suppress BOTH governedHistory and resultSummary for pre-clear admissions.",
+    "Clear read exclusion must cover governed GET, reconcile, consumer replay and caches immediately; physical purge<=24h is separate. Snapshot enumeration is not clear linearization.",
+    "Same-operation unknown commit resolves only by exact original-operation readback, no new operation or provider retry. Generation/inventory/profile/deletion/device/source conditions all belong to same transaction.",
+    "Missing or rolled-back control cannot silently initialize generation0 or revive old incarnation. Randomness is not evidence of legitimate retirement or nonrollback restoration.",
+    "Finite691680s control horizon is a CANDIDATE, conditional on enforced<=480s History-producing lease+original604800sHistory+86400spurge. Current generic Settings has positive lease validation, not a universal480s cap.",
+    "Only genuinely new admission or first mutation commit may extend appropriate control hold; read/retry/reconcile must not renew. Preserve each original result deadline and operation first-commit deadline.",
+    "Control retirement requires verified complete retained-key inventory, canonical original-deadline/unfinished-job proof and acknowledged physical cleanup; wallclock or DynamoDB TTL alone is not proof.",
+    "Without retained retirement witness, fresh random incarnation is privacy-safe only by suppressing ALL old/missing-incarnation sources, proofs, summaries and caches. Explicit StartFresh/destructive invalidation is a NEW customer behavior to approve; otherwise absence remains failclosed.",
+    "Nonpersonal global restore incarnation must actually be authoritative outside rollback set. Restoring controls+receipts together cannot prove erasures. Backup/PITR window and nonrollback/discard/quarantine alternative remain separate explicit choices."
+  ],
+  "minimumOwnerChoiceNotApproval": {
+    "scope": "New purpose-separated governed controls only; do not reopen badges/pricing/reporting/previous milestones.",
+    "candidateExistingReceipt": "Erasure flag on existing receipt only until its ORIGINAL7day deadline; no new per-result TTL.",
+    "candidateOperationReceipt": "Content-free owner/op/intent+terminal response metadata for7days from first commit, no replay renewal; target-derived HMAC still linked data and may outlive original result.",
+    "candidateFiniteControl": "Explicit numeric691680s activity horizon with enforced lease and purge proof, not account-lifetime exception; control expiration/retirement and missing-control failclosed semantics must be fixed.",
+    "candidateAbsenceRecovery": "Explicit StartFresh replacement incarnation invalidates all old History instead of implying recovered continuity; needs approval, not silent bootstrap.",
+    "backupRestore": "Approve exact bounded backup/PITR window plus enforceable nonrollback restoration or explicit discard alternative. No approved numeric governed backup bound identified."
+  },
+  "notClaimed": [
+    "No final doc or implementation review yet for this new contract.",
+    "No owner approval inferred, no new code/store/field/metadata retention, no services/auth/runtime/device/tracker/publication action."
+  ]
+}

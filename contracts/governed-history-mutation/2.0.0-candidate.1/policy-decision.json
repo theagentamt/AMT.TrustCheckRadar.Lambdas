@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "status": "OWNER_DECISION_REQUIRED_NOT_APPROVAL",
+  "existingApproval": {
+    "snapshot": "/tmp/amt-workstream-current-story-read.json",
+    "issue": "SECUR4ALL-185",
+    "snapshotSha256": "b3edf558dd7ded31bc743d5faea6781a46d0873fb024455e56bf594780f255e5",
+    "descriptionSha256": "5b15d6f30b1ef5dbc1a52132b69c07af1f48a3abf967e17ea7afb69d7fa34eb1",
+    "item7": "Active assessment copies including replay removed within24h; SLA to implement/test, not present enforcement proof.",
+    "item8": "Narrow justified anti-charge/resurrection metadata only; fields and retention explicitly still to be finalized. No indefinite backup/tombstone omission.",
+    "remainingGate": "Exact backup/PITR restore and numeric lifetime/minimal fields explicitly unresolved.",
+    "item2": "Read exclusion immediately on expiry/deletion; reads/replay do not restart retention."
+  },
+  "technicalChoicesNotOwnerQuestions": [
+    "current authenticated ownership/device/inventory fences, no grant for erasure",
+    "explicit existing-route version/family selection; no lexical ID conversion",
+    "per-account incarnation/generation and atomic admission/settlement/clear ordering",
+    "both projection and replay-summary exclusion; preserve accounting/dedup/operations",
+    "original-intent operation CAS/readback and stale expected-state refusal after receipt expiry",
+    "acknowledgment/unknown-commit handling, bounded cleanup and fail-closed quarantine",
+    "engineering cap History-producing settlement lease<=480s before enabling this candidate; current generic settings lack universal cap, no current runtime compliance claimed",
+    "600second source-free intent authorization from explicit existing bootstrap prepare; server-issued operation UUID prevents late StartFresh after ABSENT/receipt retirement from becoming fresh execution.",
+    "Unique canonical state across ALL retained HMAC partitions, <=16key candidate bound and single-transaction absence/identity fences; no active-key-rotation state reset or incomplete inventory success."
+  ],
+  "proposedNewPurposeFields": {
+    "currentControl": [
+      "owner HMAC partition",
+      "record type/schema",
+      "controlKeyId bound to retained inventory; exact state key per owned partition",
+      "restore incarnation",
+      "random account incarnation",
+      "History generation",
+      "CAS revision",
+      "holdUntilEpoch"
+    ],
+    "existingReceiptAddition": [
+      "captured restore/account incarnation + generation + controlKeyId at admission",
+      "fixed History disposition only, no deletion timestamp needed"
+    ],
+    "operationReceipt": [
+      "owner HMAC partition",
+      "operation UUID/family",
+      "purpose-separated canonical-intent HMAC",
+      "intent key version and original lease-expiry bound; no full intentLease retained",
+      "committed incarnation+generation",
+      "firstCommitEpoch",
+      "invalidation disposition",
+      "purge status/due bound",
+      "expiresAtEpoch"
+    ],
+    "purgeJob": [
+      "owner partition",
+      "operation binding",
+      "captured prior generation/incarnation upper scope",
+      "exact bounded continuation/checkpoint",
+      "firstCommitEpoch and due deadline",
+      "fixed state; no content/proof/token copy"
+    ]
+  },
+  "candidateBounds": {
+    "governedAssessmentSeconds": 604800,
+    "assessmentClock": "unchanged original settlement; no read/retry renewal",
+    "perResultErasureFlagClock": "existing receipt original expiry only; no extension",
+    "operationReceiptSeconds": 604800,
+    "operationClock": "first logical commit only; late deletion may retain intent metadata after assessment expiry; explicitly new purpose/clock",
+    "maxHistoryProducingLeaseSeconds": 480,
+    "activePurgeSlaSeconds": 86400,
+    "controlAdmissionHoldSeconds": 691680,
+    "controlFormula": "604800 + 480 + 86400 =691680 (8days8min) from NEW admission; existing generic settings do not enforce480.",
+    "controlMutationHold": "max(existing hold, first NEW commit+604800); no read/retry/reconcile renewal. Every new event bound accounted explicitly.",
+    "backupPitrMaximumSeconds": 604800,
+    "backupClock": "backup creation/restore-point age; separate from active record TTL; backup copies may survive active erasure within this separately disclosed cap",
+    "retirement": "Not TTL evidence. Complete inventory/deadline/job proof and actual cleanup required; overdue/missing proof is breach/unqualified, not extension approval or fake completion."
+  },
+  "minimalRecommendedBundle": {
+    "approvalRequired": true,
+    "missingControlCustomerBehavior": "Explicit StartFresh for ABSENT or exact supported logically expired control only; invalidates all old/missing incarnations. Valid live state uses clear; malformed/duplicate/restore-incompatible state stays unavailable pending qualification. No silent recovery.",
+    "restoreCustomerBehavior": "Keep restored resources quarantined and physically purge ALL pre-restore governed assessment/summary copies before traffic; do not recover even undeleted History from the backup. New external restore incarnation plus all writer/replay/client fences; charged accounting/usage restoration still independently qualified. This availability loss is a new product decision, not inferred from existing restore policy.",
+    "alternative": "Do not approve this bundle: keep dependent mutations held. If undeleted backup History must be recovered, separately specify an independently nonrollback erasure journal and its exact retention/purpose; not silently added here.",
+    "scopeOfRequestedApproval": "Listed minimized purposes/fields, exact numeric clocks, explicit StartFresh and discard-pre-restore History behavior"
+  },
+  "notCoveredByExistingPolicy": [
+    "new governed control/operation/disposition purpose and numeric clock",
+    "7day operation intent receipt extending beyond original result lifetime",
+    "backup7day maximum/disclosure for this data family",
+    "explicit StartFresh and discard-all-pre-restore-History availability tradeoff"
+  ],
+  "doNotInfer": [
+    "legacy120dayUSER dedup applies governed controls",
+    "account deletion120day informational receipt authorizes history mutation records",
+    "account-lifetime control retention is approved",
+    "HMAC/linkable metadata is anonymous",
+    "logical expiry or configuredPITR proves physical deletion",
+    "691680seconds is a backup window",
+    "owner approved by silence"
+  ],
+  "recognitionLaterBundle": [
+    {
+      "id": "G1",
+      "status": "HELD",
+      "recommendation": "Typed-complete future logical message/URL/QR checks count regardless risk/payment; exclude noncomplete; deliberate new-ID counts without content fingerprints.",
+      "tradeoff": "Broad consistent activity recognition versus narrower outcome/source policy; same-ID retry still counts once."
+    },
+    {
+      "id": "G2",
+      "status": "HELD",
+      "recommendation": "Reuse existing checks_1/5/20,EN/ES catalog/current progress fields; no per-result award/unlock timestamps.",
+      "tradeoff": "Smaller data/API surface versus separately designed additional achievement metadata. Existing legacy catalog is not approval."
+    }
+  ],
+  "executionAuthorized": false
+}

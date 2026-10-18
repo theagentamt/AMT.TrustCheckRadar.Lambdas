@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "reviewedAtUtc": "2026-10-18T04:32:29.567404+00:00",
+  "outcome": "PASS_FINAL_POLICY_BLOCKED_TECHNICAL_CONTRACT_HANDOFF",
+  "baseCommit": "8663029cb88aa7603936cd5595edac79d1fe1e8e",
+  "reviewedFiles": {
+    "contracts/governed-history-mutation/2.0.0-candidate.1/README.md": "a3bd9f0d260fdfa8e80dfc1e9f58d49955e4f2c0fc2bc6b5708e30c374b8df09",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/policy-decision.json": "1fc264554bbbe6e26ea35fd2915af087e57bea8ddf28503a6370c1b25b483d92",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/schemas.json": "79499aaf06f0ae828e2f4768fbe260c4c9c95c6f687fa0d667612ca8529d6c3d",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/fixtures.json": "8e68b68739594e96404e120b4d6315921a1a97500916bfd96ad6e23157fc3918",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/SHA256SUMS": "66b3da70e6b49b473bb60e434bce36327cdd8b20746f332dcb1f39d5f265a8f4",
+    "contracts/governed-history-mutation/2.0.0-candidate.1/contract.json": "9737188816b44609e412fc6e7a80b39e9deda33416db52de613423f1424ac008",
+    "tests/history_capabilities/test_mutation_policy_contract.py": "0781f4fa053ff080ff3119b73865322e47e1da9ba1f3b6f522f8cae1dc8a9977",
+    "tests/history_capabilities/test_mutation_policy_independent.py": "b4a72e2f0499ce0e9dc250b776c59ec60ce74dcf713d1e0ed37fcddf3fd50f77",
+    "docs/SECUR4ALL-186-mutation-privacy-review.json": "d78a21796c39bb66b5d8beb130f4d5c8dfa5664c1b64e0ec810053004a54c6af",
+    "docs/SECUR4ALL-186-mutation-contract-review.json": "227887b22465946751313445275af3679bd5123b5ffb9dbf331e0af0f1813a71",
+    "docs/SECUR4ALL-186-mutation-contract-validation.json": "294019136bd98ef08b61038307e8a750eaa419508eb0678e23ac42060041e4c9"
+  },
+  "testAudit": {
+    "retainedFinalSuite": {
+      "path": "/tmp/amt-erasure-contract-final.xml",
+      "sha256": "b5f99a51c971c1acac691f0d5f8a2490a6d633965cfc1584f8a266d8e89f9dfb",
+      "uniqueCases": 253,
+      "reportedJUnitTests": 253,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0
+    },
+    "newSpecificationSchemaCases": 54,
+    "independentAdditionalCases": 14,
+    "independentCurrentAfterPurgeProseClarification": {
+      "path": "/tmp/amt-governed-mutation-current-purge-independent.xml",
+      "sha256": "325922f08e9b9c71777e01cb8de4e9715d79b0390540ac6c7af97095d5c06df4",
+      "passed": 114,
+      "addedToTotal": false
+    },
+    "testMeaning": "Local schema/specification models and preserved existing source tests; no mutation/MAC/signature/physicalrestore/service acceptance."
+  },
+  "sourceAudit": {
+    "existingProtectedBytesExact": 724,
+    "productionChanges": 0,
+    "existingWireChanges": 0,
+    "newAdapterOrExecutorOrHandler": false,
+    "newFieldsStoredOrRuntimePermissions": false,
+    "newRoutesOrHeadersImplemented": false
+  },
+  "resolvedFindings": [
+    "R1: actual initial LF framing acceptance for4typedfields; recursive portable CR/LF guards+parentfixtures+independent allnested hostile suffixes now pass.",
+    "R2: StartFresh contract and ownerproposal now consistently allow only ABSENT/exactsupportedlogicallyexpired control; validlive/malformed/duplicate/unqualifiedrestorestate refused."
+  ],
+  "latestTechnicalClarificationsReviewed": [
+    "Complete retained-key control discovery, exactlyone canonical control, retained original controlKeyId through rotation; all-key absent/exactprior+inventory atomiccreation, failclosed boundedaction/byte/key limits.",
+    "Older StartFresh purge job compares exact CURRENT control+canonical candidate and cannot remove valid newer incarnation; randomnonces provide identity not ordering.",
+    "Trusted purge continues after device/session/subscription loss under immutable committed job authority; no rawsubject locator, no upsert or job/receipt/control recreation after cleanup/account deletion.",
+    "Canonical strong bounded CHECK traversal+scope/control fence required for completion; emptyGSI is notabsence.",
+    "Original600s MAClease/serverUUID/expectedstate/restore binding and7dreceipt windows prevent lateABSENT StartFresh replay; retainedkey unavailable remainsunresolved, nevernewUUIDauthority."
+  ],
+  "policyAndScope": [
+    "Newpurpose fields/clocks/7dbackup+discardpre-restoreHistory/StartFresh remain an explicit UNAPPROVED ownerbundle; existingSEC185 numericmarkers/backups gate is accurately pinned.",
+    "691680s candidate depends on future<=480s History-producing lease plusoriginal7dHistory+24hpurge; no current source/runtime compliance inferred. Reads/retries do notrenew.",
+    "No lifetimeUUIDregistry/accountlifetimecontrol/legacy120d inheritance or HMACanonymity claim. Restoreepoch must be externally authoritative outside rollbackset, and all pre-restoreassessmentcopies physicallypurged beforetraffic.",
+    "Logical invalidation commit vs purge completion and currentinspect vs immutableoriginalreceipt remain distinct. Immediate exclusion includes BOTH projection and resultSummary/reconcile/worker/cache paths.",
+    "RecognitionG1G2 remainsheld and not a prerequisite to delete/clear design. Approvedthresholds/no-points/same-ID/clear-reset independence not reopened.",
+    "SEC185/186/224/225/226 stayopen. No implementation, actualdeletion, targetdeployment/readiness, MAC/provider/device/physicalacceptance claimed."
+  ],
+  "historicalReviewDisposition": "Copied initial contract review retains prior README/contract/SHA pins before purge prose clarification; it is historical, not the exact current full-handoff gate. Current11filepins above supersede only those stale snapshot pins. Preliminary privacy review remains policy-basis evidence, not final ownerapproval.",
+  "findings": [],
+  "operations": {
+    "aws": 0,
+    "endpoint": 0,
+    "auth": 0,
+    "device": 0,
+    "runtime": 0,
+    "publication": 0
+  }
+}
