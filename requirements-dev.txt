@@ -4,4 +4,4 @@ dnspython==2.8.0
 moto[cognitoidp,dynamodb]==5.2.3
 phonenumbers==9.0.40
 
-cryptography==50.0.1
+cryptography==50.0.2
