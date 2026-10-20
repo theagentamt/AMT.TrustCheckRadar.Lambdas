@@ -1,0 +1,44 @@
+{
+  "blockingFindings": [],
+  "claimsQualified": {
+    "all11MetadataSimulationsNotEndpointProof": true,
+    "emptyOnlyNoPopulatedDetailMessageFundingAcceptance": true,
+    "exactFiveNamespaceUnionsOtherScopePreserved": true,
+    "freshSupportedVisibleIdentityMatchWithSourceOrderLimit": true,
+    "laterIndependentPolicyRoleHistoryReadbackSeparate": true,
+    "laterThrottlingNotRetroattributedToOriginalClientError": true,
+    "localDatetimeComparisonFixNotActualRoleDrift": true,
+    "oneAcknowledgedPolicyWriteNoReplay": true,
+    "oneHistoryEntryNoRefreshOrDetail": true,
+    "originalHistorical503UniqueCauseNotClaimed": true,
+    "originalPostPolicy15RuntimeSnapshotAgeExplicit": true,
+    "privacyNoRawNamespaceArnIdentityTokenOrLogBody": true,
+    "rollbackConditionalDocumentPreparedNotInvoked": true,
+    "scopedActualEmptyListUiPass": true,
+    "serverCountsSeparateAggregateUnattributed": true,
+    "trackerBlockNoNewIssueDoneOrWaiver": true
+  },
+  "decision": "PASS",
+  "directEvidenceHashReferencesVerified": 13,
+  "documentSha256": {
+    "docs/governed-history-live503-retest.json": "5bbc09a3ee0c5cebbeca773898155e5442beacdb1bc70a1f32a4ca90e4e6c126",
+    "docs/governed-history-live503-retest.md": "8c9fefebe218099e005d58e475d2d2c1ca4a75c75abf1b8231baefaad02a7dfc"
+  },
+  "nestedAndroidEvidenceReferencesVerified": 12,
+  "preservation": {
+    "existingTrackedFilesUnchanged": true,
+    "onlyTwoEvidenceDocumentsAdded": true,
+    "originalSourceAndRuntimeChangesNoneInThisIncrement": true,
+    "originalStopsAndFailureLimitsRetained": true
+  },
+  "remaining": [
+    "Normal reviewed release evidence publication and verified remote integration.",
+    "Tracker destination/payload approval remains blocked; no new issue or Done may be claimed.",
+    "Populated list/detail, message/funding and broader release/physical cases remain unperformed."
+  ],
+  "reviewScope": "EVIDENCE_ONLY_FINAL_TWO_DOCUMENTS_NO_OPERATIONAL_ACTIONS",
+  "reviewedAtUtc": "2026-10-20T02:16:03.821270+00:00",
+  "reviewerAwsNetworkAdbEndpointSecretDataOrMutationCalls": 0,
+  "schemaVersion": 1,
+  "sourceBase": "1a8dfb93f8854fab895363a094b0c6b66e7b13ab"
+}

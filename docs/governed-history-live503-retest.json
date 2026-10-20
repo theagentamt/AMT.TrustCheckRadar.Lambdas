@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "1a8dfb93f8854fab895363a094b0c6b66e7b13ab",
+  "componentOutcome": "SCOPED_HISTORY_EMPTY_LIST_RETEST_PASS",
+  "sourcePreventionPullRequest": "https://github.com/theagentamt/AMT.TrustCheckRadar.Lambdas/pull/156",
+  "ownerApproval": "Sentinel_6d609d06474c819196b65274dae255e2",
+  "priorFailure": {
+    "windowStartUtc": "2026-10-18T14:24:20Z",
+    "windowEndUtc": "2026-10-18T14:25:15Z",
+    "historyIntegrated503Count": 1,
+    "uniqueHistoricalExceptionBranchProven": false,
+    "sufficientBlocker": "Subject admitted by Lambda but omitted from existing constrained History data-read namespaces"
+  },
+  "appliedCorrection": {
+    "acknowledgedAtUtc": "2026-10-20T02:00:01.225007Z",
+    "acknowledgedPolicyWrites": 1,
+    "changedExistingLeadingKeyArrays": 5,
+    "namespaceKinds": [
+      "profile",
+      "device",
+      "deletion",
+      "authority",
+      "history_index"
+    ],
+    "originalOrderedNamespacesPreserved": true,
+    "actionsResourcesProjectionsSelectSecretScopeAndExplicitDeniesPreserved": true,
+    "newRolePolicyResourceWildcardDataWriteOrScan": false,
+    "runtimeCodeConfigurationAliasChanges": 0,
+    "rollbackCapturedNotInvoked": true,
+    "iamPutHasNoCompareAndSwap": true,
+    "coordinatedSoleWriterUsed": true
+  },
+  "qualification": {
+    "applySourceOfflineSafetyCasesPassed": 23,
+    "independentActualMetadataReview": "PASS",
+    "all11OriginalAndSelectedIamReadSimulationsAllowed": true,
+    "missingContextAcross11": 0,
+    "boundaryAndOrganizationDetailsReturned": false,
+    "simulatorNotLiveEnforcementProof": true,
+    "minimumPacedSimulationGapSeconds": 3,
+    "protectedRuntimeBeforeAfterCount": 15,
+    "independentPolicyRoleHistoryReadbackAtUtc": "2026-10-20T02:04:50.036544Z",
+    "historyVersion": "3",
+    "historyCodeSha256": "TN03cp7kk/cbTOJYn9W6V+wl3zGz866UD/xzzLgDJxE=",
+    "historyUnweightedAndFullConfigUnchanged": true,
+    "protectedRuntimeEvidenceStage": "Original after-policy capture completed before2026-10-20T02:00:06Z simulator stop; no later15-runtime snapshot claimed"
+  },
+  "retainedStops": {
+    "originalApplyClientErrorAfterAcknowledgedWritePreserved": true,
+    "originalClientErrorUniqueCauseProven": false,
+    "separateUnpacedSimulationThrottlingObserved": true,
+    "readOnlySerializedDatetimeComparisonCorrectedLocally": true,
+    "noPolicyMutationReplay": true,
+    "originalBlockedIndependentRecordPreserved": true
+  },
+  "androidActual": {
+    "emulator": "emulator-5560",
+    "package": "com.andmorethings.trustcheckradar",
+    "installedApkSha256": "1cd7cbfac5702d14541a3d7085114e8cd2ecd6f63407c237de2d5f0c518fbfbb",
+    "currentSupportedVisibleIdentityComparison": "MATCH",
+    "identityAtUtc": "2026-10-20T02:10:18.454600Z",
+    "identityQualification": "Private HMAC comparison of source-ordered visible Settings field; dedicated row structural sibling proof false; no token/session extraction.",
+    "settingsEntryAtUtc": "2026-10-20T02:10:10.172574Z",
+    "historyEntryCount": 1,
+    "historyEntryIntentAtUtc": "2026-10-20T02:10:45.561820Z",
+    "historyEntryReturnedAtUtc": "2026-10-20T02:10:45.614800Z",
+    "emptyTitleAndMessageAtUtc": "2026-10-20T02:10:57.052054Z",
+    "fixedUiMarkers": {
+      "nav_history": true,
+      "history_title": true,
+      "history_empty_title": true,
+      "history_empty_message": true,
+      "history_loading_message": false,
+      "history_unavailable_title": false,
+      "history_offline_title": false,
+      "history_refresh_failed_title": false,
+      "history_read_failed_message": false,
+      "history_disabled_message": false,
+      "history_session_message": false,
+      "history_binding_message": false,
+      "history_access_message": false,
+      "history_missing_message": false,
+      "history_wait_message": false,
+      "history_saved_description": false,
+      "history_saved_stale_description": false
+    },
+    "manualRefreshDetailAnalysisRegistrationFundingPurchaseAuthOtherEmulatorActions": 0,
+    "noInstallLaunchOrAccountChange": true,
+    "allUiHeld": true
+  },
+  "closedServerCorroboration": {
+    "schemaVersion": 1,
+    "readOnly": true,
+    "endpointInvocations": 0,
+    "mutationOperations": 0,
+    "newLoginStarted": false,
+    "rawLogMessagesRetained": false,
+    "accountEmulatorRequestAttributionAvailable": false,
+    "windows": [
+      {
+        "label": "settings-natural-access",
+        "startUtc": "2026-10-20T02:09:45+00:00",
+        "endUtc": "2026-10-20T02:10:25+00:00",
+        "queryComplete": true,
+        "routeStatusCounts": [
+          {
+            "route": "GET /v1/access",
+            "status": 200,
+            "integrationStatus": 200,
+            "count": 1
+          }
+        ]
+      },
+      {
+        "label": "history-single-retry",
+        "startUtc": "2026-10-20T02:10:20+00:00",
+        "endUtc": "2026-10-20T02:11:10+00:00",
+        "queryComplete": true,
+        "routeStatusCounts": [
+          {
+            "route": "GET /v1/users/analysis-history",
+            "status": 200,
+            "integrationStatus": 200,
+            "count": 1
+          }
+        ]
+      }
+    ],
+    "status": "COMPLETE_AGGREGATE_ONLY",
+    "observedAtUtc": "2026-10-20T02:12:07.161630+00:00",
+    "limits": [
+      "Bounded CloudWatch ingestion snapshot; later ingestion and log coverage limits apply.",
+      "Route/status counts are unattributed; temporal overlap alone does not identify account, emulator or request.",
+      "HTTP200 does not itself prove list contents, selected ownership or UI acceptance; Android actual decoded empty UI is separate evidence.",
+      "No rows is not proof of no request, write or state change.",
+      "No raw logs, request bodies, tokens, credentials, identity remapping, data-table reads, endpoint invocations or mutations."
+    ]
+  },
+  "notProven": [
+    "Populated History list or owned detail; no record was returned",
+    "Message analysis/funding/allowance eligibility or a new entitlement",
+    "Full release/UAT, provider or physical-device acceptance",
+    "Unique actor/emulator/request attribution from aggregate API logs",
+    "Unique historical503 exception branch or complete organization/resource enforcement from IAM simulator"
+  ],
+  "tracker": {
+    "publicationStillBlockedByAutomaticApprovalReview": true,
+    "newIssueCreated": false,
+    "noPublicationRetryThisCheckpoint": true,
+    "noDoneStateOrAcceptanceWaiverClaimed": true
+  },
+  "privacy": {
+    "rawSubjectDeviceFingerprintOpaqueNamespacePolicyOrArnPublished": false,
+    "secretTokenCredentialOrRawLogPublished": false
+  },
+  "evidence": {
+    "original503": {
+      "path": "/tmp/amt-phase-b-history-outcome-20261018T143000742911Z/outcome.json",
+      "sha256": "3e56367da0d85b256c9a3c6d5168cf91fb97f638581f4e8d1dec68b8d7eac074"
+    },
+    "proposal": {
+      "path": "/private/tmp/amt-history503-scope-proposal-20261018/proposal-private.json",
+      "sha256": "40e5277f7ae0aaf84cab6e59cdf085a3ec6e03384a0f31df9699db71abaacc3b"
+    },
+    "applySourceReview": {
+      "path": "/tmp/amt-history503-approved-apply-independent-review.json",
+      "sha256": "c7598688aa4287bdbe4cb9115975e16121c4e1234f35d24bdf094935acff98e8"
+    },
+    "acknowledgedWrite": {
+      "path": "/private/tmp/amt-history503-exact-apply-20261020/put-receipt.json",
+      "sha256": "f9d1b777007d23e0d71d09f0a204bb40bf2c825c98cbc636e873d046c46e61c7"
+    },
+    "initialApplyStop": {
+      "path": "/private/tmp/amt-history503-exact-apply-20261020/stop.json",
+      "sha256": "c0d1c58ff3fe9d2692982d9aa9e0e04b02d86cf91f0cb99b2e1ee53b53edb4f2"
+    },
+    "readOnlySimulation": {
+      "path": "/tmp/amt-history503-readonly-simulation-completion-20261020.json",
+      "sha256": "d7010b1c28ed45ffab2b9cd3d2ad81d6d26a767abbfb7e2ddaaf737320c0ec31"
+    },
+    "effectiveIndependentReview": {
+      "path": "/tmp/amt-history503-effective-final-review-20261020.json",
+      "sha256": "cf5db2859fd19bcb3ee5dba03ca92661301095271ebea1309663168e64ae239f"
+    },
+    "independentLiveReadback": {
+      "path": "/tmp/amt-history503-independent-live-readback-20261020.json",
+      "sha256": "174cd1ecc164a0d60404b47ec8e185d24a8c94ad8635648a237fc204f0e46520"
+    },
+    "androidIdentity": {
+      "path": "/tmp/amt-history-retest-ui-20261020/identity.json",
+      "sha256": "6722f7b866ac55b68d5361c79e925d255b0b4fa440521533f7307cb770936dd3"
+    },
+    "androidTerminal": {
+      "path": "/tmp/amt-history-retest-ui-20261020/terminal-result.json",
+      "sha256": "ee3551c22fc6373f8cd7daf36ed7f645f19f07cacac5d11aab2287a8f95efa71"
+    },
+    "androidOutcome": {
+      "path": "/tmp/amt-history-retest-ui-20261020/outcome-1.json",
+      "sha256": "814002db19af2ec434bdda5dd3606c53fd66bf30a6cdb3ab19a62523a2d82404"
+    },
+    "androidOperatorReview": {
+      "path": "/tmp/amt-history-retest-20261020-review.json",
+      "sha256": "b87a02e1b64c1e748278c1eb6be7113cca4f9d8ed7e1c180089e6c79d94d359b"
+    },
+    "serverCounts": {
+      "path": "/tmp/amt-history-retest-server-20261020/corroboration.json",
+      "sha256": "c3e76d9de6c8a73137ee60fb838dd6a97cadd97c01fe0c1f6ef4076eb9cb7eab"
+    }
+  }
+}
