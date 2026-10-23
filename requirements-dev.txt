@@ -1,6 +1,6 @@
 pytest==9.1.1
 jsonschema==4.26.0
-dnspython==2.8.0
+dnspython==2.9.0
 moto[cognitoidp,dynamodb]==5.2.3
 phonenumbers==9.0.40
 
