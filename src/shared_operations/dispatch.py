@@ -19,9 +19,9 @@ def finished(observer, outcome, reason, request_units):
 class JournalObserver:
     """Server-created per-attempt observer; never constructed from public JSON.
 
-    Runtime construction at the private evaluator remains off until SEC243
-    storage/IAM/configuration qualification. The actual adapters accept this
-    permanent hook without changing their public outcome schema.
+    Runtime construction remains default-off pending operations storage/IAM/
+    configuration qualification. The private Message handler constructs this
+    permanent hook without changing its public outcome schema.
     """
     def __init__(self, publisher, account, proof, execution_token, *, component, ordinal,
                  provider, input_kind=None, clock=time.monotonic):

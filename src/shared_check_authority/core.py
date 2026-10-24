@@ -380,7 +380,7 @@ class Authority:
     def _receipt_public(self, row):
         return ({'urlTransportVersion':row['urlTransportVersion']} if 'urlTransportVersion' in row else {}) | ({'recoveryTransportVersion':row['recoveryTransportVersion']} if 'recoveryTransportVersion' in row else {}) | ({'messageTransportVersion':row['messageTransportVersion']} if 'messageTransportVersion' in row else {}) | {k: row.get(k) for k in ('checkId', 'clientCheckId', 'projectionScope', 'state', 'chargedChecks', 'receiptId', 'processingOutcome', 'resultSummary', 'assessmentEpoch')} | {'expiresAt': row.get('retentionDeadlineEpoch', row.get('expiresAt'))}
 
-    def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True):
+    def admit(self, event, payload, check_id, *, client_check_id=None, count_attempt=True, operations_mode=None):
         account = self._account(event)
         key_id, _, _, _ = self._token_parts(check_id)
         partition = self._partition(account, key_id)
@@ -437,10 +437,15 @@ class Authority:
             'ConditionExpression': 'attribute_not_exists(activeCount) OR activeCount < :cap',
             'ExpressionAttributeValues': {':one': 1, ':cap': self.s.max_inflight}}})
         items.append({'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}})
+        operations_context = None
         if self.operations is not None:
             try:
                 row['operationsGeneration'] = self.operations.generation
                 row['operationsAcceptedAtEpoch'] = accepted_at
+                if operations_mode is not None:
+                    from shared_operations.message_context import mint
+                    operations_context, row['operationsContextDigest'] = mint(self, account, partition, check_id,
+                        token, accepted_at, payload, client_check_id, operations_mode)
                 items.extend(self.operations.admission_actions(partition, check_id, payload, grant['basis'], accepted_at))
             except Exception:
                 raise AuthorityError('OPERATIONS_UNAVAILABLE') from None
@@ -453,7 +458,8 @@ class Authority:
             if inflight and inflight.get('activeCount', 0) >= self.s.max_inflight:
                 raise AuthorityError('RATE_LIMITED') from None
             raise
-        return {'admitted': True, 'executionToken': token, 'receipt': self._receipt_public(row)}
+        return {'admitted': True, 'executionToken': token, 'receipt': self._receipt_public(row)} | (
+            {'operationsContext': operations_context} if operations_context is not None else {})
 
     def reconcile(self, event, check_id, *, client_check_id=None, expected_scope=None, expected_message_version=None, expected_recovery_version=None, expected_url_version=None):
         account = self._account(event)  # no device/subscription gate or write/provider

@@ -131,7 +131,12 @@ class Consumer:
                     state='pending' if row['state']=='ADMITTED' else 'settled'
                     return (202 if state=='pending' else 200),self.envelope(event,client,proof,state,row=row)
                 return 200,self.envelope(event,client,proof,'prepared',row={'expiresAt':self.a._token_parts(proof)[1]})
-            admission=self.a.admit(event,bound_intent,proof,client_check_id=client,count_attempt=False)
+            rules_only=self.version==v3.VERSION and self.allow_candidate3_rules_only and not self.allow_ai
+            operations_kwargs={}
+            if getattr(self.a,'operations',None) is not None:
+                if self.version not in (v2.VERSION,v3.VERSION):raise AuthorityError('SERVICE_NOT_ENABLED')
+                operations_kwargs['operations_mode']='rules_only' if rules_only else ('ai_primary_v1' if self.allow_ai_primary else 'ai')
+            admission=self.a.admit(event,bound_intent,proof,client_check_id=client,count_attempt=False,**operations_kwargs)
             if not admission['admitted']:
                 row=admission['receipt'];state='settled' if row['state']=='SETTLED' else 'pending'
                 return (200 if state=='settled' else 202),self.envelope(event,client,proof,state,row=row)
@@ -140,7 +145,6 @@ class Consumer:
             validator=v3.validate_summary if self.version==v3.VERSION else (v2.validate_summary if self.version==v2.VERSION else validate_summary)
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000),int(self.remaining())-6000)
             try:
-                rules_only=self.version==v3.VERSION and self.allow_candidate3_rules_only and not self.allow_ai
                 window=None if rules_only else (self.budget.reserve() if budget_ms>=1000 else None)
                 if not rules_only and window is None:outcome=limited(client,limits=['BUDGET_LIMIT'])
                 else:
@@ -154,6 +158,7 @@ class Consumer:
                         if not isinstance(cost,CostPolicy):raise ValueError('AI_COST_POLICY_REQUIRED')
                         request['providerCost']=cost.as_dict()
                     if self.allow_ai_primary:request['runtimeMode']='ai_primary_v1'
+                    if operations_kwargs:request['operationsContext']=admission['operationsContext']
                     from shared_operations.dispatch import component_attempt
                     with component_attempt(self.a,account,proof,admission['executionToken'],'message_consumer'):
                         raw_result=self.provider(request)

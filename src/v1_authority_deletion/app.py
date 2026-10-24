@@ -39,7 +39,10 @@ def _worker(context):
     if not re.fullmatch(r'arn:aws:dynamodb:us-east-1:107827791950:table/[A-Za-z0-9_.-]+/stream/[0-9T:.-]+',stream):raise ValueError()
     if stream.split(':table/',1)[1].split('/stream/',1)[0]!=ledger:raise ValueError()
     verified_inventory(resource,authority,keys)
+    from shared_operations.runtime import worker_publisher
+    operations=worker_publisher(resource,authority,now=lambda:int(time.time()))
     bridge=AuthorityDeletion(resource,authority_table=authority,ledger_table=ledger,environment='dev',keyring=keys,
-        receipt_retention_seconds=int(os.environ['DELETION_RECEIPT_RETENTION_SECONDS']),now=lambda:int(time.time()))
+        receipt_retention_seconds=int(os.environ['DELETION_RECEIPT_RETENTION_SECONDS']),now=lambda:int(time.time()),
+        **({'operations':operations} if operations is not None else {}))
     if context is None or not callable(getattr(context,'get_remaining_time_in_millis',None)):raise ValueError()
     return DeletionWorker(bridge,stream_arn=stream,remaining_ms=context.get_remaining_time_in_millis,allowed_subjects=subjects)
