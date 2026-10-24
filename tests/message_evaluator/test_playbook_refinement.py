@@ -24,7 +24,7 @@ MODEL = 'gpt-4.1-mini-2025-04-14'
 def wire(value):
     return json.dumps({'model': MODEL, 'status': 'completed', 'output': [
         {'type': 'message', 'status': 'completed', 'role': 'assistant', 'content': [
-            {'type': 'output_text', 'text': json.dumps(value)}]}]}).encode()
+            {'type': 'output_text', 'text': json.dumps({'result':value})}]}]}).encode()
 
 
 @pytest.fixture(autouse=True)
@@ -93,13 +93,14 @@ def test_spans_are_ordered_per_category_but_may_overlap_across_categories():
 
 def test_historical_refinement_prompt_identity_and_empty_authorization_registries():
     pin = json.loads((PACKET/'profile-identities.json').read_text())
-    assert pin['promptSha256'] == ai_provider.PROMPT_SHA256
-    assert pin['schemaSha256'] == ai_provider.SCHEMA_SHA256
+    assert pin['promptSha256'] != ai_provider.PROMPT_SHA256
+    assert pin['schemaSha256'] != ai_provider.SCHEMA_SHA256
     # Full historical profiles are retained as evidence, not silently repinned
     # when a later privacy source changes. New scopes pin their own profiles.
     for model in pin['controlledProfiles']:
-        assert protocol.profile(model)['promptSha256'] == pin['promptSha256']
-        assert protocol.profile(model)['schemaSha256'] == pin['schemaSha256']
+        assert protocol.profile(model)['promptSha256'] == ai_provider.PROMPT_SHA256
+        assert protocol.profile(model)['schemaSha256'] == ai_provider.SCHEMA_SHA256
+        assert digest(protocol.profile(model)) != pin['controlledProfiles'][model]
     assert ai_provider.PROMPT_SHA256 != pin['baselinePromptSha256']
     assert json.loads((ROOT/'src/message_evaluator/ai_qualifications.json').read_text()) == {}
     assert json.loads((ROOT/'evaluation/message_ai/controlled/approved_experiments.json').read_text()) == {}

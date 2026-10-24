@@ -36,7 +36,7 @@ for c in v['cases']:
   for span in reason['spans']:
    assert end<=span['start']<span['end']<=len(text);end=span['end']
    assert any(x.isalpha() for x in text[span['start']:span['end']])
- wire={'model':'offline-synthetic','status':'completed','output':[{'type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':canonical(proposal)}]}]}
+ wire={'model':'offline-synthetic','status':'completed','output':[{'type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':canonical({'result':proposal})}]}]}
  assert parse(canonical(wire).encode(),text,expected_model='offline-synthetic')==proposal
 assert len(groups)==20
 for pair in groups.values():

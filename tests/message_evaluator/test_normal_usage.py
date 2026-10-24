@@ -20,7 +20,7 @@ def response():
         'usage':{'input_tokens':100,'output_tokens':20,'total_tokens':120,
                  'input_tokens_details':{'cached_tokens':10},'output_tokens_details':{'reasoning_tokens':0}},
         'output':[{'type':'message','status':'completed','role':'assistant','content':[{'type':'output_text',
-            'text':json.dumps({'assessment':'no_warning','context':'clear','reasons':[]})}]}]}
+            'text':json.dumps({'result':{'assessment':'no_warning','context':'clear','reasons':[]}})}]}]}
 
 
 def transport(monkeypatch,raw):

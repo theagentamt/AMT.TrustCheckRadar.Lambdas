@@ -122,7 +122,7 @@ def test_normal_http_adapters_budget_usage_reconcile_and_history(world,monkeypat
             'usage':{'input_tokens':100,'output_tokens':20,'total_tokens':120,
               'input_tokens_details':{'cached_tokens':0},'output_tokens_details':{'reasoning_tokens':0}},
             'output':[{'type':'message','role':'assistant','status':'completed',
-              'content':[{'type':'output_text','text':json.dumps(proposal)}]}]}
+                'content':[{'type':'output_text','text':json.dumps({'result':proposal})}]}]}
         if reply=='refused':wire['output'][0]['content']=[{'type':'refusal','refusal':'not retained'}]
         if reply=='usage_absent':wire.pop('usage')
         return kw['response_parser'](json.dumps(wire).encode(),intent['target']['sanitizedText'])

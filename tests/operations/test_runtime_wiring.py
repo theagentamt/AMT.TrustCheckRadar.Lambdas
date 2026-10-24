@@ -78,7 +78,7 @@ def install_http(monkeypatch, *, uncertain=False):
     monkeypatch.setattr(ai_provider, 'qualified_settings', lambda *_: proposer.Settings(cost.model,
         http.settings().secret_arn, 8000, cost.maxOutputTokens))
     monkeypatch.setattr(ai_provider.CostPolicy, 'from_env', lambda: cost)
-    body = http.response({'assessment':'no_warning','context':'clear','reasons':[]})
+    body = http.response({'result':{'assessment':'no_warning','context':'clear','reasons':[]}})
     body.update(model=cost.model, service_tier='default', usage={'input_tokens':100,'output_tokens':20,'total_tokens':120,
         'input_tokens_details':{'cached_tokens':0}, 'output_tokens_details':{'reasoning_tokens':0}})
     connections = []

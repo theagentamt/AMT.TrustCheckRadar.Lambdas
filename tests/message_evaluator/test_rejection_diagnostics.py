@@ -6,6 +6,10 @@ from shared_message_contract.validation import MessageError
 from .test_normal_usage import COST, INTENT, TEXT, response, transport
 
 
+def payload(value):
+    return json.dumps({'result':value})
+
+
 @pytest.mark.parametrize('change,stage',[
     (lambda r:r.update(status='incomplete'),'ENVELOPE_STATUS'),
     (lambda r:r.update(model='untrusted-secret-like-model'),'MODEL_IDENTITY'),
@@ -14,8 +18,9 @@ from .test_normal_usage import COST, INTENT, TEXT, response, transport
     (lambda r:r['output'][0]['content'][0].update(type='refusal'),'CONTENT_SHAPE'),
     (lambda r:r['output'][0]['content'][0].update(text='untrusted not-json'),'ASSESSMENT_JSON'),
     (lambda r:r['output'][0]['content'][0].update(text=json.dumps({'untrusted-key':'private-content'})),'ASSESSMENT_SHAPE'),
-    (lambda r:r['output'][0]['content'][0].update(text=json.dumps({'assessment':'abstain','context':'clear','reasons':[]})),'CONTEXT_CONSISTENCY'),
-    (lambda r:r['output'][0]['content'][0].update(text=json.dumps({'assessment':'warning','context':'clear','reasons':[]})),'REASON_CONSISTENCY'),
+    (lambda r:r['output'][0]['content'][0].update(text=payload({'assessment':'abstain','context':'clear','reasons':[]})),'CONTEXT_ABSTAIN_WITH_CLEAR'),
+    (lambda r:r['output'][0]['content'][0].update(text=payload({'assessment':'no_warning','context':'unsupported','reasons':[]})),'CONTEXT_NON_ABSTAIN_WITH_NON_CLEAR'),
+    (lambda r:r['output'][0]['content'][0].update(text=payload({'assessment':'warning','context':'clear','reasons':[]})),'REASON_CONSISTENCY'),
 ])
 def test_exact_closed_stage_and_unchanged_public_error(change,stage,capsys):
     raw=response();change(raw);observed=[]
@@ -35,14 +40,14 @@ def test_bounds_and_duplicate_json_are_classified_without_values(raw,stage):
 
 def test_normal_logging_retains_usage_but_no_rejected_content(monkeypatch,capsys):
     raw=response()
-    raw['output'][0]['content'][0]['text']=json.dumps({'assessment':'abstain','context':'clear','reasons':[]})
+    raw['output'][0]['content'][0]['text']=payload({'assessment':'abstain','context':'clear','reasons':[]})
     raw['secret-like-extra']='should-never-enter-logs'
     calls=transport(monkeypatch,raw)
     with pytest.raises(MessageError):ai.assess(INTENT,1000,cost_policy=COST)
     output=capsys.readouterr().out
     records=[json.loads(row) for row in output.splitlines()]
     assert len(calls)==1 and [r['event'] for r in records]==['message_ai_usage','message_ai_rejection']
-    assert records[1]=={'event':'message_ai_rejection','stage':'CONTEXT_CONSISTENCY'}
+    assert records[1]=={'event':'message_ai_rejection','stage':'CONTEXT_ABSTAIN_WITH_CLEAR'}
     assert TEXT not in output and 'should-never-enter-logs' not in output and 'assessment' not in output
 
 
@@ -68,7 +73,7 @@ def test_reporter_never_echoes_untrusted_stage(stage,capsys):
 ])
 def test_reason_and_span_stages_do_not_expose_values(reason,text,stage):
     raw=response()
-    raw['output'][0]['content'][0]['text']=json.dumps({'assessment':'warning','context':'clear','reasons':[reason]})
+    raw['output'][0]['content'][0]['text']=payload({'assessment':'warning','context':'clear','reasons':[reason]})
     stages=[]
     with pytest.raises(MessageError):ai.parse(json.dumps(raw).encode(),text,on_rejection=stages.append)
     assert stages==[stage]
