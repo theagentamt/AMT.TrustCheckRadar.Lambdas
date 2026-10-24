@@ -22,7 +22,7 @@ def output(assessment='warning',context='clear'):
 
 def wire(value,model='qualified-model-2026-01-01'):
     return json.dumps({'model':model,'status':'completed','output':[{'type':'message','role':'assistant','status':'completed',
-        'content':[{'type':'output_text','text':json.dumps(value)}]}]}).encode()
+        'content':[{'type':'output_text','text':json.dumps({'result':value})}]}]}).encode()
 
 
 @pytest.mark.parametrize('assessment,verdict',[('warning','suspicious'),('no_warning','no_known_threat_detected')])
@@ -160,7 +160,8 @@ def test_qualification_record_requires_all_frozen_bindings(monkeypatch,tmp_path,
         'MESSAGE_PROPOSER_TIMEOUT_MS':'1000','MESSAGE_PROPOSER_MAX_OUTPUT_TOKENS':'512'}
     for key,value in values.items():monkeypatch.setenv(key,value)
     assert ai_provider.qualified_settings().model==model  # Binding mechanics only; not empirical qualification.
-    record[field]='0'*64 if field.endswith('Sha256') else 'mismatched'
+    historical=json.loads((root/'evaluation/message_ai/playbook_refinement/profile-identities.json').read_text())
+    record[field]=historical[field] if field in ('promptSha256','schemaSha256') else ('0'*64 if field.endswith('Sha256') else 'mismatched')
     path.write_text(json.dumps({'test-only':record}))
     with pytest.raises(MessageError):ai_provider.qualified_settings()
 

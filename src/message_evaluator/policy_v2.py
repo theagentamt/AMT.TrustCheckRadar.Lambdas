@@ -78,7 +78,7 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules
         # Validate again at the policy boundary even if a provider adapter claims
         # it already parsed the response. No callback controls a public verdict.
         wire={'status':'completed','output':[{'type':'message','status':'completed','role':'assistant',
-              'content':[{'type':'output_text','text':json.dumps(proposal)}]}]}
+              'content':[{'type':'output_text','text':json.dumps({'result':proposal})}]}]}
         proposal=parse(json.dumps(wire).encode(),text)
         if clock()>=deadline:raise MessageError('BUDGET_LIMIT')
         if proposal['assessment']=='abstain':

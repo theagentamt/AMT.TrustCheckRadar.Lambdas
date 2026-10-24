@@ -140,7 +140,7 @@ def test_published_supplement_checksums_and_current_evaluation_source_pins():
     historical_path=DIR/'evaluation-profile-identities.json'
     historical=json.loads(historical_path.read_text())
     pins=json.loads((DIR/'evaluation-source-current.json').read_text())
-    assert pins['sourceBaseCommit']=='5e4390ae4024e24e72f9235c6026ac98d80d7f0a'
+    assert pins['sourceBaseCommit']=='05e676149c4081088c0f82821be72e4f46c0da98'
     assert pins['sourceState']=='permanent_ai_candidate_not_qualified'
     assert 'sourceCommit' not in pins
     assert pins['historicalPublishedRecord']=={

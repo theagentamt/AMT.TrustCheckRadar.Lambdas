@@ -42,7 +42,7 @@ def simulated_wire(simulation, model, text):
     if kind == 'invalid_span':
         value = {'assessment': 'warning', 'context': 'clear', 'reasons': [
             {'code': 'AI_PRETEXT', 'spans': [{'start': 0, 'end': len(text) + 1}]}]}
-    content = [{'type': 'output_text', 'text': canonical(value)}]
+    content = [{'type': 'output_text', 'text': canonical({'result':value})}]
     wire = {'model': model, 'status': 'completed', 'output': [
         {'type': 'message', 'role': 'assistant', 'status': 'completed', 'content': content}]}
     if kind == 'malformed':
