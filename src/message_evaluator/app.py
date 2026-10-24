@@ -1,7 +1,12 @@
-"""IAM-only evaluator; optional gated proposer, no message logs or ledger writes."""
+"""IAM-only evaluator; gated provider and optional operations journal.
+
+No message logs, allowance mutations or authority HMAC secret loading.
+"""
 import json
 import os
 import re
+import time
+from contextlib import nullcontext
 from shared_message_contract import POLICY, APPROVAL_SHA
 from shared_message_contract.validation import MessageError, require
 from .policy import evaluate
@@ -52,7 +57,11 @@ def lambda_handler(event,context):
     if primary and (os.environ.get('MESSAGE_AI_PRIMARY_ENABLED')!='true' or os.environ.get('MESSAGE_AI_QUALIFIED')!='true'):enabled=False
     if not enabled:return {'enabled':False}
     try:
+        from shared_operations.runtime import enabled as operations_enabled, message_execution
+        operations = operations_enabled()
+        require(not operations or is_v2 or is_v3)
         expected={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'}|({'runtimeMode'} if rules_only or primary else set())|({'providerCost'} if (is_v2 or is_v3) and not rules_only else set())
+        if operations:expected.add('operationsContext')
         require(type(event) is dict and set(event)==expected)
         if rules_only:require(event['runtimeMode']=='rules_only')
         require(type(event['schemaVersion']) is int and event['schemaVersion']==(3 if is_v3 else (2 if is_v2 else 1)) and event['policyVersion']==(v2.POLICY if is_v2 or is_v3 else POLICY))
@@ -61,19 +70,23 @@ def lambda_handler(event,context):
         require(context is not None and callable(getattr(context,'get_remaining_time_in_millis',None)))
         budget=min(event['executionBudgetMs'],context.get_remaining_time_in_millis()-1000)
         require(budget>0)
+        deadline=time.monotonic()+budget/1000
         if is_v2 or is_v3:
             from .policy_v2 import evaluate as evaluate_ai
             if is_v3:
                 from .policy_v3 import evaluate as evaluate_ai
-            if rules_only:
-                return evaluate_ai(event['checkId'],event['intent'],lookup=None,budget_ms=budget,ai=None,rules_only=True)
-            from .ai_provider import assess
-            from shared_message_contract.provider_cost import CostPolicy
-            cost=CostPolicy.from_env()
-            require(CostPolicy.from_dict(event['providerCost'])==cost)
-            return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,
-                ai=lambda intent,remaining:assess(intent,remaining,cost_policy=cost),
-                **({'ai_primary':True} if primary else {}))
+            with message_execution(event) if operations else nullcontext() as observer:
+                budget=min(budget,int((deadline-time.monotonic())*1000),context.get_remaining_time_in_millis()-1000)
+                require(budget>0)
+                if rules_only:
+                    return evaluate_ai(event['checkId'],event['intent'],lookup=None,budget_ms=budget,ai=None,rules_only=True)
+                from .ai_provider import assess
+                from shared_message_contract.provider_cost import CostPolicy
+                cost=CostPolicy.from_env()
+                require(CostPolicy.from_dict(event['providerCost'])==cost)
+                return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,
+                    ai=lambda intent,remaining:assess(intent,remaining,cost_policy=cost,**({'operations_observer':observer} if observer is not None else {})),
+                    **({'ai_primary':True} if primary else {}))
         proposer = None
         if os.environ.get('MESSAGE_PROPOSER_ENABLED') == 'true':
             # The old optional candidate.1 paid prompt has no approved monetary

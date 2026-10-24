@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "status": "SOURCE_VALIDATED_NOT_ACTIVATED",
+  "baseCommit": "234c15c737daca15a226bde727adf23d643f0a4c",
+  "scope": "Permanent Message private execution journal and matching existing cleanup handler wiring",
+  "validation": {
+    "aggregateSuites": 57,
+    "reportedCases": 4373,
+    "regularCases": 4094,
+    "subtests": 279,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "operationsCases": 130,
+    "newWiringCases": 34,
+    "newPackageCases": 1,
+    "externalNetworkBlocked": true,
+    "awsConfiguration": "synthetic credentials and /dev/null profile paths",
+    "compileall": "PASS",
+    "shellcheck": "PASS",
+    "pipCheck": "PASS",
+    "gitDiffCheck": "PASS",
+    "testStatusSha256": "19f1de51161be64d50870b26ed3c0c4a18cebfcd568d3a500664c842c7930947"
+  },
+  "sourcePins": [
+    {
+      "path": "docs/sec237-message-runtime-wiring.md",
+      "sha256": "8ce2fabb5fc73a5c12b32b6cf0a4e9170d72c3989f81531148e32369c0148464"
+    },
+    {
+      "path": "scripts/build_lambda_zip.sh",
+      "sha256": "b3a659e9c37bc48b551bb923beb7a51eae2e393da615e9c344956887cefac28c"
+    },
+    {
+      "path": "src/message_consumer/service.py",
+      "sha256": "ade6425581eb9933c64d104248f7b700caaaae72dcad79bdad3aaf4f9fc6f702"
+    },
+    {
+      "path": "src/message_evaluator/app.py",
+      "sha256": "301ba38ee7f5b59278974f8e722d380b732506d0898268ea8c3e7c340fda5d6f"
+    },
+    {
+      "path": "src/shared_check_authority/core.py",
+      "sha256": "b07a5f95021a4b7635ae4e5f91aa3cdffbe17275bc587a0021ca85e21dc81f8c"
+    },
+    {
+      "path": "src/shared_operations/dispatch.py",
+      "sha256": "b0bbcd9519967c6563ef5af218fc55dfff04f12cf41dd28a85fb10483a52010b"
+    },
+    {
+      "path": "src/shared_operations/message_context.py",
+      "sha256": "ba2af79ebe8c8152713bd20f5fb3e5976fa1b549423c8654668bba3b053fa43b"
+    },
+    {
+      "path": "src/shared_operations/runtime.py",
+      "sha256": "1d3e68ae9c8450fa5b1088e4a912e429abdf3761b0b2f704ed4f6f4d898d8e50"
+    },
+    {
+      "path": "src/url_lease_recovery/app.py",
+      "sha256": "a27161d98b2efc975b6f5206bed8688924c8fa3c236892471effc53f7bd1568f"
+    },
+    {
+      "path": "src/v1_authority_deletion/app.py",
+      "sha256": "7ed322339fd7c6a358fc3be322c2682a6fe2bc574fd860de96596cfd1bd9a45d"
+    },
+    {
+      "path": "tests/operations/test_packaging.py",
+      "sha256": "7221e00393c03a5d96d7e9184cb8189136f4cf5a4fcb676d834f7dcc69c3bf30"
+    },
+    {
+      "path": "tests/operations/test_runtime_wiring.py",
+      "sha256": "02b2d692ca55e667318912d5da6a3eaf2360c0e9236c7e7244b1af2a92f6da8e"
+    }
+  ],
+  "preservedBoundaries": {
+    "publicCandidate3Schema3": true,
+    "defaultOperationsEnabled": false,
+    "dailyReportingReady": false,
+    "providerCoverage": {
+      "openai": "unavailable_until_runtime_qualified",
+      "google_web_risk": "unavailable"
+    },
+    "modelQualificationAccepted": false,
+    "providerCalls": 0,
+    "secretReads": 0,
+    "cloudRuntimeMutations": 0,
+    "realDeletionExecution": 0,
+    "externalReportDelivery": 0,
+    "paidTrialOrComplimentaryChanges": 0
+  },
+  "review": {
+    "required": "two independent exact-source reviews; receipts retained with integration handoff",
+    "blockingFindingsRemaining": 0
+  },
+  "failedEvidence": [
+    {
+      "stage": "initial wiring regressions",
+      "result": "four failures corrected before frozen run",
+      "details": "Three test HTTP settings exceeded the existing timeout bound; cleanup expectation assumed receipt and operations deadlines differed. Assertions now use valid settings and explicit original later source deadline."
+    },
+    {
+      "stage": "new projected inventory negative",
+      "result": "fixture corrected",
+      "details": "An unrelated unprojected field is outside a metadata-only read assertion. The negative now changes actual coverage to UNQUALIFIED; no production predicate was weakened."
+    },
+    {
+      "stage": "overlapping local packaging invocation",
+      "result": "one return-code-1 failure retained; sequential frozen aggregate passed",
+      "details": "Packaging uses a shared per-function build directory. Two local runs overlapped; underlying subprocess stderr was not retained, so exact failure cause is unconfirmed."
+    }
+  ],
+  "limits": [
+    "Source tests are isolated transactions and in-memory HTTP, not deployed-provider acceptance.",
+    "Google provider observer, report orchestration and SEC243 delivery are outside this increment.",
+    "Storage/IAM/backup/restore/runtime qualification, accepted model qualification and activation remain gated.",
+    "Source publication and immutable Dev artifact publication are separate from runtime deployment."
+  ]
+}

@@ -49,17 +49,25 @@ def run_passes(resource, table, context, *, now):
     """Independent durable cursors and time budgets prevent one queue starving the other."""
     from shared_check_authority.recovery import Recovery
     from shared_check_authority.expiry import Expiry
+    from shared_operations.runtime import worker_publisher
     if context is None or not callable(getattr(context, 'get_remaining_time_in_millis', None)):
         raise ValueError()
     remaining = context.get_remaining_time_in_millis
     initial = remaining()
-    if type(initial) is not int or initial < 8000:
+    operations = worker_publisher(resource, table, now=now)
+    if type(initial) is not int or initial < (12000 if operations is not None else 8000):
         raise ValueError()
     counts = {'examined': 0, 'recovered': 0, 'expiredDeleted': 0, 'failed': 0, 'pages': 0,
               'leaseExamined': 0, 'expiryExamined': 0, 'oldestOverdueSeconds': 0,
               'leaseOldestOverdueSeconds': 0, 'expiryOldestOverdueSeconds': 0}
-    passes = [('LEASE_SWEEP_CURSOR', 'V1_PENDING', Recovery(resource, table, now=now), max(2000, initial // 2)),
-              ('EXPIRY_SWEEP_CURSOR', 'V1_EXPIRING', Expiry(resource, table, now=now), 1500)]
+    extra = {'operations': operations} if operations is not None else {}
+    operations_reserve = max(3000, initial // 4) if operations is not None else 0
+    expiry = Expiry(resource, table, now=now, **extra)
+    passes = [('LEASE_SWEEP_CURSOR', 'V1_PENDING', Recovery(resource, table, now=now, **extra), max(2000, initial // 2)),
+              ('EXPIRY_SWEEP_CURSOR', 'V1_EXPIRING', expiry, 1500 + operations_reserve)]
+    if operations is not None:
+        counts.update(operationsExamined=0, operationsDeleted=0, operationsOldestOverdueSeconds=0)
+        passes.append(('OPERATIONS_SWEEP_CURSOR', 'V1_OPERATIONS_EXPIRING', expiry, 1500))
     for sort_key, index, worker, reserve in passes:
         if remaining() <= reserve + 3000:
             continue
@@ -68,7 +76,8 @@ def run_passes(resource, table, context, *, now):
             current = resource.Table(table).get_item(Key=key, ConsistentRead=True).get('Item', {})
             overdue = _oldest_overdue(resource, table, index, now())
             # Leave a bounded transaction timeout to checkpoint the last attempted row.
-            result = worker.sweep(cursor=current.get('cursor'), page_size=5, max_pages=2,
+            sweep = worker.sweep_operations if index == 'V1_OPERATIONS_EXPIRING' else worker.sweep
+            result = sweep(cursor=current.get('cursor'), page_size=5, max_pages=2,
                                   can_continue=lambda: remaining() > reserve + 3000)
             _save_cursor(resource, table, key, current, result['cursor'])
         except Exception:
@@ -81,10 +90,14 @@ def run_passes(resource, table, context, *, now):
             counts['recovered'] = result['recovered']
             counts['leaseExamined'] = result['examined']
             counts['leaseOldestOverdueSeconds'] = overdue
-        else:
+        elif index == 'V1_EXPIRING':
             counts['expiredDeleted'] = result['deleted']
             counts['expiryExamined'] = result['examined']
             counts['expiryOldestOverdueSeconds'] = overdue
+        else:
+            counts['operationsExamined'] = result['examined']
+            counts['operationsDeleted'] = result['deleted']
+            counts['operationsOldestOverdueSeconds'] = overdue
         counts['oldestOverdueSeconds'] = max(counts['oldestOverdueSeconds'], overdue)
     return counts
 

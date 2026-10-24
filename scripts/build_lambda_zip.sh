@@ -247,6 +247,10 @@ build_function() {
     cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     if [[ "$function_name" == "message_evaluator" ]]; then
       cp -R "$ROOT_DIR/contracts/message-consumer/1.0.0-candidate.2" "$build_dir/message_evaluator/ai_contract"
+      # The default-off operations receiver uses the existing transaction and
+      # inventory primitives, never an evaluator-side HMAC secret loader.
+      cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
+      cp -R "$ROOT_DIR/src/shared_history" "$build_dir/shared_history"
     fi
     if [[ "$function_name" == "message_consumer" ]]; then
       cp -R "$ROOT_DIR/src/shared_check_authority" "$build_dir/shared_check_authority"
