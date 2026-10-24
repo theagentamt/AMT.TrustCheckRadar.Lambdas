@@ -40,8 +40,16 @@ def simulated_wire(simulation, model, text):
     value = json.loads(canonical(value))
     kind = simulation['kind']
     if kind == 'invalid_span':
+        # Preserve this deliberate invalid-evidence case after the private wire
+        # revision. Do not slice/clamp its historical out-of-bounds offsets.
         value = {'assessment': 'warning', 'context': 'clear', 'reasons': [
-            {'code': 'AI_PRETEXT', 'spans': [{'start': 0, 'end': len(text) + 1}]}]}
+            {'code': 'AI_PRETEXT', 'quotes': [text + '!']}]}
+    else:
+        # Historical corpus spans remain normalized validation fixtures. The
+        # synthetic provider response uses explicit unique whole-source quotes;
+        # this is structural coverage, never evidence of model quality.
+        ai_provider.validate_assessment(value,text)
+        value = {**value,'reasons':[{'code':r['code'],'quotes':[text]} for r in value['reasons']]}
     content = [{'type': 'output_text', 'text': canonical({'result':value})}]
     wire = {'model': model, 'status': 'completed', 'output': [
         {'type': 'message', 'role': 'assistant', 'status': 'completed', 'content': content}]}

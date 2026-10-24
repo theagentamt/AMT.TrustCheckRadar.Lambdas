@@ -60,7 +60,8 @@ def setup(tmp_path, monkeypatch, **changes):
 
 def response(model=MODEL, input_tokens=1000, output_tokens=100, *, tier='default', assessment='warning'):
     proposal = {'assessment': assessment, 'context': 'clear',
-        'reasons': [{'code': 'AI_PRETEXT', 'spans': [{'start': 0, 'end': 4}]}] if assessment == 'warning' else []}
+        'reasons': [{'code': 'AI_PRETEXT', 'quotes': [packet()['cases'][0]['intent']['target']['sanitizedText']]}]
+            if assessment == 'warning' else []}
     value = {'model': model, 'service_tier': tier, 'status': 'completed', 'usage': {
         'input_tokens': input_tokens, 'input_tokens_details': {'cached_tokens': 0},
         'output_tokens': output_tokens, 'output_tokens_details': {'reasoning_tokens': 0},

@@ -70,7 +70,7 @@ def test_model_abstention_is_inconclusive_without_finding(context):
 ])
 def test_untrusted_ai_contradictions_and_malformed_output_fail_closed(mutation):
     value=output();mutation(value)
-    with pytest.raises(MessageError):ai_provider.parse(wire(value),intent()['target']['sanitizedText'])
+    with pytest.raises(MessageError):ai_provider.validate_assessment(value,intent()['target']['sanitizedText'])
     actual=evaluate('check',intent(),ai=lambda *args:value)
     assert actual['processingOutcome']=='unavailable' and actual['verdict']=='unknown'
     assert 'PROVIDER_RESPONSE_INVALID' in actual['limitationCodes']
@@ -79,7 +79,7 @@ def test_untrusted_ai_contradictions_and_malformed_output_fail_closed(mutation):
 def test_model_snapshot_must_match_response_and_no_warning_cannot_contain_reasons():
     with pytest.raises(MessageError):ai_provider.parse(wire(output()),'text',expected_model='different-model-2026-01-01')
     value=output();value['assessment']='no_warning'
-    with pytest.raises(MessageError):ai_provider.parse(wire(value),'text')
+    with pytest.raises(MessageError):ai_provider.validate_assessment(value,'text')
 
 
 def test_original_model_instructions_and_output_remain_separate_data():

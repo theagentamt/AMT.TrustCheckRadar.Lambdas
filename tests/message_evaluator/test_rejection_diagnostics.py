@@ -68,12 +68,11 @@ def test_reporter_never_echoes_untrusted_stage(stage,capsys):
 
 @pytest.mark.parametrize('reason,text,stage',[
     ({'code':'untrusted-code','spans':[{'start':0,'end':4}]},TEXT,'REASON_SHAPE'),
-    ({'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':9000}]},TEXT,'SPAN_SHAPE'),
+    ({'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':9000}]},TEXT,'SPAN_END_OUT_OF_BOUNDS'),
     ({'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':3}]},'123','SPAN_CONTENT'),
 ])
 def test_reason_and_span_stages_do_not_expose_values(reason,text,stage):
-    raw=response()
-    raw['output'][0]['content'][0]['text']=payload({'assessment':'warning','context':'clear','reasons':[reason]})
     stages=[]
-    with pytest.raises(MessageError):ai.parse(json.dumps(raw).encode(),text,on_rejection=stages.append)
+    with pytest.raises(MessageError):ai.validate_assessment(
+        {'assessment':'warning','context':'clear','reasons':[reason]},text,on_rejection=stages.append)
     assert stages==[stage]

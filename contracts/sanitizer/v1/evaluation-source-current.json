@@ -1,11 +1,11 @@
 {
-  "reason": "provider_output_consistency",
-  "promptSha256": "c2d0c69132483c2ba462fd530f0a85aff32ca02ee7154f904cb980c1375a397d",
-  "schemaSha256": "e65081e9ddd8037a369c9579acb06b4e960f6091e2496a3a7203a43dbc2ffc59",
+  "reason": "permanent_exact_evidence_grounding",
+  "promptSha256": "1e5a9ce98df0d9cc1c4b74a0847dff01641a614ef7a50683b972ba757d0cb5d9",
+  "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "5b1b5429be1e920dd35c686e93cd2a6dffd24c814027cf54cea38744e0716c13",
-    "gpt-5.4-nano-2026-03-17": "8a552323b48e8829510e6fb3191d7e77ffd8bc973350abf5aa7c99462564c0b5",
-    "gpt-5.4-mini-2026-03-17": "07c49c5307f3effd45feb83277b42f5b636326c8a7908a7cf1fe7d4f78fb5e9d"
+    "gpt-4.1-mini-2025-04-14": "fdb234235a79e19279d036b3f11d206c38ae1b60e467e87eecb7e3bab3d161af",
+    "gpt-5.4-nano-2026-03-17": "26550e6f78c30c38f5b697b662aa53c3af88449a463c96121476bcc043bf36a6",
+    "gpt-5.4-mini-2026-03-17": "f46bb0c114c35e489c22063954c3948bd0dea09617a93a164584b84ddec0770c"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",
@@ -14,6 +14,6 @@
   },
   "qualification": "none",
   "paidExecutionAuthorized": false,
-  "sourceBaseCommit": "05e676149c4081088c0f82821be72e4f46c0da98",
+  "sourceBaseCommit": "0abf84bdf786f060565a5c25a52f22757046a3d2",
   "sourceState": "permanent_ai_candidate_not_qualified"
 }

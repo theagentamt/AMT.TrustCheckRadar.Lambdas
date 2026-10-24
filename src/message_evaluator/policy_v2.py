@@ -43,7 +43,6 @@ def result(check, *, rules=(), limits=(), evidence=(), ai_status='not_assessed',
 
 
 def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules_only=False,ai_primary=False):
-    import json
     import re
     import time
     from shared_message_contract.validation import MessageError
@@ -73,13 +72,11 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules
     if ai is None or remaining<250:
         return result(check,rules=rules if ai_primary else (),limits=list(limits)+['PROVIDER_UNAVAILABLE' if ai is None else 'BUDGET_LIMIT'],evidence=evidence,ai_status='unavailable')
     try:
-        from .ai_provider import parse
+        from .ai_provider import validate_assessment
         proposal=ai(intent,remaining)
         # Validate again at the policy boundary even if a provider adapter claims
         # it already parsed the response. No callback controls a public verdict.
-        wire={'status':'completed','output':[{'type':'message','status':'completed','role':'assistant',
-              'content':[{'type':'output_text','text':json.dumps({'result':proposal})}]}]}
-        proposal=parse(json.dumps(wire).encode(),text)
+        proposal=validate_assessment(proposal,text)
         if clock()>=deadline:raise MessageError('BUDGET_LIMIT')
         if proposal['assessment']=='abstain':
             extra='UNSUPPORTED_CONTENT' if proposal['context'] in ('unsupported','suspected_injection') else 'INSUFFICIENT_EVIDENCE'
