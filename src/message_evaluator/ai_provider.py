@@ -116,43 +116,72 @@ def request_body(intent,settings):
     return body
 
 
-def parse(raw,text,expected_model=None):
+REJECTION_STAGES=frozenset({'RESPONSE_BOUNDS','ENVELOPE_JSON','ENVELOPE_STATUS','MODEL_IDENTITY',
+    'OUTPUT_SHAPE','MESSAGE_SHAPE','CONTENT_SHAPE','ASSESSMENT_JSON','ASSESSMENT_SHAPE',
+    'CONTEXT_CONSISTENCY','REASON_CONSISTENCY','REASON_SHAPE','SPAN_SHAPE','SPAN_CONTENT','PARSER_INTERNAL'})
+
+
+def parse(raw,text,expected_model=None,*,on_rejection=None):
+    stage='RESPONSE_BOUNDS'
     try:
         require(type(raw) is bytes and 1<=len(raw)<=proposer.MAX_RESPONSE_BYTES,'PROVIDER_RESPONSE_INVALID')
+        stage='ENVELOPE_JSON'
         envelope=json.loads(raw,object_pairs_hook=unique_pairs)
+        stage='ENVELOPE_STATUS'
         require(type(envelope) is dict and envelope.get('status')=='completed' and envelope.get('error') is None
                 and envelope.get('incomplete_details') is None,'PROVIDER_RESPONSE_INVALID')
+        stage='MODEL_IDENTITY'
         require(expected_model is None or envelope.get('model')==expected_model,'PROVIDER_RESPONSE_INVALID')
+        stage='OUTPUT_SHAPE'
         output=envelope.get('output')
         require(type(output) is list and len(output)==1,'PROVIDER_RESPONSE_INVALID')
+        stage='MESSAGE_SHAPE'
         message=output[0]
         require(type(message) is dict and message.get('type')=='message' and message.get('role')=='assistant'
                 and message.get('status')=='completed','PROVIDER_RESPONSE_INVALID')
+        stage='CONTENT_SHAPE'
         content=message.get('content')
         require(type(content) is list and len(content)==1 and type(content[0]) is dict
                 and content[0].get('type')=='output_text' and type(content[0].get('text')) is str,'PROVIDER_RESPONSE_INVALID')
+        stage='ASSESSMENT_JSON'
         value=json.loads(content[0]['text'],object_pairs_hook=unique_pairs)
+        stage='ASSESSMENT_SHAPE'
         require(type(value) is dict and set(value)=={'assessment','context','reasons'}
                 and value['assessment'] in ('warning','no_warning','abstain')
                 and value['context'] in ('clear','insufficient','unsupported','suspected_injection','contradictory')
                 and type(value['reasons']) is list and len(value['reasons'])<=5,'PROVIDER_RESPONSE_INVALID')
+        stage='CONTEXT_CONSISTENCY'
         require((value['assessment']=='abstain')==(value['context']!='clear'),'PROVIDER_RESPONSE_INVALID')
+        stage='REASON_CONSISTENCY'
         require(bool(value['reasons'])==(value['assessment']=='warning'),'PROVIDER_RESPONSE_INVALID')
         seen=set()
         for reason in value['reasons']:
+            stage='REASON_SHAPE'
             require(type(reason) is dict and set(reason)=={'code','spans'} and type(reason['code']) is str
                     and reason['code'] in AI_REASONS and reason['code'] not in seen
                     and type(reason['spans']) is list and 1<=len(reason['spans'])<=3,'PROVIDER_RESPONSE_INVALID')
             seen.add(reason['code']);end=0
             for span in reason['spans']:
+                stage='SPAN_SHAPE'
                 require(type(span) is dict and set(span)=={'start','end'} and type(span['start']) is int
                         and type(span['end']) is int and end<=span['start']<span['end']<=len(text),'PROVIDER_RESPONSE_INVALID')
                 end=span['end'];selected=TOKEN.sub('',text[span['start']:span['end']])
+                stage='SPAN_CONTENT'
                 require(any(c.isalpha() for c in selected),'PROVIDER_RESPONSE_INVALID')
         # Spans stay transient; public output uses only closed reason categories.
         return value
     except Exception:
+        if on_rejection is not None:
+            try:
+                on_rejection(stage if stage in REJECTION_STAGES else 'PARSER_INTERNAL')
+            except Exception:
+                pass  # Diagnostics must not alter rejection/accounting behavior.
         raise MessageError('PROVIDER_RESPONSE_INVALID') from None
+
+
+def report_rejection(stage):
+    print(json.dumps({'event':'message_ai_rejection',
+        'stage':stage if type(stage) is str and stage in REJECTION_STAGES else 'PARSER_INTERNAL'},separators=(',',':')))
 
 
 def assess(intent,budget_ms,*,cost_policy=None):
@@ -169,7 +198,7 @@ def assess(intent,budget_ms,*,cost_policy=None):
         print(json.dumps({'event':'message_ai_usage',**report},separators=(',',':')))
         reported=True
         require(report['usage'] is not None,'PROVIDER_RESPONSE_INVALID')
-        return parse(raw,text,expected_model=settings.model)
+        return parse(raw,text,expected_model=settings.model,on_rejection=report_rejection)
     try:
         return proposer.propose(intent,settings,budget_ms,body_builder=request_body,response_parser=response_parser)
     finally:
