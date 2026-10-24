@@ -121,8 +121,10 @@ class Consumer:
                 window=self.budget.reserve() if budget_ms>=1000 else None
                 if window is None:result=limited_outcome(client,'unavailable','BUDGET_LIMIT')
                 else:
-                    raw_result=self.provider({'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'playbookVersion':PLAYBOOK,'intent':intent,'executionBudgetMs':budget_ms})
-                    result=validate_outcome(raw_result,client)
+                    from shared_operations.dispatch import component_attempt
+                    with component_attempt(self.a,account,proof,admission['executionToken'],'recovery_consumer'):
+                        raw_result=self.provider({'schemaVersion':1,'checkId':client,'policyVersion':POLICY,'playbookVersion':PLAYBOOK,'intent':intent,'executionBudgetMs':budget_ms})
+                        result=validate_outcome(raw_result,client)
             except Exception:
                 result=limited_outcome(client,'unavailable','PROVIDER_UNAVAILABLE')
             if window is not None and result['reasonCode'] in {'PROVIDER_UNAVAILABLE','PROVIDER_RESPONSE_INVALID'}:

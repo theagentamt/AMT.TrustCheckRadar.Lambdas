@@ -156,7 +156,11 @@ class Consumer:
             budget_ms=min(18000,int((25-(self.clock()-started)-5)*1000))
             result=None
             if budget_ms>=14000:
-                try:result=self.provider({'schemaVersion':1,'checkId':client,'url':intent['target']['url'],'scope':intent['target']['scope'],'executionBudgetMs':budget_ms})
+                try:
+                    from shared_operations.dispatch import component_attempt
+                    with component_attempt(self.a,account,proof,admitted['executionToken'],'url_consumer'):
+                        result=self.provider({'schemaVersion':1,'checkId':client,'url':intent['target']['url'],'scope':intent['target']['scope'],'executionBudgetMs':budget_ms})
+                        if not self.mapper.supported_private(result,client,intent['target']['scope']):raise ValueError()
                 except Exception:pass
             outcome='failed'
             if self.mapper.supported_private(result,client,intent['target']['scope']):outcome=result['processingOutcome']

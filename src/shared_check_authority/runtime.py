@@ -36,6 +36,13 @@ def load_authority(*, projected_inventory=False):
         settings.validate()
         if settings.receipt_retention_seconds != 7*86400 or settings.counter_retention_seconds != 7*86400:
             raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE')
-        return Authority(settings,resource,now=lambda:int(time.time()),freshness_now=wall_clock)
+        authority = Authority(settings,resource,now=lambda:int(time.time()),freshness_now=wall_clock)
+        operations = os.environ.get('OPERATIONS_ENABLED', 'false')
+        if operations not in ('true', 'false'): raise ValueError()
+        if operations == 'true':
+            from shared_operations.publisher import Publisher
+            authority.operations = Publisher(authority, text('OPERATIONS_TABLE_NAME'),
+                text('OPERATIONS_STORE_GENERATION'), text('STAGE'))
+        return authority
     except AuthorityError: raise
     except Exception: raise AuthorityError('POLICY_CONFIGURATION_UNAVAILABLE') from None

@@ -1,1 +1,2 @@
 dnspython==2.8.0
+jsonschema==4.25.1

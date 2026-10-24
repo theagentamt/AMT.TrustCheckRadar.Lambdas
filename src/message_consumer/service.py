@@ -154,10 +154,12 @@ class Consumer:
                         if not isinstance(cost,CostPolicy):raise ValueError('AI_COST_POLICY_REQUIRED')
                         request['providerCost']=cost.as_dict()
                     if self.allow_ai_primary:request['runtimeMode']='ai_primary_v1'
-                    raw_result=self.provider(request)
-                    outcome=validator(raw_result,client)
-                    if self.allow_ai_primary and outcome['aiAssessmentStatus'] not in ('warning','no_warning') and outcome['processingOutcome']=='complete':
-                        raise ValueError('AI_PRIMARY_COMPLETION_WITHOUT_AI')
+                    from shared_operations.dispatch import component_attempt
+                    with component_attempt(self.a,account,proof,admission['executionToken'],'message_consumer'):
+                        raw_result=self.provider(request)
+                        outcome=validator(raw_result,client)
+                        if self.allow_ai_primary and outcome['aiAssessmentStatus'] not in ('warning','no_warning') and outcome['processingOutcome']=='complete':
+                            raise ValueError('AI_PRIMARY_COMPLETION_WITHOUT_AI')
             except Exception:
                 outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])
             if self.version==v3.VERSION:outcome=v3.present(outcome,self.a.freshness_now())

@@ -56,13 +56,14 @@ class BufferSocket:
     def makefile(self, *args): return io.BytesIO(self.data)
 
 
-def decode_http(raw):
+def decode_http(raw, *, response_observed=None):
     header_end = raw.find(b'\r\n\r\n')
     if header_end < 0 or header_end > 16384:
         raise Unavailable('PROVIDER_RESPONSE_INVALID')
     response = http.client.HTTPResponse(BufferSocket(raw))
     try:
         response.begin()
+        if response_observed is not None: response_observed()
         if response.status != 200:
             raise Unavailable('PROVIDER_AUTHORIZATION_FAILED' if response.status in (401, 403) else 'PROVIDER_RATE_LIMITED' if response.status == 429 else 'PROVIDER_UNAVAILABLE')
         if response.getheader('Content-Encoding', 'identity') != 'identity':
@@ -88,11 +89,15 @@ def decode_http(raw):
         response.close()
 
 
-def lookup(uri, api_key, parent_budget):
+def lookup(uri, api_key, parent_budget, *, operations_observer=None):
     # No URL supplied by an event can override this origin, path, method or key.
     budget = Budget(parent_budget.remaining(4.0))
     sock = None
+    operation_outcome, operation_reason, units = 'failed', 'PROVIDER_UNAVAILABLE', 0
     try:
+        if operations_observer is not None:
+            operations_observer.start()
+            budget.remaining()  # The journal cannot renew this absolute budget.
         import dns.resolver
         resolver = dns.resolver.Resolver(configure=True)
         resolver.timeout = 1.0
@@ -110,6 +115,8 @@ def lookup(uri, api_key, parent_budget):
         sock.settimeout(budget.remaining(2.0))
         sock = ssl.create_default_context().wrap_socket(sock, server_hostname=HOST)
         sock.settimeout(budget.remaining(2.0))
+        sock.settimeout(budget.remaining(2.0))
+        units = None  # sendall may partially dispatch before raising.
         sock.sendall(headers)
         data = bytearray()
         while True:
@@ -121,11 +128,21 @@ def lookup(uri, api_key, parent_budget):
             if len(data) > MAX_WIRE_BYTES:
                 raise Unavailable('PROVIDER_RESPONSE_INVALID')
         budget.remaining()
-        return decode_http(bytes(data))
-    except Unavailable:
+        def observed():
+            nonlocal units
+            units = 1
+        result = decode_http(bytes(data), response_observed=observed)
+        operation_outcome, operation_reason, units = 'succeeded', 'NONE', 1
+        return result
+    except Unavailable as error:
+        operation_reason = error.reason if error.reason in ('PROVIDER_RESPONSE_INVALID','PROVIDER_AUTHORIZATION_FAILED',
+            'PROVIDER_RATE_LIMITED','TIME_BUDGET_EXHAUSTED') else 'PROVIDER_UNAVAILABLE'
         raise
     except Exception:
         raise Unavailable('PROVIDER_UNAVAILABLE') from None
     finally:
+        if operations_observer is not None:
+            from shared_operations.dispatch import finished
+            finished(operations_observer, operation_outcome, operation_reason, units)
         if sock is not None:
             sock.close()

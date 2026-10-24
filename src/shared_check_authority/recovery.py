@@ -5,9 +5,10 @@ from .core import AuthorityError, OWNER_POLICY, integral
 
 
 class Recovery:
-    def __init__(self, resource, table, *, now):
+    def __init__(self, resource, table, *, now, operations=None):
         self.ddb, self.table, self.now = resource, table, now
         self.client = resource.meta.client
+        self.operations = operations
         if self.client.meta.config.retries.get('total_max_attempts') != 1:
             raise AuthorityError('SDK_RETRY_CONFIGURATION_UNAVAILABLE')
 
@@ -55,6 +56,13 @@ class Recovery:
             update = items[-1]['Update']
             update['UpdateExpression'] += ', resultSummary = :summary, assessmentEpoch = :assessed'
             update['ExpressionAttributeValues'].update({':summary': summary, ':assessed': now})
+        if row.get('operationsGeneration') is not None and row.get('retentionDeadlineEpoch', 0) > now:
+            try:
+                if self.operations is None or self.operations.generation != row['operationsGeneration']: raise ValueError()
+                items.extend(self.operations.terminal_actions(partition, proof, 'failed', 0, now,
+                    source_accepted_at=row['operationsAcceptedAtEpoch'], expired=True))
+            except Exception:
+                raise AuthorityError('OPERATIONS_UNAVAILABLE') from None
         try: self.client.transact_write_items(TransactItems=items)
         except Exception: raise AuthorityError('RECOVERY_TRANSACTION_UNCERTAIN') from None
         return True

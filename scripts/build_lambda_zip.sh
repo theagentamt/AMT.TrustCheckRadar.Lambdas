@@ -304,6 +304,9 @@ build_function() {
   if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
     cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
   fi
+  if [[ -d "$build_dir/shared_check_authority" || "$function_name" == "message_evaluator" || "$function_name" == "recovery_evaluator" || "$function_name" == "url_assessment" ]]; then
+    cp -R "$ROOT_DIR/src/shared_operations" "$build_dir/shared_operations"
+  fi
   if [[ -d "$build_dir/shared_check_authority" ]]; then
     cp -R "$ROOT_DIR/src/shared_governed_history" "$build_dir/shared_governed_history"
   fi
