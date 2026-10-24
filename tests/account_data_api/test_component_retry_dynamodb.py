@@ -2,8 +2,14 @@
 import hashlib
 import os
 import pytest
+import sys
+from unittest import mock
+from tests.module_aliases import isolated_aliases
 if os.environ.get('AMT_AUTHORITY_INTEGRATION')!='1':pytest.skip('Isolated SDK only',allow_module_level=True)
-from tests.campaign_deletion_bridge.test_qualification_dynamodb import runner,Q
+with isolated_aliases('service','config','errors','coverage_assessment','progress'), mock.patch.object(sys, "path", sys.path.copy()):
+    for name in ('service','config','errors','coverage_assessment','progress'):
+        sys.modules.pop(name,None)
+    from tests.campaign_deletion_bridge.test_qualification_dynamodb import runner,Q
 
 COMPONENTS=('SESSION_REVOCATION','DEVICE_BINDINGS','DEVICE_RECOVERY','ANALYSIS_ABUSE','CAMPAIGN_OUTBOX','USER_PROFILE')
 

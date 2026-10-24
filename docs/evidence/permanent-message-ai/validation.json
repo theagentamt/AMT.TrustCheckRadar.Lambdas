@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "8ecc79678fd1f87c575c43f7f4ffb856869db48d",
+  "branch": "codex/permanent-message-ai-main",
+  "mergeTarget": "main",
+  "aggregate": {
+    "suites": 56,
+    "counts": {
+      "tests": 4222,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "allSuitesPassed": true,
+    "externalNetworkBlocked": true,
+    "suiteResults": [
+      {
+        "suite": "account_data_api",
+        "exitCode": 0,
+        "seconds": 2.51
+      },
+      {
+        "suite": "account_export_api",
+        "exitCode": 0,
+        "seconds": 5.74
+      },
+      {
+        "suite": "age_attestation",
+        "exitCode": 0,
+        "seconds": 0.32
+      },
+      {
+        "suite": "campaign_cluster_aggregator",
+        "exitCode": 0,
+        "seconds": 0.94
+      },
+      {
+        "suite": "campaign_contracts",
+        "exitCode": 0,
+        "seconds": 0.15
+      },
+      {
+        "suite": "campaign_deletion_bridge",
+        "exitCode": 0,
+        "seconds": 58.58
+      },
+      {
+        "suite": "campaign_lifecycle",
+        "exitCode": 0,
+        "seconds": 7.03
+      },
+      {
+        "suite": "campaign_observation_publisher",
+        "exitCode": 0,
+        "seconds": 0.13
+      },
+      {
+        "suite": "campaign_participation",
+        "exitCode": 0,
+        "seconds": 1.74
+      },
+      {
+        "suite": "campaign_review",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "campaign_trends",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "contracts",
+        "exitCode": 0,
+        "seconds": 0.35
+      },
+      {
+        "suite": "conversation_analysis",
+        "exitCode": 0,
+        "seconds": 0.2
+      },
+      {
+        "suite": "demographic_research",
+        "exitCode": 0,
+        "seconds": 0.96
+      },
+      {
+        "suite": "device_recovery",
+        "exitCode": 0,
+        "seconds": 0.13
+      },
+      {
+        "suite": "device_recovery_contracts",
+        "exitCode": 0,
+        "seconds": 0.15
+      },
+      {
+        "suite": "device_registration",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "entitlement_snapshot",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "governed_history",
+        "exitCode": 0,
+        "seconds": 1.88
+      },
+      {
+        "suite": "history_account_deletion_bridge",
+        "exitCode": 0,
+        "seconds": 1.26
+      },
+      {
+        "suite": "history_contracts",
+        "exitCode": 0,
+        "seconds": 0.15
+      },
+      {
+        "suite": "history_lifecycle",
+        "exitCode": 0,
+        "seconds": 0.61
+      },
+      {
+        "suite": "history_mutation_api",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "history_read_api",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "legacy_retirement",
+        "exitCode": 0,
+        "seconds": 3.34
+      },
+      {
+        "suite": "message_ai_controlled",
+        "exitCode": 0,
+        "seconds": 0.39
+      },
+      {
+        "suite": "message_ai_evaluation",
+        "exitCode": 0,
+        "seconds": 0.44
+      },
+      {
+        "suite": "message_consumer",
+        "exitCode": 0,
+        "seconds": 12.11
+      },
+      {
+        "suite": "message_evaluator",
+        "exitCode": 0,
+        "seconds": 0.61
+      },
+      {
+        "suite": "post_confirmation",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "profile_fence",
+        "exitCode": 0,
+        "seconds": 1.4
+      },
+      {
+        "suite": "purchase_handoff",
+        "exitCode": 0,
+        "seconds": 0.13
+      },
+      {
+        "suite": "recovery_clarification",
+        "exitCode": 0,
+        "seconds": 0.2
+      },
+      {
+        "suite": "recovery_playbook",
+        "exitCode": 0,
+        "seconds": 0.24
+      },
+      {
+        "suite": "recovery_runtime",
+        "exitCode": 0,
+        "seconds": 5.04
+      },
+      {
+        "suite": "recovery_selection",
+        "exitCode": 0,
+        "seconds": 0.26
+      },
+      {
+        "suite": "release_pipeline",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "result_feedback",
+        "exitCode": 0,
+        "seconds": 7.74
+      },
+      {
+        "suite": "sanitizer_contract",
+        "exitCode": 0,
+        "seconds": 0.93
+      },
+      {
+        "suite": "scripts",
+        "exitCode": 0,
+        "seconds": 2.67
+      },
+      {
+        "suite": "shared_account_finalization",
+        "exitCode": 0,
+        "seconds": 3.99
+      },
+      {
+        "suite": "shared_campaign_contracts",
+        "exitCode": 0,
+        "seconds": 0.12
+      },
+      {
+        "suite": "shared_campaign_locators",
+        "exitCode": 0,
+        "seconds": 6.91
+      },
+      {
+        "suite": "shared_campaign_recovery",
+        "exitCode": 0,
+        "seconds": 2.44
+      },
+      {
+        "suite": "shared_campaign_work",
+        "exitCode": 0,
+        "seconds": 36.72
+      },
+      {
+        "suite": "shared_check_authority",
+        "exitCode": 0,
+        "seconds": 41.34
+      },
+      {
+        "suite": "shared_history",
+        "exitCode": 0,
+        "seconds": 0.13
+      },
+      {
+        "suite": "shared_play_lifecycle",
+        "exitCode": 0,
+        "seconds": 8.32
+      },
+      {
+        "suite": "shared_play_verification",
+        "exitCode": 0,
+        "seconds": 0.13
+      },
+      {
+        "suite": "shared_purchase_ownership",
+        "exitCode": 0,
+        "seconds": 2.81
+      },
+      {
+        "suite": "support_account_deletion",
+        "exitCode": 0,
+        "seconds": 7.75
+      },
+      {
+        "suite": "url_assessment",
+        "exitCode": 0,
+        "seconds": 0.17
+      },
+      {
+        "suite": "url_assessment_contracts",
+        "exitCode": 0,
+        "seconds": 1.69
+      },
+      {
+        "suite": "url_redirect_resolver",
+        "exitCode": 0,
+        "seconds": 0.17
+      },
+      {
+        "suite": "v1_play_handoff",
+        "exitCode": 0,
+        "seconds": 2.94
+      },
+      {
+        "suite": "web_risk_communication",
+        "exitCode": 0,
+        "seconds": 0.12
+      }
+    ]
+  },
+  "combinedAuthorityMessageHistory": {
+    "testsPassed": 1009,
+    "failures": 0,
+    "errors": 0
+  },
+  "combinedImportIsolation": {
+    "testsPassed": 134,
+    "subtestsPassed": 59,
+    "failures": 0,
+    "errors": 0
+  },
+  "identityAndControlledAuthorization": {
+    "testsPassed": 126,
+    "failures": 0,
+    "errors": 0
+  },
+  "localRuntime": {
+    "image": "public.ecr.aws/lambda/python@sha256:fc4e15a5e09e2c9b6184810ea0fdc87afe1c1c734c98cbe27d739a35c3f15e7e",
+    "probes": [
+      {
+        "function": "message_consumer",
+        "status": "PASS",
+        "packageSha256": "954ab8c6c246129fe502399eae838838b2b55ebd7c7a723daa0e18e734723aa0",
+        "runtime": "3.14.8",
+        "architecture": "aarch64",
+        "libc": [
+          "glibc",
+          "2.34"
+        ],
+        "schemasValidated": 33,
+        "defaultOff": true,
+        "missingCostFailsClosed": true,
+        "usageParser": false,
+        "oneOffRuntimeExcluded": true,
+        "networkOrSdkAttempts": 0
+      },
+      {
+        "function": "message_evaluator",
+        "status": "PASS",
+        "packageSha256": "59baf24983be634cabda08d4a76d58fe65787bfe66e54d4b5ecd84533d8f13a9",
+        "runtime": "3.14.8",
+        "architecture": "aarch64",
+        "libc": [
+          "glibc",
+          "2.34"
+        ],
+        "schemasValidated": 23,
+        "defaultOff": true,
+        "missingCostFailsClosed": true,
+        "usageParser": true,
+        "oneOffRuntimeExcluded": true,
+        "networkOrSdkAttempts": 0
+      }
+    ],
+    "ownedContainersRemoved": true,
+    "network": "none",
+    "credentialEnvironmentOrMounts": false,
+    "dependencySource": "cached previously qualified dependency entries; no download",
+    "initialProbeCorrection": "Consumer package intentionally excludes provider usage adapter; initial harness assertion corrected, package bytes unchanged."
+  },
+  "quality": {
+    "compileall": "PASS",
+    "shellcheck": "PASS",
+    "whitespace": "PASS",
+    "pipCheck": "PASS"
+  },
+  "provenance": {
+    "historicalPublishedSanitizerIdentitiesUnchanged": true,
+    "currentModelAndExperimentRegistriesEmpty": true,
+    "mainReleaseHistoryNotMerged": true,
+    "temporaryRuntimeExcluded": true,
+    "independentReviewSha256": "752a0a5f9a45f403bc2c568be1d224fb94216fffbdf5279585b34c492aa17344"
+  },
+  "limits": {
+    "liveProviderCalls": 0,
+    "cloudMutationsDuringLocalValidation": 0,
+    "modelQualified": false,
+    "runtimeActivated": false,
+    "mobileAcceptancePerformed": false
+  },
+  "authorizedIntegration": {
+    "mainCI": "existing main push workflow",
+    "artifactPublication": "existing automatic immutable Dev S3 release, scope all",
+    "runtimeDeployment": false,
+    "iamOrSecretChanges": false
+  }
+}

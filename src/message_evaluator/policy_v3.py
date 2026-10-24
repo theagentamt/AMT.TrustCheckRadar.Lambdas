@@ -7,7 +7,7 @@ from shared_message_contract.runtime import fresh_url_mapper
 from shared_lookup_freshness import current, wall_clock
 
 
-def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,now=wall_clock,rules_only=False):
+def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,now=wall_clock,rules_only=False,ai_primary=False):
     captured=[]
     def guarded(request):
         raw=lookup(request)
@@ -19,7 +19,7 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,now=w
                              'freshness':'current' if raw['verdict']=='high_risk' else 'observation_only'})
         return converted
     value=policy_v2.evaluate(check,intent,lookup=guarded if lookup else None,budget_ms=budget_ms,ai=ai,clock=clock,
-                             rules_only=rules_only)
+                             rules_only=rules_only,ai_primary=ai_primary)
     if len(value['evidence'])!=len(captured):raise ValueError('EVIDENCE_MISMATCH')
     value['schemaVersion']=3
     value['evidence']=[e|meta for e,meta in zip(value['evidence'],captured)]

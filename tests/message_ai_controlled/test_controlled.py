@@ -507,3 +507,20 @@ def test_authority_path_escapes_sqlite_uri_metacharacters(tmp_path, monkeypatch)
     assert (directory / 'authority.sqlite3').exists()
     assert engine.report(store)['reservedCostNano'] == 0
     store.close()
+
+
+@pytest.mark.parametrize('relative',[
+    'src/message_evaluator/usage.py',
+    'src/shared_message_contract/provider_cost.py',
+    'src/message_evaluator/policy_v3.py',
+])
+def test_new_permanent_dependencies_invalidate_frozen_authorization(tmp_path,monkeypatch,relative):
+    store,data,grant,directory=setup(tmp_path,monkeypatch);store.close()
+    assert relative in protocol.profile(MODEL)['sourceSha256']
+    original=Path.read_bytes
+    def changed(path):
+        raw=original(path)
+        return raw+b'\n# synthetic byte drift\n' if path==ROOT/relative else raw
+    monkeypatch.setattr(Path,'read_bytes',changed)
+    with pytest.raises(EvaluationError,match='PROFILE_IDENTITY_MISMATCH'):
+        auth.validate_authorization(grant,data,directory,execution=True)

@@ -1,98 +1,83 @@
 import importlib.util
 import os
 import sys
-import types
+import boto3
 import unittest
 from pathlib import Path
 from unittest import mock
+from tests.module_aliases import isolated_aliases
 
-SRC_DIR = Path(__file__).resolve().parents[2] / "src"
-MODULE_DIR = SRC_DIR / "campaign_participation"
-for path in (SRC_DIR, MODULE_DIR):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+with isolated_aliases('config','errors','service','shared_entitlements','shared_entitlements.config','shared_entitlements.service'), mock.patch.object(sys, "path", sys.path.copy()):
+    SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+    MODULE_DIR = SRC_DIR / "campaign_participation"
+    for path in (SRC_DIR, MODULE_DIR):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
 
-for name in ["config", "errors", "service", "shared_entitlements", "shared_entitlements.config", "shared_entitlements.service"]:
-    sys.modules.pop(name, None)
+    for name in ["config", "errors", "service", "shared_entitlements", "shared_entitlements.config", "shared_entitlements.service"]:
+        sys.modules.pop(name, None)
 
-ENVIRONMENT = {
-    "USERS_TABLE_NAME": "test-users",
-    "ENTITLEMENTS_TABLE_NAME": "test-entitlements",
-    "DELETION_LEDGER_TABLE_NAME": "test-deletion-ledger",
-    "ENVIRONMENT": "dev",
-    "CAMPAIGN_PARTICIPATION_NOTICE_VERSION": "research-consent-2026-09-21-v2",
-    "CAMPAIGN_PARTICIPATION_POLICY_VERSION": "independent-research-v1",
-    "CONSENT_INDEPENDENCE_ENABLED": "true",
-    "PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT": "15",
-}
-
-
-class FakeClientError(Exception):
-    def __init__(self, response=None, operation_name=None):
-        super().__init__(operation_name or "client error")
-        self.response = response or {}
+    ENVIRONMENT = {
+        "USERS_TABLE_NAME": "test-users",
+        "ENTITLEMENTS_TABLE_NAME": "test-entitlements",
+        "DELETION_LEDGER_TABLE_NAME": "test-deletion-ledger",
+        "ENVIRONMENT": "dev",
+        "CAMPAIGN_PARTICIPATION_NOTICE_VERSION": "research-consent-2026-09-21-v2",
+        "CAMPAIGN_PARTICIPATION_POLICY_VERSION": "independent-research-v1",
+        "CONSENT_INDEPENDENCE_ENABLED": "true",
+        "PARTICIPATING_FREE_MONTHLY_SCAN_LIMIT": "15",
+    }
 
 
-botocore_ex = types.ModuleType("botocore.exceptions")
-botocore_ex.ClientError = FakeClientError
-sys.modules["botocore.exceptions"] = botocore_ex
+    class FakeTable:
+        def __init__(self):
+            self.items = {}
+
+        def get_item(self, Key, **_kwargs):
+            item = self.items.get((Key["PK"], Key["SK"]))
+            return {"Item": dict(item)} if item else {}
+
+    users = FakeTable()
+    entitlements = FakeTable()
+    ledger = FakeTable()
 
 
-class FakeTable:
-    def __init__(self):
-        self.items = {}
-
-    def get_item(self, Key, **_kwargs):
-        item = self.items.get((Key["PK"], Key["SK"]))
-        return {"Item": dict(item)} if item else {}
-
-users = FakeTable()
-entitlements = FakeTable()
-ledger = FakeTable()
+    class FakeResource:
+        def Table(self, name):
+            if name == "test-users":
+                return users
+            if name == "test-entitlements":
+                return entitlements
+            return ledger
 
 
-class FakeResource:
-    def Table(self, name):
-        if name == "test-users":
-            return users
-        if name == "test-entitlements":
-            return entitlements
-        return ledger
+    class FakeClient:
+        def __init__(self):
+            self.transactions = []
+            self.error = None
+
+        def transact_write_items(self, TransactItems):
+            if self.error:
+                raise self.error
+            self.transactions.append(TransactItems)
+            return {}
 
 
-class FakeClient:
-    def __init__(self):
-        self.transactions = []
-        self.error = None
-
-    def transact_write_items(self, TransactItems):
-        if self.error:
-            raise self.error
-        self.transactions.append(TransactItems)
-        return {}
+    client = FakeClient()
+    def load(name, path):
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        assert spec.loader
+        spec.loader.exec_module(module)
+        return module
 
 
-client = FakeClient()
-boto3_stub = types.ModuleType("boto3")
-boto3_stub.resource = lambda *_args, **_kwargs: FakeResource()
-boto3_stub.client = lambda *_args, **_kwargs: client
-sys.modules["boto3"] = boto3_stub
-
-
-def load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    assert spec.loader
-    spec.loader.exec_module(module)
-    return module
-
-
-with mock.patch.dict(os.environ, ENVIRONMENT, clear=False):
-    config = load("config", MODULE_DIR / "config.py")
-    load("errors", MODULE_DIR / "errors.py")
-    import shared_entitlements.service as shared_service  # noqa: E402
-    service = load("service", MODULE_DIR / "service.py")
+    with mock.patch.dict(os.environ, ENVIRONMENT, clear=False), mock.patch.object(boto3, "resource", lambda *a,**k:FakeResource()), mock.patch.object(boto3, "client", lambda *a,**k:client):
+        config = load("config", MODULE_DIR / "config.py")
+        load("errors", MODULE_DIR / "errors.py")
+        import shared_entitlements.service as shared_service  # noqa: E402
+        service = load("service", MODULE_DIR / "service.py")
 
 OPERATION_ID = "47debb73-444b-4bb1-9889-fb56885b7922"
 EPOCH_ID = "15c81ba4-2fa6-43c3-8895-889f08c931bf"

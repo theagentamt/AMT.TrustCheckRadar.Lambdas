@@ -1,13 +1,17 @@
 import sys
 import unittest
+from unittest import mock
+from tests.module_aliases import isolated_aliases
 from pathlib import Path
 
 
-MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
-sys.path.insert(0, str(MODULE))
-sys.path.insert(0, str(MODULE.parent))
-sys.modules.pop("service", None)
-import service
+with isolated_aliases('config','service'), mock.patch.object(sys, "path", sys.path.copy()):
+    MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
+    sys.path.insert(0, str(MODULE))
+    sys.path.insert(0, str(MODULE.parent))
+    sys.modules.pop("service", None)
+    sys.modules.pop("config", None)
+    import service
 
 
 def command():

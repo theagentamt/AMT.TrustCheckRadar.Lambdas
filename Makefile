@@ -1,5 +1,5 @@
 PYTHON ?= python3
-PYTHON_VERSION ?= 3.13
+PYTHON_VERSION ?=
 LAMBDA_ARCH ?= arm64
 DIST_DIR ?= dist
 ARTIFACT_BUCKET ?=
@@ -24,10 +24,10 @@ campaign-evidence: check package-no-deps
 	$(PYTHON) scripts/validate_campaign_lambdas.py --dist-dir "$(DIST_DIR)"
 
 package:
-	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" --python-version "$(PYTHON_VERSION)" --arch "$(LAMBDA_ARCH)"
+	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" $(if $(strip $(PYTHON_VERSION)),--python-version "$(PYTHON_VERSION)") --arch "$(LAMBDA_ARCH)"
 
 package-no-deps:
-	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" --python-version "$(PYTHON_VERSION)" --arch "$(LAMBDA_ARCH)" --skip-dependencies
+	bash scripts/build_lambda_zip.sh --all --output-dir "$(DIST_DIR)" $(if $(strip $(PYTHON_VERSION)),--python-version "$(PYTHON_VERSION)") --arch "$(LAMBDA_ARCH)" --skip-dependencies
 
 publish: package
 	@test -n "$(ARTIFACT_BUCKET)" || (echo "ARTIFACT_BUCKET is required" >&2; exit 2)
