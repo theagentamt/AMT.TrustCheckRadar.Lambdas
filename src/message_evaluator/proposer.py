@@ -219,7 +219,7 @@ class FixedConnection(http.client.HTTPSConnection):
         remaining(self.deadline, self.clock)
 
 
-def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret, body_builder=None, response_parser=None):
+def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret, body_builder=None, response_parser=None, operations_observer=None):
     # Only trusted internal adapters select these functions, never event fields.
     body_builder = body_builder or request_body
     response_parser = response_parser or parse
@@ -229,12 +229,18 @@ def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_fac
     deadline = clock() + min(budget_ms, settings.timeout_ms) / 1000
     connection = None
     response = None
+    dispatch_begun = False
+    operation_outcome, operation_reason = 'failed', 'PROVIDER_UNAVAILABLE'
     try:
+        if operations_observer is not None:
+            operations_observer.start()  # Claim planned execution before credential/connect work.
+            remaining(deadline, clock)  # Recompute; never extend the original deadline.
         api_key = secret_loader(settings, deadline, clock)
         connection = connection_factory(HOST, port=443, timeout=remaining(deadline, clock))
         connection.deadline, connection.clock = deadline, clock
         connection.connect()
         connection.sock = DeadlineSocket(connection.sock, deadline, clock)
+        dispatch_begun = True
         connection.request('POST', PATH, body=body, headers={
             'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json', 'Accept': 'application/json',
         })
@@ -258,12 +264,20 @@ def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_fac
             count += len(chunk)
             chunks.append(chunk)
         require(count <= MAX_RESPONSE_BYTES and (expected is None or count == expected), 'PROVIDER_RESPONSE_INVALID')
-        return response_parser(b''.join(chunks), intent['target']['sanitizedText'])
-    except MessageError:
+        result = response_parser(b''.join(chunks), intent['target']['sanitizedText'])
+        operation_outcome, operation_reason = 'succeeded', 'NONE'
+        return result
+    except MessageError as error:
+        operation_reason = ('PROVIDER_RESPONSE_INVALID' if error.code == 'PROVIDER_RESPONSE_INVALID' else
+                            'TIME_BUDGET_EXHAUSTED' if error.code == 'BUDGET_LIMIT' else 'PROVIDER_UNAVAILABLE')
         raise
     except Exception:
         raise MessageError('PROVIDER_UNAVAILABLE') from None
     finally:
+        if operations_observer is not None:
+            from shared_operations.dispatch import finished
+            finished(operations_observer, operation_outcome, operation_reason,
+                     1 if response is not None else None if dispatch_begun else 0)
         if response is not None:
             response.close()
         if connection is not None:

@@ -436,3 +436,15 @@ Until all evidence exists, keep `ACCOUNT_DATA_INVENTORY_STATUS=pending` and
 These changes require coordinated least-privilege ledger configuration/IAM for the
 identity and analysis writers plus account-data cleanup before their updated ZIPs
 are deployed. They do not authorize deployment or account-deletion activation.
+## Inactive SEC237 operational source increment
+
+The permanent `shared_operations` source has no deployed store or active
+publisher in this increment. Its future linkable facts use random operations
+references, at most seven days from authoritative acceptance, and the existing
+authority companion as their sole ownership lookup. Reports contain only closed
+aggregate counts/cost estimates and no submitted content or customer references.
+This is not a second identity map or anonymous research data. Source-level
+child-first deletion and original expiry fences are implemented; storage/backup,
+restore suppression and account-export integration must be qualified before
+activation. Existing export completeness does not include these inactive future
+records. See `sec237-permanent-operations-source.md` for exact source limits.

@@ -16,7 +16,7 @@ COMPONENT='V1_AUTHORITY'
 
 
 class AuthorityDeletion:
-    def __init__(self,resource,*,authority_table,ledger_table,environment,keyring,receipt_retention_seconds,now):
+    def __init__(self,resource,*,authority_table,ledger_table,environment,keyring,receipt_retention_seconds,now,operations=None):
         # Existing account-deletion receipt format requires exactly 120 days.
         # Required explicit input is compatibility validation, not policy approval.
         if environment!='dev' or type(receipt_retention_seconds) is not int or receipt_retention_seconds!=120*86400:
@@ -27,6 +27,7 @@ class AuthorityDeletion:
         if self.client.meta.config.retries.get('total_max_attempts')!=1:
             raise AuthorityError('SDK_RETRY_CONFIGURATION_UNAVAILABLE')
         self.table,self.ledger,self.environment,self.keys,self.retention,self.now=authority_table,ledger_table,environment,dict(keyring),receipt_retention_seconds,now
+        self.operations = operations
 
     def _get(self,table,key):return self.ddb.Table(table).get_item(Key=key,ConsistentRead=True).get('Item')
 
@@ -175,6 +176,27 @@ class AuthorityDeletion:
                 access=self._get(self.table,{'PK':partition,'SK':'ACCESS'})
                 targets=[x for x in rows if x['SK']!='ACCESS'][:page_size]
                 if targets:
+                    # Drain each bounded random child partition before its source
+                    # receipt/lookup disappears. Never multiply a whole 20-row
+                    # deletion transaction by the number of operation facts.
+                    for target in targets:
+                        proof = (target['SK'][6:] if target['SK'].startswith('CHECK#') else
+                                 target['SK'][4:] if target['SK'].startswith('OPS#') else None)
+                        if proof is None: continue
+                        companion = self._get(self.table, {'PK': partition, 'SK': 'OPS#' + proof})
+                        if companion is None:
+                            if target['SK'].startswith('CHECK#') and target.get('operationsGeneration') is not None and target.get('operationsErasedGeneration') != target['operationsGeneration']:
+                                raise AuthorityError('OPERATIONS_CLEANUP_UNQUALIFIED')
+                            continue
+                        if self.operations is None: raise AuthorityError('OPERATIONS_CLEANUP_REQUIRED')
+                        guards = self._guards(command, inventory) + [self._access_guard(partition, command['operationId'], access is not None)]
+                        if not self.operations.drain(partition, proof, guards, mode='account_deletion', can_continue=can_continue):
+                            return {'deleted':deleted,'complete':False,'alreadyComplete':False}
+                        deleted += 1  # The drained authority companion, not its separate event children.
+                    # A companion may have been drained above; re-read the page
+                    # entries so a removed OPS lookup is not counted twice.
+                    targets = [row for row in targets if self._get(self.table, {'PK': partition, 'SK': row['SK']}) is not None]
+                    if not targets: continue
                     items=self._guards(command,inventory)+[self._access_guard(partition,command['operationId'],access is not None)]
                     releases, conditions = self._purchase_releases(partition, targets)
                     items += releases

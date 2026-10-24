@@ -87,10 +87,11 @@ class TrustedWorkerContext:
 
 
 class Authority:
-    def __init__(self, settings, dynamodb_resource, *, now, freshness_now=None, nonce=lambda: secrets.token_hex(8)):
+    def __init__(self, settings, dynamodb_resource, *, now, freshness_now=None, nonce=lambda: secrets.token_hex(8), operations=None):
         settings.validate()
         self.s, self.ddb, self.now, self.nonce = settings, dynamodb_resource, now, nonce
         self.freshness_now = freshness_now if freshness_now is not None else now
+        self.operations = operations
         self.client = dynamodb_resource.meta.client
         if self.client.meta.config.retries.get("total_max_attempts") != 1:
             raise AuthorityError("SDK_RETRY_CONFIGURATION_UNAVAILABLE")
@@ -436,6 +437,13 @@ class Authority:
             'ConditionExpression': 'attribute_not_exists(activeCount) OR activeCount < :cap',
             'ExpressionAttributeValues': {':one': 1, ':cap': self.s.max_inflight}}})
         items.append({'Put': {'TableName': self.s.authority_table, 'Item': row, 'ConditionExpression': 'attribute_not_exists(PK)'}})
+        if self.operations is not None:
+            try:
+                row['operationsGeneration'] = self.operations.generation
+                row['operationsAcceptedAtEpoch'] = accepted_at
+                items.extend(self.operations.admission_actions(partition, check_id, payload, grant['basis'], accepted_at))
+            except Exception:
+                raise AuthorityError('OPERATIONS_UNAVAILABLE') from None
         try: self._transact(items)
         except AuthorityError:
             prior = self._get(self.s.authority_table, key)
@@ -635,6 +643,13 @@ class Authority:
             'ConditionExpression': '#s = :admitted AND executionToken = :token AND policyVersion = :policy AND settleByEpoch ' + ('<= :now' if expired_recovery else '> :now'),
             'ExpressionAttributeNames': {'#s': 'state'},
             'ExpressionAttributeValues': values}})
+        if row.get('operationsGeneration') is not None:
+            try:
+                if self.operations is None or self.operations.generation != row['operationsGeneration']: raise ValueError()
+                items.extend(self.operations.terminal_actions(partition, check_id, processing_outcome, charge,
+                    settled_at, source_accepted_at=row['operationsAcceptedAtEpoch'], expired=expired_recovery))
+            except Exception:
+                raise AuthorityError('OPERATIONS_UNAVAILABLE') from None
         if result_summary is not None:
             from shared_lookup_freshness import current
             observations = ([(result_summary['lookupObservedAt'], result_summary['lookupValidUntil'])]

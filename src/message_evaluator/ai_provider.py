@@ -184,7 +184,7 @@ def report_rejection(stage):
         'stage':stage if type(stage) is str and stage in REJECTION_STAGES else 'PARSER_INTERNAL'},separators=(',',':')))
 
 
-def assess(intent,budget_ms,*,cost_policy=None):
+def assess(intent,budget_ms,*,cost_policy=None,operations_observer=None):
     cost=cost_policy or CostPolicy.from_env()
     settings=qualified_settings(cost)
     reported=False
@@ -196,11 +196,16 @@ def assess(intent,budget_ms,*,cost_policy=None):
                                   or usage['tokenCostUpperNano']>cost.reservation_nano):
             report={'usage':None,'failureReason':'COST_BOUND_EXCEEDED'}
         print(json.dumps({'event':'message_ai_usage',**report},separators=(',',':')))
+        if operations_observer is not None:
+            try: operations_observer.observed_usage(report)
+            except Exception:
+                print(json.dumps({'event':'operations_usage_unavailable'},separators=(',',':')))
         reported=True
         require(report['usage'] is not None,'PROVIDER_RESPONSE_INVALID')
         return parse(raw,text,expected_model=settings.model,on_rejection=report_rejection)
     try:
-        return proposer.propose(intent,settings,budget_ms,body_builder=request_body,response_parser=response_parser)
+        options = {'operations_observer': operations_observer} if operations_observer is not None else {}
+        return proposer.propose(intent,settings,budget_ms,body_builder=request_body,response_parser=response_parser,**options)
     finally:
         if not reported:
             print(json.dumps({'event':'message_ai_usage','usage':None,'failureReason':'RESPONSE_UNAVAILABLE'},separators=(',',':')))

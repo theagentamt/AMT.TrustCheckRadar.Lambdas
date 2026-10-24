@@ -10,9 +10,10 @@ TYPES = {'PREPARE': 'V1_PREPARATION', 'ATTEMPT': 'V1_ATTEMPT_COUNTER', 'CHECK': 
 
 
 class Expiry:
-    def __init__(self, resource, table, *, now):
+    def __init__(self, resource, table, *, now, operations=None):
         self.ddb, self.table, self.now = resource, table, now
         self.client = resource.meta.client
+        self.operations = operations
         if self.client.meta.config.retries.get('total_max_attempts') != 1:
             raise AuthorityError('SDK_RETRY_CONFIGURATION_UNAVAILABLE')
 
@@ -37,6 +38,8 @@ class Expiry:
         match = PARTITION.fullmatch(partition) if isinstance(partition, str) else None
         if not match or not isinstance(sort_key, str):
             raise AuthorityError('EXPIRY_REFERENCE_INVALID')
+        if re.fullmatch('OPS#' + PROOF, sort_key):
+            return self._expire_operations(partition, sort_key[4:])
         if re.fullmatch(r'PREPARE#[A-Za-z0-9_-]{1,64}', sort_key):
             family = 'PREPARE'
         elif re.fullmatch(r'ATTEMPT#[0-9]{1,12}', sort_key):
@@ -80,6 +83,19 @@ class Expiry:
             deletion['ConditionExpression'] += ' AND #state = :settled AND policyVersion = :policy'
             deletion['ExpressionAttributeNames'] = {'#state': 'state'}
             deletion['ExpressionAttributeValues'].update({':settled': 'SETTLED', ':policy': OWNER_POLICY})
+            # The source receipt may expire before/after the operations deadline.
+            # Erase its children and companion first, without touching History's
+            # separate original retention semantics.
+            companion = self._get({'PK': partition, 'SK': 'OPS#' + sort_key[6:]})
+            if companion is None and row.get('operationsGeneration') is not None and row.get('operationsErasedGeneration') != row['operationsGeneration']:
+                raise AuthorityError('OPERATIONS_CLEANUP_UNQUALIFIED')
+            if companion is not None:
+                if self.operations is None:
+                    raise AuthorityError('OPERATIONS_CLEANUP_REQUIRED')
+                if not self.operations.drain(partition, sort_key[6:],
+                    [inventory_condition(self.table, inventory), {'ConditionCheck': guard}, {'ConditionCheck': dict(deletion)}],
+                    mode='source_expiry'):
+                    return False
         try:
             self.client.transact_write_items(TransactItems=[inventory_condition(self.table, inventory),
                                                            {'ConditionCheck': guard}, {'Delete': deletion}])
@@ -97,6 +113,47 @@ class Expiry:
                 return False
             raise AuthorityError('EXPIRY_TRANSACTION_UNCERTAIN') from None
         return True
+
+    def _expire_operations(self, partition, proof):
+        if self.operations is None:
+            raise AuthorityError('OPERATIONS_CLEANUP_REQUIRED')
+        if self._get({'PK': partition, 'SK': 'OPS#' + proof}) is None: return False
+        row = self.operations._meta(partition, proof, allow_expired=True)
+        if row['operationsExpiresAtEpoch'] > self.now():
+            return False
+        key_id = PARTITION.fullmatch(partition).group(1)
+        inventory = self._inventory(key_id)
+        access = self._get({'PK': partition, 'SK': 'ACCESS'})
+        if access and access.get('state') == 'DELETING': return False
+        if not access or access.get('recordType') != 'V1_ACCESS_AUTHORITY' or access.get('state') not in ('ACTIVE', 'INACTIVE', 'REVOKED'):
+            raise AuthorityError('EXPIRY_ACCESS_UNAVAILABLE')
+        guard = {'ConditionCheck': {'TableName': self.table, 'Key': {'PK': partition, 'SK': 'ACCESS'},
+            'ConditionExpression': 'recordType = :type AND #state = :state',
+            'ExpressionAttributeNames': {'#state': 'state'},
+            'ExpressionAttributeValues': {':type': 'V1_ACCESS_AUTHORITY', ':state': access['state']}}}
+        return self.operations.drain(partition, proof, [inventory_condition(self.table, inventory), guard])
+
+    def sweep_operations(self, *, page_size=25, max_pages=4, cursor=None, can_continue=lambda: True):
+        """Separate explicit operations sweep; existing scheduled sweep is unchanged."""
+        if type(page_size) is not int or not 1 <= page_size <= 25 or type(max_pages) is not int or not 1 <= max_pages <= 4:
+            raise AuthorityError('EXPIRY_CONFIGURATION_INVALID')
+        counts = {'examined': 0, 'deleted': 0, 'failed': 0, 'pages': 0}
+        for _ in range(max_pages):
+            if not can_continue(): break
+            args = {'IndexName': 'GSI1', 'KeyConditionExpression': 'GSI1PK = :kind AND GSI1SK <= :deadline',
+                'ExpressionAttributeValues': {':kind': 'V1_OPERATIONS_EXPIRING', ':deadline': f'{self.now():012d}~'}, 'Limit': page_size}
+            if cursor: args['ExclusiveStartKey'] = cursor
+            page = self.ddb.Table(self.table).query(**args)
+            counts['pages'] += 1
+            for item in page.get('Items', []):
+                if not can_continue(): return counts | {'cursor': cursor}
+                counts['examined'] += 1
+                try: counts['deleted'] += int(self.expire(item['PK'], item['SK']))
+                except (AuthorityError, ValueError, KeyError, TypeError): counts['failed'] += 1
+                cursor = {k: item[k] for k in ('PK', 'SK', 'GSI1PK', 'GSI1SK')}
+            cursor = page.get('LastEvaluatedKey')
+            if not cursor: break
+        return counts | {'cursor': cursor}
 
     def _expire_purchase_usage(self, partition, sort_key):
         from .purchase_usage import valid_key, validate, exact_condition
