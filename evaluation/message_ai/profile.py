@@ -44,7 +44,9 @@ def profile(model):
     require(model in MODELS, 'MODEL_NOT_ALLOWLISTED')
     input_rate, output_rate, reasoning = MODELS[model]
     source_paths = ('src/message_evaluator/ai_provider.py', 'src/message_evaluator/proposer.py',
+                    'src/message_evaluator/usage.py', 'src/shared_message_contract/provider_cost.py',
                     'src/message_evaluator/policy.py', 'src/message_evaluator/policy_v2.py',
+                    'src/message_evaluator/policy_v3.py',
                     'src/message_evaluator/coverage.py', 'src/shared_message_contract/validation.py',
                     'src/shared_message_contract/validation_v2.py',
                     'src/shared_message_contract/privacy.py',

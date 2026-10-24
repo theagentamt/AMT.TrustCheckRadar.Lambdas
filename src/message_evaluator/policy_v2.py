@@ -42,7 +42,7 @@ def result(check, *, rules=(), limits=(), evidence=(), ai_status='not_assessed',
     return validate_summary(value,check)
 
 
-def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules_only=False):
+def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules_only=False,ai_primary=False):
     import json
     import re
     import time
@@ -60,18 +60,18 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules
         limits=[value for value in limits if value!='PROVIDER_UNAVAILABLE']
         if target['reviewedLinks'] and 'INSUFFICIENT_EVIDENCE' not in limits:limits.append('INSUFFICIENT_EVIDENCE')
         return result(check,rules=rules,limits=limits,evidence=evidence,ai_status='not_assessed')
-    if rules:
+    if rules and not ai_primary:
         return result(check,rules=rules,limits=limits,evidence=evidence)
     if set(limits)&{'HOSTILE_INPUT_STOP','UNKNOWN_SPEAKER'} or target['speakerRole']!='other':
-        return result(check,limits=limits,evidence=evidence,ai_status='abstained')
+        return result(check,rules=rules if ai_primary else (),limits=limits,evidence=evidence,ai_status='abstained')
     # Obvious quotation/mixed-source boundaries are outside this initial profile;
     # absence of these markers does not prove context and is evaluated separately.
     text=target['sanitizedText']
     if target['sourceType']=='mixed' or re.search(r'["“”«»]|(?:^|\n)\s*>',text):
-        return result(check,limits=list(limits)+['UNSUPPORTED_CONTENT'],evidence=evidence,ai_status='abstained')
+        return result(check,rules=rules if ai_primary else (),limits=list(limits)+['UNSUPPORTED_CONTENT'],evidence=evidence,ai_status='abstained')
     remaining=max(0,int((deadline-clock())*1000))
     if ai is None or remaining<250:
-        return result(check,limits=list(limits)+['PROVIDER_UNAVAILABLE' if ai is None else 'BUDGET_LIMIT'],evidence=evidence,ai_status='unavailable')
+        return result(check,rules=rules if ai_primary else (),limits=list(limits)+['PROVIDER_UNAVAILABLE' if ai is None else 'BUDGET_LIMIT'],evidence=evidence,ai_status='unavailable')
     try:
         from .ai_provider import parse
         proposal=ai(intent,remaining)
@@ -83,13 +83,13 @@ def evaluate(check,intent,*,lookup=None,budget_ms=18000,ai=None,clock=None,rules
         if clock()>=deadline:raise MessageError('BUDGET_LIMIT')
         if proposal['assessment']=='abstain':
             extra='UNSUPPORTED_CONTENT' if proposal['context'] in ('unsupported','suspected_injection') else 'INSUFFICIENT_EVIDENCE'
-            return result(check,limits=list(limits)+[extra],evidence=evidence,ai_status='abstained')
+            return result(check,rules=rules if ai_primary else (),limits=list(limits)+[extra],evidence=evidence,ai_status='abstained')
         # The old rule engine's unsupported-text limitation is resolved only by
         # this new, qualified AI policy. Independent link limitations remain.
         limits=[x for x in limits if x!='INSUFFICIENT_EVIDENCE']
-        return result(check,limits=limits,evidence=evidence,ai_status=proposal['assessment'],
+        return result(check,rules=([r for r in rules if r!='BENIGN_FIXED_TEXT' or proposal['assessment']!='warning'] if ai_primary else ()),limits=limits,evidence=evidence,ai_status=proposal['assessment'],
                       ai_reasons=[x['code'] for x in proposal['reasons']])
     except Exception as exc:
         code=exc.code if isinstance(exc,MessageError) else 'PROVIDER_UNAVAILABLE'
         code=code if code in ('PROVIDER_RESPONSE_INVALID','BUDGET_LIMIT') else 'PROVIDER_UNAVAILABLE'
-        return result(check,limits=list(limits)+[code],evidence=evidence,ai_status='unavailable')
+        return result(check,rules=rules if ai_primary else (),limits=list(limits)+[code],evidence=evidence,ai_status='unavailable')

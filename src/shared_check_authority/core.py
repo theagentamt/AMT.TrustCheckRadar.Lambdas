@@ -133,12 +133,18 @@ class Authority:
                 from shared_message_contract.validation_v3 import VERSION as V3
                 version=payload.get('messageTransportVersion',VERSION)
                 if version not in (VERSION,V2,V3) or ('messageTransportVersion' in payload and version not in (V2,V3)):raise ValueError()
-                intent={k:v for k,v in payload.items() if k!='messageTransportVersion'}
+                intent={k:v for k,v in payload.items() if k not in ('messageTransportVersion','messageExecutionProfile')}
+                profile=payload.get('messageExecutionProfile')
+                if 'messageExecutionProfile' in payload:
+                    from shared_message_contract.execution_profile import validate_profile
+                    if version != V3:raise ValueError()
+                    validate_profile(profile)
                 validate_intent(intent)
                 if client_check_id is None or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
                     raise ValueError()
                 bound={'version':version,'clientCheckId':client_check_id,'intent':intent}
                 if version in (V2,V3):bound['policyVersion']=P2
+                if profile is not None:bound['executionProfile']=profile
                 encoded=json.dumps(bound,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False)
                 return self._mac(key_id,'message-payload-v3' if version==V3 else ('message-payload-v2' if version==V2 else 'message-payload-v1'),account+'\0'+encoded)
             except Exception:raise AuthorityError('INPUT_REJECTED') from None

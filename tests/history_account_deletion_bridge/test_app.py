@@ -1,33 +1,28 @@
 import importlib.util
 import json
 import sys
-import types
 import unittest
 from pathlib import Path
 from unittest import mock
+from tests.module_aliases import isolated_aliases
 
 
-MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
-sys.path.insert(0, str(MODULE))
-sys.path.insert(0, str(MODULE.parent))
+with isolated_aliases('config','service','history_deletion_bridge_app_test'), mock.patch.object(sys, "path", sys.path.copy()):
+    MODULE = Path(__file__).resolve().parents[2] / "src" / "history_account_deletion_bridge"
+    sys.path.insert(0, str(MODULE))
+    sys.path.insert(0, str(MODULE.parent))
 
-boto3_stub = types.ModuleType("boto3")
-boto3_stub.resource = lambda *_args, **_kwargs: object()
-boto3_stub.client = lambda *_args, **_kwargs: object()
-sys.modules.setdefault("boto3", boto3_stub)
-
-
-def _load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
+    def _load(name, path):
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+        return module
 
 
-_load("config", MODULE / "config.py")
-_load("service", MODULE / "service.py")
-app = _load("history_deletion_bridge_app_test", MODULE / "app.py")
+    _load("config", MODULE / "config.py")
+    _load("service", MODULE / "service.py")
+    app = _load("history_deletion_bridge_app_test", MODULE / "app.py")
 
 
 class ReconciliationMetricTests(unittest.TestCase):

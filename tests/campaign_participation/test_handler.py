@@ -5,33 +5,35 @@ import types
 import unittest
 from pathlib import Path
 from unittest import mock
+from tests.module_aliases import isolated_aliases
 
-MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "campaign_participation"
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+with isolated_aliases('app','config','errors','service','validation'), mock.patch.object(sys, "path", sys.path.copy()):
+    MODULE_DIR = Path(__file__).resolve().parents[2] / "src" / "campaign_participation"
+    if str(MODULE_DIR) not in sys.path:
+        sys.path.insert(0, str(MODULE_DIR))
 
-for name in ["app", "config", "errors", "service", "validation"]:
-    sys.modules.pop(name, None)
-
-
-def load(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    assert spec.loader
-    spec.loader.exec_module(module)
-    return module
+    for name in ["app", "config", "errors", "service", "validation"]:
+        sys.modules.pop(name, None)
 
 
-load("errors", MODULE_DIR / "errors.py")
-load("config", MODULE_DIR / "config.py")
-service_stub = types.ModuleType("service")
-service_stub.get_participation = lambda _identity: {}
-service_stub.update_participation = lambda _identity, _payload: {}
-sys.modules["service"] = service_stub
-validation = load("validation", MODULE_DIR / "validation.py")
-app = load("app", MODULE_DIR / "app.py")
-validate_config = app.config.validate_config
+    def load(name, path):
+        spec = importlib.util.spec_from_file_location(name, path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        assert spec.loader
+        spec.loader.exec_module(module)
+        return module
+
+
+    load("errors", MODULE_DIR / "errors.py")
+    load("config", MODULE_DIR / "config.py")
+    service_stub = types.ModuleType("service")
+    service_stub.get_participation = lambda _identity: {}
+    service_stub.update_participation = lambda _identity, _payload: {}
+    sys.modules["service"] = service_stub
+    validation = load("validation", MODULE_DIR / "validation.py")
+    app = load("app", MODULE_DIR / "app.py")
+    validate_config = app.config.validate_config
 
 OPERATION_ID = "47debb73-444b-4bb1-9889-fb56885b7922"
 

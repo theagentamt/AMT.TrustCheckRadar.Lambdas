@@ -37,6 +37,7 @@ def lambda_handler(event,context):
     is_v3=type(event) is dict and event.get('schemaVersion')==3 and event.get('policyVersion')==v2.POLICY
     is_v2=type(event) is dict and event.get('schemaVersion')==2 and event.get('policyVersion')==v2.POLICY
     rules_only=(is_v3 and event.get('runtimeMode')=='rules_only')
+    primary=(is_v3 and event.get('runtimeMode')=='ai_primary_v1')
     if rules_only:
         enabled=(os.environ.get('STAGE')=='dev' and os.environ.get('MESSAGE_EVALUATOR_ENABLED')=='true'
                  and os.environ.get('MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED')=='true'
@@ -48,9 +49,10 @@ def lambda_handler(event,context):
                  and os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY
                  and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
     else:enabled=policy_enabled('MESSAGE_EVALUATOR_ENABLED')
+    if primary and (os.environ.get('MESSAGE_AI_PRIMARY_ENABLED')!='true' or os.environ.get('MESSAGE_AI_QUALIFIED')!='true'):enabled=False
     if not enabled:return {'enabled':False}
     try:
-        expected={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'}|({'runtimeMode'} if rules_only else set())
+        expected={'schemaVersion','checkId','policyVersion','intent','executionBudgetMs'}|({'runtimeMode'} if rules_only or primary else set())|({'providerCost'} if (is_v2 or is_v3) and not rules_only else set())
         require(type(event) is dict and set(event)==expected)
         if rules_only:require(event['runtimeMode']=='rules_only')
         require(type(event['schemaVersion']) is int and event['schemaVersion']==(3 if is_v3 else (2 if is_v2 else 1)) and event['policyVersion']==(v2.POLICY if is_v2 or is_v3 else POLICY))
@@ -66,14 +68,19 @@ def lambda_handler(event,context):
             if rules_only:
                 return evaluate_ai(event['checkId'],event['intent'],lookup=None,budget_ms=budget,ai=None,rules_only=True)
             from .ai_provider import assess
-            return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,ai=assess)
+            from shared_message_contract.provider_cost import CostPolicy
+            cost=CostPolicy.from_env()
+            require(CostPolicy.from_dict(event['providerCost'])==cost)
+            return evaluate_ai(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,
+                ai=lambda intent,remaining:assess(intent,remaining,cost_policy=cost),
+                **({'ai_primary':True} if primary else {}))
         proposer = None
         if os.environ.get('MESSAGE_PROPOSER_ENABLED') == 'true':
-            from .proposer import Settings, propose
-            # Configuration errors are processed as provider unavailability after
-            # independent reviewed-link work, preserving any known threat match.
+            # The old optional candidate.1 paid prompt has no approved monetary
+            # policy. Keep deterministic/link behavior, but never bypass the
+            # normal qualified AI budget through this legacy switch.
             def proposer(intent, remaining_ms):
-                return propose(intent, Settings.from_env(), remaining_ms)
+                raise ValueError('LEGACY_PAID_PROPOSER_NOT_QUALIFIED')
         return evaluate(event['checkId'],event['intent'],lookup=lookup,budget_ms=budget,proposer=proposer)
     except Exception:
         # Only fixed failure output, never an exception payload or raw request.

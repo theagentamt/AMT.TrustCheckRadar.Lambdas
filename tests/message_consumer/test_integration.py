@@ -26,6 +26,8 @@ from url_consumer.service import Consumer as UrlConsumer, VERSION as URL_VERSION
 
 class Budget:
     def __init__(self, allowed=True):
+        from shared_message_contract.provider_cost import CostPolicy
+        self.cost_policy = CostPolicy('fixture-model-2026-01-01',1024,512,2,4)
         self.allowed = allowed
         self.attempts = 0
         self.failures = []

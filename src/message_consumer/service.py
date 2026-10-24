@@ -49,10 +49,12 @@ def unavailable_envelope(code='SERVICE_UNAVAILABLE',version=VERSION):
 
 class Consumer:
     def __init__(self,authority,provider,refresh,budget,*,clock=time.monotonic,remaining_ms=lambda:29000,allow_ai=False,
-                 allow_candidate3_rules_only=False):
+                 allow_candidate3_rules_only=False,allow_ai_primary=False):
         self.a=authority;self.provider=provider;self.refresh=refresh;self.budget=budget
         self.clock=clock;self.remaining=remaining_ms;self.mapper=url_mapper();self.allow_ai=allow_ai
         self.allow_candidate3_rules_only=allow_candidate3_rules_only;self.version=VERSION
+        if allow_ai_primary and not allow_ai:raise ValueError('AI_PRIMARY_REQUIRES_AI')
+        self.allow_ai_primary=allow_ai_primary
 
     def access(self,event):return UrlConsumer.access(self,event)
 
@@ -115,6 +117,10 @@ class Consumer:
             intent={k:body[k] for k in ('entryPoint','language','target')}
             validate_intent(intent)
             bound_intent=intent|{'messageTransportVersion':self.version} if self.version in (v2.VERSION,v3.VERSION) else intent
+            if self.allow_ai_primary:
+                if self.version!=v3.VERSION:raise AuthorityError('SERVICE_NOT_ENABLED')
+                from shared_message_contract.execution_profile import PRIMARY
+                bound_intent=bound_intent|{'messageExecutionProfile':PRIMARY}
             self.refresh(event)
             if prepare:
                 proof=self.a.prepare(event,bound_intent,client,client_check_id=client,count_attempt=False)
@@ -142,8 +148,16 @@ class Consumer:
                              'policyVersion':v2.POLICY if self.version in (v2.VERSION,v3.VERSION) else POLICY,
                              'intent':intent,'executionBudgetMs':budget_ms}
                     if rules_only:request['runtimeMode']='rules_only'
+                    if self.allow_ai and self.version in (v2.VERSION,v3.VERSION):
+                        from shared_message_contract.provider_cost import CostPolicy
+                        cost=getattr(self.budget,'cost_policy',None)
+                        if not isinstance(cost,CostPolicy):raise ValueError('AI_COST_POLICY_REQUIRED')
+                        request['providerCost']=cost.as_dict()
+                    if self.allow_ai_primary:request['runtimeMode']='ai_primary_v1'
                     raw_result=self.provider(request)
                     outcome=validator(raw_result,client)
+                    if self.allow_ai_primary and outcome['aiAssessmentStatus'] not in ('warning','no_warning') and outcome['processingOutcome']=='complete':
+                        raise ValueError('AI_PRIMARY_COMPLETION_WITHOUT_AI')
             except Exception:
                 outcome=limited(client,limits=['PROVIDER_UNAVAILABLE'])
             if self.version==v3.VERSION:outcome=v3.present(outcome,self.a.freshness_now())

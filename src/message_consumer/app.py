@@ -62,16 +62,22 @@ def lambda_handler(event,context):
             return int(raw)
         circuit=os.environ.get('MESSAGE_PROVIDER_CIRCUIT_OPEN','true')
         if circuit not in ('true','false'):raise ValueError()
+        reconcile_route=event.get('routeKey')=='POST /v1/message-checks/reconcile'
+        allow_ai=(not reconcile_route and os.environ.get('MESSAGE_AI_ENABLED')=='true'
+            and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
+        from shared_message_contract.provider_cost import CostPolicy
+        cost=CostPolicy.from_env() if allow_ai else None
         budget=ProviderBudget(authority,window_seconds=required_number('MESSAGE_PROVIDER_WINDOW_SECONDS'),
             max_attempts=required_number('MESSAGE_PROVIDER_ATTEMPTS_PER_WINDOW'),
-            max_failures=required_number('MESSAGE_PROVIDER_FAILURES_PER_WINDOW'),circuit_open=circuit=='true')
-        allow_ai=(os.environ.get('MESSAGE_AI_ENABLED')=='true'
-            and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
-        allow_candidate3_rules_only=os.environ.get('MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED')=='true'
+            max_failures=required_number('MESSAGE_PROVIDER_FAILURES_PER_WINDOW'),circuit_open=circuit=='true',
+            cost_policy=cost,max_reserved_nano=required_number('MESSAGE_PROVIDER_NANO_USD_PER_WINDOW') if cost else None)
+        allow_candidate3_rules_only=not reconcile_route and os.environ.get('MESSAGE_CANDIDATE3_RULES_ONLY_ENABLED')=='true'
         if allow_ai and allow_candidate3_rules_only:raise ValueError()
+        allow_ai_primary=not reconcile_route and os.environ.get('MESSAGE_AI_PRIMARY_ENABLED')=='true'
+        if allow_ai_primary and not allow_ai:raise ValueError()
         consumer=Consumer(authority,provider,lambda event:writer.refresh_for_account(event,'message-'+secrets.token_hex(8)),budget,
             remaining_ms=context.get_remaining_time_in_millis,allow_ai=allow_ai,
-            allow_candidate3_rules_only=allow_candidate3_rules_only)
+            allow_candidate3_rules_only=allow_candidate3_rules_only,allow_ai_primary=allow_ai_primary)
         status,body=consumer.handle(event)
     except Exception:
         return response(503,unavailable_envelope(version=version))
