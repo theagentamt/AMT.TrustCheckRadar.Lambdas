@@ -13,7 +13,7 @@ p=argparse.ArgumentParser();p.add_argument('--lambda-repo',required=True);p.add_
 repo=Path(args.lambda_repo).resolve();sys.path[:0]=[str(repo),str(repo/'src')]
 from evaluation.message_ai.corpus import validate
 from evaluation.message_ai.profile import canonical, digest
-from message_evaluator.ai_provider import parse
+from message_evaluator.ai_provider import validate_assessment
 P=Path(__file__).resolve().parent
 v=json.loads((P/'engineering/development-corpus.json').read_text());validate(v)
 meta=json.loads((P/'engineering/cohort-manifest.json').read_text());by={c['caseId']:c for c in v['cases']};groups={}
@@ -36,8 +36,7 @@ for c in v['cases']:
   for span in reason['spans']:
    assert end<=span['start']<span['end']<=len(text);end=span['end']
    assert any(x.isalpha() for x in text[span['start']:span['end']])
- wire={'model':'offline-synthetic','status':'completed','output':[{'type':'message','role':'assistant','status':'completed','content':[{'type':'output_text','text':canonical({'result':proposal})}]}]}
- assert parse(canonical(wire).encode(),text,expected_model='offline-synthetic')==proposal
+ assert validate_assessment(proposal,text)==proposal
 assert len(groups)==20
 for pair in groups.values():
  assert {c['intent']['language'] for c in pair}=={'en','es'} and len(pair)==2
@@ -75,6 +74,6 @@ try:validate(invalid)
 except Exception:pass
 else:raise AssertionError('Engineering-only holdout unexpectedly accepted')
 commit=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
-result={'schemaVersion':1,'status':'structural_checks_passed','lambdaSourceCommit':commit,'cases':40,'translationFamilies':20,'languages':{'en':20,'es':20},'cohorts':cohorts,'proposedCategoryCounts':categories,'realProviderCalls':0,'humanReviews':0,'qualificationEligible':False,'holdoutEligible':False,'checks':['real existing corpus schema validator','actual source/scope/rubric/label hash bindings','EN/ES paired role/source/entity/link/label structural parity','all five proposed categories per language','NFC and codepoint span boundaries','synthetic response shapes accepted by shared parser','NFD rejected at existing intake boundary','engineering-only holdout rejected','all human-review and adjudication worksheet cells blank'],'limitations':['Semantic translation correctness and evidence support are not independently reviewed','Simulation deliberately mirrors proposed labels; no model accuracy claim','No cohort threshold or representative sample claim','No billing/recovery or provider transport exercised','Explicit backend-only independent-link cases do not match current Android reviewedLinks-empty scope']}
+result={'schemaVersion':1,'status':'structural_checks_passed','lambdaSourceCommit':commit,'cases':40,'translationFamilies':20,'languages':{'en':20,'es':20},'cohorts':cohorts,'proposedCategoryCounts':categories,'realProviderCalls':0,'humanReviews':0,'qualificationEligible':False,'holdoutEligible':False,'checks':['real existing corpus schema validator','actual source/scope/rubric/label hash bindings','EN/ES paired role/source/entity/link/label structural parity','all five proposed categories per language','NFC and codepoint span boundaries','historical normalized assessments accepted by shared validator','NFD rejected at existing intake boundary','engineering-only holdout rejected','all human-review and adjudication worksheet cells blank'],'limitations':['Semantic translation correctness and evidence support are not independently reviewed','Simulation deliberately mirrors proposed labels; no model accuracy claim','No cohort threshold or representative sample claim','No billing/recovery or provider transport exercised','Explicit backend-only independent-link cases do not match current Android reviewedLinks-empty scope']}
 if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({'status':result['status'],'cases':40,'realProviderCalls':0,'humanReviews':0,'qualificationEligible':False}))

@@ -41,11 +41,16 @@ def test_proposed_bilingual_labels_are_structurally_valid_and_policy_bounded(cas
     assert case['split'] == 'development' and case['reviewStatus'] == 'engineering_only'
     intent = case['intent']; validate_intent(intent)
     value = case['proposedAssessment']; text = intent['target']['sanitizedText']
-    assert ai_provider.parse(wire(value), text, expected_model=MODEL) == value
+    # Historical normalized spans remain immutable; new provider wire uses
+    # explicit unique whole-message evidence, never slicing invalid offsets.
+    assert ai_provider.validate_assessment(value,text)==value
+    private={**value,'reasons':[{'code':r['code'],'quotes':[text]} for r in value['reasons']]}
+    grounded=ai_provider.parse(wire(private),text,expected_model=MODEL)
+    assert [r['code'] for r in grounded['reasons']]==[r['code'] for r in value['reasons']]
     calls = []
     def injected(*args):
         calls.append(True)
-        return copy.deepcopy(value)
+        return copy.deepcopy(grounded)
     outcome = evaluate('playbook-test', intent, ai=injected)
     assert bool(calls) is case['expectedCallbackReached']
     assert {k:outcome[k] for k in case['expectedInjectedPolicy']} == case['expectedInjectedPolicy']
@@ -76,9 +81,9 @@ def test_unicode_span_indices_reject_utf16_overrun_and_placeholder_only_groundin
     assert text[span['start']:span['end']].startswith('responda')
     assert len(text.encode('utf-16-le')) // 2 == len(text) + 1
     span['end'] += 1
-    with pytest.raises(MessageError): ai_provider.parse(wire(value),text)
+    with pytest.raises(MessageError): ai_provider.validate_assessment(value,text)
     value['reasons'][0]['spans'] = [{'start':0,'end':len('[PASSWORD_1]')}]
-    with pytest.raises(MessageError): ai_provider.parse(wire(value),'[PASSWORD_1]')
+    with pytest.raises(MessageError): ai_provider.validate_assessment(value,'[PASSWORD_1]')
 
 
 def test_spans_are_ordered_per_category_but_may_overlap_across_categories():
@@ -86,9 +91,9 @@ def test_spans_are_ordered_per_category_but_may_overlap_across_categories():
     value = {'assessment':'warning','context':'clear','reasons':[
         {'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':15}]},
         {'code':'AI_CONSEQUENTIAL_URGENCY','spans':[{'start':0,'end':15}]}]}
-    assert ai_provider.parse(wire(value),text) == value
+    assert ai_provider.validate_assessment(value,text) == value
     value['reasons'][0]['spans'] = [{'start':4,'end':15},{'start':0,'end':3}]
-    with pytest.raises(MessageError): ai_provider.parse(wire(value),text)
+    with pytest.raises(MessageError): ai_provider.validate_assessment(value,text)
 
 
 def test_historical_refinement_prompt_identity_and_empty_authorization_registries():

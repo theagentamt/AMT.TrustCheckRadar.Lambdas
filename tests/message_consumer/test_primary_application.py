@@ -118,6 +118,8 @@ def test_normal_http_adapters_budget_usage_reconcile_and_history(world,monkeypat
         calls.append(kw['body_builder'](intent,settings))
         if reply=='timeout':raise TimeoutError()
         proposal=ai_output(reply if reply in ('warning','no_warning') else 'warning')
+        proposal={**proposal,'reasons':[{'code':r['code'],'quotes':[intent['target']['sanitizedText']]}
+            for r in proposal['reasons']]}
         wire={'model':cost.model,'service_tier':'default','status':'completed',
             'usage':{'input_tokens':100,'output_tokens':20,'total_tokens':120,
               'input_tokens_details':{'cached_tokens':0},'output_tokens_details':{'reasoning_tokens':0}},
