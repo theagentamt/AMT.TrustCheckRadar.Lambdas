@@ -1,0 +1,18 @@
+{
+  "sourceBase": "5e4390ae4024e24e72f9235c6026ac98d80d7f0a",
+  "suiteCount": 56,
+  "reportedTestcases": {
+    "tests": 4243,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "validationComposition": "55 initial passing component reports plus sanitizer-contract rerun after refreshing current-source identity pins; original failed report retained",
+  "combinedAuthorityMessageHistoryInitial": 1027,
+  "independentEvaluatorTests": 456,
+  "independentBoundaryParityCases": 52,
+  "network": "external blocked; synthetic AWS configuration and loopback only",
+  "providerCalls": 0,
+  "secretReads": 0,
+  "qualification": "none"
+}
