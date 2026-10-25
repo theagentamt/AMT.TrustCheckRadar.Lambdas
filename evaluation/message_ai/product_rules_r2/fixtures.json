@@ -1,0 +1,396 @@
+{
+  "criteriaVersion": "message-product-rules-2026-10-25-r2",
+  "scope": "prospective_engineering_references_only",
+  "historicalBatchesRescored": false,
+  "modelQualityMeasured": false,
+  "cases": [
+    {
+      "caseId": "gift-card-only-en",
+      "family": "gift-card-only",
+      "language": "en",
+      "sanitizedText": "Your bank account will be closed today unless you buy gift cards and send us the codes immediately.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Your bank account will be closed today unless you buy gift cards and send us the codes immediately."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Your bank account will be closed today unless you buy gift cards and send us the codes immediately."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "gift-card-only-es",
+      "family": "gift-card-only",
+      "language": "es",
+      "sanitizedText": "Su cuenta bancaria se cerrará hoy a menos que compre tarjetas de regalo y nos envíe los códigos de inmediato.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Su cuenta bancaria se cerrará hoy a menos que compre tarjetas de regalo y nos envíe los códigos de inmediato."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Su cuenta bancaria se cerrará hoy a menos que compre tarjetas de regalo y nos envíe los códigos de inmediato."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "authentication-only-en",
+      "family": "authentication-only",
+      "language": "en",
+      "sanitizedText": "Please send your account password and login authentication code so I can finish this refund.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "allowedReasons": [
+        "AI_CREDENTIAL_REQUEST",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "quotes": [
+            "Please send your account password and login authentication code so I can finish this refund."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "authentication-only-es",
+      "family": "authentication-only",
+      "language": "es",
+      "sanitizedText": "Envíeme la contraseña de su cuenta y el código de autenticación de acceso para que pueda completar este reembolso.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "allowedReasons": [
+        "AI_CREDENTIAL_REQUEST",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "quotes": [
+            "Envíeme la contraseña de su cuenta y el código de autenticación de acceso para que pueda completar este reembolso."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "mixed-en",
+      "family": "mixed",
+      "language": "en",
+      "sanitizedText": "Buy gift cards and send the redemption PINs immediately or your account will close; also send your account password and login authentication code.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_CREDENTIAL_REQUEST",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Buy gift cards and send the redemption PINs immediately or your account will close; also send your account password and login authentication code."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Buy gift cards and send the redemption PINs immediately or your account will close; also send your account password and login authentication code."
+          ]
+        },
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "quotes": [
+            "Buy gift cards and send the redemption PINs immediately or your account will close; also send your account password and login authentication code."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "mixed-es",
+      "family": "mixed",
+      "language": "es",
+      "sanitizedText": "Compre tarjetas de regalo y envíe los PIN de canje de inmediato o se cerrará su cuenta; además envíe la contraseña de su cuenta y el código de autenticación de acceso.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_CREDENTIAL_REQUEST"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_CREDENTIAL_REQUEST",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Compre tarjetas de regalo y envíe los PIN de canje de inmediato o se cerrará su cuenta; además envíe la contraseña de su cuenta y el código de autenticación de acceso."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Compre tarjetas de regalo y envíe los PIN de canje de inmediato o se cerrará su cuenta; además envíe la contraseña de su cuenta y el código de autenticación de acceso."
+          ]
+        },
+        {
+          "code": "AI_CREDENTIAL_REQUEST",
+          "quotes": [
+            "Compre tarjetas de regalo y envíe los PIN de canje de inmediato o se cerrará su cuenta; además envíe la contraseña de su cuenta y el código de autenticación de acceso."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "preventive-en",
+      "family": "preventive",
+      "language": "en",
+      "sanitizedText": "Never share gift-card redemption PINs, account passwords or login authentication codes with a stranger.",
+      "assessment": "no_warning",
+      "context": "clear",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "preventive-es",
+      "family": "preventive",
+      "language": "es",
+      "sanitizedText": "Nunca comparta los PIN de canje de tarjetas de regalo, contraseñas de cuenta ni códigos de autenticación de acceso con desconocidos.",
+      "assessment": "no_warning",
+      "context": "clear",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "ambiguous-en",
+      "family": "ambiguous",
+      "language": "en",
+      "sanitizedText": "Send me the code you received.",
+      "assessment": "abstain",
+      "context": "insufficient",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "ambiguous-es",
+      "family": "ambiguous",
+      "language": "es",
+      "sanitizedText": "Envíeme el código que recibió.",
+      "assessment": "abstain",
+      "context": "insufficient",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "routine-business-en",
+      "family": "routine-business",
+      "language": "en",
+      "sanitizedText": "Café Cedar: Your monthly statement is ready in your usual account.",
+      "assessment": "no_warning",
+      "context": "clear",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "routine-business-es",
+      "family": "routine-business",
+      "language": "es",
+      "sanitizedText": "Café Cedro: Su estado de cuenta mensual está disponible en su cuenta habitual.",
+      "assessment": "no_warning",
+      "context": "clear",
+      "requiredReasons": [],
+      "allowedReasons": [],
+      "referenceReasons": []
+    },
+    {
+      "caseId": "claimed-authority-threat-en",
+      "family": "claimed-authority-threat",
+      "language": "en",
+      "sanitizedText": "🔐 Café notice: authorize the transfer today or your account will be frozen.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "authorize the transfer today or your account will be frozen"
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "authorize the transfer today or your account will be frozen"
+          ]
+        },
+        {
+          "code": "AI_PRETEXT",
+          "quotes": [
+            "Café notice",
+            "authorize the transfer today or your account will be frozen"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "claimed-authority-threat-es",
+      "family": "claimed-authority-threat",
+      "language": "es",
+      "sanitizedText": "🔐 Aviso del café: autorice la transferencia hoy o su cuenta quedará congelada.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "autorice la transferencia hoy o su cuenta quedará congelada"
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "autorice la transferencia hoy o su cuenta quedará congelada"
+          ]
+        },
+        {
+          "code": "AI_PRETEXT",
+          "quotes": [
+            "Aviso del café",
+            "autorice la transferencia hoy o su cuenta quedará congelada"
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "ambiguous-with-independent-risk-en",
+      "family": "ambiguous-with-independent-risk",
+      "language": "en",
+      "sanitizedText": "Send me the code you received; transfer the money immediately or your account will be closed today.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Send me the code you received; transfer the money immediately or your account will be closed today."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Send me the code you received; transfer the money immediately or your account will be closed today."
+          ]
+        }
+      ]
+    },
+    {
+      "caseId": "ambiguous-with-independent-risk-es",
+      "family": "ambiguous-with-independent-risk",
+      "language": "es",
+      "sanitizedText": "Envíeme el código que recibió; transfiera el dinero de inmediato o su cuenta se cerrará hoy.",
+      "assessment": "warning",
+      "context": "clear",
+      "requiredReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY"
+      ],
+      "allowedReasons": [
+        "AI_PAYMENT_PRESSURE",
+        "AI_CONSEQUENTIAL_URGENCY",
+        "AI_PRETEXT"
+      ],
+      "referenceReasons": [
+        {
+          "code": "AI_PAYMENT_PRESSURE",
+          "quotes": [
+            "Envíeme el código que recibió; transfiera el dinero de inmediato o su cuenta se cerrará hoy."
+          ]
+        },
+        {
+          "code": "AI_CONSEQUENTIAL_URGENCY",
+          "quotes": [
+            "Envíeme el código que recibió; transfiera el dinero de inmediato o su cuenta se cerrará hoy."
+          ]
+        }
+      ]
+    }
+  ]
+}

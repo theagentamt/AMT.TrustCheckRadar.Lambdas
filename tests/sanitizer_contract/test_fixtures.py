@@ -140,8 +140,11 @@ def test_published_supplement_checksums_and_current_evaluation_source_pins():
     historical_path=DIR/'evaluation-profile-identities.json'
     historical=json.loads(historical_path.read_text())
     pins=json.loads((DIR/'evaluation-source-current.json').read_text())
-    assert pins['sourceBaseCommit']=='d6f236532797f5f311347529fe013e08b7f2daf1'
+    assert pins['sourceBaseCommit']=='b9552cfb6cc5f1f6be4f560a992b1880747c7413'
     assert pins['sourceState']=='permanent_ai_candidate_not_qualified'
+    assert pins['prospectiveSemanticCriteria']['version']=='message-product-rules-2026-10-25-r2'
+    for path,checksum in pins['prospectiveSemanticCriteria']['sha256'].items():
+        assert hashlib.sha256((ROOT/path).read_bytes()).hexdigest()==checksum
     assert 'sourceCommit' not in pins
     assert pins['historicalPublishedRecord']=={
         'path':'evaluation-profile-identities.json',

@@ -1,11 +1,11 @@
 {
-  "reason": "code_purpose_clarification",
-  "promptSha256": "4e988ff9b14c37710b2e451108abc8e6e5e76879847c469ea9748be4993d6e25",
+  "reason": "prospective_product_rules_r2",
+  "promptSha256": "b85d182c0a2a81327b0629a7f7fdbeedc36e5b963bdb496f90c735f2751035f6",
   "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "e85a6971e6e48186202f998c01a79fa4d0936c22c1f3a7ec6e5e731323df0a5d",
-    "gpt-5.4-nano-2026-03-17": "40302cc6bcbb16bf8fcb4facc6dae165086119cbbf0b247df8023fc78c2458ed",
-    "gpt-5.4-mini-2026-03-17": "8ff3f67e4845750d22a3d988ec7fc4e62a0061559a32001f67a79a9d30be13b1"
+    "gpt-4.1-mini-2025-04-14": "c5c0f39e2bdcf217160803c221e6647ec976e6e82a817570ceee6bb5db343f1a",
+    "gpt-5.4-nano-2026-03-17": "c000b0c30a2394d0b2896d192d87a4274e576709f231caee80f3daa1b9f04d4b",
+    "gpt-5.4-mini-2026-03-17": "e162db111dd059da17cb964d936fca39a877459fbada9b4f3ff295c1ba5ca167"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",
@@ -14,6 +14,13 @@
   },
   "qualification": "none",
   "paidExecutionAuthorized": false,
-  "sourceBaseCommit": "d6f236532797f5f311347529fe013e08b7f2daf1",
-  "sourceState": "permanent_ai_candidate_not_qualified"
+  "sourceBaseCommit": "b9552cfb6cc5f1f6be4f560a992b1880747c7413",
+  "sourceState": "permanent_ai_candidate_not_qualified",
+  "prospectiveSemanticCriteria": {
+    "version": "message-product-rules-2026-10-25-r2",
+    "sha256": {
+      "evaluation/message_ai/product_rules_r2/RUBRIC.en-es.md": "58c35a6faf71864b059448e50fd97bd122ea386cc9ce22575ec9434b7c3fdb67",
+      "evaluation/message_ai/product_rules_r2/fixtures.json": "e4182868c3bd4343013c4b389de3e677a53254e6a42ac3ec70a7c98e1a7d5b8d"
+    }
+  }
 }
