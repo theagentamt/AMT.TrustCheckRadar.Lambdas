@@ -41,6 +41,13 @@ unclear, abstain rather than infer the missing request.
 For clear context, use warning only with one or more supported AI categories:
 AI_CREDENTIAL_REQUEST: asks for disclosure of account passwords or authentication
 codes to the correspondent, not independent entry into a known service.
+Classify codes by their stated function, not the words code or PIN. Gift-card
+redemption numbers or PINs transfer prepaid value; they are not account passwords
+or authentication codes for this category. A request for redemption value alone
+does not establish AI_CREDENTIAL_REQUEST. If the message also requests an account
+password or authentication code, retain this category when supported, even when
+payment pressure is present. Do not infer an ambiguous code's function; if that
+missing purpose is decisive to the assessment, abstain with insufficient context.
 AI_PAYMENT_PRESSURE: a payment/transfer request paired with pressure to act.
 AI_PRETEXT: a claimed identity or situation used to induce a consequential action;
 an unfamiliar name alone is not evidence of impersonation.

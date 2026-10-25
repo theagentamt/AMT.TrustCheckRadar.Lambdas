@@ -70,3 +70,25 @@ Prompt/schema/profile hashes change again; all prior qualification evidence is
 stale for these bytes. Registries remain empty and runtime activation remains off.
 Historical normalized fixtures are retained, while isolated provider fixtures use
 the new private format. No new provider request is part of this correction.
+
+## Code-purpose clarification
+
+The permanent prompt distinguishes codes by their stated function. Gift-card
+redemption numbers/PINs carry prepaid value and alone do not establish the
+account-authentication category. A separate request for account passwords or
+authentication codes still supports `AI_CREDENTIAL_REQUEST`, including alongside
+payment pressure. Ambiguous purpose is not invented; a decisive missing purpose
+requires abstention. The closed taxonomy, parser and public contracts are unchanged.
+
+Paired EN/ES engineering contrasts cover gift-card-only, authentication-only,
+mixed requests, preventive advice and ambiguous code purpose. They verify actual
+request construction, strict decoding and reference-output policy projection;
+they do not establish that a model will follow the clarified prompt. Structurally
+valid but semantically incorrect reasons are not silently removed by a new filter.
+
+The prior PR163 paid batch remains nine of ten against its unchanged frozen
+semantic criteria: the Spanish gift-card warning included an unlisted credential
+reason. Its results and evidence are preserved. This new prompt changes request
+and profile hashes and requires a fresh reviewed qualification packet and new
+paid/secret-use approval. No qualification acceptance or runtime activation follows
+from the offline contrasts.
