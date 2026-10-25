@@ -1,5 +1,10 @@
 # Runtime playbook refinement r1
 
+Historical r1 record: retain this rubric, fixture and identity data unchanged.
+For prospective code-purpose/context and pretext review, use the owner-approved
+[`message-product-rules-2026-10-25-r2`](../product_rules_r2/README.md) supplement.
+It does not rescore any previous engineering or paid batch.
+
 Internal documented revision: `message-playbook-2026-09-21-r1`. Owner approved
 P1–P4 **and** ordinary-invoice minimum constraint for implementation on 2026-09-21.
 Approval source: infrastructure review commit

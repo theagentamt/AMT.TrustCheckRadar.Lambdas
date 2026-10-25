@@ -1,5 +1,6 @@
 """Engineering contrasts for the permanent prompt/codec/policy, not model accuracy."""
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 import socket
@@ -14,34 +15,10 @@ from .test_ai_policy import intent, wire
 PAYMENT = 'AI_PAYMENT_PRESSURE'
 URGENCY = 'AI_CONSEQUENTIAL_URGENCY'
 CREDENTIAL = 'AI_CREDENTIAL_REQUEST'
-CASES = [
-    ('gift-card-only','en',
-     'Your bank account will be closed today unless you buy gift cards and send us the codes immediately.',
-     'warning','clear',[PAYMENT,URGENCY]),
-    ('gift-card-only','es',
-     'Su cuenta bancaria se cerrará hoy a menos que compre tarjetas de regalo y nos envíe los códigos de inmediato.',
-     'warning','clear',[PAYMENT,URGENCY]),
-    ('authentication-only','en',
-     'Please send your account password and login authentication code so I can finish this refund.',
-     'warning','clear',[CREDENTIAL]),
-    ('authentication-only','es',
-     'Envíeme la contraseña de su cuenta y el código de autenticación de acceso para que pueda completar este reembolso.',
-     'warning','clear',[CREDENTIAL]),
-    ('mixed','en',
-     'Buy gift cards and send the redemption PINs immediately or your account will close; also send your account password and login authentication code.',
-     'warning','clear',[PAYMENT,URGENCY,CREDENTIAL]),
-    ('mixed','es',
-     'Compre tarjetas de regalo y envíe los PIN de canje de inmediato o se cerrará su cuenta; además envíe la contraseña de su cuenta y el código de autenticación de acceso.',
-     'warning','clear',[PAYMENT,URGENCY,CREDENTIAL]),
-    ('preventive','en',
-     'Never share gift-card redemption PINs, account passwords or login authentication codes with a stranger.',
-     'no_warning','clear',[]),
-    ('preventive','es',
-     'Nunca comparta los PIN de canje de tarjetas de regalo, contraseñas de cuenta ni códigos de autenticación de acceso con desconocidos.',
-     'no_warning','clear',[]),
-    ('ambiguous','en','Send me the code you received.','abstain','insufficient',[]),
-    ('ambiguous','es','Envíeme el código que recibió.','abstain','insufficient',[]),
-]
+ROOT = Path(__file__).resolve().parents[2]
+RUBRIC = ROOT/'evaluation/message_ai/product_rules_r2'
+PACKET = json.loads((RUBRIC/'fixtures.json').read_text())
+CASES = PACKET['cases']
 
 
 @pytest.fixture(autouse=True)
@@ -54,9 +31,12 @@ def offline_only(monkeypatch):
     monkeypatch.setattr(proposer,'secret',forbidden)
 
 
-@pytest.mark.parametrize('family,language,text,assessment,context,codes',CASES,
-                         ids=[f'{c[0]}-{c[1]}' for c in CASES])
-def test_reference_contrasts_preserve_real_request_and_public_policy(family,language,text,assessment,context,codes):
+@pytest.mark.parametrize('case',CASES,ids=[c['caseId'] for c in CASES])
+def test_reference_contrasts_preserve_real_request_and_public_policy(case):
+    family,language,text=(case[k] for k in ('family','language','sanitizedText'))
+    assessment,context=case['assessment'],case['context']
+    codes=[r['code'] for r in case['referenceReasons']]
+    assert set(case['requiredReasons'])<=set(codes)<=set(case['allowedReasons'])
     request=intent(text,language=language)
     body=ai.request_body(request,SimpleNamespace(model='fixture-model-2026-01-01',max_output_tokens=512))
     instructions=body['input'][0]['content'][0]['text']
@@ -64,12 +44,13 @@ def test_reference_contrasts_preserve_real_request_and_public_policy(family,lang
     assert 'Classify codes by their stated function' in instructions
     assert 'A request for redemption value alone' in instructions
     assert 'retain this category when supported' in instructions
-    assert 'if that\nmissing purpose is decisive' in instructions
+    assert 'without its\npurpose or other supported risk evidence' in instructions
+    assert 'not only the name' in instructions
+    assert 'not proof of impersonation, verified identity or fraud' in instructions
     assert json.loads(body['input'][1]['content'][0]['text'])['untrustedReviewedMessage']=={
         'sanitizedText':text,'language':language,'speakerRole':'other'}
     assert body['tools']==[] and body['store'] is False
-    reference={'assessment':assessment,'context':context,'reasons':[
-        {'code':code,'quotes':[text]} for code in codes]}
+    reference={'assessment':assessment,'context':context,'reasons':case['referenceReasons']}
     parsed=ai.parse(wire(reference),text)
     assert [r['code'] for r in parsed['reasons']]==codes
     calls=[]
@@ -87,7 +68,7 @@ def test_reference_contrasts_preserve_real_request_and_public_policy(family,lang
 
 
 def test_grounding_does_not_silently_remove_a_semantically_wrong_credential_reason():
-    _,language,text,*_=CASES[1]
+    language,text=CASES[1]['language'],CASES[1]['sanitizedText']
     response={'assessment':'warning','context':'clear','reasons':[
         {'code':code,'quotes':[text]} for code in [PAYMENT,URGENCY,CREDENTIAL]]}
     parsed=ai.parse(wire(response),text)
@@ -104,3 +85,39 @@ def test_prompt_revision_invalidates_pr163_evidence_without_changing_schema_or_r
     root=Path(__file__).resolve().parents[2]
     for path in ('src/message_evaluator/ai_qualifications.json','evaluation/message_ai/controlled/approved_experiments.json'):
         assert json.loads((root/path).read_text())=={}
+
+
+def test_new_criteria_are_prospective_and_do_not_claim_model_measurement():
+    assert PACKET['criteriaVersion']=='message-product-rules-2026-10-25-r2'
+    assert PACKET['historicalBatchesRescored'] is False
+    assert PACKET['modelQualityMeasured'] is False
+    assert len(CASES)==16
+    for family in {c['family'] for c in CASES}:
+        assert {c['language'] for c in CASES if c['family']==family}=={'en','es'}
+    rubric=(RUBRIC/'RUBRIC.en-es.md').read_text()
+    assert PACKET['criteriaVersion'] in rubric
+    assert 'insufficient' in rubric and 'contexto insuficiente' in rubric
+
+
+@pytest.mark.parametrize('case_id,code',[
+    ('ambiguous-en',CREDENTIAL),('ambiguous-es',CREDENTIAL),
+    ('routine-business-en','AI_PRETEXT'),('routine-business-es','AI_PRETEXT')])
+def test_parser_does_not_add_a_lexical_semantic_override(case_id,code):
+    case=next(c for c in CASES if c['caseId']==case_id)
+    text=case['sanitizedText']
+    # These are structurally valid but semantically wrong reference responses.
+    # Prompt/rubric changes do not filter categories to manufacture a pass.
+    parsed=ai.parse(wire({'assessment':'warning','context':'clear','reasons':[
+        {'code':code,'quotes':[text]}]}),text)
+    assert parsed['reasons'][0]['code']==code
+
+
+def test_historical_engineering_notes_keep_their_recorded_checksum():
+    historical=ROOT/'evaluation/message_ai/development_packet'
+    for line in (historical/'SHA256SUMS').read_text().splitlines():
+        checksum,name=line.split('  ')
+        if name=='engineering/review-notes.md':
+            assert hashlib.sha256((historical/name).read_bytes()).hexdigest()==checksum
+            break
+    else:
+        pytest.fail('Historical engineering-notes record missing')
