@@ -49,8 +49,10 @@ def main():
     failures = 0
     for name, url, verdict, count in cases:
         try:
-            result = invoke({'schemaVersion': 1, 'checkId': 'smoke-' + uuid.uuid4().hex, 'url': url, 'scope': 'full_url'})
-            assert result['consumerAccessEnabled'] is False and result['schemaVersion'] == 1
+            event_check_id = 'smoke-' + uuid.uuid4().hex
+            result = invoke({'schemaVersion': 1, 'checkId': event_check_id, 'url': url, 'scope': 'full_url'})
+            assert result['consumerAccessEnabled'] is False and result['schemaVersion'] == 2
+            assert result['checkId'] is None or result['checkId'] == event_check_id
             assert result['verdict'] == verdict
             assert 0 <= result['providerCallCount'] <= result['lookupCount'] <= 6
             if count is not None:
@@ -58,7 +60,16 @@ def main():
             if count == 0:
                 assert result['observedHopCount'] == 0
                 assert result['processingOutcome'] in ('blocked', 'invalid_input')
+            if verdict == 'no_known_threat_detected':
+                assert result['checkId'] == event_check_id
+                assert result['processingOutcome'] == 'complete'
+                assert result['coverage'] == 'supported_checks_complete'
+                assert result['lookupObservedAt'] is not None and result['lookupValidUntil'] is None
             if verdict == 'high_risk':
+                assert result['checkId'] == event_check_id
+                assert result['providerCallCount'] > 0
+                assert result['processingOutcome'] == 'partial' and result['coverage'] == 'limited'
+                assert result['lookupObservedAt'] is not None and result['lookupValidUntil'] is not None
                 assert 'MALWARE' in result['threatTypes']
             print(json.dumps({'case': name, 'passed': True, 'verdict': verdict,
                               'status': result['processingOutcome'], 'providerCallCount': result['providerCallCount']}))
