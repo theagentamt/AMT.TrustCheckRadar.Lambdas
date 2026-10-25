@@ -5,8 +5,12 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import uuid
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+from shared_lookup_freshness import current, epoch, wall_clock
 
 ALIAS = 'arn:aws:lambda:us-east-1:107827791950:function:trustcheckradar-dev-url-assessment:live'
 
@@ -46,7 +50,6 @@ def main():
         cases.append(('public-https', 'https://example.com/', 'no_known_threat_detected', 1))
     if args.google_test:
         cases.append(('google-documented-malware-test', 'http://testsafebrowsing.appspot.com/s/malware.html', 'high_risk', None))
-    failures = 0
     for name, url, verdict, count in cases:
         try:
             event_check_id = 'smoke-' + uuid.uuid4().hex
@@ -64,19 +67,22 @@ def main():
                 assert result['checkId'] == event_check_id
                 assert result['processingOutcome'] == 'complete'
                 assert result['coverage'] == 'supported_checks_complete'
-                assert result['lookupObservedAt'] is not None and result['lookupValidUntil'] is None
+                assert result['lookupValidUntil'] is None
+                if epoch(result['lookupObservedAt']) > wall_clock():
+                    raise ValueError('FUTURE_PROVIDER_OBSERVATION')
             if verdict == 'high_risk':
                 assert result['checkId'] == event_check_id
                 assert result['providerCallCount'] > 0
                 assert result['processingOutcome'] == 'partial' and result['coverage'] == 'limited'
-                assert result['lookupObservedAt'] is not None and result['lookupValidUntil'] is not None
+                if not current(result['lookupObservedAt'], result['lookupValidUntil'], wall_clock()):
+                    raise ValueError('PROVIDER_EVIDENCE_NOT_CURRENT')
                 assert 'MALWARE' in result['threatTypes']
             print(json.dumps({'case': name, 'passed': True, 'verdict': verdict,
                               'status': result['processingOutcome'], 'providerCallCount': result['providerCallCount']}))
         except Exception:
-            failures += 1
             print(json.dumps({'case': name, 'passed': False}))
-    raise SystemExit(1 if failures else 0)
+            raise SystemExit(1)
+    raise SystemExit(0)
 
 
 if __name__ == '__main__':

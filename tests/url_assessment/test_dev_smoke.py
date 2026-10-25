@@ -12,13 +12,20 @@ smoke = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(smoke)
 
 
-def run(monkeypatch, capsys, patch=None):
+PUBLIC_URL = 'https://example.com/'
+MALWARE_URL = 'http://testsafebrowsing.appspot.com/s/malware.html'
+NOW = '2026-10-25T12:00:00Z'
+
+
+def run(monkeypatch, capsys, patch=None, *, patch_url=None, exception_url=None, now=NOW):
     requests = []
 
     def invoke(event):
         requests.append(event)
-        public = event['url'] == 'https://example.com/'
-        matched = event['url'] == 'http://testsafebrowsing.appspot.com/s/malware.html'
+        if event['url'] == exception_url:
+            raise RuntimeError('SYNTHETIC_INVOKE_FAILURE')
+        public = event['url'] == PUBLIC_URL
+        matched = event['url'] == MALWARE_URL
         eligible = public or matched
         result = {
             'schemaVersion': 2, 'checkId': event['checkId'] if eligible else None,
@@ -31,9 +38,10 @@ def run(monkeypatch, capsys, patch=None):
             'lookupObservedAt': '2026-10-25T00:00:00Z' if eligible else None,
             'lookupValidUntil': '2099-01-01T00:00:00Z' if matched else None,
         }
-        return result | (patch or {})
+        return result | ((patch or {}) if patch_url is None or event['url'] == patch_url else {})
 
     monkeypatch.setattr(smoke, 'invoke', invoke)
+    monkeypatch.setattr(smoke, 'wall_clock', lambda: smoke.epoch(now))
     monkeypatch.setattr(sys, 'argv', ['smoke', '--function', smoke.ALIAS, '--public-https', '--google-test'])
     with pytest.raises(SystemExit) as stopped:
         smoke.main()
@@ -60,3 +68,48 @@ def test_incompatible_or_incomplete_response_fails(monkeypatch, capsys, patch):
     code, lines, _ = run(monkeypatch, capsys, patch)
     assert code == 1
     assert any(not line['passed'] for line in lines)
+
+
+@pytest.mark.parametrize('observed', [
+    None, True, 'not-a-timestamp', '2026-02-30T00:00:00Z',
+    '2026-10-25T00:00:00+00:00', '2026-10-25T12:00:00.000000001Z',
+])
+@pytest.mark.parametrize('url', [PUBLIC_URL, MALWARE_URL])
+def test_malformed_or_future_observation_never_passes(monkeypatch, capsys, observed, url):
+    code, lines, requests = run(monkeypatch, capsys, {'lookupObservedAt': observed}, patch_url=url)
+    assert code == 1 and lines[-1]['passed'] is False
+    assert len(requests) == (7 if url == PUBLIC_URL else 8)
+    assert lines[-1]['case'] == ('public-https' if url == PUBLIC_URL else 'google-documented-malware-test')
+
+
+@pytest.mark.parametrize('expiry', [
+    None, True, 'not-a-timestamp', '2026-02-30T00:00:00Z',
+    '2026-10-26T00:00:00+00:00', '2026-10-24T23:59:59Z',
+    '2026-10-25T00:00:00Z', '2026-10-25T11:59:59.999999999Z', NOW,
+])
+def test_malformed_unordered_or_expired_match_never_passes(monkeypatch, capsys, expiry):
+    code, lines, requests = run(monkeypatch, capsys, {'lookupValidUntil': expiry}, patch_url=MALWARE_URL)
+    assert code == 1 and len(requests) == 8
+    assert lines[-1] == {'case': 'google-documented-malware-test', 'passed': False}
+
+
+def test_nanosecond_expiry_is_current_only_before_its_exact_deadline(monkeypatch, capsys):
+    expiry = '2026-10-25T12:00:00.000000001Z'
+    code, lines, _ = run(monkeypatch, capsys, {'lookupValidUntil': expiry}, patch_url=MALWARE_URL)
+    assert code == 0 and lines[-1]['passed'] is True
+    code, lines, _ = run(monkeypatch, capsys, {'lookupValidUntil': expiry}, patch_url=MALWARE_URL, now=expiry)
+    assert code == 1 and lines[-1]['passed'] is False
+
+
+def test_first_control_failure_stops_before_next_invocation(monkeypatch, capsys):
+    code, lines, requests = run(monkeypatch, capsys, {'providerCallCount': 1})
+    assert code == 1 and len(requests) == 1
+    assert lines == [{'case': 'metadata', 'passed': False}]
+
+
+@pytest.mark.parametrize('url,count', [('http://10.0.0.1/', 2), (PUBLIC_URL, 7)])
+def test_invocation_failure_stops_without_retry_or_later_cases(monkeypatch, capsys, url, count):
+    code, lines, requests = run(monkeypatch, capsys, exception_url=url)
+    assert code == 1 and len(requests) == len(lines) == count
+    assert lines[-1]['passed'] is False
+    assert all(line['passed'] for line in lines[:-1])
