@@ -140,7 +140,8 @@ def test_published_supplement_checksums_and_current_evaluation_source_pins():
     historical_path=DIR/'evaluation-profile-identities.json'
     historical=json.loads(historical_path.read_text())
     pins=json.loads((DIR/'evaluation-source-current.json').read_text())
-    assert pins['sourceBaseCommit']=='b9552cfb6cc5f1f6be4f560a992b1880747c7413'
+    assert pins['sourceBaseCommit']=='61d846524763d999570a6fbc195197db783ae556'
+    assert pins['reasoningCandidate']=={'model':'gpt-5.4-mini-2026-03-17','reasoningEffort':'low','maxOutputTokens':512,'qualified':False}
     assert pins['sourceState']=='permanent_ai_candidate_not_qualified'
     assert pins['prospectiveSemanticCriteria']['version']=='message-product-rules-2026-10-25-r2'
     for path,checksum in pins['prospectiveSemanticCriteria']['sha256'].items():

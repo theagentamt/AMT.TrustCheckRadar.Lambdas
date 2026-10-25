@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from shared_message_contract.validation import require, MessageError, TOKEN
 from shared_message_contract.validation_v2 import POLICY, APPROVAL_SHA, AI_REASONS
@@ -120,18 +121,55 @@ PROMPT_SHA256=hashlib.sha256(INSTRUCTIONS.encode()).hexdigest()
 SCHEMA_SHA256=hashlib.sha256(json.dumps(SCHEMA,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
 
+# A newly supported inference profile still needs empirical qualification. No
+# default reasoning setting, model selection or runtime activation is implied.
+REASONING_MODEL = 'gpt-5.4-mini-2026-03-17'
+
+
+def inference_profile(settings):
+    effort = getattr(settings, 'reasoning_effort', None)
+    if effort is None:
+        return None
+    require(type(effort) is str and effort == 'low' and settings.model == REASONING_MODEL
+            and type(settings.max_output_tokens) is int and settings.max_output_tokens == 512,
+            'PROVIDER_UNAVAILABLE')
+    return {'reasoningEffort': effort, 'maxOutputTokens': settings.max_output_tokens}
+
+
+@dataclass(frozen=True)
+class AISettings(proposer.Settings):
+    reasoning_effort: str | None = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        inference_profile(self)
+
+    @classmethod
+    def from_env(cls):
+        base = proposer.Settings.from_env('MESSAGE_AI_ENABLED')
+        return cls(base.model, base.secret_arn, base.timeout_ms, base.max_output_tokens,
+                   os.environ.get('MESSAGE_AI_REASONING_EFFORT'))
+
+
 def qualified_settings(cost_policy=None):
     require(os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_QUALIFIED')=='true'
             and os.environ.get('MESSAGE_AI_POLICY_VERSION')==POLICY
             and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==APPROVAL_SHA,'PROVIDER_UNAVAILABLE')
-    settings=proposer.Settings.from_env('MESSAGE_AI_ENABLED')
+    settings=AISettings.from_env()
     identifier=os.environ.get('MESSAGE_AI_QUALIFICATION_ID','')
     require(re.fullmatch(r'[A-Za-z0-9_-]{1,64}',identifier) is not None,'PROVIDER_UNAVAILABLE')
     require(re.fullmatch(r'[A-Za-z0-9._-]+-20[0-9]{2}-[0-9]{2}-[0-9]{2}',settings.model) is not None,'PROVIDER_UNAVAILABLE')
     records=json.loads((Path(__file__).parent/'ai_qualifications.json').read_text(),object_pairs_hook=unique_pairs)
     record=records.get(identifier)
     fields={'model','policyVersion','promptSha256','schemaSha256','contractSha256','evidenceSha256','status'}
-    require(type(record) is dict and set(record) in (fields,fields|{'costPolicy'}),'PROVIDER_UNAVAILABLE')
+    profile=inference_profile(settings)
+    expected=fields | ({'inferenceProfile'} if profile is not None else set())
+    require(type(record) is dict and set(record) in (expected,expected|{'costPolicy'}),'PROVIDER_UNAVAILABLE')
+    if profile is not None:
+        require(type(record['inferenceProfile']) is dict and set(record['inferenceProfile'])==set(profile)
+                and type(record['inferenceProfile']['reasoningEffort']) is str
+                and type(record['inferenceProfile']['maxOutputTokens']) is int
+                and record['inferenceProfile']==profile,'PROVIDER_UNAVAILABLE')
     if cost_policy is not None:
         require(isinstance(cost_policy,CostPolicy) and CostPolicy.from_dict(record.get('costPolicy'))==cost_policy
                 and settings.model==cost_policy.model and settings.max_output_tokens==cost_policy.maxOutputTokens,'PROVIDER_UNAVAILABLE')
@@ -148,7 +186,9 @@ def qualified_settings(cost_policy=None):
 
 
 def request_body(intent,settings):
+    profile=inference_profile(settings)
     body=proposer.request_body(intent,settings)
+    if profile is not None:body['reasoning']={'effort':profile['reasoningEffort']}
     body['input'][0]['content'][0]['text']=INSTRUCTIONS
     body['text']['format'].update(name='message_ai_exact_evidence_v1',schema=SCHEMA)
     body.update(service_tier='default',truncation='disabled')
@@ -156,7 +196,7 @@ def request_body(intent,settings):
 
 
 REJECTION_STAGES=frozenset({'RESPONSE_BOUNDS','ENVELOPE_JSON','ENVELOPE_STATUS','MODEL_IDENTITY',
-    'OUTPUT_SHAPE','MESSAGE_SHAPE','CONTENT_SHAPE','ASSESSMENT_JSON','ASSESSMENT_SHAPE',
+    'INFERENCE_PROFILE','OUTPUT_SHAPE','REASONING_ITEM_SHAPE','MESSAGE_SHAPE','CONTENT_SHAPE','ASSESSMENT_JSON','ASSESSMENT_SHAPE',
     'CONTEXT_CONSISTENCY','CONTEXT_ABSTAIN_WITH_CLEAR','CONTEXT_NON_ABSTAIN_WITH_NON_CLEAR',
     'REASON_CONSISTENCY','REASON_SHAPE','ASSESSMENT_TEXT_BOUNDS',
     'EVIDENCE_TEXT_TYPE','EVIDENCE_TEXT_BOUNDS','EVIDENCE_NOT_FOUND','EVIDENCE_AMBIGUOUS',
@@ -257,7 +297,7 @@ def _ground_quotes(value, text):
     return _validate_assessment({'assessment':value['assessment'],'context':value['context'],'reasons':reasons},text)
 
 
-def parse(raw,text,expected_model=None,*,on_rejection=None):
+def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None):
     stage='RESPONSE_BOUNDS'
     try:
         _check(type(raw) is bytes and 1<=len(raw)<=proposer.MAX_RESPONSE_BYTES,stage)
@@ -268,11 +308,28 @@ def parse(raw,text,expected_model=None,*,on_rejection=None):
                and envelope.get('incomplete_details') is None,stage)
         stage='MODEL_IDENTITY'
         _check(expected_model is None or envelope.get('model')==expected_model,stage)
+        stage='INFERENCE_PROFILE'
+        _check(reasoning_effort is None or (type(reasoning_effort) is str and reasoning_effort=='low'
+               and expected_model==REASONING_MODEL),stage)
         stage='OUTPUT_SHAPE'
         output=envelope.get('output')
-        _check(type(output) is list and len(output)==1,stage)
+        _check(type(output) is list and (len(output)==1 or (reasoning_effort=='low' and len(output)==2)),stage)
+        if len(output)==2:
+            stage='REASONING_ITEM_SHAPE'
+            item=output[0]
+            _check(type(item) is dict and {'type','id','summary'}<=set(item)
+                   and set(item)<={'type','id','summary','status','content','encrypted_content'}
+                   and item['type']=='reasoning' and type(item['id']) is str
+                   and re.fullmatch(r'[A-Za-z0-9_-]{1,128}',item['id']) is not None
+                   and type(item['summary']) is list and item['summary']==[]
+                   and ('status' not in item or item['status']=='completed')
+                   and ('content' not in item or (type(item['content']) is list and item['content']==[]))
+                   and (item.get('encrypted_content') is None or
+                        (type(item['encrypted_content']) is str and 1<=len(item['encrypted_content'])<=proposer.MAX_RESPONSE_BYTES)),stage)
+            # Single-turn protocol: metadata is discarded, never interpreted,
+            # logged, persisted, returned or reused as assessment evidence.
         stage='MESSAGE_SHAPE'
-        message=output[0]
+        message=output[-1]
         _check(type(message) is dict and message.get('type')=='message' and message.get('role')=='assistant'
                and message.get('status')=='completed',stage)
         stage='CONTENT_SHAPE'
@@ -315,7 +372,8 @@ def assess(intent,budget_ms,*,cost_policy=None,operations_observer=None):
                 print(json.dumps({'event':'operations_usage_unavailable'},separators=(',',':')))
         reported=True
         require(report['usage'] is not None,'PROVIDER_RESPONSE_INVALID')
-        return parse(raw,text,expected_model=settings.model,on_rejection=report_rejection)
+        return parse(raw,text,expected_model=settings.model,reasoning_effort=getattr(settings,'reasoning_effort',None),
+                     on_rejection=report_rejection)
     try:
         options = {'operations_observer': operations_observer} if operations_observer is not None else {}
         return proposer.propose(intent,settings,budget_ms,body_builder=request_body,response_parser=response_parser,**options)
