@@ -1,11 +1,11 @@
 {
-  "reason": "span_evidence_composition_candidate",
-  "promptSha256": "bc59a0f8374444328b7f2677dfc036e245dc0a4cb09b8f72bb16235c48b9587b",
+  "reason": "span_rejection_diagnostics_only_candidate",
+  "promptSha256": "b85d182c0a2a81327b0629a7f7fdbeedc36e5b963bdb496f90c735f2751035f6",
   "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "ed11570184781f734e612fc47ae30e34844bf1dbcf301cea5e28e32914fe9200",
-    "gpt-5.4-nano-2026-03-17": "ca9f969526b01ca6acf8c6f5f24b59dc6b28dd6203112246a1ecb81d1ea5bad0",
-    "gpt-5.4-mini-2026-03-17": "1344909392516f7e786e24b6030c7f2953a6d126bb9ca637ca6a55543c26507a"
+    "gpt-4.1-mini-2025-04-14": "f3a21e774e71915bcb2369f8cb387b813c40fc4a87850e23ddd0cb2180301eaf",
+    "gpt-5.4-nano-2026-03-17": "46aa88d5dec6b6c374aba2a716a2ef191cab112133baf0848e32eb4a081b0e83",
+    "gpt-5.4-mini-2026-03-17": "f389f9b6bea217248ab826c810be07c8645341a52fd316853254ae06549cba73"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",

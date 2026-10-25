@@ -1,89 +1,87 @@
-# ATCR-182 evidence composition candidate
+# ATCR-182 diagnostic-only candidate
 
 Source base: `09152b691701ef3294f20cd6fb206efcd6bd6778` (PR166).
 Tracking: [ATCR-182](https://andmorethings.youtrack.cloud/issue/ATCR-182), within
-[ATCR-180](https://andmorethings.youtrack.cloud/issue/ATCR-180); unresolved release
-work stays under [ATCR-186](https://andmorethings.youtrack.cloud/issue/ATCR-186).
+[ATCR-180](https://andmorethings.youtrack.cloud/issue/ATCR-180). Parent owns any
+specific unresolved follow-up under [ATCR-186](https://andmorethings.youtrack.cloud/issue/ATCR-186).
 
-The retained real PR166 batch is NO-GO: nine calls, eight strict-valid assessments,
-seven evidence passes, one PRETEXT evidence-composition failure, one hard
-`SPAN_ORDER_OR_OVERLAP` rejection, and five unrun cases. Historical outcomes and
-frozen criteria remain unchanged. The artifacts are retained in
-`/Users/theaimachine/Documents/ChatGPT/AMT Backend Recovery/message-ai-low-reasoning-qualification-pr166-20261025`.
+The bounded Astra extra-high review found no provable application contract or
+normalization defect. The ninth response's precise violation is unrecoverable from
+the retained evidence. A future instrumented real response is required to observe
+its own failure class; it cannot reconstruct the discarded historical response.
 
-The ninth rejected body was intentionally not retained. Source inspection proves
-that at least one reason's exact, unique source quotes derived spans that failed
-`previous_end <= start`. It does not establish whether the pair was reversed,
-duplicated, contained, or partially overlapping. Emoji, offset conventions,
-truncation, and the ninth semantic result are not established causes. The eight
-retained successful parses independently reground from their literal quotes.
+The retained PR166 batch stays NO-GO: nine real calls, eight strict-valid
+assessments, seven evidence passes, one PRETEXT evidence-composition failure, one
+SPAN_ORDER_OR_OVERLAP rejection, and five unrun cases. All 203 retained evidence
+files in the two original evidence directories remain unchanged.
 
-The retained `bank-gift-es` PRETEXT reason quotes only the claimed account-closure
-situation; it omits the consequential action and conditional connection. The whole
-message and another reason's evidence cannot fill that reason's missing elements.
-This establishes an evidence-composition failure, not a need to change the rubric.
+The original request explicitly requires literal, unique quotes in source order,
+without overlap within a reason. The adapter derives positions with `text.find`
+in the same unchanged sanitized text, rejects missing/repeated matches, and passes
+those spans directly to validation. Valid integer bounds precede the ordering
+predicate. For these bounds, `previous_end > start` is exactly the rejection
+condition for violating `previous_end <= start`. The initial zero end cannot
+reject the first nonnegative start; each reason resets its own predecessor.
+Cross-reason reuse of a passage remains allowed. No model-supplied offset or
+UTF-16/code-point conversion participates in this path.
 
-The prompt candidate clarifies that each reason's own quotes must jointly ground
-all required elements and their required connection. It prefers one complete
-contiguous excerpt over redundant subquotes when available. This is a general
-instruction, without case-specific words, category filters, sorting, merging,
-reason removal, or a new acceptance rule. Its effect on real responses is unverified.
+Therefore the finite rejection stage records an actual structural violation under
+the selected contract, rather than proving a validator defect. The body, reason,
+quote pair and exact relation are missing. No assertion about emoji, the ninth
+semantic classification, duplication versus reversal, or the model's internal
+cause is justified. A 206-token completed response reached the span validator;
+there is no retained evidence of the 512-token cap or timeout causing this failure.
 
-An optional private `on_rejection_detail` callback on `parse` and
-`validate_assessment` now reports only `reasonCode` and `spanRelation` for the first
-violating adjacent pair within a reason. Relations are `EXACT_DUPLICATE`,
-`CURRENT_WITHIN_PREVIOUS`, `CURRENT_CONTAINS_PREVIOUS`, `REVERSED_DISJOINT`, and
-`PARTIAL_OVERLAP`. The generic rejection stage and public error remain unchanged.
-Details contain no quote text, positions, lengths, input hash, provider IDs, or
-exception messages. Callback failure cannot turn rejection into acceptance. This
-callback does not add runtime logging or rejected-output retention.
+The retained Spanish PRETEXT quote covers the account-closure claim but omits its
+conditional consequential-action connection. The original prompt already requires
+that connection. Other reasons' quotes cannot fill the missing evidence under the
+frozen scoring policy. This is a separate observed model evidence failure. The
+parser checks structure/grounding, not general semantic truth; no approved lexical
+or deterministic correction follows from this example.
 
-Current source/profile pins change prospectively. The historical published profile
-identities, semantic fixtures, rubric, policy, schema, model, low reasoning profile,
-512 total output tokens, eight-second provider deadline, accounting, and transport
-remain unchanged. Both qualification registries remain empty. Existing tests are
-preserved; the current-source base assertion and identity checksum follow the new
-candidate base. Focused unit tests cover the five relations, shared endpoints,
-first failing adjacent pair, reason attribution, diagnostic allowlisting, observer
-failure, and absence of diagnostic side effects on other failures or success.
+Sol's four-line prompt addition has been removed from the current candidate.
+Original prompt and schema hashes, request bodies, model, low reasoning setting,
+512-token cap, deadlines, rubric and fixtures are preserved. The earlier candidate
+commits and parked fourteen-call packet remain historical, unapproved artifacts;
+they must not be presented as a diagnosed fix or executed as the next step.
 
-Official OpenAI documentation confirms that
-[Structured Outputs can still make content mistakes](https://developers.openai.com/api/docs/guides/structured-outputs).
-The [dated GPT-5.4 mini model](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
-supports low reasoning and Structured Outputs. Those contracts do not establish
-semantic evidence completeness or source-span ordering.
+The retained source change is an optional private `on_rejection_detail` callback
+on `parse` and `validate_assessment`. It reports only canonical `reasonCode` and
+`spanRelation` for the first violating adjacent pair within one reason:
+EXACT_DUPLICATE, CURRENT_WITHIN_PREVIOUS, CURRENT_CONTAINS_PREVIOUS,
+REVERSED_DISJOINT, or PARTIAL_OVERLAP. The generic stage and public error remain
+unchanged. No rejected text, offsets, lengths, hashes, arbitrary exception messages,
+or reasoning content enter this callback. Observer exceptions cannot permit
+acceptance. Default runtime logging is unchanged; the diagnostic runner must
+explicitly subscribe. This closes an evidence gap, not the model-quality failure.
 
-The next proposal repeats all fourteen frozen real cases with unchanged criteria,
-order, deadlines, and stopping rules. It adds only finite rejection detail retention.
-Maximum fourteen attempts, no retries/tools/count calls, one memory-only approved
-key read, and a US$4.6554816 conservative reservation within a US$5 batch ceiling
-and the one shared US$50 ledger. The full 400,000-token input context plus 512
-output tokens is reserved at published uncached rates with a 10% cushion; this is
-an upper reservation, not an invoice. The parent must reconcile/reserve a fresh
-allocation and authorize the exact frozen packet before key access or dispatch.
+Astra validation: 61 focused exact-evidence and identity checks passed in 0.10s,
+as lightweight supplementary unit checks with no heavy slot. All eight retained
+real assessments were regrounded identically without constructing new responses.
+The original source pins match the base commit, the historical evidence manifest
+matches all 203 files, and prompt/schema restoration and unaffected functions were
+checked directly. Sol's earlier 834-check pass and its earlier collection/checksum
+failures remain historical evidence; no broad suite or new build was run for this
+revision. Neither result establishes real-provider or end-to-end acceptance.
 
-Ownership: Daniel approves scope; parent little b coordinates integration, budget,
-and any escalation. Rollback: revert this source candidate; no deployed state has
-changed. Support: retained artifacts plus the held packet handoff; missing ninth
-text cannot be recovered by reinterpretation. Observability: existing finite stage
-plus the new optional relation/code callback for future qualification only.
+Smallest next request: exactly one separately approved real generation of the
+original dev-019-en request, using this diagnostic-only adapter and an observer
+that durably retains the finite rejection details. No retry or automatic second
+call. At the retained price basis, propose a US$0.3325344 reservation under a US$0.35
+cap inside the one shared US$50 ledger; recheck prices and allocate separately
+before execution. A valid output means non-reproduction on that call, not a pass
+for the old response or the full qualification. A rejected output with finite
+relation/code classifies only that new failure. Missing diagnostics, transport
+uncertainty or a different failure yields an explicit inconclusive/blocked result.
+The Spanish failure does not need another paid reproduction to establish its gap.
 
-Decision: NO-GO for activation/public release. ATCR-182 remains open until real
-qualification, independent retained-output review, accepted Dev evidence, and
-required integration are complete. ATCR-183 activation depends on positive
-qualification. Dev and later UAT require separate approved scope. Production and
-public deployment remain prohibited. No build or retained-artifact inspection is
-end-to-end acceptance. One candidate is prepared in this workstream; no paid fix
-attempt or new failed live outcome occurred. Historical attempt counters are not
-reset or inferred from missing records.
+One Astra extra-high diagnostic/design attempt is complete. There were no provider
+calls, credential reads, allocations, remote writes, deployments, or activations.
+No heavy or emulator slot was used. Do not repeat speculative Sol/Astra patches;
+more reasoning cannot recover discarded content. Parent alone controls any final
+Astra ultra escalation, which should address a concrete remaining design question.
 
-Supplementary validation under Daniel's clarified unit/functional-test policy:
-834 focused checks passed across evaluator, sanitizer identity, evaluation runner,
-controlled protocol, and release-scope suites. The first system-Python run stopped
-at collection because jsonschema was absent; an existing backend virtual
-environment supplied it without installation. The next run passed 833 checks and
-found one stale identity SHA256SUMS entry, which was corrected before the final
-834-check pass. Both failed logs/XML remain retained. Compilation, shellcheck,
-whitespace, source-only evaluator packaging, archive integrity, and exact adapter
-entry equality passed. No provider, key, cloud, or mobile action ran. These checks
-do not establish real integration or end-to-end acceptance.
+ATCR-182 remains open and ATCR-183 activation remains blocked. Full accepted real
+qualification, independent semantic review and the separate Dev/UAT gates remain
+required. Production/public deployment is prohibited. No acceptance criterion has
+been changed or waived by the one-call diagnostic request.
