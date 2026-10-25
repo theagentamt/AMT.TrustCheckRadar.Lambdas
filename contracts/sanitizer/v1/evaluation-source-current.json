@@ -1,11 +1,11 @@
 {
-  "reason": "prospective_product_rules_r2",
+  "reason": "qualified_reasoning_configuration_candidate",
   "promptSha256": "b85d182c0a2a81327b0629a7f7fdbeedc36e5b963bdb496f90c735f2751035f6",
   "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "c5c0f39e2bdcf217160803c221e6647ec976e6e82a817570ceee6bb5db343f1a",
-    "gpt-5.4-nano-2026-03-17": "c000b0c30a2394d0b2896d192d87a4274e576709f231caee80f3daa1b9f04d4b",
-    "gpt-5.4-mini-2026-03-17": "e162db111dd059da17cb964d936fca39a877459fbada9b4f3ff295c1ba5ca167"
+    "gpt-4.1-mini-2025-04-14": "f75e60fab8e4fb9fe43907649ebc48c9154157cb6d9710c274c74bde84e0808e",
+    "gpt-5.4-nano-2026-03-17": "096d1f98a94f679348654b0ba550003a63bd211934614722e8a8ef86c80e526a",
+    "gpt-5.4-mini-2026-03-17": "0bca7e5bd263db54818b9ad10f4dd934ba7e3063b6da21e5a2e337491040a784"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",
@@ -14,7 +14,7 @@
   },
   "qualification": "none",
   "paidExecutionAuthorized": false,
-  "sourceBaseCommit": "b9552cfb6cc5f1f6be4f560a992b1880747c7413",
+  "sourceBaseCommit": "61d846524763d999570a6fbc195197db783ae556",
   "sourceState": "permanent_ai_candidate_not_qualified",
   "prospectiveSemanticCriteria": {
     "version": "message-product-rules-2026-10-25-r2",
@@ -22,5 +22,11 @@
       "evaluation/message_ai/product_rules_r2/RUBRIC.en-es.md": "58c35a6faf71864b059448e50fd97bd122ea386cc9ce22575ec9434b7c3fdb67",
       "evaluation/message_ai/product_rules_r2/fixtures.json": "e4182868c3bd4343013c4b389de3e677a53254e6a42ac3ec70a7c98e1a7d5b8d"
     }
+  },
+  "reasoningCandidate": {
+    "model": "gpt-5.4-mini-2026-03-17",
+    "reasoningEffort": "low",
+    "maxOutputTokens": 512,
+    "qualified": false
   }
 }
