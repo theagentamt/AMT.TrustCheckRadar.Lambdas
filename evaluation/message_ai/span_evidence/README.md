@@ -42,7 +42,10 @@ Current source/profile pins change prospectively. The historical published profi
 identities, semantic fixtures, rubric, policy, schema, model, low reasoning profile,
 512 total output tokens, eight-second provider deadline, accounting, and transport
 remain unchanged. Both qualification registries remain empty. Existing tests are
-preserved; only the current-source base assertion follows the new candidate base.
+preserved; the current-source base assertion and identity checksum follow the new
+candidate base. Focused unit tests cover the five relations, shared endpoints,
+first failing adjacent pair, reason attribution, diagnostic allowlisting, observer
+failure, and absence of diagnostic side effects on other failures or success.
 
 Official OpenAI documentation confirms that
 [Structured Outputs can still make content mistakes](https://developers.openai.com/api/docs/guides/structured-outputs).
@@ -73,3 +76,14 @@ public deployment remain prohibited. No build or retained-artifact inspection is
 end-to-end acceptance. One candidate is prepared in this workstream; no paid fix
 attempt or new failed live outcome occurred. Historical attempt counters are not
 reset or inferred from missing records.
+
+Supplementary validation under Daniel's clarified unit/functional-test policy:
+834 focused checks passed across evaluator, sanitizer identity, evaluation runner,
+controlled protocol, and release-scope suites. The first system-Python run stopped
+at collection because jsonschema was absent; an existing backend virtual
+environment supplied it without installation. The next run passed 833 checks and
+found one stale identity SHA256SUMS entry, which was corrected before the final
+834-check pass. Both failed logs/XML remain retained. Compilation, shellcheck,
+whitespace, source-only evaluator packaging, archive integrity, and exact adapter
+entry equality passed. No provider, key, cloud, or mobile action ran. These checks
+do not establish real integration or end-to-end acceptance.
