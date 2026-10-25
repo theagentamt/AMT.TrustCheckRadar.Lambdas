@@ -88,6 +88,61 @@ def test_no_sorting_overlapping_or_duplicate_evidence_repair(quotes):
     rejected(provider(quotes),'transfer today now','SPAN_ORDER_OR_OVERLAP')
 
 
+@pytest.mark.parametrize('quotes,relation',[
+    (['bravo','alpha'],'REVERSED_DISJOINT'),
+    (['alpha','alpha'],'EXACT_DUPLICATE'),
+    (['alpha bravo','bravo'],'CURRENT_WITHIN_PREVIOUS'),
+    (['alpha bravo','alpha'],'CURRENT_WITHIN_PREVIOUS'),
+    (['bravo','alpha bravo'],'CURRENT_CONTAINS_PREVIOUS'),
+    (['alpha','alpha bravo'],'CURRENT_CONTAINS_PREVIOUS'),
+    (['alpha bravo','bravo charlie'],'PARTIAL_OVERLAP'),
+    (['bravo charlie','alpha bravo'],'PARTIAL_OVERLAP'),
+])
+def test_rejection_detail_distinguishes_relations_without_retaining_evidence(quotes,relation):
+    stages=[];details=[]
+    with pytest.raises(MessageError) as error:
+        ai.parse(wire(provider(quotes)),'alpha bravo charlie',on_rejection=stages.append,
+                 on_rejection_detail=details.append)
+    assert error.value.code=='PROVIDER_RESPONSE_INVALID' and stages==['SPAN_ORDER_OR_OVERLAP']
+    assert details==[{'reasonCode':'AI_PAYMENT_PRESSURE','spanRelation':relation}]
+
+
+def test_normalized_boundary_reports_only_first_violating_adjacent_pair_and_its_reason():
+    value={'assessment':'warning','context':'clear','reasons':[
+        {'code':'AI_PAYMENT_PRESSURE','spans':[{'start':0,'end':5}]},
+        {'code':'AI_PRETEXT','spans':[{'start':0,'end':5},{'start':6,'end':11},{'start':6,'end':11}]},
+    ]}
+    details=[]
+    with pytest.raises(MessageError):
+        ai.validate_assessment(value,'alpha bravo charlie',on_rejection_detail=details.append)
+    assert details==[{'reasonCode':'AI_PRETEXT','spanRelation':'EXACT_DUPLICATE'}]
+
+
+def test_detail_observer_failure_cannot_change_rejection_or_log_private_data(capsys):
+    def broken(_):raise RuntimeError('private observer exception')
+    with pytest.raises(MessageError) as error:
+        ai.parse(wire(provider(['alpha','alpha'])),'alpha bravo',on_rejection_detail=broken)
+    assert error.value.code=='PROVIDER_RESPONSE_INVALID' and capsys.readouterr().out==''
+
+
+def test_rejection_detail_is_closed_and_does_not_replace_generic_stage(monkeypatch,capsys):
+    monkeypatch.setattr(ai,'_span_relation',lambda *_:'untrusted non-enum diagnostic')
+    details=[];stages=[]
+    with pytest.raises(MessageError) as error:
+        ai.parse(wire(provider(['alpha','alpha'])),'alpha bravo',on_rejection=stages.append,
+                 on_rejection_detail=details.append)
+    assert error.value.code=='PROVIDER_RESPONSE_INVALID' and stages==['SPAN_ORDER_OR_OVERLAP']
+    assert details==[] and capsys.readouterr().out==''
+
+
+def test_non_span_rejection_and_valid_response_have_no_span_detail():
+    details=[]
+    with pytest.raises(MessageError):
+        ai.parse(wire(provider(['missing'])),'alpha bravo',on_rejection_detail=details.append)
+    ai.parse(wire(provider(['alpha'])),'alpha bravo',on_rejection_detail=details.append)
+    assert details==[]
+
+
 def test_same_exact_passage_can_support_distinct_categories_as_before():
     value=provider(['pay now']);value['reasons'].append({'code':'AI_CONSEQUENTIAL_URGENCY','quotes':['pay now']})
     actual=ai.parse(wire(value),'pay now')

@@ -1,11 +1,11 @@
 {
-  "reason": "qualified_reasoning_configuration_candidate",
+  "reason": "span_rejection_diagnostics_only_candidate",
   "promptSha256": "b85d182c0a2a81327b0629a7f7fdbeedc36e5b963bdb496f90c735f2751035f6",
   "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "f75e60fab8e4fb9fe43907649ebc48c9154157cb6d9710c274c74bde84e0808e",
-    "gpt-5.4-nano-2026-03-17": "096d1f98a94f679348654b0ba550003a63bd211934614722e8a8ef86c80e526a",
-    "gpt-5.4-mini-2026-03-17": "0bca7e5bd263db54818b9ad10f4dd934ba7e3063b6da21e5a2e337491040a784"
+    "gpt-4.1-mini-2025-04-14": "f3a21e774e71915bcb2369f8cb387b813c40fc4a87850e23ddd0cb2180301eaf",
+    "gpt-5.4-nano-2026-03-17": "46aa88d5dec6b6c374aba2a716a2ef191cab112133baf0848e32eb4a081b0e83",
+    "gpt-5.4-mini-2026-03-17": "f389f9b6bea217248ab826c810be07c8645341a52fd316853254ae06549cba73"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",
@@ -14,7 +14,7 @@
   },
   "qualification": "none",
   "paidExecutionAuthorized": false,
-  "sourceBaseCommit": "61d846524763d999570a6fbc195197db783ae556",
+  "sourceBaseCommit": "09152b691701ef3294f20cd6fb206efcd6bd6778",
   "sourceState": "permanent_ai_candidate_not_qualified",
   "prospectiveSemanticCriteria": {
     "version": "message-product-rules-2026-10-25-r2",

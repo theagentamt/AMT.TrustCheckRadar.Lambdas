@@ -206,19 +206,40 @@ REJECTION_STAGES=frozenset({'RESPONSE_BOUNDS','ENVELOPE_JSON','ENVELOPE_STATUS',
 
 
 class _Rejected(Exception):
-    def __init__(self, stage):
+    def __init__(self, stage, detail=None):
         self.stage=stage
+        self.detail=detail
+
+
+SPAN_RELATIONS=frozenset({'EXACT_DUPLICATE','CURRENT_WITHIN_PREVIOUS',
+    'CURRENT_CONTAINS_PREVIOUS','REVERSED_DISJOINT','PARTIAL_OVERLAP'})
+
+
+def _span_relation(previous_start, previous_end, start, end):
+    """First violating adjacent pair, after individual span bounds are valid."""
+    if start==previous_start and end==previous_end:return 'EXACT_DUPLICATE'
+    if previous_start<=start and end<=previous_end:return 'CURRENT_WITHIN_PREVIOUS'
+    if start<=previous_start and previous_end<=end:return 'CURRENT_CONTAINS_PREVIOUS'
+    if end<=previous_start:return 'REVERSED_DISJOINT'
+    return 'PARTIAL_OVERLAP'
 
 
 def _check(condition, stage):
     if not condition:raise _Rejected(stage)
 
 
-def _invalid(error, on_rejection):
+def _invalid(error, on_rejection, on_rejection_detail):
     stage=error.stage if isinstance(error,_Rejected) and error.stage in REJECTION_STAGES else 'PARSER_INTERNAL'
     if on_rejection is not None:
         try:on_rejection(stage)
         except Exception:pass  # Diagnostics cannot change rejection or accounting.
+    detail=error.detail if isinstance(error,_Rejected) else None
+    if (on_rejection_detail is not None and stage=='SPAN_ORDER_OR_OVERLAP'
+            and type(detail) is dict and set(detail)=={'reasonCode','spanRelation'}
+            and type(detail['reasonCode']) is str and detail['reasonCode'] in AI_REASONS
+            and type(detail['spanRelation']) is str and detail['spanRelation'] in SPAN_RELATIONS):
+        try:on_rejection_detail(dict(detail))
+        except Exception:pass
     return MessageError('PROVIDER_RESPONSE_INVALID')
 
 
@@ -246,7 +267,7 @@ def _validate_assessment(value, text):
         _check(type(reason) is dict and set(reason)=={'code','spans'} and type(reason['code']) is str
                and reason['code'] in AI_REASONS and reason['code'] not in seen
                and type(reason['spans']) is list and 1<=len(reason['spans'])<=3,'REASON_SHAPE')
-        seen.add(reason['code']);previous_end=0
+        seen.add(reason['code']);previous_start=previous_end=0
         for span in reason['spans']:
             _check(type(span) is dict and set(span)=={'start','end'},'SPAN_OBJECT_SHAPE')
             _check(type(span['start']) is int and type(span['end']) is int,'SPAN_OFFSET_TYPE')
@@ -254,16 +275,18 @@ def _validate_assessment(value, text):
             _check(start>=0,'SPAN_START_NEGATIVE')
             _check(start<end,'SPAN_EMPTY_OR_REVERSED')
             _check(end<=len(text),'SPAN_END_OUT_OF_BOUNDS')
-            _check(previous_end<=start,'SPAN_ORDER_OR_OVERLAP')
+            if previous_end>start:
+                raise _Rejected('SPAN_ORDER_OR_OVERLAP',{'reasonCode':reason['code'],
+                    'spanRelation':_span_relation(previous_start,previous_end,start,end)})
             _check(any(c.isalpha() for c in visible[start:end]),'SPAN_CONTENT')
-            previous_end=end
+            previous_start,previous_end=start,end
     # Return a detached closed projection, not a callback-owned mutable object.
     return {'assessment':value['assessment'],'context':value['context'],'reasons':[
         {'code':reason['code'],'spans':[{'start':span['start'],'end':span['end']} for span in reason['spans']]}
         for reason in value['reasons']]}
 
 
-def validate_assessment(value, text, *, on_rejection=None):
+def validate_assessment(value, text, *, on_rejection=None, on_rejection_detail=None):
     """Independent normalized callback boundary, shared with provider decoding."""
     try:
         # Preserve the prior JSON snapshot boundary without inventing provider
@@ -273,7 +296,7 @@ def validate_assessment(value, text, *, on_rejection=None):
         _check(1<=len(raw)<=proposer.MAX_RESPONSE_BYTES,'ASSESSMENT_SHAPE')
         snapshot=json.loads(raw,object_pairs_hook=unique_pairs)
         return _validate_assessment(snapshot,text)
-    except Exception as error:raise _invalid(error,on_rejection) from None
+    except Exception as error:raise _invalid(error,on_rejection,on_rejection_detail) from None
 
 
 def _ground_quotes(value, text):
@@ -297,7 +320,7 @@ def _ground_quotes(value, text):
     return _validate_assessment({'assessment':value['assessment'],'context':value['context'],'reasons':reasons},text)
 
 
-def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None):
+def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None,on_rejection_detail=None):
     stage='RESPONSE_BOUNDS'
     try:
         _check(type(raw) is bytes and 1<=len(raw)<=proposer.MAX_RESPONSE_BYTES,stage)
@@ -346,7 +369,7 @@ def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None
         # not expose arbitrary exception messages or rejected data.
         if isinstance(error,(ValueError,UnicodeError,RecursionError)) and not isinstance(error,_Rejected):
             error=_Rejected(stage)
-        raise _invalid(error,on_rejection) from None
+        raise _invalid(error,on_rejection,on_rejection_detail) from None
 
 
 def report_rejection(stage):
