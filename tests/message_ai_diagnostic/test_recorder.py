@@ -129,6 +129,13 @@ def test_fabricated_or_ambiguous_evidence_not_repaired(monkeypatch):
     assert result['parserRejectionDetail'] is None and result['assessment'] is None
 
 
+def test_even_a_credential_collision_with_a_closed_enum_cannot_be_saved(monkeypatch):
+    def failed(*args, **kwargs): raise ValueError('not retained')
+    monkeypatch.setattr(proposer, 'propose', failed)
+    with pytest.raises(ValueError, match='UNSAFE_RESULT'):
+        r.one(case(), 'RESPONSE_UNAVAILABLE')
+
+
 @pytest.mark.parametrize('detail', [
     {'reasonCode': 'AI_PRETEXT', 'spanRelation': 'invented'},
     {'reasonCode': 'AI_PRETEXT', 'spanRelation': 'EXACT_DUPLICATE', 'quote': 'private'},

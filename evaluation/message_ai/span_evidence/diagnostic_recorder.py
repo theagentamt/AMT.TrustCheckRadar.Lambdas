@@ -271,12 +271,15 @@ def one(case, key):
         outcome = 'NON_REPRODUCTION_NOT_QUALIFICATION'
     elif captured['parserRejectionStage'] == 'SPAN_ORDER_OR_OVERLAP':
         outcome = 'NEW_SPAN_VIOLATION' if captured['parserRejectionDetail'] else 'DIAGNOSTIC_INCOMPLETE'
-    return {'caseId': case['caseId'], 'requestBodySha256': REQUEST_SHA256,
+    result = {'caseId': case['caseId'], 'requestBodySha256': REQUEST_SHA256,
             'startedAtUtc': started, 'finishedAtUtc': utc(),
             'elapsedMs': round((time.monotonic() - tick) * 1000), 'failure': failure,
             **observed, **captured, 'diagnosticOutcome': outcome,
             'qualificationCriteriaMet': False, 'semanticReviewStatus': 'PENDING' if captured['adapterValidated'] else 'NOT_REVIEWABLE',
             'billingCertainty': 'published_rate_upper_estimate_not_invoice' if captured['usage'] else 'unknown_full_reservation_retained'}
+    # Also cover an unlikely credential collision with a closed diagnostic enum.
+    require(key not in json.dumps(result, ensure_ascii=False), 'UNSAFE_RESULT')
+    return result
 
 
 def worker(channel, plan, directory):
