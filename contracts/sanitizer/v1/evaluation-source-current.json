@@ -1,11 +1,11 @@
 {
-  "reason": "per_reason_evidence_clarification_unqualified_candidate",
-  "promptSha256": "d83318dc527266f65ccc8e342f49ab790b27b2ba43dcd5c17dd90e78ea4a2137",
-  "schemaSha256": "17a424288447d92815d9fbcb0acc8763eee3c42edd0470a42772d472c1121830",
+  "reason": "private_evidence_role_references_unqualified_candidate",
+  "promptSha256": "6367edeedd8d374a7c5090a3187f1d4436933473347d50c8b8e8dadbbd00564b",
+  "schemaSha256": "5adf88e1cf9a583043f98ea4a89df21e8e751abfa308371ff7fec0b6be4210f8",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "d2c291d0d6f9d66a8c2ef486f122ffcc455520bd625c54ef47271e824a4cee9b",
-    "gpt-5.4-nano-2026-03-17": "592947f12d01086d39f4927161ff6a2d6efe98bb0bc37e12d521708852c79e21",
-    "gpt-5.4-mini-2026-03-17": "19f4361880490f43835e3851c61111410a6d8bc3ad355bf16acdadeb6d58a09c"
+    "gpt-4.1-mini-2025-04-14": "04d31d39e9341c41d0ab92c0a5e6ed5af45a2baff82b0dc5c9fc8e6acdb0a975",
+    "gpt-5.4-nano-2026-03-17": "bca27e99dbdc0f699fc721f09f661c6521f9be171a863718b55ed6e71b342f56",
+    "gpt-5.4-mini-2026-03-17": "4c2ea75521495464f34c783aea29c676ed8f10c5c5c611cecbb3adba8c296b1a"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",

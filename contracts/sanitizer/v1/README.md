@@ -56,8 +56,8 @@ profile hashes, not the prompt/schema. The original published
 `evaluation-profile-identities.json` stays byte-for-byte unchanged as historical
 evidence. `evaluation-source-current.json` records the current source pins and
 marks that published record explicitly stale and unqualified. The ATCR-187
-per-reason clarification prospectively updates the current prompt/profile pins;
-its model compliance remains unvalidated and no qualification is granted. Historical
+private evidence-role candidate prospectively updates current prompt/schema/profile
+pins; see `evaluation/message_ai/evidence_roles/README.md`. Its model compliance remains unvalidated and no qualification is granted. Historical
 playbook-r1 and compatibility packets stay historical: regenerate any future
 experiment proposal from the integrated source. This artifact does not authorize execution:
 SECUR4ALL-323 retains the owner-approved compatibility scope pending evidence and

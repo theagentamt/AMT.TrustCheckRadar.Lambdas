@@ -14,7 +14,7 @@ from shared_message_contract.validation import MessageError
 
 
 def provider(quotes, *, code='AI_PAYMENT_PRESSURE'):
-    return {'assessment':'warning','context':'clear','reasons':[{'code':code,'quotes':quotes}]}
+    return {'assessment':'warning','context':'clear','reasons':[{'code':code,'quotes':quotes,'support':{role:0 for role in ai.EVIDENCE_ROLES[code]}}]}
 
 
 def wire(value):
@@ -144,7 +144,7 @@ def test_non_span_rejection_and_valid_response_have_no_span_detail():
 
 
 def test_same_exact_passage_can_support_distinct_categories_as_before():
-    value=provider(['pay now']);value['reasons'].append({'code':'AI_CONSEQUENTIAL_URGENCY','quotes':['pay now']})
+    value=provider(['pay now']);value['reasons'].append({'code':'AI_CONSEQUENTIAL_URGENCY','quotes':['pay now'],'support':{'requestedAction':0,'urgency':0}})
     actual=ai.parse(wire(value),'pay now')
     assert [r['spans'] for r in actual['reasons']]==[[{'start':0,'end':7}]]*2
 

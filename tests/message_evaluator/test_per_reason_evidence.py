@@ -85,7 +85,7 @@ def test_retained_literal_grounding_does_not_turn_incomplete_evidence_into_a_pas
 def test_same_literal_quote_can_support_different_reasons_without_within_reason_overlap():
     text = 'Please transfer the payment today.'
     value = {'assessment': 'warning', 'context': 'clear', 'reasons': [
-        {'code': code, 'quotes': [text]} for code in ('AI_PAYMENT_PRESSURE', 'AI_CONSEQUENTIAL_URGENCY')
+        {'code': code, 'quotes': [text], 'support': {role: 0 for role in ai.EVIDENCE_ROLES[code]}} for code in ('AI_PAYMENT_PRESSURE', 'AI_CONSEQUENTIAL_URGENCY')
     ]}
     assert ai.parse(wire(value), text) == {
         'assessment': 'warning', 'context': 'clear', 'reasons': [
@@ -103,7 +103,7 @@ def test_previous_prompt_qualification_cannot_authorize_the_clarification(monkey
     record['promptSha256'] = OLD_PROMPT_SHA256
     path.write_text(json.dumps({'fixture': record}))
     assert ai.PROMPT_SHA256 != OLD_PROMPT_SHA256
-    assert ai.SCHEMA_SHA256 == SCHEMA_SHA256
+    assert ai.SCHEMA_SHA256 != SCHEMA_SHA256
     with pytest.raises(MessageError) as error:
         ai.qualified_settings(COST)
     assert error.value.code == 'PROVIDER_UNAVAILABLE'

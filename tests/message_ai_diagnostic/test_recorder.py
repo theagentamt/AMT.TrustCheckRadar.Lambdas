@@ -25,6 +25,8 @@ INTENT = {'entryPoint': 'message', 'language': 'en', 'target': {
     'scope': 'sanitized_message', 'sourceType': 'pasted_text', 'speakerRole': 'other', 'withheldLinks': False}}
 KEY = 'unit-test-only-noncredential-marker'
 CURRENT_INSTRUCTIONS = ai_provider.INSTRUCTIONS
+CURRENT_SCHEMA = ai_provider.SCHEMA
+CURRENT_FORMAT_NAME = ai_provider.FORMAT_NAME
 HISTORICAL_REQUEST_BYTES = (Path(__file__).parent / 'fixtures/pr166-dev-019-en.request.json').read_bytes()
 HISTORICAL_REQUEST = json.loads(HISTORICAL_REQUEST_BYTES, object_pairs_hook=unique_pairs)
 HISTORICAL_INSTRUCTIONS = HISTORICAL_REQUEST['input'][0]['content'][0]['text']
@@ -33,8 +35,11 @@ HISTORICAL_INSTRUCTIONS = HISTORICAL_REQUEST['input'][0]['content'][0]['text']
 @pytest.fixture(autouse=True)
 def modules(monkeypatch):
     # This recorder's execution authority is deliberately frozen to PR166. Only
-    # these isolated tests select its historical prompt; production is unchanged.
+    # these isolated tests select its immutable historical request format.
+    # Synthetic responses exercise the current strict parser, not a historical live run.
     monkeypatch.setattr(ai_provider, 'INSTRUCTIONS', HISTORICAL_INSTRUCTIONS)
+    monkeypatch.setattr(ai_provider, 'SCHEMA', HISTORICAL_REQUEST['text']['format']['schema'])
+    monkeypatch.setattr(ai_provider, 'FORMAT_NAME', HISTORICAL_REQUEST['text']['format']['name'])
     for name, value in [('ai_provider', ai_provider), ('proposer', proposer),
                         ('usage_report', usage_report), ('unique_pairs', unique_pairs)]:
         monkeypatch.setattr(r, name, value)
@@ -47,7 +52,7 @@ def case():
 
 def envelope(quotes):
     value = {'result': {'assessment': 'warning', 'context': 'clear', 'reasons': [
-        {'code': 'AI_PAYMENT_PRESSURE', 'quotes': quotes}]}}
+        {'code': 'AI_PAYMENT_PRESSURE', 'quotes': quotes, 'support': {'paymentRequest':0,'pressure':0}}]}}
     return {'model': r.MODEL, 'service_tier': 'default', 'status': 'completed',
             'usage': {'input_tokens': 1491, 'output_tokens': 206, 'total_tokens': 1697,
                       'input_tokens_details': {'cached_tokens': 1280}, 'output_tokens_details': {'reasoning_tokens': 103}},
@@ -76,10 +81,14 @@ def test_exact_original_serialized_request():
 
 def test_current_prompt_cannot_reuse_historical_recorder_authority(monkeypatch):
     monkeypatch.setattr(ai_provider, 'INSTRUCTIONS', CURRENT_INSTRUCTIONS)
+    monkeypatch.setattr(ai_provider, 'SCHEMA', CURRENT_SCHEMA)
+    monkeypatch.setattr(ai_provider, 'FORMAT_NAME', CURRENT_FORMAT_NAME)
     body = ai_provider.request_body(INTENT, ai_provider.AISettings(r.MODEL, r.SECRET_ARN, 8000, 512, 'low'))
     assert hashlib.sha256(json.dumps(body, ensure_ascii=False).encode()).hexdigest() != r.REQUEST_SHA256
     body['input'][0]['content'][0]['text'] = HISTORICAL_INSTRUCTIONS
-    assert body == HISTORICAL_REQUEST  # The only drift is the current system text.
+    body['text']['format'].update(schema=HISTORICAL_REQUEST['text']['format']['schema'],
+                                name=HISTORICAL_REQUEST['text']['format']['name'])
+    assert body == HISTORICAL_REQUEST  # Only the private instructions/format changed.
     forbidden_calls = []
     def forbidden(*_, **__):
         forbidden_calls.append(True)
