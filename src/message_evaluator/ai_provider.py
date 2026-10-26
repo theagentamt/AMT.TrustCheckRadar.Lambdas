@@ -69,6 +69,9 @@ verification while asking for consequential action.
 AI_CONSEQUENTIAL_URGENCY: urgency paired with a consequential requested action;
 urgency alone is insufficient. Ground both action and urgency in the excerpts.
 Spelling, HTTP alone, names and demographic attributes must not establish warnings.
+For each reason, its own quotes must together support every required element of
+its category. Evidence attached to another reason does not supply a missing
+element. The same source excerpt may support different reasons.
 Provide each supported category once, with one to three supporting quotes copied
 literally from the exact full sanitizedText. Each quote must be nonempty, no longer
 than sanitizedText, occur exactly once in it, and retain its exact case, whitespace,
