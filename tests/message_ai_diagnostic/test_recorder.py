@@ -64,6 +64,81 @@ def test_exact_original_serialized_request():
     assert hashlib.sha256(json.dumps(case()['requestBody'], ensure_ascii=False).encode()).hexdigest() == r.REQUEST_SHA256
 
 
+@pytest.mark.parametrize('status', sorted(r.PROVIDER_STATUSES))
+def test_finite_status_observation_does_not_change_strict_acceptance(monkeypatch, status):
+    data = envelope(['today']); data['status'] = status
+    deliver(monkeypatch, data)
+    result = r.one(case(), KEY)
+    assert result['providerStatus'] == status
+    assert result['adapterValidated'] is (status == 'completed')
+    assert result['parserRejectionStage'] == (None if status == 'completed' else 'ENVELOPE_STATUS')
+
+
+@pytest.mark.parametrize('reason', sorted(r.INCOMPLETE_REASONS))
+def test_incomplete_reason_is_allowlisted_and_never_accepts_partial_output(monkeypatch, reason):
+    data = envelope(['today'])
+    data.update(status='incomplete', incomplete_details={'reason': reason, 'private': 'DO_NOT_RETAIN'})
+    data['usage'].update(output_tokens=512, total_tokens=2003, output_tokens_details={'reasoning_tokens': 512})
+    deliver(monkeypatch, data)
+    result = r.one(case(), KEY)
+    assert result['providerStatus'] == 'incomplete' and result['providerIncompleteReason'] == reason
+    assert result['providerIncompleteDetailsPresent'] is True and result['providerErrorPresent'] is False
+    assert result['parserRejectionStage'] == 'ENVELOPE_STATUS'
+    assert not result['adapterValidated'] and result['assessment'] is None
+    assert 'DO_NOT_RETAIN' not in json.dumps(result)
+
+
+def test_refusal_type_is_distinguished_without_retaining_refusal_text(monkeypatch):
+    data = envelope(['today'])
+    data['output'][0]['content'] = [{'type': 'refusal', 'refusal': 'PRIVATE_REFUSAL_BODY'}]
+    deliver(monkeypatch, data)
+    result = r.one(case(), KEY)
+    assert result['providerStatus'] == 'completed' and result['providerRefusalTypePresent'] is True
+    assert result['providerIncompleteReason'] is None and result['providerIncompleteDetailsPresent'] is False
+    assert result['parserRejectionStage'] == 'CONTENT_SHAPE' and not result['adapterValidated']
+    assert 'PRIVATE_REFUSAL_BODY' not in json.dumps(result)
+
+
+def test_provider_error_presence_never_retains_error_payload(monkeypatch):
+    data = envelope(['today'])
+    data.update(status='failed', error={'code': 'PRIVATE_ERROR_CODE', 'message': 'PRIVATE_ERROR_BODY'})
+    deliver(monkeypatch, data)
+    result = r.one(case(), KEY)
+    assert result['providerStatus'] == 'failed' and result['providerErrorPresent'] is True
+    assert result['parserRejectionStage'] == 'ENVELOPE_STATUS' and not result['adapterValidated']
+    assert 'PRIVATE_ERROR' not in json.dumps(result)
+
+
+@pytest.mark.parametrize('value', [None, [], 'private', True, 42])
+def test_non_object_metadata_is_unknown(value):
+    assert all(v is None for v in r.envelope_metadata(value).values())
+
+
+@pytest.mark.parametrize('status,reason', [('UNTRUSTED_STATUS', 'UNTRUSTED_REASON'), ([], []), (True, 2)])
+def test_arbitrary_status_and_reason_are_never_retained(status, reason):
+    result = r.envelope_metadata({'status': status, 'incomplete_details': {'reason': reason}})
+    assert result['providerStatus'] is None and result['providerIncompleteReason'] is None
+    assert result['providerIncompleteDetailsPresent'] is True
+    assert 'UNTRUSTED' not in json.dumps(result)
+
+
+def test_incomplete_reason_is_not_misattributed_to_completed_envelope(monkeypatch):
+    data = envelope(['today'])
+    data['incomplete_details'] = {'reason': 'max_output_tokens'}
+    deliver(monkeypatch, data)
+    result = r.one(case(), KEY)
+    assert result['providerStatus'] == 'completed' and result['providerIncompleteDetailsPresent'] is True
+    assert result['providerIncompleteReason'] is None
+    assert result['parserRejectionStage'] == 'ENVELOPE_STATUS' and not result['adapterValidated']
+
+
+@pytest.mark.parametrize('output', [None, [], [None], [{'type': 'reasoning'}],
+    [{'type': 'message', 'role': 'assistant', 'content': []}],
+    [{'type': 'message', 'role': 'assistant', 'content': [{'type': 'PRIVATE_TYPE'}]}]])
+def test_uninspectable_refusal_structure_is_unknown_not_false(output):
+    assert r.envelope_metadata({'output': output})['providerRefusalTypePresent'] is None
+
+
 @pytest.mark.parametrize('quotes,relation', [
     (['today', 'authorize the transfer'], 'REVERSED_DISJOINT'),
     (['today', 'today'], 'EXACT_DUPLICATE'),
@@ -110,6 +185,7 @@ def test_unknown_or_excess_usage_blocks_parser(monkeypatch, change, reason):
     result = r.one(case(), KEY)
     assert calls == [1] and result['usage'] is None
     assert result['usageFailureReason'] == reason and result['parserRejectionStage'] is None
+    assert all(result[k] is None for k in r.envelope_metadata(None))
 
 
 @pytest.mark.parametrize('escaped', [False, True])
@@ -120,6 +196,13 @@ def test_key_echo_never_retained(monkeypatch, escaped):
     result = r.one(case(), KEY)
     assert KEY not in json.dumps(result) and result['assessment'] is None
     assert not result['adapterValidated']
+    if not escaped:
+        assert all(result[k] is None for k in r.envelope_metadata(None))
+    else:
+        # Literal backslash-u text is not the key itself. Only finite envelope
+        # metadata survives; this malformed assessment still rejects as before.
+        assert result['providerStatus'] == 'completed'
+        assert result['parserRejectionStage'] == 'ASSESSMENT_JSON'
 
 
 def test_fabricated_or_ambiguous_evidence_not_repaired(monkeypatch):
