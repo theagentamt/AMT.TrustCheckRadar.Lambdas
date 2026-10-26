@@ -189,7 +189,7 @@ def test_reasoning_does_not_weaken_exact_grounding_or_log_rejected_material():
     raw = raw_response(metadata(encrypted_content='opaque-private'))
     raw['output'][-1]['content'][0]['text'] = json.dumps({'result': {
         'assessment': 'warning', 'context': 'clear',
-        'reasons': [{'code': 'AI_PRETEXT', 'quotes': ['not present in reviewed text']}]}})
+        'reasons': [{'code': 'AI_PRETEXT', 'quotes': ['not present in reviewed text'], 'support': {'claimOrSituation':0,'consequentialConnection':0}}]}})
     stages = []
     with pytest.raises(MessageError): parse(raw, stages=stages)
     assert stages == ['EVIDENCE_NOT_FOUND']

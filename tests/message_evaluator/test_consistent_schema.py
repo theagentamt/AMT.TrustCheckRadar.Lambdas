@@ -25,7 +25,7 @@ def proposal(assessment='warning',context='clear',present=True):
 
 def provider_value(value):
     """Explicit valid fixture evidence, independent of numeric boundary fixtures."""
-    return {**value,'reasons':[{'code':r['code'],'quotes':['Your']} for r in value['reasons']]}
+    return {**value,'reasons':[{'code':r['code'],'quotes':['Your'],'support':{role:0 for role in ai.EVIDENCE_ROLES[r['code']]}} for r in value['reasons']]}
 
 
 @pytest.mark.parametrize('assessment,context,present',STATES)
@@ -83,7 +83,7 @@ def test_span_array_bounds_and_unicode_codepoints_preserved(count):
     value['reasons'][0]['spans']=[{'start':start,'end':end} for start,end in [(2,6),(8,11),(12,15),(15,16)][:count]]
     valid=count in (1,3)
     private={**value,'reasons':[{'code':value['reasons'][0]['code'],
-        'quotes':['Café','pay','now','.'][:count]}]}
+        'quotes':['Café','pay','now','.'][:count], 'support':{'paymentRequest':0,'pressure':0}}]}
     assert Draft202012Validator(ai.SCHEMA).is_valid({'result':private}) is valid
     if valid:
         assert ai.validate_assessment(value,text)==value

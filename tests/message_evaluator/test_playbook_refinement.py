@@ -44,7 +44,7 @@ def test_proposed_bilingual_labels_are_structurally_valid_and_policy_bounded(cas
     # Historical normalized spans remain immutable; new provider wire uses
     # explicit unique whole-message evidence, never slicing invalid offsets.
     assert ai_provider.validate_assessment(value,text)==value
-    private={**value,'reasons':[{'code':r['code'],'quotes':[text]} for r in value['reasons']]}
+    private={**value,'reasons':[{'code':r['code'],'quotes':[text],'support':{role:0 for role in ai_provider.EVIDENCE_ROLES[r['code']]}} for r in value['reasons']]}
     grounded=ai_provider.parse(wire(private),text,expected_model=MODEL)
     assert [r['code'] for r in grounded['reasons']]==[r['code'] for r in value['reasons']]
     calls = []
