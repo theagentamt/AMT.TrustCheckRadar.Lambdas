@@ -24,18 +24,24 @@ INTENT = {'entryPoint': 'message', 'language': 'en', 'target': {
     'sanitizedText': '🔐 Café notice: authorize the transfer today or your account will be frozen.',
     'scope': 'sanitized_message', 'sourceType': 'pasted_text', 'speakerRole': 'other', 'withheldLinks': False}}
 KEY = 'unit-test-only-noncredential-marker'
+CURRENT_INSTRUCTIONS = ai_provider.INSTRUCTIONS
+HISTORICAL_REQUEST_BYTES = (Path(__file__).parent / 'fixtures/pr166-dev-019-en.request.json').read_bytes()
+HISTORICAL_REQUEST = json.loads(HISTORICAL_REQUEST_BYTES, object_pairs_hook=unique_pairs)
+HISTORICAL_INSTRUCTIONS = HISTORICAL_REQUEST['input'][0]['content'][0]['text']
 
 
 @pytest.fixture(autouse=True)
 def modules(monkeypatch):
+    # This recorder's execution authority is deliberately frozen to PR166. Only
+    # these isolated tests select its historical prompt; production is unchanged.
+    monkeypatch.setattr(ai_provider, 'INSTRUCTIONS', HISTORICAL_INSTRUCTIONS)
     for name, value in [('ai_provider', ai_provider), ('proposer', proposer),
                         ('usage_report', usage_report), ('unique_pairs', unique_pairs)]:
         monkeypatch.setattr(r, name, value)
 
 
 def case():
-    body = ai_provider.request_body(INTENT, ai_provider.AISettings(r.MODEL, r.SECRET_ARN, 8000, 512, 'low'))
-    return {'caseId': 'dev-019-en', 'intent': deepcopy(INTENT), 'requestBody': body,
+    return {'caseId': 'dev-019-en', 'intent': deepcopy(INTENT), 'requestBody': deepcopy(HISTORICAL_REQUEST),
             'requestBodySha256': r.REQUEST_SHA256}
 
 
@@ -61,7 +67,35 @@ def deliver(monkeypatch, data):
 
 
 def test_exact_original_serialized_request():
+    assert hashlib.sha256(HISTORICAL_REQUEST_BYTES).hexdigest() == r.REQUEST_SHA256
     assert hashlib.sha256(json.dumps(case()['requestBody'], ensure_ascii=False).encode()).hexdigest() == r.REQUEST_SHA256
+    assert hashlib.sha256(HISTORICAL_INSTRUCTIONS.encode()).hexdigest() == 'b85d182c0a2a81327b0629a7f7fdbeedc36e5b963bdb496f90c735f2751035f6'
+    body = ai_provider.request_body(INTENT, ai_provider.AISettings(r.MODEL, r.SECRET_ARN, 8000, 512, 'low'))
+    assert body == HISTORICAL_REQUEST
+
+
+def test_current_prompt_cannot_reuse_historical_recorder_authority(monkeypatch):
+    monkeypatch.setattr(ai_provider, 'INSTRUCTIONS', CURRENT_INSTRUCTIONS)
+    body = ai_provider.request_body(INTENT, ai_provider.AISettings(r.MODEL, r.SECRET_ARN, 8000, 512, 'low'))
+    assert hashlib.sha256(json.dumps(body, ensure_ascii=False).encode()).hexdigest() != r.REQUEST_SHA256
+    body['input'][0]['content'][0]['text'] = HISTORICAL_INSTRUCTIONS
+    assert body == HISTORICAL_REQUEST  # The only drift is the current system text.
+    forbidden_calls = []
+    def forbidden(*_, **__):
+        forbidden_calls.append(True)
+        pytest.fail('Historical request drift must stop before secret, network or parser work')
+    real_transport = proposer.propose
+    def guarded_transport(intent, settings, budget_ms, **kwargs):
+        kwargs.update(secret_loader=forbidden, connection_factory=forbidden)
+        return real_transport(intent, settings, budget_ms, **kwargs)
+    monkeypatch.setattr(proposer, 'propose', guarded_transport)
+    monkeypatch.setattr(ai_provider, 'parse', forbidden)
+    value = case(); before = deepcopy(value)
+    result = r.one(value, KEY)
+    assert value == before and forbidden_calls == []
+    assert result['failure'] == 'APPLICATION_ADAPTER_REJECTED_OR_TRANSPORT_UNCERTAIN'
+    assert result['httpStatus'] is result['parserRejectionStage'] is result['usage'] is None
+    assert not result['adapterValidated'] and result['assessment'] is None
 
 
 @pytest.mark.parametrize('status', sorted(r.PROVIDER_STATUSES))
