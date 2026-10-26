@@ -29,6 +29,8 @@ TOTAL_CAP = 350_000_000
 ATTEMPTS = 1
 ATTEMPT_SECONDS = 18
 BATCH_SECONDS = 300
+PROVIDER_STATUSES = frozenset({'completed', 'failed', 'in_progress', 'cancelled', 'queued', 'incomplete'})
+INCOMPLETE_REASONS = frozenset({'max_output_tokens', 'max_messages', 'content_filter', 'steered'})
 ai_provider = proposer = usage_report = unique_pairs = None
 
 
@@ -211,12 +213,40 @@ def read_approved_key():
         client.close()
 
 
+def envelope_metadata(value):
+    """Finite observations only; never retain provider text or repair a response."""
+    result = {'providerStatus': None, 'providerIncompleteReason': None,
+              'providerIncompleteDetailsPresent': None, 'providerErrorPresent': None,
+              'providerRefusalTypePresent': None}
+    if type(value) is not dict:
+        return result
+    status, details = value.get('status'), value.get('incomplete_details')
+    if type(status) is str and status in PROVIDER_STATUSES:
+        result['providerStatus'] = status
+    result['providerIncompleteDetailsPresent'] = details is not None
+    result['providerErrorPresent'] = value.get('error') is not None
+    if status == 'incomplete' and type(details) is dict:
+        reason = details.get('reason')
+        if type(reason) is str and reason in INCOMPLETE_REASONS:
+            result['providerIncompleteReason'] = reason
+    output = value.get('output')
+    if type(output) is list and 1 <= len(output) <= 2:
+        message = output[-1]
+        if type(message) is dict and message.get('type') == 'message' and message.get('role') == 'assistant':
+            content = message.get('content')
+            if type(content) is list and len(content) == 1 and type(content[0]) is dict:
+                kind = content[0].get('type')
+                if type(kind) is str and kind in ('output_text', 'refusal'):
+                    result['providerRefusalTypePresent'] = kind == 'refusal'
+    return result
+
+
 def one(case, key):
     """Production transport/usage/parser; retain only closed structural fields."""
     observed = {'httpStatus': None, 'requestId': None}
     captured = {'usage': None, 'usageFailureReason': 'RESPONSE_UNAVAILABLE',
                 'parserRejectionStage': None, 'parserRejectionDetail': None,
-                'assessment': None, 'adapterValidated': False}
+                'assessment': None, 'adapterValidated': False, **envelope_metadata(None)}
     class Connection(proposer.FixedConnection):
         def getresponse(self):
             response = super().getresponse()
@@ -253,6 +283,7 @@ def one(case, key):
             report = {'usage': None, 'failureReason': 'COST_BOUND_EXCEEDED'}
         captured.update(usage=report['usage'], usageFailureReason=report['failureReason'])
         require(report['usage'] is not None, 'USAGE_UNQUALIFIED')
+        captured.update(envelope_metadata(decoded))
         assessment = ai_provider.parse(raw, text, expected_model=MODEL, reasoning_effort='low',
             on_rejection=rejected, on_rejection_detail=rejected_detail)
         require(key not in json.dumps(assessment, ensure_ascii=False), 'UNSAFE_RESPONSE')

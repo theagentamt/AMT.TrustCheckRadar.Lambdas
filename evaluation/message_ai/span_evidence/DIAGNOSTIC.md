@@ -87,3 +87,27 @@ The separate Spanish semantic-evidence failure remains unresolved. ATCR-183
 activation and public deployment remain blocked pending positive qualification.
 
 Isolated unit/functional fixtures test these controls; they are not live evidence.
+
+## Finite envelope observations
+
+The local recorder also observes allowlisted provider status and incomplete
+reason, plus presence flags for incomplete details, provider error and a typed
+refusal in the expected final assistant content structure. Unknown strings or
+uninspectable structure produce null; false refusal presence is reported only
+when the expected structure has an output_text item. No error/refusal text,
+reasoning, arbitrary metadata or rejected evidence is retained. Incomplete
+reasons are attributed only to an incomplete status. These observations occur
+after the existing secret-echo and usage checks and cannot change strict parsing,
+acceptance, budgets, request bytes or the no-retry fence.
+
+For a future observation, incomplete/max_output_tokens directly records the
+provider's token-limit reason; incomplete/content_filter records a separate
+filter cause. The other documented finite reasons, max_messages and steered,
+are retained as their own values. completed with a typed refusal is distinct
+from an ordinary completed output_text. Unknown/null values remain inconclusive;
+this diagnostic projection does not validate or repair the provider envelope.
+
+The original one-call authority has been consumed. This change grants no new
+call, key read, replacement fence or authority directory. A proposed 2048-token
+diagnostic remains a separate design/approval question: the production 512-token
+profile, settings and cost contracts are unchanged by this recorder-only patch.
