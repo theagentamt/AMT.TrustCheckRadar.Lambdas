@@ -219,66 +219,118 @@ class FixedConnection(http.client.HTTPSConnection):
         remaining(self.deadline, self.clock)
 
 
-def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret, body_builder=None, response_parser=None, operations_observer=None):
+TRANSPORT_REJECTION_STAGES = frozenset({
+    'REQUEST_BUILD', 'BUDGET_ARGUMENT', 'DEADLINE_SETUP', 'OPERATIONS_START',
+    'SECRET_LOAD', 'CONNECTION_SETUP', 'CONNECT', 'DISPATCH', 'HTTP_RESPONSE',
+    'HTTP_STATUS', 'CONTENT_ENCODING', 'FRAMING_HEADERS', 'TRANSFER_ENCODING',
+    'CONTENT_LENGTH_VALUE', 'CONTENT_LENGTH_BOUND', 'BODY_DEADLINE', 'BODY_READ',
+    'BODY_BOUNDS', 'RESPONSE_CALLBACK', 'OPERATIONS_FINISH', 'RESPONSE_CLOSE',
+    'CONNECTION_CLOSE', 'TRANSPORT_INTERNAL',
+})
+
+
+def _transport_rejected(observer, stage):
+    # Trusted internal diagnostics only. No payload/header/exception values are
+    # passed, and an observer cannot change rejection, cleanup or accounting.
+    if observer is not None:
+        stage = stage if type(stage) is str and stage in TRANSPORT_REJECTION_STAGES else 'TRANSPORT_INTERNAL'
+        try: observer(stage)
+        except Exception: pass
+
+
+def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_factory=FixedConnection, secret_loader=secret, body_builder=None, response_parser=None, operations_observer=None, on_transport_rejection=None):
     # Only trusted internal adapters select these functions, never event fields.
     body_builder = body_builder or request_body
     response_parser = response_parser or parse
     # Validation/body construction happens before credential access or HTTP work.
-    body = json.dumps(body_builder(intent, settings), ensure_ascii=False).encode('utf-8')
-    require(type(budget_ms) is int and budget_ms >= 250, 'BUDGET_LIMIT')
-    deadline = clock() + min(budget_ms, settings.timeout_ms) / 1000
+    stage = 'REQUEST_BUILD'
+    try:
+        body = json.dumps(body_builder(intent, settings), ensure_ascii=False).encode('utf-8')
+        stage = 'BUDGET_ARGUMENT'
+        require(type(budget_ms) is int and budget_ms >= 250, 'BUDGET_LIMIT')
+        stage = 'DEADLINE_SETUP'
+        deadline = clock() + min(budget_ms, settings.timeout_ms) / 1000
+    except Exception:
+        _transport_rejected(on_transport_rejection, stage)
+        raise  # Preserve the preparation boundary's original exception type.
     connection = None
     response = None
     dispatch_begun = False
     operation_outcome, operation_reason = 'failed', 'PROVIDER_UNAVAILABLE'
     try:
         if operations_observer is not None:
+            stage = 'OPERATIONS_START'
             operations_observer.start()  # Claim planned execution before credential/connect work.
             remaining(deadline, clock)  # Recompute; never extend the original deadline.
+        stage = 'SECRET_LOAD'
         api_key = secret_loader(settings, deadline, clock)
+        stage = 'CONNECTION_SETUP'
         connection = connection_factory(HOST, port=443, timeout=remaining(deadline, clock))
         connection.deadline, connection.clock = deadline, clock
+        stage = 'CONNECT'
         connection.connect()
         connection.sock = DeadlineSocket(connection.sock, deadline, clock)
         dispatch_begun = True
+        stage = 'DISPATCH'
         connection.request('POST', PATH, body=body, headers={
             'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json', 'Accept': 'application/json',
         })
+        stage = 'HTTP_RESPONSE'
         response = connection.getresponse()
+        stage = 'HTTP_STATUS'
         require(response.status == 200, 'PROVIDER_UNAVAILABLE')  # Redirects never followed.
+        stage = 'CONTENT_ENCODING'
         require(response.getheader('Content-Encoding', 'identity') == 'identity', 'PROVIDER_RESPONSE_INVALID')
+        stage = 'FRAMING_HEADERS'
         lengths = response.headers.get_all('Content-Length', [])
         transfers = response.headers.get_all('Transfer-Encoding', [])
         require(len(lengths) <= 1 and len(transfers) <= 1 and not (lengths and transfers), 'PROVIDER_RESPONSE_INVALID')
+        stage = 'TRANSFER_ENCODING'
         require(not transfers or transfers == ['chunked'], 'PROVIDER_RESPONSE_INVALID')
+        stage = 'CONTENT_LENGTH_VALUE'
         expected = int(lengths[0]) if lengths else None
+        stage = 'CONTENT_LENGTH_BOUND'
         require(expected is None or 0 < expected <= MAX_RESPONSE_BYTES, 'PROVIDER_RESPONSE_INVALID')
         chunks = []
         count = 0
         while count <= MAX_RESPONSE_BYTES:
+            stage = 'BODY_DEADLINE'
             remaining(deadline, clock)
+            stage = 'BODY_READ'
             chunk = response.read1(min(4096, MAX_RESPONSE_BYTES + 1 - count))
+            stage = 'BODY_DEADLINE'
             remaining(deadline, clock)
             if not chunk:
                 break
             count += len(chunk)
             chunks.append(chunk)
+        stage = 'BODY_BOUNDS'
         require(count <= MAX_RESPONSE_BYTES and (expected is None or count == expected), 'PROVIDER_RESPONSE_INVALID')
+        stage = 'RESPONSE_CALLBACK'
         result = response_parser(b''.join(chunks), intent['target']['sanitizedText'])
         operation_outcome, operation_reason = 'succeeded', 'NONE'
         return result
     except MessageError as error:
+        _transport_rejected(on_transport_rejection, stage)
         operation_reason = ('PROVIDER_RESPONSE_INVALID' if error.code == 'PROVIDER_RESPONSE_INVALID' else
                             'TIME_BUDGET_EXHAUSTED' if error.code == 'BUDGET_LIMIT' else 'PROVIDER_UNAVAILABLE')
         raise
     except Exception:
+        _transport_rejected(on_transport_rejection, stage)
         raise MessageError('PROVIDER_UNAVAILABLE') from None
     finally:
-        if operations_observer is not None:
-            from shared_operations.dispatch import finished
-            finished(operations_observer, operation_outcome, operation_reason,
-                     1 if response is not None else None if dispatch_begun else 0)
-        if response is not None:
-            response.close()
-        if connection is not None:
-            connection.close()
+        try:
+            if operations_observer is not None:
+                stage = 'OPERATIONS_FINISH'
+                from shared_operations.dispatch import finished
+                finished(operations_observer, operation_outcome, operation_reason,
+                         1 if response is not None else None if dispatch_begun else 0)
+            if response is not None:
+                stage = 'RESPONSE_CLOSE'
+                response.close()
+            if connection is not None:
+                stage = 'CONNECTION_CLOSE'
+                connection.close()
+        except Exception:
+            _transport_rejected(on_transport_rejection, stage)
+            raise  # Preserve existing cleanup ordering and exceptions.
