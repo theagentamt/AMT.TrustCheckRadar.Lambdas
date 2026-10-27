@@ -1,6 +1,7 @@
 """Allowlisted provider usage only. Unknown usage never means zero billing."""
 import json
 from shared_message_contract.runtime import unique_pairs
+from .proposer import MAX_ENVELOPE_BYTES
 
 FAILURES = frozenset({'INVALID_JSON', 'MODEL_MISMATCH', 'SERVICE_TIER_MISMATCH',
     'USAGE_ABSENT', 'INVALID_TOKEN_FIELDS', 'TOKEN_TOTAL_MISMATCH',
@@ -13,7 +14,7 @@ def usage_report(raw, model, rates):
     if type(rates) not in (tuple,list) or len(rates)!=2 or any(type(rate) is not int or not 1<=rate<=1_000_000_000 for rate in rates):
         return unknown('INVALID_RATES')
     try:
-        if type(raw) is not bytes or not 0 < len(raw) <= 16384:
+        if type(raw) is not bytes or not 0 < len(raw) <= MAX_ENVELOPE_BYTES:
             return unknown('INVALID_JSON')
         value = json.loads(raw, object_pairs_hook=unique_pairs)
         if type(value) is not dict:

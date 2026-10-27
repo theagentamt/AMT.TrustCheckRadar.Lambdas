@@ -39,9 +39,9 @@ def test_header_rejections_are_finite_without_header_values(headers,expected):
 @pytest.mark.parametrize('headers,stage',[
     (b'Transfer-Encoding: gzip\r\n','TRANSFER_ENCODING'),
     (b'Content-Length: wrong\r\n','CONTENT_LENGTH_VALUE'),
-    (b'Content-Length: 0\r\n','CONTENT_LENGTH_BOUND'),
-    (b'Content-Length: -1\r\n','CONTENT_LENGTH_BOUND'),
-    (b'Content-Length: 16385\r\n','CONTENT_LENGTH_BOUND'),
+    (b'Content-Length: 0\r\n','CONTENT_LENGTH_ZERO'),
+    (b'Content-Length: -1\r\n','CONTENT_LENGTH_VALUE'),
+    (b'Content-Length: 65537\r\n','CONTENT_LENGTH_OVER_LIMIT'),
 ])
 def test_headers_without_competing_length_stop_at_the_correct_guard(headers,stage):
     stages=[];data=b'HTTP/1.1 200 Test\r\n'+headers+b'\r\n{}'
@@ -79,7 +79,7 @@ def test_each_early_boundary_reports_only_a_closed_stage(monkeypatch,kind,expect
     if kind=='setup':kwargs['factory']=broken
     if kind in ('connect','dispatch','response','read'):kwargs['factory']=Connection
     if kind=='status':kwargs['data']=h.wire(status=401)
-    if kind=='bounds':kwargs['data']=b'HTTP/1.1 200 Test\r\n\r\n'+b'x'*16385
+    if kind=='bounds':kwargs['data']=b'HTTP/1.1 200 Test\r\n\r\n'+b'x'*(p.MAX_ENVELOPE_BYTES+1)
     if kind=='callback':kwargs['parser']=broken
     with pytest.raises(Exception):run(**kwargs)
     assert stages[0]==expected and all(v in p.TRANSPORT_REJECTION_STAGES for v in stages)

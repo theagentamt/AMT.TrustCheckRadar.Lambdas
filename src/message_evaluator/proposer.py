@@ -20,7 +20,12 @@ from shared_message_contract.runtime import unique_pairs
 HOST = 'api.openai.com'
 PATH = '/v1/responses'
 MAX_RESPONSE_BYTES = 16384
-MAX_WIRE_BYTES = 32768
+# Responses can echo text.format.schema as envelope metadata. The current
+# schema with ordinary two-space envelope formatting exceeds 16 KiB, even for
+# a tiny model assessment. Keep that metadata budget separate from model text:
+# 32 KiB schema/envelope + 16 KiB model text + 16 KiB serialization headroom.
+MAX_ENVELOPE_BYTES = 65536
+MAX_WIRE_BYTES = MAX_ENVELOPE_BYTES + 16384  # Includes headers/chunk framing.
 PROPOSAL_RULES = sorted(RULES | {'UNRESOLVED'})
 SCHEMA = {
     'type': 'object', 'additionalProperties': False,
@@ -130,7 +135,7 @@ def request_body(intent, settings):
 
 def parse(raw, text):
     try:
-        require(type(raw) is bytes and 1 <= len(raw) <= MAX_RESPONSE_BYTES, 'PROVIDER_RESPONSE_INVALID')
+        require(type(raw) is bytes and 1 <= len(raw) <= MAX_ENVELOPE_BYTES, 'PROVIDER_RESPONSE_INVALID')
         envelope = json.loads(raw, object_pairs_hook=unique_pairs)
         require(type(envelope) is dict and envelope.get('status') == 'completed' and
                 envelope.get('error') is None and envelope.get('incomplete_details') is None, 'PROVIDER_RESPONSE_INVALID')
@@ -142,6 +147,7 @@ def parse(raw, text):
         content = message.get('content')
         require(type(content) is list and len(content) == 1 and type(content[0]) is dict and
                 content[0].get('type') == 'output_text' and type(content[0].get('text')) is str, 'PROVIDER_RESPONSE_INVALID')
+        require(len(content[0]['text'].encode('utf-8')) <= MAX_RESPONSE_BYTES, 'PROVIDER_RESPONSE_INVALID')
         proposal = json.loads(content[0]['text'], object_pairs_hook=unique_pairs)
         require(type(proposal) is dict and set(proposal) == {'ruleId', 'spans'} and
                 type(proposal['ruleId']) is str and proposal['ruleId'] in PROPOSAL_RULES and
@@ -223,7 +229,8 @@ TRANSPORT_REJECTION_STAGES = frozenset({
     'REQUEST_BUILD', 'BUDGET_ARGUMENT', 'DEADLINE_SETUP', 'OPERATIONS_START',
     'SECRET_LOAD', 'CONNECTION_SETUP', 'CONNECT', 'DISPATCH', 'HTTP_RESPONSE',
     'HTTP_STATUS', 'CONTENT_ENCODING', 'FRAMING_HEADERS', 'TRANSFER_ENCODING',
-    'CONTENT_LENGTH_VALUE', 'CONTENT_LENGTH_BOUND', 'BODY_DEADLINE', 'BODY_READ',
+    'CONTENT_LENGTH_VALUE', 'CONTENT_LENGTH_BOUND', 'CONTENT_LENGTH_ZERO',
+    'CONTENT_LENGTH_OVER_LIMIT', 'BODY_DEADLINE', 'BODY_READ',
     'BODY_BOUNDS', 'RESPONSE_CALLBACK', 'OPERATIONS_FINISH', 'RESPONSE_CLOSE',
     'CONNECTION_CLOSE', 'TRANSPORT_INTERNAL',
 })
@@ -288,16 +295,27 @@ def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_fac
         stage = 'TRANSFER_ENCODING'
         require(not transfers or transfers == ['chunked'], 'PROVIDER_RESPONSE_INVALID')
         stage = 'CONTENT_LENGTH_VALUE'
-        expected = int(lengths[0]) if lengths else None
-        stage = 'CONTENT_LENGTH_BOUND'
-        require(expected is None or 0 < expected <= MAX_RESPONSE_BYTES, 'PROVIDER_RESPONSE_INVALID')
+        expected = None
+        if lengths:
+            length = lengths[0].strip(' \t')
+            require(re.fullmatch(r'[0-9]+', length) is not None, 'PROVIDER_RESPONSE_INVALID')
+            length = length.lstrip('0')
+            stage = 'CONTENT_LENGTH_ZERO'
+            require(bool(length), 'PROVIDER_RESPONSE_INVALID')
+            stage = 'CONTENT_LENGTH_OVER_LIMIT'
+            limit = str(MAX_ENVELOPE_BYTES)
+            # Compare bounded decimal strings before converting. Neither huge
+            # numerals nor Python-only signs/underscores can bypass framing.
+            require(len(length) < len(limit) or (len(length) == len(limit) and length <= limit),
+                    'PROVIDER_RESPONSE_INVALID')
+            expected = int(length)
         chunks = []
         count = 0
-        while count <= MAX_RESPONSE_BYTES:
+        while count <= MAX_ENVELOPE_BYTES:
             stage = 'BODY_DEADLINE'
             remaining(deadline, clock)
             stage = 'BODY_READ'
-            chunk = response.read1(min(4096, MAX_RESPONSE_BYTES + 1 - count))
+            chunk = response.read1(min(4096, MAX_ENVELOPE_BYTES + 1 - count))
             stage = 'BODY_DEADLINE'
             remaining(deadline, clock)
             if not chunk:
@@ -305,7 +323,7 @@ def propose(intent, settings, budget_ms, *, clock=time.monotonic, connection_fac
             count += len(chunk)
             chunks.append(chunk)
         stage = 'BODY_BOUNDS'
-        require(count <= MAX_RESPONSE_BYTES and (expected is None or count == expected), 'PROVIDER_RESPONSE_INVALID')
+        require(count <= MAX_ENVELOPE_BYTES and (expected is None or count == expected), 'PROVIDER_RESPONSE_INVALID')
         stage = 'RESPONSE_CALLBACK'
         result = response_parser(b''.join(chunks), intent['target']['sanitizedText'])
         operation_outcome, operation_reason = 'succeeded', 'NONE'
