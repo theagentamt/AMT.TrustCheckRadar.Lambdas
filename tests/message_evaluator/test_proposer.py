@@ -274,8 +274,13 @@ def test_ambiguous_or_unsupported_http_framing_is_rejected(headers):
         call(wire(headers=headers))
 
 
-def test_total_wire_cap_also_bounds_http_headers():
-    huge_header = b'X-Large: ' + b'z' * p.MAX_WIRE_BYTES + b'\r\n'
+@pytest.mark.parametrize('buffer_size', [8192, 131072])
+def test_total_wire_cap_also_bounds_http_headers(monkeypatch, buffer_size):
+    reader = io.BufferedReader
+    monkeypatch.setattr(io, 'BufferedReader', lambda raw: reader(raw, buffer_size=buffer_size))
+    # Each line stays below the stdlib header-line limit so this exercises the
+    # total-wire guard with both Python 3.13 and 3.14 default buffer sizes.
+    huge_header = (b'X-Large: ' + b'z' * 4096 + b'\r\n') * (p.MAX_WIRE_BYTES // 4096 + 1)
     with pytest.raises(MessageError, match='PROVIDER_RESPONSE_INVALID'):
         call(wire(headers=huge_header))
 

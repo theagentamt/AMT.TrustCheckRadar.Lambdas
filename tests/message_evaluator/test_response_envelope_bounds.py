@@ -200,5 +200,6 @@ def test_legacy_proposal_accepts_metadata_but_preserves_model_text_limit():
 def test_wire_cap_still_includes_headers_and_chunk_framing():
     assert p.MAX_ENVELOPE_BYTES == 65536 and p.MAX_RESPONSE_BYTES == 16384
     assert p.MAX_WIRE_BYTES == 81920
-    raw = b'HTTP/1.1 200 Test\r\nX-Large: ' + b'x' * 81920 + b'\r\n\r\n{}'
+    headers = (b'X-Large: ' + b'x' * 4096 + b'\r\n') * 21
+    raw = b'HTTP/1.1 200 Test\r\n' + headers + b'\r\n{}'
     with pytest.raises(MessageError): h.call(raw)
