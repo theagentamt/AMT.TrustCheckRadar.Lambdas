@@ -132,15 +132,15 @@ def test_closed_rule_and_span_validation(proposal):
 
 
 def test_duplicates_oversize_compression_and_invalid_utf8_are_rejected():
-    for value in (b'{"status":"completed","status":"completed"}', b'\xff', b'x' * 16385):
+    for value in (b'{"status":"completed","status":"completed"}', b'\xff', b'x' * (p.MAX_ENVELOPE_BYTES + 1)):
         with pytest.raises(MessageError, match='PROVIDER_RESPONSE_INVALID'):
             p.parse(value, 'x')
     value = response(); value['output'][0]['content'][0]['text'] = '{"ruleId":"UNRESOLVED","ruleId":"UNRESOLVED","spans":[]}'
     with pytest.raises(MessageError, match='PROVIDER_RESPONSE_INVALID'): call(wire(value))
     with pytest.raises(MessageError, match='PROVIDER_RESPONSE_INVALID'): call(wire(headers=b'Content-Encoding: gzip\r\n'))
-    body = b'x' * 16385
+    body = b'x' * (p.MAX_ENVELOPE_BYTES + 1)
     with pytest.raises(MessageError, match='PROVIDER_RESPONSE_INVALID'):
-        call(b'HTTP/1.1 200 OK\r\nContent-Length: 16385\r\n\r\n' + body)
+        call(b'HTTP/1.1 200 OK\r\nContent-Length: ' + str(len(body)).encode() + b'\r\n\r\n' + body)
 
 
 def test_privacy_validation_and_deadline_prevent_secret_or_network_calls():

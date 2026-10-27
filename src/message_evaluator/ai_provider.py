@@ -365,7 +365,7 @@ def _ground_quotes(value, text):
 def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None,on_rejection_detail=None):
     stage='RESPONSE_BOUNDS'
     try:
-        _check(type(raw) is bytes and 1<=len(raw)<=proposer.MAX_RESPONSE_BYTES,stage)
+        _check(type(raw) is bytes and 1<=len(raw)<=proposer.MAX_ENVELOPE_BYTES,stage)
         stage='ENVELOPE_JSON'
         envelope=json.loads(raw,object_pairs_hook=unique_pairs)
         stage='ENVELOPE_STATUS'
@@ -401,6 +401,7 @@ def parse(raw,text,expected_model=None,*,reasoning_effort=None,on_rejection=None
         content=message.get('content')
         _check(type(content) is list and len(content)==1 and type(content[0]) is dict
                and content[0].get('type')=='output_text' and type(content[0].get('text')) is str,stage)
+        _check(len(content[0]['text'].encode('utf-8'))<=proposer.MAX_RESPONSE_BYTES,'ASSESSMENT_TEXT_BOUNDS')
         stage='ASSESSMENT_JSON'
         value=json.loads(content[0]['text'],object_pairs_hook=unique_pairs)
         stage='ASSESSMENT_SHAPE'

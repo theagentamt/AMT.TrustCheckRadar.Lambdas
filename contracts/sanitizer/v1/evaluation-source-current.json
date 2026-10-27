@@ -3,9 +3,9 @@
   "promptSha256": "6367edeedd8d374a7c5090a3187f1d4436933473347d50c8b8e8dadbbd00564b",
   "schemaSha256": "5adf88e1cf9a583043f98ea4a89df21e8e751abfa308371ff7fec0b6be4210f8",
   "sourceCurrentControlledProfiles": {
-    "gpt-4.1-mini-2025-04-14": "830768a5ecd2b2d1c76590857d6ec2af9b52301a866952a0aa337720e8862c71",
-    "gpt-5.4-nano-2026-03-17": "72036934395eda7bde6007694573c0f9dd3e40211cacecaf6bf170de824946ae",
-    "gpt-5.4-mini-2026-03-17": "00da781d202bb3c825a54bc8e0b52a550d037abe441258b9f8296adbeefe99c5"
+    "gpt-4.1-mini-2025-04-14": "6b9cdc41a2cc5ede806cd93bdea4f4435916e415aeefbe23025a6a83e58c348e",
+    "gpt-5.4-nano-2026-03-17": "f2c7bae592410d6b95747d1f38d377da370d823589c217edb248d487b64f4cee",
+    "gpt-5.4-mini-2026-03-17": "01066c12ec0edbc6e33b77c2e2802132c77978b2a2295bde8213fa3eed447a34"
   },
   "historicalPublishedRecord": {
     "path": "evaluation-profile-identities.json",
