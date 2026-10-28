@@ -185,20 +185,45 @@ class AISettings(proposer.Settings):
                    os.environ.get('MESSAGE_AI_REASONING_EFFORT'))
 
 
+def approval_selected():
+    """Selection only; settings still verify the bound record before any call."""
+    if os.environ.get('STAGE') != 'dev':
+        return False
+    exception = os.environ.get('MESSAGE_AI_DEV_EXCEPTION_ENABLED')
+    if exception == 'true':
+        return (os.environ.get('MESSAGE_AI_QUALIFIED') == 'false'
+                and not os.environ.get('MESSAGE_AI_QUALIFICATION_ID')
+                and re.fullmatch(r'[A-Za-z0-9_-]{1,64}', os.environ.get('MESSAGE_AI_DEV_EXCEPTION_ID', '')) is not None)
+    return (exception in (None, 'false') and not os.environ.get('MESSAGE_AI_DEV_EXCEPTION_ID')
+            and os.environ.get('MESSAGE_AI_QUALIFIED') == 'true')
+
+
 def qualified_settings(cost_policy=None):
-    require(os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_QUALIFIED')=='true'
+    """Load either a qualification or the separately recorded Dev exception."""
+    require(approval_selected() and os.environ.get('MESSAGE_AI_ENABLED')=='true'
             and os.environ.get('MESSAGE_AI_POLICY_VERSION')==POLICY
             and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==APPROVAL_SHA,'PROVIDER_UNAVAILABLE')
     settings=AISettings.from_env()
-    identifier=os.environ.get('MESSAGE_AI_QUALIFICATION_ID','')
+    exception=os.environ.get('MESSAGE_AI_DEV_EXCEPTION_ENABLED')=='true'
+    identifier=os.environ.get('MESSAGE_AI_DEV_EXCEPTION_ID' if exception else 'MESSAGE_AI_QUALIFICATION_ID','')
     require(re.fullmatch(r'[A-Za-z0-9_-]{1,64}',identifier) is not None,'PROVIDER_UNAVAILABLE')
     require(re.fullmatch(r'[A-Za-z0-9._-]+-20[0-9]{2}-[0-9]{2}-[0-9]{2}',settings.model) is not None,'PROVIDER_UNAVAILABLE')
-    records=json.loads((Path(__file__).parent/'ai_qualifications.json').read_text(),object_pairs_hook=unique_pairs)
+    registry='ai_dev_exceptions.json' if exception else 'ai_qualifications.json'
+    records=json.loads((Path(__file__).parent/registry).read_text(),object_pairs_hook=unique_pairs)
     record=records.get(identifier)
     fields={'model','policyVersion','promptSha256','schemaSha256','contractSha256','evidenceSha256','status'}
     profile=inference_profile(settings)
     expected=fields | ({'inferenceProfile'} if profile is not None else set())
+    if exception:
+        expected |= {'stage','networkTimeoutMs','qualificationPassed'}
     require(type(record) is dict and set(record) in (expected,expected|{'costPolicy'}),'PROVIDER_UNAVAILABLE')
+    if exception:
+        require(record['stage']=='dev' and record['qualificationPassed'] is False
+                and type(record['networkTimeoutMs']) is int and record['networkTimeoutMs']==settings.timeout_ms
+                and profile is not None and 'costPolicy' in record,'PROVIDER_UNAVAILABLE')
+        bound_cost=CostPolicy.from_dict(record['costPolicy'])
+        require(settings.model==bound_cost.model and settings.max_output_tokens==bound_cost.maxOutputTokens,
+                'PROVIDER_UNAVAILABLE')
     if profile is not None:
         require(type(record['inferenceProfile']) is dict and set(record['inferenceProfile'])==set(profile)
                 and type(record['inferenceProfile']['reasoningEffort']) is str
@@ -209,12 +234,13 @@ def qualified_settings(cost_policy=None):
                 and settings.model==cost_policy.model and settings.max_output_tokens==cost_policy.maxOutputTokens,'PROVIDER_UNAVAILABLE')
     contract=Path(__file__).parent/'ai_contract'/'SHA256SUMS'
     if not contract.exists():contract=Path(__file__).resolve().parents[2]/'contracts/message-consumer/1.0.0-candidate.2/SHA256SUMS'
-    require(record['model']==settings.model and record['policyVersion']==POLICY and record['status']=='approved'
+    status='accepted_known_bug_dev_only' if exception else 'approved'
+    require(record['model']==settings.model and record['policyVersion']==POLICY and record['status']==status
             and record['promptSha256']==PROMPT_SHA256 and record['schemaSha256']==SCHEMA_SHA256
             and record['contractSha256']==hashlib.sha256(contract.read_bytes()).hexdigest()
             and type(record['evidenceSha256']) is str and len(record['evidenceSha256'])==64
             and all(c in '0123456789abcdef' for c in record['evidenceSha256']),'PROVIDER_UNAVAILABLE')
-    evidence=Path(__file__).parent/'qualifications'/(identifier+'.json')
+    evidence=Path(__file__).parent/('dev_exceptions' if exception else 'qualifications')/(identifier+'.json')
     require(evidence.is_file() and hashlib.sha256(evidence.read_bytes()).hexdigest()==record['evidenceSha256'],'PROVIDER_UNAVAILABLE')
     return settings
 

@@ -54,7 +54,9 @@ def lambda_handler(event,context):
                  and os.environ.get('MESSAGE_AI_ENABLED')=='true' and os.environ.get('MESSAGE_AI_POLICY_VERSION')==v2.POLICY
                  and os.environ.get('MESSAGE_AI_POLICY_APPROVAL_SHA256')==v2.APPROVAL_SHA)
     else:enabled=policy_enabled('MESSAGE_EVALUATOR_ENABLED')
-    if primary and (os.environ.get('MESSAGE_AI_PRIMARY_ENABLED')!='true' or os.environ.get('MESSAGE_AI_QUALIFIED')!='true'):enabled=False
+    if primary:
+        from .ai_provider import approval_selected
+        if os.environ.get('MESSAGE_AI_PRIMARY_ENABLED')!='true' or not approval_selected():enabled=False
     if not enabled:return {'enabled':False}
     try:
         from shared_operations.runtime import enabled as operations_enabled, message_execution

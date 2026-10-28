@@ -1,0 +1,25 @@
+{
+  "atcr187-known-bug-dev-20261028": {
+    "model": "gpt-5.4-mini-2026-03-17",
+    "policyVersion": "message-ai-2026-09-21-v1",
+    "promptSha256": "6367edeedd8d374a7c5090a3187f1d4436933473347d50c8b8e8dadbbd00564b",
+    "schemaSha256": "5adf88e1cf9a583043f98ea4a89df21e8e751abfa308371ff7fec0b6be4210f8",
+    "contractSha256": "e6f797aaa90d6dbda07ba7963bee82236d4b322f36e86ab08b0ba8ebfe426c26",
+    "evidenceSha256": "23884bfa4f42d139cdb753a5c0494b9fe463428432e63bbbf11d8d228f21929b",
+    "status": "accepted_known_bug_dev_only",
+    "inferenceProfile": {
+      "reasoningEffort": "low",
+      "maxOutputTokens": 512
+    },
+    "costPolicy": {
+      "model": "gpt-5.4-mini-2026-03-17",
+      "contextTokens": 400000,
+      "maxOutputTokens": 512,
+      "inputNanoUsdPerToken": 750,
+      "outputNanoUsdPerToken": 4500
+    },
+    "stage": "dev",
+    "networkTimeoutMs": 8000,
+    "qualificationPassed": false
+  }
+}
