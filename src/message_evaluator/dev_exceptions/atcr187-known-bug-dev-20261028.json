@@ -1,0 +1,33 @@
+{
+  "id": "atcr187-known-bug-dev-20261028",
+  "stage": "dev",
+  "decision": "accepted_known_bug_dev_only",
+  "qualificationPassed": false,
+  "productionPublicReleaseAllowed": false,
+  "owner": "Daniel",
+  "decisionAtUtc": "2026-10-28T02:24:06Z",
+  "trustedOwnerMessageId": "Sentinel_569ac93d6d6481919ca8799bdaa7f6aa",
+  "followUp": "ATCR-187",
+  "followUpEpic": "ATCR-186",
+  "sourceAtDecision": "8fe827e1074057e63aa2e9f5f5e12bfbd1e3a4e8",
+  "qualification": {
+    "outcome": "NO_GO",
+    "realCalls": 2,
+    "strictValid": 2,
+    "engineeringPasses": 1,
+    "engineeringFailures": 1,
+    "unrun": 12,
+    "failedFixture": "dev-019-es",
+    "knownBug": "Required AI_CONSEQUENTIAL_URGENCY omitted; optional PRETEXT connection anchor incomplete.",
+    "batchFenceConsumed": true,
+    "batchManifestSha256": "9537c678a835ca0035a57552dc564c9f0dd40a9719465f66759fc20959953066"
+  },
+  "originalSpanAttempts": {
+    "astraExtraHigh": 1,
+    "astraUltra": 1,
+    "exhausted": true
+  },
+  "scope": "Existing governed authenticated engineering-tester Dev path only; no investigation, UAT, Production or public release.",
+  "reviewBoundary": "Before any UAT, Production or public exposure or change to the pinned profile; no automatic promotion.",
+  "rollback": "Disable Dev exception and AI admission using existing switches or restore the separately bound Dev alias/configuration."
+}
