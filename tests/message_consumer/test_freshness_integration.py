@@ -39,9 +39,16 @@ def test_new_message_real_settle_expired_replay_preserves_charge_ai_and_export(w
     assert wrong[0]==409
 
 
-@pytest.mark.parametrize('text,processing,charge',[('Send me your account password and the login code.','complete',1),
-                                                    ('A request outside qualified coverage.','inconclusive',0)])
-def test_candidate3_rules_only_settlement_never_uses_provider_budget(world,text,processing,charge):
+@pytest.mark.parametrize('text,source,processing,charge',[
+    ('Send me your account password and the login code.','pasted_text','complete',1),
+    ('A request outside qualified coverage.','pasted_text','inconclusive',0),
+    ('Screenshot 1:\nPay this tax fee by buying gift cards and\nsend me the numbers and PINs.','ocr','complete',1),
+    ('Screenshot 1:\nPay this fine by purchasing gift cards and send us the redemption codes.','ocr','complete',1),
+    ('Screenshot 1:\nI bought a gift card for your birthday.','ocr','inconclusive',0),
+    ('Screenshot 1:\nNever pay this tax fee by buying gift cards and send me the numbers and PINs.','ocr','inconclusive',0),
+    ('Screenshot 1:\nPay this tax fee by buying gift cards and send me the numbers and PINs.','mixed','inconclusive',0),
+])
+def test_candidate3_rules_only_settlement_never_uses_provider_budget(world,text,source,processing,charge):
     from message_evaluator.policy_v3 import evaluate
     a,e,_,row,_,_=world;calls=[];budget=helpers.Budget()
     def provider(body):
@@ -50,13 +57,17 @@ def test_candidate3_rules_only_settlement_never_uses_provider_budget(world,text,
         return evaluate(body['checkId'],body['intent'],rules_only=True,
                         lookup=lambda *_:pytest.fail('Google called'),ai=lambda *_:pytest.fail('AI called'))
     c=Consumer(a,provider,lambda _:None,budget,allow_candidate3_rules_only=True)
-    req=request();req['target']['sanitizedText']=text
+    req=request();req['target'].update(sanitizedText=text,sourceType=source)
     status,p=c.handle(helpers.event(e,'POST /v1/message-checks/prepare',req));assert status==200
     proof=p['operationProof']
     status,b=c.handle(helpers.event(e,'POST /v1/message-checks',req|{'operationProof':proof}))
     assert status==200 and b['outcome']['processingOutcome']==processing
     assert b['outcome']['aiAssessmentStatus']=='not_assessed'
     assert b['accounting']['chargedChecks']==charge
+    assert text not in json.dumps(row('CHECK#'+proof),default=str)
+    # A replay returns the original result/accounting without another evaluator
+    # dispatch or deduction, including newly qualified OCR forms.
+    assert c.handle(helpers.event(e,'POST /v1/message-checks',req|{'operationProof':proof}))[1]['accounting']==b['accounting']
     assert len(calls)==1 and budget.attempts==0
     assert row('PERIOD#p1')['usedChecks']==charge
 

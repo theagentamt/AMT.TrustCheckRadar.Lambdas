@@ -63,7 +63,7 @@ def evaluate(check, intent, *, lookup=None, budget_ms=18000, proposer=None, cloc
     if instruction>=2:limits.append('HOSTILE_INPUT_STOP')
     if target['speakerRole'] in ('mixed','unknown'):limits.append('UNKNOWN_SPEAKER')
     normalized=' '.join(text.casefold().split())
-    rule=COVERAGE[intent['language']].get(normalized) or match(text, intent['language'])
+    rule=COVERAGE[intent['language']].get(normalized) or match(text, intent['language'], source_type=target['sourceType'])
     if not limits and rule and (rule=='BENIGN_FIXED_TEXT' or target['speakerRole']=='other'):
         rules.append(rule)
     else:

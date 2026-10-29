@@ -5,7 +5,7 @@ expansions, sentence extraction, semantic model vote or substring verdicts.
 """
 from itertools import product
 
-COVERAGE_VERSION = 'qualified-phrases-2026-09-21-v1'
+COVERAGE_VERSION = 'qualified-phrases-2026-10-29-v2'
 
 # Each family is (rule, sequential slots). Qualification covers the Cartesian
 # product of the explicit slots, not arbitrary text with similar meaning.
@@ -69,8 +69,20 @@ def build_coverage():
 
 
 QUALIFIED_PHRASES = build_coverage()
+# Android's single-image review adds this literal label to OCR text. Enumerate
+# the complete labelled forms rather than stripping headers or finding a risky
+# substring in arbitrary surrounding context. Only risky families are included;
+# no new benign labelled verdict or multi-screenshot conversation is qualified.
+QUALIFIED_OCR_PHRASES = {
+    language: {'screenshot 1: ' + phrase: rule for phrase, rule in rows.items()}
+    for language, rows in QUALIFIED_PHRASES.items()
+}
 
 
-def match(text, language):
-    """Whitespace/case normalization only; all other surrounding text rejects."""
-    return QUALIFIED_PHRASES.get(language, {}).get(' '.join(text.casefold().split()))
+def match(text, language, *, source_type=None):
+    """Exact normalized whole message, including finite OCR-labelled forms."""
+    normalized = ' '.join(text.casefold().split())
+    rule = QUALIFIED_PHRASES.get(language, {}).get(normalized)
+    if rule is None and source_type == 'ocr':
+        rule = QUALIFIED_OCR_PHRASES.get(language, {}).get(normalized)
+    return rule

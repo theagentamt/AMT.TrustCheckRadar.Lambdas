@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'src'))
-from message_evaluator.coverage import QUALIFIED_PHRASES, COVERAGE_VERSION
+from message_evaluator.coverage import QUALIFIED_PHRASES, QUALIFIED_OCR_PHRASES, COVERAGE_VERSION
 from message_evaluator.policy import evaluate
 
 
@@ -89,5 +89,6 @@ def test_ambiguous_unsupported_or_benign_text_is_not_a_supported_no_finding(lang
 
 
 def test_version_and_expected_finite_surface_are_explicit():
-    assert COVERAGE_VERSION == 'qualified-phrases-2026-09-21-v1'
+    assert COVERAGE_VERSION == 'qualified-phrases-2026-10-29-v2'
     assert {language: len(rows) for language, rows in QUALIFIED_PHRASES.items()} == {'en': 68, 'es': 68}
+    assert {language: len(rows) for language, rows in QUALIFIED_OCR_PHRASES.items()} == {'en': 68, 'es': 68}
