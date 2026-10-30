@@ -306,7 +306,7 @@ jobs:
           ref: ${{ inputs.source_sha }}
           persist-credentials: false
       - name: Set up Python 3.14
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.14'
       - name: Install local validation dependencies
@@ -421,7 +421,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Python 3.14
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.14'
       - name: Install local validation dependencies
