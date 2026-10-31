@@ -134,13 +134,28 @@ jobs:
               def get_remaining_time_in_millis(self):
                   return 35000
 
-          result = lambda_handler({
+          legacy = lambda_handler({
               "schemaVersion": 1, "checkId": "ci-private-assessment",
               "url": "http://169.254.169.254/latest/meta-data/", "scope": "full_url",
           }, Context())
+          assert legacy["checkId"] == "ci-private-assessment"
+          assert legacy["processingOutcome"] == "unavailable"
+          assert legacy["verdict"] == "unknown"
+          assert legacy["reasonCodes"] == ["CONFIGURATION_UNAVAILABLE"]
+          assert legacy["providerCallCount"] == legacy["observedHopCount"] == 0
+          assert legacy["consumerAccessEnabled"] is False
+
+          result = lambda_handler({
+              "schemaVersion": 2, "checkId": "ci-guarded-assessment",
+              "url": "http://169.254.169.254/latest/meta-data/", "scope": "full_url",
+          }, Context())
+          assert result["schemaVersion"] == 3
+          assert result["checkId"] == "ci-guarded-assessment"
           assert result["processingOutcome"] == "blocked"
           assert result["verdict"] == "unknown"
-          assert result["providerCallCount"] == 0
+          assert result["reasonCodes"] == ["NON_PUBLIC_DESTINATION"]
+          assert result["providerCallCount"] == result["observedHopCount"] == 0
+          assert result["targetContactStatus"] == "not_contacted"
           assert result["consumerAccessEnabled"] is False
           PYTHON
 
