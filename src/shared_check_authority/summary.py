@@ -3,7 +3,14 @@ from .core import AuthorityError
 import re
 
 
-def validate_summary(value, client_id, outcome):
+def validate_summary(value, client_id, outcome, *, request_scope=None):
+    if type(value) is dict and value.get('schemaVersion') == 3:
+        from shared_url_guarded import supported
+        scopes = (request_scope,) if request_scope is not None else ('full_url', 'origin_only')
+        if (value.get('checkId') != client_id or value.get('processingOutcome') != outcome
+                or not any(supported(value, client_id, scope) for scope in scopes)):
+            raise AuthorityError('RESULT_SUMMARY_INVALID')
+        return value
     keys={'schemaVersion','checkId','verdict','processingOutcome','coverage','reasonCodes','transportWarnings','threatTypes','lookupCount','providerCallCount','observedHopCount','scope','consumerAccessEnabled'}
     modern=isinstance(value,dict) and value.get('schemaVersion')==2
     expected=keys|{'lookupObservedAt','lookupValidUntil'} if modern else keys

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "checkId",
+    "resolutionStatus",
+    "hops",
+    "reasonCodes",
+    "requestCount",
+    "scope",
+    "location"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "checkId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "resolutionStatus": {
+      "enum": [
+        "http_response",
+        "partial",
+        "blocked",
+        "invalid_input"
+      ]
+    },
+    "hops": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "httpStatus"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "httpStatus": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          }
+        }
+      },
+      "maxItems": 1
+    },
+    "reasonCodes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "maxItems": 1
+    },
+    "requestCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "scope": {
+      "const": "HTTP_SINGLE_HOP_ONLY"
+    },
+    "location": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2048
+    }
+  }
+}

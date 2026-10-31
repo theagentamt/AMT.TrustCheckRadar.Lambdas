@@ -153,7 +153,7 @@ class Authority:
         # order/projection preserved. No URL normalization or raw persistence.
         if not isinstance(payload, dict) or set(payload) not in ({'entryPoint', 'language', 'target'}, {'entryPoint', 'language', 'target', 'urlTransportVersion'}):
             raise AuthorityError('INPUT_REJECTED')
-        if 'urlTransportVersion' in payload and payload['urlTransportVersion'] != '1.0.0-candidate.2':
+        if 'urlTransportVersion' in payload and payload['urlTransportVersion'] not in ('1.0.0-candidate.2','1.0.0-candidate.3'):
             raise AuthorityError('INPUT_REJECTED')
         if payload['entryPoint'] not in ('standalone_url', 'message_url', 'qr_url') or payload['language'] not in ('en', 'es'):
             raise AuthorityError('INPUT_REJECTED')
@@ -173,7 +173,7 @@ class Authority:
         if client_check_id is not None and (not isinstance(client_check_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', client_check_id)):
             raise AuthorityError('INPUT_REJECTED')
         bound = json.dumps({'clientCheckId': client_check_id, 'intent': encoded}, separators=(',', ':'), ensure_ascii=False)
-        return self._mac(key_id, 'payload', account + '\0' + bound)
+        return self._mac(key_id, 'url-payload-v3' if payload.get('urlTransportVersion') == '1.0.0-candidate.3' else 'payload', account + '\0' + bound)
 
     def _account(self, event):
         try: account = jwt_subject(event, self.s, now=self.now)
@@ -475,7 +475,7 @@ class Authority:
             if candidate and actual_scope != expected_scope:
                 raise AuthorityError('CHECK_ID_CONFLICT')
         if expected_url_version is not None:
-            if expected_url_version not in ('1.0.0-candidate.1','1.0.0-candidate.2'):raise AuthorityError('INPUT_REJECTED')
+            if expected_url_version not in ('1.0.0-candidate.1','1.0.0-candidate.2','1.0.0-candidate.3'):raise AuthorityError('INPUT_REJECTED')
             candidate=row
             if candidate is None and isinstance(client_check_id,str) and re.fullmatch(r'[A-Za-z0-9_-]{1,64}',client_check_id):
                 candidate=self._get(self.s.authority_table,{'PK':self._partition(account,key_id),'SK':'PREPARE#'+client_check_id})
@@ -598,10 +598,10 @@ class Authority:
             else:
                 from .summary import validate_summary
                 version=row.get('urlTransportVersion','1.0.0-candidate.1')
-                if version not in ('1.0.0-candidate.1','1.0.0-candidate.2') or result_summary.get('schemaVersion') != (2 if version=='1.0.0-candidate.2' else 1):
+                if version not in ('1.0.0-candidate.1','1.0.0-candidate.2','1.0.0-candidate.3') or result_summary.get('schemaVersion') != {'1.0.0-candidate.1':1,'1.0.0-candidate.2':2,'1.0.0-candidate.3':3}[version]:
                     raise AuthorityError('RESULT_SUMMARY_INVALID')
-                result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome)
-                if result_summary.get('schemaVersion')==2 and result_summary['verdict']=='high_risk':
+                result_summary = validate_summary(result_summary, row.get('clientCheckId'), processing_outcome, request_scope=row.get('projectionScope'))
+                if result_summary.get('schemaVersion') in (2,3) and result_summary['verdict']=='high_risk':
                     from shared_lookup_freshness import current
                     if not current(result_summary['lookupObservedAt'],result_summary['lookupValidUntil'],self.freshness_now()):
                         raise AuthorityError('PROVIDER_EVIDENCE_EXPIRED')
@@ -659,7 +659,7 @@ class Authority:
         if result_summary is not None:
             from shared_lookup_freshness import current
             observations = ([(result_summary['lookupObservedAt'], result_summary['lookupValidUntil'])]
-                            if row.get('projectionScope') != 'sanitized_message' and result_summary.get('schemaVersion') == 2 and result_summary.get('verdict') == 'high_risk'
+                            if row.get('projectionScope') != 'sanitized_message' and result_summary.get('schemaVersion') in (2, 3) and result_summary.get('verdict') == 'high_risk'
                             else [(e['observedAt'], e['validUntil']) for e in result_summary.get('evidence', []) if e.get('freshness') == 'current'])
             if any(not current(start, end, self.freshness_now()) for start, end in observations):
                 raise AuthorityError('PROVIDER_EVIDENCE_EXPIRED')

@@ -209,3 +209,15 @@ def test_funding_condition_rejects_changed_counts_and_never_resets_them(world):
     from botocore.exceptions import ClientError
     with pytest.raises(ClientError):a.client.transact_write_items(TransactItems=actions)
     assert a._get('authority', pointer)['usedChecks'] == 5
+
+
+def test_guarded_url_pending_marker_keeps_bounded_paid_cleanup(world):
+    a,event,_,row,_,_=world
+    payload=deepcopy(PAYLOAD)|{'urlTransportVersion':'1.0.0-candidate.3'}
+    proof=a.prepare(event,payload,'guarded-cleanup',client_check_id='guarded-cleanup')
+    a.admit(event,payload,proof,client_check_id='guarded-cleanup')
+    period=row('PERIOD#p1');observed=global_row(world)
+    actions=usage.due_reservation_actions(a.ddb,'authority',period,observed,
+        usage.effective_access_end(period),now=int(observed['expiresAt']))
+    assert any(item.get('Delete',{}).get('Key',{}).get('SK')=='CHECK#'+proof for item in actions)
+    assert row('CHECK#'+proof)['state']=='ADMITTED'  # preparation performs no mutation

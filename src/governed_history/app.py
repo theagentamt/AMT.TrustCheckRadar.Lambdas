@@ -45,8 +45,11 @@ def lambda_handler(event, _context):
         authority = load_authority(projected_inventory=True)
         identity = authorize(authority, event)
         account, fingerprint, device_version, inventory_revision = identity
+        from shared_governed_history.projection import VERSION
+        headers = event.get("headers") or {}
+        version = headers.get("x-history-contract-version", VERSION)
         service = Service(authority, Settings.from_env(), account=account, fingerprint=fingerprint,
-                          device_version=device_version, inventory_revision=inventory_revision)
+                          device_version=device_version, inventory_revision=inventory_revision, version=version)
         if operation == "list":
             result = service.list(cursor=query.get("cursor"), requested_limit=query.get("limit"))
         else:

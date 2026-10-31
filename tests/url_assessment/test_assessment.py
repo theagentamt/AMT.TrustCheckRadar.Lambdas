@@ -62,6 +62,22 @@ def test_rejected_url_never_invokes_aws_or_provider(url):
     assert deps.urls == []
 
 
+@pytest.mark.parametrize('url', [
+    'https://example.com/a\u202eb', 'https://example.com/?q=%E2%80%8Bvalue',
+    'https://example.com/path%250d%250a', 'https://example.com/?next=%25250a',
+    'intent://scan/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fexample.com;end',
+    'javascript:alert(1)', 'data:text/html,example', 'content://example/item',
+])
+def test_ambiguous_controls_and_deep_links_stop_before_dependencies(url):
+    deps = Dependencies()
+    result = assess(event(url), deps, Budget(32))
+    assert result['verdict'] == 'unknown'
+    assert result['processingOutcome'] in ('invalid_input', 'blocked')
+    assert result['lookupCount'] == result['providerCallCount'] == result['observedHopCount'] == 0
+    assert deps.resolve_count == 0 and deps.urls == []
+    assert url not in json.dumps(result)
+
+
 @pytest.mark.parametrize('extra', [{'schemaVersion': True}, {'paid': True}, {'accountId': 'x'}, {'scope': 'unrestricted'}, {'checkId': '../x'}])
 def test_untrusted_event_flags_fail_closed(extra):
     deps = Dependencies()
@@ -194,7 +210,7 @@ def test_invalid_trusted_budget_never_starts_provider(budget):
     assert deps.resolve_count==0 and deps.provider_call_count==0
 
 
-def test_trusted_budget_caps_private_handler_without_changing_old_protocol(monkeypatch):
+def test_trusted_budget_caps_guarded_private_handler(monkeypatch):
     import importlib.util
     spec=importlib.util.spec_from_file_location('assessment_budget_app',ROOT/'src/url_assessment/app.py')
     app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
@@ -203,9 +219,10 @@ def test_trusted_budget_caps_private_handler_without_changing_old_protocol(monke
     def inspect(event,deps,budget):
         captured.append(budget.remaining())
         return app.base_result()
-    monkeypatch.setattr(app,'assess',inspect)
+    import guarded_service
+    monkeypatch.setattr(guarded_service,'assess',inspect)
     context=Mock();context.get_remaining_time_in_millis.return_value=35000
-    app.lambda_handler(event(executionBudgetMs=18000),context)
-    app.lambda_handler(event(executionBudgetMs=14500),context)
-    app.lambda_handler(event(),context)
+    app.lambda_handler(event(executionBudgetMs=18000)|{'schemaVersion':2},context)
+    app.lambda_handler(event(executionBudgetMs=14500)|{'schemaVersion':2},context)
+    app.lambda_handler(event()|{'schemaVersion':2},context)
     assert 17<=captured[0]<=18 and 14<=captured[1]<=14.5 and 31<=captured[2]<=32

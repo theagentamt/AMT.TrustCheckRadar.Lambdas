@@ -161,3 +161,96 @@ def test_new_receipt_requires_explicit_compatible_export_contract(world,modern,p
         value=start(selected)
         assert value['exportTransportVersion']==('1.0.0-account-export-candidate.4' if play else '1.0.0-account-export-candidate.2')
         assert value['items']==reader.items
+
+
+@pytest.mark.parametrize('play,demographics',[(False,False),(True,False),(True,True)])
+def test_older_export_profiles_never_silently_carry_guarded_url_summary(world,play,demographics):
+    service,reader,clock=world
+    service=Export(reader,service.cursor,lambda:clock[0],play_verification=play,demographic_research=demographics)
+    reader.entries=[('receipts',)]
+    reader.items=[{'resultSummary':{'schemaVersion':3,'scope':'GUARDED_HTTP_AND_GOOGLE_LOOKUP'}}]
+    with pytest.raises(ExportError,match='SOURCE_UNAVAILABLE'):start(service)
+
+
+@pytest.mark.parametrize('play,demographics',[(False,False),(True,False),(True,True)])
+def test_guarded_export_profile_preserves_configured_families_and_reads_guarded_summary(world,play,demographics):
+    from account_export_api.service import GUARDED_VERSION
+    service,reader,clock=world
+    service=Export(reader,service.cursor,lambda:clock[0],play_verification=play,demographic_research=demographics)
+    expected_scope=deepcopy(service.scope)
+    reader.entries=[('receipts',)]
+    summary=json.loads((Path(__file__).resolve().parents[2]/'contracts/url-consumer/1.0.0-candidate.3/fixtures.json').read_text())['fixtures'][0]['private']
+    summary.pop('checkId');reader.items=[{'resultSummary':summary}]
+    event={'headers':{'x-account-export-contract-version':GUARDED_VERSION}}
+    result=service.page(event,{'action':'START_EXPORT'})
+    assert result['exportTransportVersion']==GUARDED_VERSION and result['scope']==expected_scope
+    assert result['items'][0]['resultSummary']==summary
+    assert not any('url'==key.lower() for key in summary)
+
+
+def test_export_cursor_cannot_change_version_or_configured_family_profile(world):
+    from account_export_api.service import GUARDED_VERSION
+    s,r,clock=world;event={'headers':{'x-account-export-contract-version':GUARDED_VERSION}}
+    first=s.page(event,{'action':'START_EXPORT'})
+    with pytest.raises(ExportError,match='INVALID_CURSOR'):next_page(s,first['nextCursor'])
+    changed=Export(r,s.cursor,lambda:clock[0],play_verification=True)
+    with pytest.raises(ExportError,match='INVALID_CURSOR'):
+        changed.page(event,{'action':'CONTINUE_EXPORT','cursor':first['nextCursor']})
+    result=s.page(event,{'action':'CONTINUE_EXPORT','cursor':first['nextCursor']})
+    assert result['status']=='COMPLETE' and result['operationId']==first['operationId']
+
+
+def test_export_unknown_requested_profile_rejected_without_data_read(world):
+    s,r,_=world
+    with pytest.raises(ExportError,match='CONTRACT_UNSUPPORTED'):
+        s.page({'headers':{'x-account-export-contract-version':'future'}},{'action':'START_EXPORT'})
+    assert r.reads==0
+
+
+def test_export_version_hint_never_bypasses_authentication(world):
+    s,r,_=world
+    def denied(_):raise ExportError('AUTHENTICATION_REQUIRED',401)
+    r.auth=denied
+    with pytest.raises(ExportError,match='AUTHENTICATION_REQUIRED'):
+        s.page({'headers':{'x-account-export-contract-version':'future'}},{'action':'START_EXPORT'})
+
+
+def test_export_candidate_six_fixtures_and_manifest_are_explicit_and_closed():
+    import hashlib
+    from jsonschema import Draft202012Validator
+    root=Path(__file__).resolve().parents[2]/'contracts/account-export/1.0.0-candidate.6'
+    for line in (root/'SHA256SUMS').read_text().splitlines():
+        digest,name=line.split('  ');assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest
+    fixtures=json.loads((root/'fixtures.json').read_text());assert fixtures['activationEnabled'] is False
+    schema=json.loads((root/'response.schema.json').read_text())
+    for f in fixtures['fixtures']:
+        Draft202012Validator(schema).validate(f['response'])
+        assert f['response']['items'][0]['resultSummary']['observedHopCount']==0
+        assert 'https://' not in json.dumps(f['response']['items'])
+
+
+@pytest.mark.parametrize('play,demographics,base',[(False,False,2),(True,False,4),(True,True,5)])
+def test_each_export_emitted_scope_matches_canonical_base_and_guarded_profile(world,play,demographics,base):
+    from jsonschema import Draft202012Validator
+    from account_export_api.service import GUARDED_VERSION
+    s,r,clock=world;root=Path(__file__).resolve().parents[2]/'contracts/account-export'
+    s=Export(r,s.cursor,lambda:clock[0],play_verification=play,demographic_research=demographics)
+    canonical=json.loads((root/f'1.0.0-candidate.{base}/response.schema.json').read_text())
+    response=start(s)
+    Draft202012Validator(canonical).validate(response)
+    assert response['scope']==canonical['properties']['scope']['const']
+    guarded=s.page({'headers':{'x-account-export-contract-version':GUARDED_VERSION}},{'action':'START_EXPORT'})
+    Draft202012Validator(json.loads((root/'1.0.0-candidate.6/response.schema.json').read_text())).validate(guarded)
+    assert guarded['scope']==canonical['properties']['scope']['const']
+    cursor=s.cursor.open(guarded['nextCursor'])
+    assert cursor['manifest']==canonical['properties']['scope']['const']['version']+':guarded-url:'+f'1.0.0-account-export-candidate.{base}'
+
+
+def test_guarded_export_catalog_matches_canonical_url_summary_versions_and_fields():
+    root=Path(__file__).resolve().parents[2]/'contracts'
+    catalog=json.loads((root/'account-export/1.0.0-candidate.6/public-fields.json').read_text())
+    old=json.loads((root/'governed-history/1.0.0-candidate.1/url-outcome.schema.json').read_text())
+    guarded=json.loads((root/'governed-history/1.0.0-candidate.2/url-outcome.schema.json').read_text())
+    assert old['properties']['schemaVersion']['const']==2 and guarded['properties']['schemaVersion']['const']==3
+    assert catalog['receiptSummaryVersions']['url']==[1,2,3]
+    assert set(catalog['receiptSummaryVariants']['url3AddedFields'])==set(guarded['required'])-set(old['required'])

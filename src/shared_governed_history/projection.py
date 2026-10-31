@@ -11,6 +11,8 @@ INDEX_NAME = "GSI2"
 RETENTION_SECONDS = 7 * 24 * 60 * 60
 MESSAGE_VERSION = "1.0.0-message-candidate.3"
 URL_VERSION = "1.0.0-candidate.2"
+GUARDED_URL_VERSION = "1.0.0-candidate.3"
+GUARDED_VERSION = "1.0.0-governed-history-candidate.2"
 RESULT = re.compile(r"gh1_([0-9]{1,12})_([0-9a-f]{32})")
 INDEX_SORT = re.compile(r"GOVERNED#([0-9]{12})#([0-9a-f]{32})")
 SOURCE_TYPES = {"pasted_text", "ocr", "mixed", "standalone_url", "message_url", "qr_url"}
@@ -41,7 +43,7 @@ def admission_metadata(payload, accepted_at):
         target = payload.get("target")
         source = target.get("sourceType") if type(target) is dict else None
         result_type = "message"
-    elif payload.get("urlTransportVersion") == URL_VERSION:
+    elif payload.get("urlTransportVersion") in (URL_VERSION, GUARDED_URL_VERSION):
         source = payload.get("entryPoint")
         result_type = "url"
     else:
@@ -59,7 +61,7 @@ def settlement_fields(row, result_summary, *, receipt_id, charged_checks, proces
     if type(row) is not dict or result_summary is None:
         return {}
     message = row.get("messageTransportVersion") == MESSAGE_VERSION
-    url = row.get("urlTransportVersion") == URL_VERSION
+    url = row.get("urlTransportVersion") in (URL_VERSION, GUARDED_URL_VERSION)
     if not (message or url):
         return {}
     accepted = row.get("governedHistoryAcceptedAtEpoch")
@@ -79,13 +81,13 @@ def settlement_fields(row, result_summary, *, receipt_id, charged_checks, proces
     result_id = f"gh1_{settled_at}_{receipt_id}"
     projection = {
         "schemaVersion": 1,
-        "transportVersion": VERSION,
+        "transportVersion": GUARDED_VERSION if row.get("urlTransportVersion") == GUARDED_URL_VERSION else VERSION,
         "resultId": result_id,
         "resultType": result_type,
         "sourceType": source,
         "acceptedAtEpoch": accepted,
         "settledAtEpoch": settled_at,
-        "assessmentTransportVersion": MESSAGE_VERSION if message else URL_VERSION,
+        "assessmentTransportVersion": MESSAGE_VERSION if message else row["urlTransportVersion"],
         "processingOutcome": processing_outcome,
         "accounting": {"state": "charged" if charged_checks else "not_charged",
                        "chargedChecks": charged_checks, "receiptId": receipt_id},
@@ -110,7 +112,7 @@ def validate_projection(value):
     accepted, settled, expiry = (value.get(name) for name in
                                  ("acceptedAtEpoch", "settledAtEpoch", "expiresAtEpoch"))
     if (type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1
-            or value.get("transportVersion") != VERSION or not match
+            or value.get("transportVersion") not in (VERSION, GUARDED_VERSION) or not match
             or type(accepted) is not int or type(settled) is not int or type(expiry) is not int
             or accepted < 0 or settled < accepted or expiry != settled + RETENTION_SECONDS
             or int(match.group(1)) != settled or value.get("sourceType") not in SOURCE_TYPES
@@ -126,12 +128,14 @@ def validate_projection(value):
     if type(outcome) is not dict or "checkId" in outcome or outcome.get("processingOutcome") != value.get("processingOutcome"):
         raise ValueError("GOVERNED_HISTORY_INVALID")
     if value["resultType"] == "message":
-        if value["assessmentTransportVersion"] != MESSAGE_VERSION or value["sourceType"] not in {"pasted_text", "ocr", "mixed"}:
+        if value["transportVersion"] != VERSION or value["assessmentTransportVersion"] != MESSAGE_VERSION or value["sourceType"] not in {"pasted_text", "ocr", "mixed"}:
             raise ValueError("GOVERNED_HISTORY_INVALID")
         from shared_message_contract.validation_v3 import validate_summary
         validate_summary(outcome | {"checkId": "history"}, "history", value["processingOutcome"])
     else:
-        if value["assessmentTransportVersion"] != URL_VERSION or value["sourceType"] not in {"standalone_url", "message_url", "qr_url"}:
+        if ((value["transportVersion"], value["assessmentTransportVersion"]) not in ((VERSION, URL_VERSION), (GUARDED_VERSION, GUARDED_URL_VERSION))) or value["sourceType"] not in {"standalone_url", "message_url", "qr_url"}:
+            raise ValueError("GOVERNED_HISTORY_INVALID")
+        if outcome.get("schemaVersion") != (3 if value["transportVersion"] == GUARDED_VERSION else 2):
             raise ValueError("GOVERNED_HISTORY_INVALID")
         from shared_check_authority.summary import validate_summary
         validate_summary(outcome | {"checkId": "history"}, "history", value["processingOutcome"])

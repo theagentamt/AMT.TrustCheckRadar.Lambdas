@@ -223,6 +223,7 @@ build_function() {
     printf 'from governed_history.app import lambda_handler\n' > "$build_dir/app.py"
     cp -R "$ROOT_DIR/src/shared_message_contract" "$build_dir/shared_message_contract"
     cp -R "$ROOT_DIR/contracts/governed-history/1.0.0-candidate.1" "$build_dir/contract"
+    cp -R "$ROOT_DIR/contracts/governed-history/1.0.0-candidate.2" "$build_dir/contract_v2"
     mkdir -p "$build_dir/message_evaluator"
     cp "$ROOT_DIR/src/message_evaluator/__init__.py" "$ROOT_DIR/src/message_evaluator/policy.py" "$ROOT_DIR/src/message_evaluator/policy_v2.py" "$ROOT_DIR/src/message_evaluator/coverage.py" "$build_dir/message_evaluator/"
   fi
@@ -233,6 +234,8 @@ build_function() {
   if [[ "$function_name" == "url_consumer" ]]; then
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/public_contract"
     cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/public_contract_v2"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.4.0-candidate.1" "$build_dir/public_contract_v3"
+    cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.3" "$build_dir/transport_contract_v3"
     cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.2" "$build_dir/transport_contract_v2"
     cp -R "$ROOT_DIR/contracts/url-consumer/1.0.0-candidate.1" "$build_dir/transport_contract"
   fi
@@ -295,6 +298,8 @@ build_function() {
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
     cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
+    cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.2" "$build_dir/result_feedback/contract_v2"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.4.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v3"
   fi
   if [[ "$function_name" == "account_export_api" ]]; then
     mkdir -p "$build_dir/account_export_api"
@@ -307,6 +312,7 @@ build_function() {
   fi
   if [[ -d "$build_dir/shared_check_authority" || -d "$build_dir/shared_message_contract" || "$function_name" == "url_assessment" ]]; then
     cp -R "$ROOT_DIR/src/shared_lookup_freshness" "$build_dir/shared_lookup_freshness"
+    cp -R "$ROOT_DIR/src/shared_url_guarded" "$build_dir/shared_url_guarded"
   fi
   if [[ -d "$build_dir/shared_check_authority" || "$function_name" == "message_evaluator" || "$function_name" == "recovery_evaluator" || "$function_name" == "url_assessment" ]]; then
     cp -R "$ROOT_DIR/src/shared_operations" "$build_dir/shared_operations"

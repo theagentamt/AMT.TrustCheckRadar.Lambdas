@@ -28,6 +28,8 @@ assert 'result_feedback.runtime' not in sys.modules
 from result_feedback.service import Feedback
 from shared_message_contract.runtime import url_mapper
 from shared_message_contract.validation_v2 import validate_summary
+from shared_message_contract.runtime import guarded_url_mapper
+assert guarded_url_mapper().VERSION=='0.4.0-candidate.1'
 mapper=url_mapper()
 assert mapper.supported_private({'unexpected':'field'},'case','full_url') is False
 from shared_recovery_contract.usage import usage

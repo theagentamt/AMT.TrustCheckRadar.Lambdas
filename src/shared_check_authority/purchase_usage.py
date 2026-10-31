@@ -281,7 +281,7 @@ def due_reservation_actions(resource, table, period, observed_global, access_unt
                         or row.get('messageTransportVersion', '1.0.0-message-candidate.2') not in ('1.0.0-message-candidate.2','1.0.0-message-candidate.3'))
                     or scope == 'recovery_clarification' and (client is None or 'messageTransportVersion' in row)):
                 raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
-            if 'urlTransportVersion' in row and (scope not in ('full_url','origin_only') or row['urlTransportVersion']!='1.0.0-candidate.2'):
+            if 'urlTransportVersion' in row and (scope not in ('full_url','origin_only') or row['urlTransportVersion'] not in ('1.0.0-candidate.2','1.0.0-candidate.3')):
                 raise AuthorityError('PURCHASE_USAGE_RECONCILIATION_REQUIRED')
             if scope == 'recovery_clarification':
                 from shared_recovery_contract.constants import VERSION

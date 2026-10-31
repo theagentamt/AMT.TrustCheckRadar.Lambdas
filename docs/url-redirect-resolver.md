@@ -33,6 +33,14 @@ Use a fixed GET, read at most 16 KiB while finding response headers, then close.
 
 Known reset/sign-in/action paths and query names indicating tokens, credentials, signatures, codes or secrets stop before fetching. This deliberately conservative heuristic can block legitimate links and cannot identify every sensitive or state-changing URL. GET can register a click or consume a token. The caller's privacy disclosure and sensitive-link policy still require approval before consumer release; absence of a pattern is not a privacy guarantee. Tests use synthetic domains and controlled responses.
 
+Control, surrogate and Unicode format characters are rejected in literal URLs and
+after bounded policy decoding of both path and query, including nested escapes.
+Redirect locations receive the same checks before the next DNS/fetch operation.
+Policy decoding never rewrites the URL sent on the wire; encoded spaces, normal
+Unicode path text and query ordering remain supported. Some formerly accepted
+ambiguous or deeply encoded query values now fail closed. Non-web deep links and
+their embedded browser fallback fields are never executed or unwrapped.
+
 ## Logging and data
 
 The application emits only bounded outcome/reason/count/timing fields. It never logs the incoming event, caller ID, URL, Location, body, DNS answer or exception text. Returned URLs are transient sensitive data; callers must not log, persist or contribute them to research by default. Raw exception details are suppressed as INTERNAL_ERROR. Lambda invocation payload logging, tracing and asynchronous destinations are not enabled by this stack. No global mutable connection, DNS or URL cache is used.

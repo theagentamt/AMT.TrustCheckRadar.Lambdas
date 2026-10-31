@@ -25,3 +25,11 @@ def fresh_url_mapper():
     spec=importlib.util.spec_from_file_location('message_fresh_url_mapping',path)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     return module
+
+
+def guarded_url_mapper():
+    path=Path(__file__).parent/'url_contract_v3'/'reference_mapping.py'
+    if not path.exists():path=Path(__file__).resolve().parents[2]/'contracts/url-assessment/0.4.0-candidate.1/reference_mapping.py'
+    spec=importlib.util.spec_from_file_location('guarded_url_mapping',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module

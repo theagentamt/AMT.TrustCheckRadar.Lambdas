@@ -202,8 +202,13 @@ def test_inactive_device_and_rate_limit_cannot_write(world):
 def test_modern_expired_original_result_accepts_feedback_without_charging_or_recheck(world,kind):
     a,e,_,row,change,clock=world
     if kind=='url':
-        from test_lookup_freshness import modern
-        payload=PAYLOAD|{'urlTransportVersion':'1.0.0-candidate.2'};transport='1.0.0-candidate.2';summary=modern('owned',clock[0],True)
+        # Frozen candidate.2 evidence must not follow a current-profile helper.
+        payload=PAYLOAD|{'urlTransportVersion':'1.0.0-candidate.2'};transport='1.0.0-candidate.2'
+        summary={'schemaVersion':2,'checkId':'owned','verdict':'high_risk','processingOutcome':'complete',
+            'coverage':'supported_checks_complete','reasonCodes':['KNOWN_THREAT_MATCH'],'transportWarnings':[],
+            'threatTypes':['MALWARE'],'lookupCount':1,'providerCallCount':1,'observedHopCount':1,
+            'scope':'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP','consumerAccessEnabled':False,
+            'lookupObservedAt':'2027-01-15T08:00:00Z','lookupValidUntil':'2027-01-15T08:00:20Z'}
     else:
         from message_evaluator.policy_v2 import result
         from test_transactions import ACCOUNT
@@ -216,3 +221,40 @@ def test_modern_expired_original_result_accepts_feedback_without_charging_or_rec
     body={'feedbackTransportVersion':VERSION,'feedbackId':'modern-opinion','result':{'checkId':'owned','operationProof':proof,'receiptId':settled['receiptId'],'assessmentTransportVersion':transport},'category':'unclear'}
     status,reply=Feedback(a).handle(http(e,body));assert status==200 and reply['status']=='accepted',reply
     after=row('CHECK#'+proof);after.pop('feedback');assert after==before and row('PERIOD#p1')==period
+
+
+def guarded_setup(world,matched=True):
+    a,e,*_=world
+    payload=deepcopy(PAYLOAD)|{'urlTransportVersion':'1.0.0-candidate.3'}
+    proof=a.prepare(e,payload,'guarded-feedback',client_check_id='guarded-feedback')
+    admission=a.admit(e,payload,proof,client_check_id='guarded-feedback')
+    fixtures=json.loads((ROOT/'contracts/url-consumer/1.0.0-candidate.3/fixtures.json').read_text())['fixtures']
+    summary=deepcopy(fixtures[0 if matched else 2]['private']);summary['checkId']='guarded-feedback'
+    row=a.settle(WORKER,proof,admission['executionToken'],summary['processingOutcome'],result_summary=summary)
+    body={'feedbackTransportVersion':GUARDED_VERSION,'feedbackId':'guarded-vote','category':'unclear',
+        'result':{'checkId':'guarded-feedback','operationProof':proof,'receiptId':row['receiptId'],
+            'assessmentTransportVersion':'1.0.0-candidate.3'}}
+    return Feedback(a),e,body
+
+
+@pytest.mark.parametrize('matched',[True,False])
+def test_guarded_feedback_bound_to_original_receipt_without_new_charge(world,matched):
+    s,e,r=guarded_setup(world,matched);before=deepcopy(world[3]('PERIOD#p1'))
+    code,reply=s.handle(http(e,r));assert code==200 and reply['status']=='accepted'
+    assert reply['feedbackTransportVersion']==GUARDED_VERSION
+    assert s.handle(http(e,r))[1]==reply and world[3]('PERIOD#p1')==before
+    assert reply['checkId']=='guarded-feedback' and 'https://' not in json.dumps(reply)
+
+
+def test_old_feedback_version_cannot_silently_accept_guarded_assessment(world):
+    s,e,r=guarded_setup(world)
+    code,reply=s.handle(http(e,r|{'feedbackTransportVersion':VERSION}))
+    assert code==422 and reply['reasonCode']=='CONTRACT_UNSUPPORTED'
+    assert 'feedback' not in world[3]('CHECK#'+r['result']['operationProof'])
+
+
+def test_new_feedback_version_reads_old_assessment_and_keeps_ownership_fences(world):
+    s,e,r=setup(world);r['feedbackTransportVersion']=GUARDED_VERSION
+    code,reply=s.handle(http(e,r));assert code==200 and reply['feedbackTransportVersion']==GUARDED_VERSION
+    bad=deepcopy(r);bad['result']['receiptId']='f'*32
+    assert s.handle(http(e,bad))[1]['reasonCode']=='RESULT_UNAVAILABLE'

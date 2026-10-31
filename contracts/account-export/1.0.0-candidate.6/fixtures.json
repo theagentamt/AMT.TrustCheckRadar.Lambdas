@@ -1,0 +1,285 @@
+{
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "configured-candidate-2",
+      "requestHeaders": {
+        "x-account-export-contract-version": "1.0.0-account-export-candidate.6"
+      },
+      "request": {
+        "schemaVersion": 1,
+        "action": "START_EXPORT"
+      },
+      "response": {
+        "schemaVersion": 1,
+        "exportTransportVersion": "1.0.0-account-export-candidate.6",
+        "operation": "ACCOUNT_EXPORT",
+        "operationId": "12345678-1234-4234-8234-123456789abc",
+        "status": "COMPLETE",
+        "startedAtEpoch": 1800000000,
+        "expiresAtEpoch": 1800000900,
+        "observedAtEpoch": 1800000004,
+        "pageNumber": 0,
+        "family": "receipts",
+        "items": [
+          {
+            "state": "SETTLED",
+            "processingOutcome": "partial",
+            "chargedChecks": 0,
+            "assessmentEpoch": 1800000001,
+            "expiresAt": 1800604801,
+            "resultSummary": {
+              "schemaVersion": 3,
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 0,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "full_submitted_url",
+              "targetContactStatus": "not_contacted"
+            }
+          }
+        ],
+        "nextCursor": null,
+        "scope": {
+          "version": "v1-user-visible-2026-09-21",
+          "included": [
+            "profile",
+            "identity",
+            "devices",
+            "recovery",
+            "subscriptions",
+            "usage",
+            "purchases",
+            "access",
+            "allowance",
+            "trial",
+            "receipts",
+            "history",
+            "recognition",
+            "participation",
+            "consent",
+            "analysis_requests",
+            "scan_consumption",
+            "research_observations",
+            "research_contributions"
+          ],
+          "excluded": [
+            "original_submissions",
+            "security_and_internal_controls",
+            "research_pipeline_internals",
+            "other_peoples_data",
+            "non_user_linkable_aggregates",
+            "historical_backups",
+            "transient_streams_and_queues",
+            "operational_logs",
+            "external_provider_and_store_records"
+          ],
+          "consistency": "OBSERVED_VALUES",
+          "cancellation": "LOCAL_DOWNLOAD_ONLY"
+        }
+      }
+    },
+    {
+      "name": "configured-candidate-4",
+      "requestHeaders": {
+        "x-account-export-contract-version": "1.0.0-account-export-candidate.6"
+      },
+      "request": {
+        "schemaVersion": 1,
+        "action": "START_EXPORT"
+      },
+      "response": {
+        "schemaVersion": 1,
+        "exportTransportVersion": "1.0.0-account-export-candidate.6",
+        "operation": "ACCOUNT_EXPORT",
+        "operationId": "12345678-1234-4234-8234-123456789abc",
+        "status": "COMPLETE",
+        "startedAtEpoch": 1800000000,
+        "expiresAtEpoch": 1800000900,
+        "observedAtEpoch": 1800000004,
+        "pageNumber": 0,
+        "family": "receipts",
+        "items": [
+          {
+            "state": "SETTLED",
+            "processingOutcome": "partial",
+            "chargedChecks": 0,
+            "assessmentEpoch": 1800000001,
+            "expiresAt": 1800604801,
+            "resultSummary": {
+              "schemaVersion": 3,
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 0,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "full_submitted_url",
+              "targetContactStatus": "not_contacted"
+            }
+          }
+        ],
+        "nextCursor": null,
+        "scope": {
+          "version": "v1-user-visible-2026-09-28",
+          "included": [
+            "profile",
+            "identity",
+            "devices",
+            "recovery",
+            "subscriptions",
+            "usage",
+            "purchases",
+            "access",
+            "allowance",
+            "trial",
+            "receipts",
+            "history",
+            "recognition",
+            "participation",
+            "consent",
+            "analysis_requests",
+            "scan_consumption",
+            "research_observations",
+            "research_contributions",
+            "play_verification"
+          ],
+          "excluded": [
+            "original_submissions",
+            "security_and_internal_controls",
+            "research_pipeline_internals",
+            "other_peoples_data",
+            "non_user_linkable_aggregates",
+            "historical_backups",
+            "transient_streams_and_queues",
+            "operational_logs",
+            "external_provider_and_store_records",
+            "purchase_credentials"
+          ],
+          "consistency": "OBSERVED_VALUES",
+          "cancellation": "LOCAL_DOWNLOAD_ONLY"
+        }
+      }
+    },
+    {
+      "name": "configured-candidate-5",
+      "requestHeaders": {
+        "x-account-export-contract-version": "1.0.0-account-export-candidate.6"
+      },
+      "request": {
+        "schemaVersion": 1,
+        "action": "START_EXPORT"
+      },
+      "response": {
+        "schemaVersion": 1,
+        "exportTransportVersion": "1.0.0-account-export-candidate.6",
+        "operation": "ACCOUNT_EXPORT",
+        "operationId": "12345678-1234-4234-8234-123456789abc",
+        "status": "COMPLETE",
+        "startedAtEpoch": 1800000000,
+        "expiresAtEpoch": 1800000900,
+        "observedAtEpoch": 1800000004,
+        "pageNumber": 0,
+        "family": "receipts",
+        "items": [
+          {
+            "state": "SETTLED",
+            "processingOutcome": "partial",
+            "chargedChecks": 0,
+            "assessmentEpoch": 1800000001,
+            "expiresAt": 1800604801,
+            "resultSummary": {
+              "schemaVersion": 3,
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 0,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "full_submitted_url",
+              "targetContactStatus": "not_contacted"
+            }
+          }
+        ],
+        "nextCursor": null,
+        "scope": {
+          "version": "v1-user-visible-2026-09-30",
+          "included": [
+            "profile",
+            "identity",
+            "devices",
+            "recovery",
+            "subscriptions",
+            "usage",
+            "purchases",
+            "access",
+            "allowance",
+            "trial",
+            "receipts",
+            "history",
+            "recognition",
+            "participation",
+            "consent",
+            "analysis_requests",
+            "scan_consumption",
+            "research_observations",
+            "research_contributions",
+            "play_verification",
+            "demographic_profile",
+            "demographic_operation",
+            "demographic_consent"
+          ],
+          "excluded": [
+            "original_submissions",
+            "security_and_internal_controls",
+            "research_pipeline_internals",
+            "other_peoples_data",
+            "non_user_linkable_aggregates",
+            "historical_backups",
+            "transient_streams_and_queues",
+            "operational_logs",
+            "external_provider_and_store_records",
+            "purchase_credentials"
+          ],
+          "consistency": "OBSERVED_VALUES",
+          "cancellation": "LOCAL_DOWNLOAD_ONLY"
+        }
+      }
+    }
+  ]
+}
