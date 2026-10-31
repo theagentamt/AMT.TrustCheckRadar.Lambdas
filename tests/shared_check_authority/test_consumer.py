@@ -208,3 +208,27 @@ def test_frozen_candidate_two_receipt_still_reconciles_without_provider(world):
         {'transportVersion':'1.0.0-candidate.2','checkId':'historical','operationProof':proof}))
     assert status==200 and body['accounting']['chargedChecks']==1
     assert body['outcome']['contractVersion']=='0.3.0-candidate.1' and row('CHECK#'+proof)==before
+
+@pytest.mark.parametrize('basis',['paid','trial','complimentary'])
+@pytest.mark.parametrize('matched',[False,True])
+def test_guarded_profile_preserves_each_existing_access_basis_and_charge(world,basis,matched):
+    from shared_check_authority.core import TRIAL_SECONDS
+    a,e,_,row,change,clock=world
+    if basis=='trial':
+        change('authority','ACCESS',basis='trial',activationKind='explicit',activatedAtEpoch=clock[0],
+            validFromEpoch=clock[0],validUntilEpoch=clock[0]+TRIAL_SECONDS)
+        change('authority','PERIOD#p1',limit=10,startEpoch=clock[0],endEpoch=clock[0]+TRIAL_SECONDS)
+    elif basis=='complimentary':
+        change('authority','ACCESS',basis='complimentary',validUntilEpoch=None)
+    def provider(body):
+        r=result(body['checkId'])
+        if matched:r.update(verdict='high_risk',processingOutcome='partial',coverage='limited',
+            reasonCodes=['KNOWN_THREAT_MATCH'],threatTypes=['MALWARE'],lookupValidUntil='2027-01-15T08:01:00Z',
+            matchScope='full_submitted_url',targetContactStatus='not_contacted',observedHopCount=0)
+        return r
+    service,e,calls=system(world,provider);proof=prepared(service,e)
+    _,body=service.handle(event(e,'POST /v1/url-checks',request()|{'operationProof':proof}))
+    charge=int(not matched and basis!='complimentary')
+    assert body['accounting']['chargedChecks']==charge and body['access']['basis']==basis
+    assert row('PERIOD#p1')['usedChecks']==charge and row('PERIOD#p1')['reservedChecks']==0
+    assert len(calls)==1

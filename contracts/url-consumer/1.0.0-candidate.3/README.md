@@ -9,7 +9,8 @@ version and exact disclosed request intent under a distinct HMAC purpose.
 Changing URL, scope, withholding or version cannot reuse a prepared operation.
 
 One logical Check and one existing allowance reservation/settlement. Complete
-checks charge one; partial/blocked/unavailable checks charge zero. Lost responses
+checks charge one where an allowance applies; complimentary checks remain uncharged.
+Partial/blocked/unavailable checks charge zero. Lost responses
 require same-operation reconciliation, never automatic submit/provider replay.
 
 fixtures.json is synthetic offline contract evidence, not live acceptance.

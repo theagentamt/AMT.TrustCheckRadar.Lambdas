@@ -22,8 +22,8 @@ result has no destination/chain strings. GET can still register a visit or trigg
 an action; Google receives disclosed candidate URLs. No-match is not a guarantee.
 JS/meta/interactive navigation is outside supported HTTP-chain coverage.
 
-One logical allowance operation: completed checks charge one, partial/blocked/
-unavailable zero. Old candidate.1/.2 new submissions are rejected before refresh,
+One logical allowance operation: completed checks charge one where an allowance
+applies, complimentary checks remain uncharged, partial/blocked/unavailable zero. Old candidate.1/.2 new submissions are rejected before refresh,
 admission or provider work. Existing receipts still reconcile with original
 versions, charges and evidence. Guarded requests never fall back to old protocols.
 The old private schema1 profile remains for existing workers and is explicitly
