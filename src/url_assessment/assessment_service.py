@@ -36,7 +36,7 @@ def base_result(check_id=None):
             'scope': 'HTTP_REDIRECTS_AND_GOOGLE_LOOKUP', 'consumerAccessEnabled': False}
 
 
-def validate_request(event):
+def validate_request_envelope(event):
     if (not isinstance(event, dict) or set(event) not in ({'schemaVersion', 'checkId', 'url', 'scope'}, {'schemaVersion', 'checkId', 'url', 'scope', 'executionBudgetMs'})
             or ('executionBudgetMs' in event and (type(event['executionBudgetMs']) is not int or not 1000 <= event['executionBudgetMs'] <= 18000))
             or type(event.get('schemaVersion')) is not int or event['schemaVersion'] != 1
@@ -45,6 +45,10 @@ def validate_request(event):
             or event.get('scope') not in ('full_url', 'origin_only')
             or not isinstance(event.get('url'), str) or '#' in event['url']):
         raise Unavailable('INVALID_REQUEST')
+
+
+def validate_request(event):
+    validate_request_envelope(event)
     target = parse_target(event['url'])
     if event['scope'] == 'origin_only':
         parsed = urlsplit(target.url)

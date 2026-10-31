@@ -4,7 +4,7 @@ import os
 import time
 
 from assessment_dependencies import Dependencies
-from assessment_service import Budget, assess, base_result
+from assessment_service import Budget, assess, base_result, validate_request_envelope, Unavailable
 
 
 def lambda_handler(event, context):
@@ -22,7 +22,16 @@ def lambda_handler(event, context):
             from guarded_dependencies import Dependencies as GuardedDependencies
             result = guarded_assess(event, GuardedDependencies(), Budget(remaining))
         else:
-            result = assess(event, Dependencies(), Budget(remaining))
+            # Legacy private requests have no guarded evidence semantics. Retire
+            # them explicitly instead of silently using resolve-before-lookup.
+            result = base_result()
+            try:
+                validate_request_envelope(event)
+            except Unavailable:
+                pass
+            else:
+                result.update(checkId=event['checkId'], processingOutcome='unavailable',
+                              reasonCodes=['CONFIGURATION_UNAVAILABLE'])
     # Allowlisted operational counts only. Never raw URL/key/checkId/exception.
     print(json.dumps({'event': 'private_url_assessment', 'status': result['processingOutcome'],
                       'verdict': result['verdict'], 'reason': result['reasonCodes'][0],

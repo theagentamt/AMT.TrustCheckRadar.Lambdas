@@ -5,53 +5,51 @@
       "name": "guarded-results",
       "response": {
         "transportVersion": "1.0.0-governed-history-candidate.2",
-        "serverTimeEpoch": 1800000000,
+        "serverTimeEpoch": 1800000004,
         "items": [
           {
             "schemaVersion": 1,
             "transportVersion": "1.0.0-governed-history-candidate.2",
-            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultId": "gh1_1800000004_00000000000000000000000000000004",
             "resultType": "url",
             "sourceType": "qr_url",
             "acceptedAtEpoch": 1800000000,
-            "settledAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000004,
             "assessmentTransportVersion": "1.0.0-candidate.3",
             "processingOutcome": "partial",
             "accounting": {
               "state": "not_charged",
               "chargedChecks": 0,
-              "receiptId": "00000000000000000000000000000000"
+              "receiptId": "00000000000000000000000000000004"
             },
             "outcome": {
               "schemaVersion": 3,
-              "verdict": "high_risk",
+              "verdict": "unknown",
               "processingOutcome": "partial",
               "coverage": "limited",
               "reasonCodes": [
-                "KNOWN_THREAT_MATCH"
+                "ORIGIN_ONLY_NOT_FULL_LINK"
               ],
               "transportWarnings": [],
-              "threatTypes": [
-                "MALWARE"
-              ],
+              "threatTypes": [],
               "lookupCount": 1,
               "providerCallCount": 1,
               "observedHopCount": 0,
               "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
               "consumerAccessEnabled": false,
               "lookupObservedAt": "2027-01-15T08:00:00Z",
-              "lookupValidUntil": "2027-01-15T08:01:00Z",
-              "matchScope": "full_submitted_url",
+              "lookupValidUntil": null,
+              "matchScope": null,
               "targetContactStatus": "not_contacted"
             },
-            "expiresAtEpoch": 1800604800,
+            "expiresAtEpoch": 1800604804,
             "presentation": {
-              "freshnessStatus": "current",
-              "verdict": "high_risk",
+              "freshnessStatus": "not_applicable",
+              "verdict": "unknown",
               "processingOutcome": "partial",
               "coverage": "limited",
               "reasonCodes": [
-                "KNOWN_THREAT_MATCH"
+                "ORIGIN_ONLY_NOT_FULL_LINK"
               ],
               "messageKey": null,
               "nextAction": null
@@ -60,17 +58,67 @@
           {
             "schemaVersion": 1,
             "transportVersion": "1.0.0-governed-history-candidate.2",
-            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultId": "gh1_1800000003_00000000000000000000000000000003",
             "resultType": "url",
             "sourceType": "qr_url",
             "acceptedAtEpoch": 1800000000,
-            "settledAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000003,
+            "assessmentTransportVersion": "1.0.0-candidate.3",
+            "processingOutcome": "complete",
+            "accounting": {
+              "state": "charged",
+              "chargedChecks": 1,
+              "receiptId": "00000000000000000000000000000003"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [],
+              "lookupCount": 3,
+              "providerCallCount": 3,
+              "observedHopCount": 3,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": null,
+              "matchScope": null,
+              "targetContactStatus": "contacted"
+            },
+            "expiresAtEpoch": 1800604803,
+            "presentation": {
+              "freshnessStatus": "not_applicable",
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          },
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.2",
+            "resultId": "gh1_1800000002_00000000000000000000000000000002",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000002,
             "assessmentTransportVersion": "1.0.0-candidate.3",
             "processingOutcome": "partial",
             "accounting": {
               "state": "not_charged",
               "chargedChecks": 0,
-              "receiptId": "00000000000000000000000000000000"
+              "receiptId": "00000000000000000000000000000002"
             },
             "outcome": {
               "schemaVersion": 3,
@@ -94,7 +142,7 @@
               "matchScope": "redirect_destination",
               "targetContactStatus": "contacted"
             },
-            "expiresAtEpoch": 1800604800,
+            "expiresAtEpoch": 1800604802,
             "presentation": {
               "freshnessStatus": "current",
               "verdict": "high_risk",
@@ -110,96 +158,48 @@
           {
             "schemaVersion": 1,
             "transportVersion": "1.0.0-governed-history-candidate.2",
-            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultId": "gh1_1800000001_00000000000000000000000000000001",
             "resultType": "url",
             "sourceType": "qr_url",
             "acceptedAtEpoch": 1800000000,
-            "settledAtEpoch": 1800000000,
-            "assessmentTransportVersion": "1.0.0-candidate.3",
-            "processingOutcome": "complete",
-            "accounting": {
-              "state": "charged",
-              "chargedChecks": 1,
-              "receiptId": "00000000000000000000000000000000"
-            },
-            "outcome": {
-              "schemaVersion": 3,
-              "verdict": "no_known_threat_detected",
-              "processingOutcome": "complete",
-              "coverage": "supported_checks_complete",
-              "reasonCodes": [
-                "NO_LIST_MATCH",
-                "BROWSER_NAVIGATION_NOT_EVALUATED"
-              ],
-              "transportWarnings": [],
-              "threatTypes": [],
-              "lookupCount": 3,
-              "providerCallCount": 3,
-              "observedHopCount": 3,
-              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
-              "consumerAccessEnabled": false,
-              "lookupObservedAt": "2027-01-15T08:00:00Z",
-              "lookupValidUntil": null,
-              "matchScope": null,
-              "targetContactStatus": "contacted"
-            },
-            "expiresAtEpoch": 1800604800,
-            "presentation": {
-              "freshnessStatus": "not_applicable",
-              "verdict": "no_known_threat_detected",
-              "processingOutcome": "complete",
-              "coverage": "supported_checks_complete",
-              "reasonCodes": [
-                "NO_LIST_MATCH",
-                "BROWSER_NAVIGATION_NOT_EVALUATED"
-              ],
-              "messageKey": null,
-              "nextAction": null
-            }
-          },
-          {
-            "schemaVersion": 1,
-            "transportVersion": "1.0.0-governed-history-candidate.2",
-            "resultId": "gh1_1800000000_00000000000000000000000000000000",
-            "resultType": "url",
-            "sourceType": "qr_url",
-            "acceptedAtEpoch": 1800000000,
-            "settledAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000001,
             "assessmentTransportVersion": "1.0.0-candidate.3",
             "processingOutcome": "partial",
             "accounting": {
               "state": "not_charged",
               "chargedChecks": 0,
-              "receiptId": "00000000000000000000000000000000"
+              "receiptId": "00000000000000000000000000000001"
             },
             "outcome": {
               "schemaVersion": 3,
-              "verdict": "unknown",
+              "verdict": "high_risk",
               "processingOutcome": "partial",
               "coverage": "limited",
               "reasonCodes": [
-                "ORIGIN_ONLY_NOT_FULL_LINK"
+                "KNOWN_THREAT_MATCH"
               ],
               "transportWarnings": [],
-              "threatTypes": [],
+              "threatTypes": [
+                "MALWARE"
+              ],
               "lookupCount": 1,
               "providerCallCount": 1,
               "observedHopCount": 0,
               "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
               "consumerAccessEnabled": false,
               "lookupObservedAt": "2027-01-15T08:00:00Z",
-              "lookupValidUntil": null,
-              "matchScope": null,
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "full_submitted_url",
               "targetContactStatus": "not_contacted"
             },
-            "expiresAtEpoch": 1800604800,
+            "expiresAtEpoch": 1800604801,
             "presentation": {
-              "freshnessStatus": "not_applicable",
-              "verdict": "unknown",
+              "freshnessStatus": "current",
+              "verdict": "high_risk",
               "processingOutcome": "partial",
               "coverage": "limited",
               "reasonCodes": [
-                "ORIGIN_ONLY_NOT_FULL_LINK"
+                "KNOWN_THREAT_MATCH"
               ],
               "messageKey": null,
               "nextAction": null

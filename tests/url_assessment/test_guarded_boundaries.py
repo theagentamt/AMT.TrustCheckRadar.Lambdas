@@ -49,3 +49,15 @@ def test_invalid_unicode_location_never_escapes_validation():
                hops=[dict(url='https://example.com/',httpStatus=302)],location='\ud800',
                reasonCodes=[],requestCount=1,scope='HTTP_SINGLE_HOP_ONLY')
     assert not supported_step(value,'case','https://example.com/')
+
+
+def test_legacy_private_assessment_is_explicitly_unavailable_with_zero_network(monkeypatch):
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('retired_private_app',ROOT/'src/url_assessment/app.py')
+    app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
+    monkeypatch.setenv('STAGE','dev')
+    monkeypatch.setattr(app,'assess',lambda *_:pytest.fail('legacy resolve-first path retired'))
+    result=app.lambda_handler({'schemaVersion':1,'checkId':'legacy','scope':'full_url','url':'https://example.com/'},
+        Mock(get_remaining_time_in_millis=lambda:35000))
+    assert result['checkId']=='legacy' and result['processingOutcome']=='unavailable' and result['reasonCodes']==['CONFIGURATION_UNAVAILABLE']
+    assert result['lookupCount']==result['providerCallCount']==result['observedHopCount']==0

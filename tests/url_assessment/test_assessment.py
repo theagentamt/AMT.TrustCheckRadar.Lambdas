@@ -210,7 +210,7 @@ def test_invalid_trusted_budget_never_starts_provider(budget):
     assert deps.resolve_count==0 and deps.provider_call_count==0
 
 
-def test_trusted_budget_caps_private_handler_without_changing_old_protocol(monkeypatch):
+def test_trusted_budget_caps_guarded_private_handler(monkeypatch):
     import importlib.util
     spec=importlib.util.spec_from_file_location('assessment_budget_app',ROOT/'src/url_assessment/app.py')
     app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
@@ -219,9 +219,10 @@ def test_trusted_budget_caps_private_handler_without_changing_old_protocol(monke
     def inspect(event,deps,budget):
         captured.append(budget.remaining())
         return app.base_result()
-    monkeypatch.setattr(app,'assess',inspect)
+    import guarded_service
+    monkeypatch.setattr(guarded_service,'assess',inspect)
     context=Mock();context.get_remaining_time_in_millis.return_value=35000
-    app.lambda_handler(event(executionBudgetMs=18000),context)
-    app.lambda_handler(event(executionBudgetMs=14500),context)
-    app.lambda_handler(event(),context)
+    app.lambda_handler(event(executionBudgetMs=18000)|{'schemaVersion':2},context)
+    app.lambda_handler(event(executionBudgetMs=14500)|{'schemaVersion':2},context)
+    app.lambda_handler(event()|{'schemaVersion':2},context)
     assert 17<=captured[0]<=18 and 14<=captured[1]<=14.5 and 31<=captured[2]<=32

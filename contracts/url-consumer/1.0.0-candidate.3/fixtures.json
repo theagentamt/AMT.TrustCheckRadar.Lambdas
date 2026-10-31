@@ -7,7 +7,7 @@
       "request": {
         "transportVersion": "1.0.0-candidate.3",
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-1",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -18,7 +18,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-1",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -41,8 +41,8 @@
       },
       "response": {
         "transportVersion": "1.0.0-candidate.3",
-        "checkId": "guarded-case",
-        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000000",
+        "checkId": "guarded-case-1",
+        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000001",
         "state": "settled",
         "access": {
           "state": "allowed",
@@ -58,12 +58,12 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000001",
           "requiresReconciliation": false
         },
         "outcome": {
           "contractVersion": "0.4.0-candidate.1",
-          "checkId": "guarded-case",
+          "checkId": "guarded-case-1",
           "access": {
             "state": "allowed",
             "basis": "paid",
@@ -78,11 +78,11 @@
           "accounting": {
             "state": "not_charged",
             "chargedChecks": 0,
-            "receiptId": "00000000000000000000000000000000",
+            "receiptId": "00000000000000000000000000000001",
             "requiresReconciliation": false
           },
           "kind": "assessment_result",
-          "assessedAt": "2027-01-15T08:00:00Z",
+          "assessedAt": "2027-01-15T08:00:01Z",
           "verdict": "high_risk",
           "processingOutcome": "partial",
           "uncertainty": {
@@ -118,7 +118,7 @@
         },
         "errorCode": null,
         "retryAfterSeconds": null,
-        "expiresAt": 1800604800
+        "expiresAt": 1800604801
       }
     },
     {
@@ -127,7 +127,7 @@
       "request": {
         "transportVersion": "1.0.0-candidate.3",
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-2",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -138,7 +138,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-2",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -161,8 +161,8 @@
       },
       "response": {
         "transportVersion": "1.0.0-candidate.3",
-        "checkId": "guarded-case",
-        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000000",
+        "checkId": "guarded-case-2",
+        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000002",
         "state": "settled",
         "access": {
           "state": "allowed",
@@ -178,12 +178,12 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000002",
           "requiresReconciliation": false
         },
         "outcome": {
           "contractVersion": "0.4.0-candidate.1",
-          "checkId": "guarded-case",
+          "checkId": "guarded-case-2",
           "access": {
             "state": "allowed",
             "basis": "paid",
@@ -198,11 +198,11 @@
           "accounting": {
             "state": "not_charged",
             "chargedChecks": 0,
-            "receiptId": "00000000000000000000000000000000",
+            "receiptId": "00000000000000000000000000000002",
             "requiresReconciliation": false
           },
           "kind": "assessment_result",
-          "assessedAt": "2027-01-15T08:00:00Z",
+          "assessedAt": "2027-01-15T08:00:02Z",
           "verdict": "high_risk",
           "processingOutcome": "partial",
           "uncertainty": {
@@ -238,7 +238,7 @@
         },
         "errorCode": null,
         "retryAfterSeconds": null,
-        "expiresAt": 1800604800
+        "expiresAt": 1800604802
       }
     },
     {
@@ -247,7 +247,7 @@
       "request": {
         "transportVersion": "1.0.0-candidate.3",
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-3",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -258,7 +258,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-3",
         "verdict": "no_known_threat_detected",
         "processingOutcome": "complete",
         "coverage": "supported_checks_complete",
@@ -280,8 +280,8 @@
       },
       "response": {
         "transportVersion": "1.0.0-candidate.3",
-        "checkId": "guarded-case",
-        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000000",
+        "checkId": "guarded-case-3",
+        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000003",
         "state": "settled",
         "access": {
           "state": "allowed",
@@ -297,12 +297,12 @@
         "accounting": {
           "state": "charged",
           "chargedChecks": 1,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000003",
           "requiresReconciliation": false
         },
         "outcome": {
           "contractVersion": "0.4.0-candidate.1",
-          "checkId": "guarded-case",
+          "checkId": "guarded-case-3",
           "access": {
             "state": "allowed",
             "basis": "paid",
@@ -317,11 +317,11 @@
           "accounting": {
             "state": "charged",
             "chargedChecks": 1,
-            "receiptId": "00000000000000000000000000000000",
+            "receiptId": "00000000000000000000000000000003",
             "requiresReconciliation": false
           },
           "kind": "assessment_result",
-          "assessedAt": "2027-01-15T08:00:00Z",
+          "assessedAt": "2027-01-15T08:00:03Z",
           "verdict": "no_known_threat_detected",
           "processingOutcome": "complete",
           "uncertainty": {
@@ -362,7 +362,7 @@
         },
         "errorCode": null,
         "retryAfterSeconds": null,
-        "expiresAt": 1800604800
+        "expiresAt": 1800604803
       }
     },
     {
@@ -371,7 +371,7 @@
       "request": {
         "transportVersion": "1.0.0-candidate.3",
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-4",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -386,7 +386,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-4",
         "verdict": "unknown",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -407,8 +407,8 @@
       },
       "response": {
         "transportVersion": "1.0.0-candidate.3",
-        "checkId": "guarded-case",
-        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000000",
+        "checkId": "guarded-case-4",
+        "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000004",
         "state": "settled",
         "access": {
           "state": "allowed",
@@ -424,12 +424,12 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000004",
           "requiresReconciliation": false
         },
         "outcome": {
           "contractVersion": "0.4.0-candidate.1",
-          "checkId": "guarded-case",
+          "checkId": "guarded-case-4",
           "access": {
             "state": "allowed",
             "basis": "paid",
@@ -444,11 +444,11 @@
           "accounting": {
             "state": "not_charged",
             "chargedChecks": 0,
-            "receiptId": "00000000000000000000000000000000",
+            "receiptId": "00000000000000000000000000000004",
             "requiresReconciliation": false
           },
           "kind": "assessment_result",
-          "assessedAt": "2027-01-15T08:00:00Z",
+          "assessedAt": "2027-01-15T08:00:04Z",
           "verdict": "unknown",
           "processingOutcome": "partial",
           "uncertainty": {
@@ -482,7 +482,7 @@
         },
         "errorCode": null,
         "retryAfterSeconds": null,
-        "expiresAt": 1800604800
+        "expiresAt": 1800604804
       }
     }
   ]

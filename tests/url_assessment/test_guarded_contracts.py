@@ -63,9 +63,39 @@ def test_new_contract_manifest_covers_exact_files(relative):
     assert listed=={p.name for p in root.iterdir() if p.is_file() and p.name!='SHA256SUMS'}
 
 
-def test_existing_feedback_explicitly_rejects_new_assessment_version():
+def test_old_feedback_explicitly_rejects_new_assessment_version():
     from result_feedback.validation import request,FeedbackError
     value={'feedbackTransportVersion':'1.0.0-feedback-candidate.1','feedbackId':'feedback',
         'result':{'checkId':'guarded-case','operationProof':'v1_k1_00000000_0000000000000000_000000000000000000000000',
             'receiptId':'0'*32,'assessmentTransportVersion':'1.0.0-candidate.3'},'category':'unclear'}
     with pytest.raises(FeedbackError,match='CONTRACT_UNSUPPORTED'):request(value)
+
+
+def test_guarded_dto_never_accepts_a_missing_identity_for_a_valid_operation():
+    from shared_url_guarded import supported
+    root=ROOT/'contracts/url-consumer/1.0.0-candidate.3/fixtures.json'
+    value=json.loads(root.read_text())['fixtures'][3]['private'];value['checkId']=None
+    assert not supported(value,'guarded-case','origin_only')
+
+
+def test_canonical_whole_history_page_has_unique_consistent_result_identities():
+    root=ROOT/'contracts/governed-history/1.0.0-candidate.2'
+    page=json.loads((root/'fixtures.json').read_text())['fixtures'][0]['response']
+    validator(root,'list.schema.json').validate(page)
+    items=page['items'];assert len(items)==4
+    assert len({x['resultId'] for x in items})==len(items)
+    assert len({x['accounting']['receiptId'] for x in items})==len(items)
+    assert [x['settledAtEpoch'] for x in items]==sorted([x['settledAtEpoch'] for x in items],reverse=True)
+    for item in items:
+        validate_public_projection(item)
+        assert item['acceptedAtEpoch']<=item['settledAtEpoch']<=page['serverTimeEpoch']
+        assert item['resultId']==f"gh1_{item['settledAtEpoch']}_{item['accounting']['receiptId']}"
+        assert item['expiresAtEpoch']==item['settledAtEpoch']+604800
+    url=json.loads((ROOT/'contracts/url-consumer/1.0.0-candidate.3/fixtures.json').read_text())['fixtures']
+    by_receipt={x['accounting']['receiptId']:x for x in items}
+    for case in url:
+        response=case['response'];receipt=response['accounting']['receiptId'];item=by_receipt[receipt]
+        assert response['checkId']==case['request']['checkId']==case['private']['checkId']==response['outcome']['checkId']
+        assert response['outcome']['accounting']['receiptId']==receipt
+        assert response['expiresAt']==item['expiresAtEpoch']
+        assert item['outcome']=={k:v for k,v in case['private'].items() if k!='checkId'}

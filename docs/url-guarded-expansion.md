@@ -26,8 +26,12 @@ One logical allowance operation: completed checks charge one where an allowance
 applies, complimentary checks remain uncharged, partial/blocked/unavailable zero. Old candidate.1/.2 new submissions are rejected before refresh,
 admission or provider work. Existing receipts still reconcile with original
 versions, charges and evidence. Guarded requests never fall back to old protocols.
-The old private schema1 profile remains for existing workers and is explicitly
-outside this migration; do not claim all Message/recovery URL paths are migrated.
+The old private assessment schema1 entry is retired with an existing closed
+unavailable result and zero network work. Historical pure functions remain for
+frozen regression evidence. Old Message/recovery callers therefore receive an
+explicit unavailable limitation until migrated; they cannot trigger fetch-first
+behavior through the deployed assessment handler. The isolated resolver retains
+its private legacy protocol for mixed deployment, without new public access.
 
 History read candidate.2 is selected by x-history-contract-version. It can return
 unchanged legacy items and guarded candidate.2 stored items. Older readers fail
@@ -38,12 +42,11 @@ contracts/url-assessment/0.4.0-candidate.1 and
 contracts/governed-history/1.0.0-candidate.2.
 
 Compatibility limits requiring coordinated rollout: update Android URL and History
-readers before creating new guarded receipts. Existing result-feedback versions
-reject the new assessment version explicitly. Existing account-export versions
-fail closed if a guarded summary is encountered; a separately versioned export
-extension is required before enabling exports of these new receipts. No old
-contract is silently widened. These are explicit remaining integration tasks,
-not passing acceptance or changes to the user's accounting/access policy.
+readers before creating new guarded receipts. Deploy feedback candidate.2 and export candidate.6 readers before new guarded
+receipts. The new export header selects summary compatibility only, preserving
+configured families. Existing feedback/export versions still fail closed on
+guarded references/summaries. No old contract is silently widened. These are
+versioned integration requirements, not live acceptance or accounting changes.
 
 Direct source/package changes affect url_redirect_resolver, url_assessment,
 url_consumer and governed_history, plus shared-authority/export validators used by

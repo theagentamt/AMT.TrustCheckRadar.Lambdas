@@ -36,10 +36,15 @@ def assess(event, dependencies, budget, *, now=wall_clock, clock=time.monotonic)
     result = base_result()
     try:
         # Reuse the exact request/projection validation, with an explicit new protocol.
-        from assessment_service import validate_request
+        from assessment_service import validate_request, validate_request_envelope
         if type(event) is not dict or type(event.get('schemaVersion')) is not int or event['schemaVersion'] != 2:
             return result
-        target = validate_request(event | {'schemaVersion': 1})
+        legacy_envelope = event | {'schemaVersion': 1}
+        validate_request_envelope(legacy_envelope)
+        # Operation identity is trusted after envelope validation, before any
+        # URL policy rejection. Rejections must settle this exact reservation.
+        result['checkId'] = event['checkId']
+        target = validate_request(legacy_envelope)
     except ResolutionStop as stopped:
         result.update(processingOutcome=stopped.status, reasonCodes=[stopped.reason])
         return result

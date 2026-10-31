@@ -28,7 +28,7 @@ def supported(value, expected_id, request_scope):
             or value['schemaVersion'] != 3 or value['scope'] != SCOPE
             or value['consumerAccessEnabled'] is not False or request_scope not in ('full_url', 'origin_only')):
         return False
-    if value['checkId'] != expected_id and not (value['checkId'] is None and value['verdict'] == 'unknown'):
+    if value['checkId'] != expected_id:
         return False
     if (value['verdict'] not in ('unknown', 'high_risk', 'no_known_threat_detected')
             or value['processingOutcome'] not in ('invalid_input', 'blocked', 'unavailable', 'partial', 'complete')

@@ -298,6 +298,8 @@ build_function() {
     cp -R "$ROOT_DIR/contracts/url-assessment/v1-draft" "$build_dir/shared_message_contract/url_contract"
     cp -R "$ROOT_DIR/contracts/url-assessment/0.3.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v2"
     cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.1" "$build_dir/result_feedback/contract"
+    cp -R "$ROOT_DIR/contracts/result-feedback/1.0.0-candidate.2" "$build_dir/result_feedback/contract_v2"
+    cp -R "$ROOT_DIR/contracts/url-assessment/0.4.0-candidate.1" "$build_dir/shared_message_contract/url_contract_v3"
   fi
   if [[ "$function_name" == "account_export_api" ]]; then
     mkdir -p "$build_dir/account_export_api"

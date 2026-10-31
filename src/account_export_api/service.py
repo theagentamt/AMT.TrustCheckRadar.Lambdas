@@ -5,6 +5,7 @@ from .cursor import ExportError, encode, require, unique_pairs
 import json
 
 VERSION = '1.0.0-account-export-candidate.2'
+GUARDED_VERSION = '1.0.0-account-export-candidate.6'
 MANIFEST_VERSION = 'v1-user-visible-2026-09-21'
 MAX_PAGE_BYTES = 65536
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
@@ -57,12 +58,19 @@ class Export:
                       'included':SCOPE['included']+(['play_verification'] if play_verification else [])+
                           (['demographic_profile','demographic_operation','demographic_consent'] if demographic_research else []),
                       'excluded':SCOPE['excluded']+(['purchase_credentials'] if play_verification else [])} if (play_verification or demographic_research) else SCOPE
+        self.base_version = self.version
         self.manifest_version = self.scope['version']
 
     def page(self, event, body):
         # auth() checks JWT, recent signed auth_time, exact current device pointer,
         # active profile and deletion fence. It performs no entitlement lookup.
         context = self.reader.auth(event)
+        headers = event.get('headers') or {}
+        requested = headers.get('x-account-export-contract-version', self.base_version)
+        require(requested in (self.base_version, GUARDED_VERSION), 'CONTRACT_UNSUPPORTED', 422)
+        self.version = requested
+        self.manifest_version = (self.scope['version'] + ':guarded-url:' + self.base_version
+                                 if self.version == GUARDED_VERSION else self.scope['version'])
         now = self.now()
         if body['action'] == 'START_EXPORT':
             token = {'version': self.version, 'manifest': self.manifest_version,
@@ -88,7 +96,7 @@ class Export:
                     'startedAtEpoch': token['startedAtEpoch'], 'expiresAtEpoch': token['expiresAtEpoch'],
                     'observedAtEpoch': self.now(), 'pageNumber': token['pageNumber'],
                     'family': family, 'items': items, 'nextCursor': None, 'scope': self.scope}
-        if family == 'receipts':
+        if family == 'receipts' and self.version != GUARDED_VERSION:
             # Existing export versions cannot silently carry guarded URL schema3.
             require(not any(type(item.get('resultSummary')) is dict
                     and item['resultSummary'].get('scope') == 'GUARDED_HTTP_AND_GOOGLE_LOOKUP'

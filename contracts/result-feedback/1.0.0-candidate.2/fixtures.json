@@ -1,0 +1,35 @@
+{
+  "activationEnabled": false,
+  "requests": [
+    {
+      "name": "guarded-assessment",
+      "request": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.2",
+        "feedbackId": "guarded-vote",
+        "category": "unclear",
+        "result": {
+          "checkId": "guarded-case-1",
+          "operationProof": "v1_k1_00000000_0000000000000000_000000000000000000000001",
+          "receiptId": "00000000000000000000000000000001",
+          "assessmentTransportVersion": "1.0.0-candidate.3"
+        }
+      }
+    }
+  ],
+  "responses": [
+    {
+      "name": "accepted",
+      "response": {
+        "feedbackTransportVersion": "1.0.0-feedback-candidate.2",
+        "feedbackId": "guarded-vote",
+        "checkId": "guarded-case-1",
+        "status": "accepted",
+        "reasonCode": null,
+        "retryable": false,
+        "retryAfterSeconds": null,
+        "receivedAt": 1800000004,
+        "expiresAt": 1800604801
+      }
+    }
+  ]
+}

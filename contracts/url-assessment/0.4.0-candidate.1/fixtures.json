@@ -5,7 +5,7 @@
       "name": "initial-threat-not-visited",
       "request": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-1",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -16,7 +16,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-1",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -39,7 +39,7 @@
       },
       "response": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-1",
         "access": {
           "state": "allowed",
           "basis": "paid",
@@ -54,11 +54,11 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000001",
           "requiresReconciliation": false
         },
         "kind": "assessment_result",
-        "assessedAt": "2027-01-15T08:00:00Z",
+        "assessedAt": "2027-01-15T08:00:01Z",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "uncertainty": {
@@ -97,7 +97,7 @@
       "name": "redirect-threat-not-visited",
       "request": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-2",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -108,7 +108,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-2",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -131,7 +131,7 @@
       },
       "response": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-2",
         "access": {
           "state": "allowed",
           "basis": "paid",
@@ -146,11 +146,11 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000002",
           "requiresReconciliation": false
         },
         "kind": "assessment_result",
-        "assessedAt": "2027-01-15T08:00:00Z",
+        "assessedAt": "2027-01-15T08:00:02Z",
         "verdict": "high_risk",
         "processingOutcome": "partial",
         "uncertainty": {
@@ -189,7 +189,7 @@
       "name": "nested-redirects-complete",
       "request": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-3",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -200,7 +200,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-3",
         "verdict": "no_known_threat_detected",
         "processingOutcome": "complete",
         "coverage": "supported_checks_complete",
@@ -222,7 +222,7 @@
       },
       "response": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-3",
         "access": {
           "state": "allowed",
           "basis": "paid",
@@ -237,11 +237,11 @@
         "accounting": {
           "state": "charged",
           "chargedChecks": 1,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000003",
           "requiresReconciliation": false
         },
         "kind": "assessment_result",
-        "assessedAt": "2027-01-15T08:00:00Z",
+        "assessedAt": "2027-01-15T08:00:03Z",
         "verdict": "no_known_threat_detected",
         "processingOutcome": "complete",
         "uncertainty": {
@@ -285,7 +285,7 @@
       "name": "origin-only-no-target-contact",
       "request": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-4",
         "entryPoint": "qr_url",
         "language": "en",
         "target": {
@@ -300,7 +300,7 @@
       },
       "private": {
         "schemaVersion": 3,
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-4",
         "verdict": "unknown",
         "processingOutcome": "partial",
         "coverage": "limited",
@@ -321,7 +321,7 @@
       },
       "response": {
         "contractVersion": "0.4.0-candidate.1",
-        "checkId": "guarded-case",
+        "checkId": "guarded-case-4",
         "access": {
           "state": "allowed",
           "basis": "paid",
@@ -336,11 +336,11 @@
         "accounting": {
           "state": "not_charged",
           "chargedChecks": 0,
-          "receiptId": "00000000000000000000000000000000",
+          "receiptId": "00000000000000000000000000000004",
           "requiresReconciliation": false
         },
         "kind": "assessment_result",
-        "assessedAt": "2027-01-15T08:00:00Z",
+        "assessedAt": "2027-01-15T08:00:04Z",
         "verdict": "unknown",
         "processingOutcome": "partial",
         "uncertainty": {

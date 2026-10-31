@@ -17,9 +17,11 @@ path/query/fragment are never reconstructed. No raw destination chain is public.
 The private assessment request uses schemaVersion 2; response uses schemaVersion 3.
 The private resolver request and response schemas here describe its separate
 single-hop schemaVersion 2 protocol. No guarded request falls back to schema 1.
-Legacy private schema 1 is retained for existing workers and is not the guarded
-profile. Migrating those workers requires their own compatible contracts before
-claiming all URL paths use guarded traversal.
+The legacy private assessment schema1 entry returns an explicit unavailable
+result with zero network work. Frozen pure-function tests remain; old Message/
+recovery workers receive unavailable until their own migration. No guarded
+request falls back to fetch-first behavior. Resolver legacy protocol stays
+private for deployment compatibility, without a public caller.
 
 Limits: five redirects, six target requests and six Google lookups; 2,048-byte
 URL; ten seconds aggregate target/DNS/RPC work, inside the existing eighteen-second
