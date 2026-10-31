@@ -262,7 +262,8 @@
   "receiptSummaryVersions": {
     "url": [
       1,
-      2
+      2,
+      3
     ],
     "message": [
       1,
@@ -287,6 +288,10 @@
       "threatTypes",
       "freshness"
     ],
-    "chronology": "original observedAt <= receipt assessmentEpoch; matched validUntil > observedAt; export preserves historical freshness without rechecking provider"
+    "chronology": "original observedAt <= receipt assessmentEpoch; matched validUntil > observedAt; export preserves historical freshness without rechecking provider",
+    "url3AddedFields": [
+      "matchScope",
+      "targetContactStatus"
+    ]
   }
 }
