@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import ipaddress
 import re
 import time
+import unicodedata
 from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
 
 MAX_URL_BYTES = 2048
@@ -74,10 +75,16 @@ def public_address(raw):
     return address
 
 
+def has_control_or_format(value):
+    return any(unicodedata.category(c) in ("Cc", "Cf", "Cs") for c in value)
+
+
 def policy_decode(value):
     # Inspect common nested encodings without changing the URL sent on the wire.
     for _ in range(3):
         decoded = unquote(value)
+        if has_control_or_format(decoded):
+            raise ResolutionStop("INVALID_URL_ENCODING", "invalid_input")
         if decoded == value:
             return decoded.replace("\\", "/")
         value = decoded
@@ -105,7 +112,7 @@ def parse_target(raw):
             raise ResolutionStop("INVALID_URL", "invalid_input")
     except UnicodeError:
         raise ResolutionStop("INVALID_URL", "invalid_input") from None
-    if any(ord(c) <= 32 or ord(c) == 127 for c in raw) or "\\" in raw:
+    if any(ord(c) <= 32 or ord(c) == 127 for c in raw) or has_control_or_format(raw) or "\\" in raw:
         raise ResolutionStop("AMBIGUOUS_URL", "invalid_input")
     if re.search(r"%(?![a-fA-F0-9]{2})", raw) or re.search(r"%(?:0[0-9a-f]|1[0-9a-f]|7f)", raw, re.I):
         raise ResolutionStop("INVALID_URL_ENCODING", "invalid_input")
@@ -145,6 +152,9 @@ def parse_target(raw):
         if path.startswith("//"):
             raise ResolutionStop("AMBIGUOUS_URL", "invalid_input")
         path_for_policy = policy_decode(path)
+        # Inspect query values too: nested escapes must not hide controls from
+        # the policy while retaining the exact original query on the wire.
+        policy_decode(query)
         if SENSITIVE_PATH.search(path_for_policy) or any(
             SENSITIVE_KEYS.search(policy_decode(pair.split("=", 1)[0]))
             for pair in re.split(r"[&;]", query) if pair
@@ -204,7 +214,7 @@ def resolve(url, transport, deadline=None):
                 if len(result["hops"]) > MAX_REDIRECTS:
                     raise ResolutionStop("REDIRECT_LIMIT_EXCEEDED")
                 # Validate the raw Location before urljoin can strip controls.
-                if any(ord(c) <= 32 or ord(c) == 127 for c in location) or "\\" in location:
+                if any(ord(c) <= 32 or ord(c) == 127 for c in location) or has_control_or_format(location) or "\\" in location:
                     raise ResolutionStop("INVALID_REDIRECT_LOCATION", "blocked")
                 if len(location.encode("utf-8")) > MAX_URL_BYTES:
                     raise ResolutionStop("INVALID_REDIRECT_LOCATION", "blocked")

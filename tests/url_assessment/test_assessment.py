@@ -62,6 +62,22 @@ def test_rejected_url_never_invokes_aws_or_provider(url):
     assert deps.urls == []
 
 
+@pytest.mark.parametrize('url', [
+    'https://example.com/a\u202eb', 'https://example.com/?q=%E2%80%8Bvalue',
+    'https://example.com/path%250d%250a', 'https://example.com/?next=%25250a',
+    'intent://scan/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fexample.com;end',
+    'javascript:alert(1)', 'data:text/html,example', 'content://example/item',
+])
+def test_ambiguous_controls_and_deep_links_stop_before_dependencies(url):
+    deps = Dependencies()
+    result = assess(event(url), deps, Budget(32))
+    assert result['verdict'] == 'unknown'
+    assert result['processingOutcome'] in ('invalid_input', 'blocked')
+    assert result['lookupCount'] == result['providerCallCount'] == result['observedHopCount'] == 0
+    assert deps.resolve_count == 0 and deps.urls == []
+    assert url not in json.dumps(result)
+
+
 @pytest.mark.parametrize('extra', [{'schemaVersion': True}, {'paid': True}, {'accountId': 'x'}, {'scope': 'unrestricted'}, {'checkId': '../x'}])
 def test_untrusted_event_flags_fail_closed(extra):
     deps = Dependencies()

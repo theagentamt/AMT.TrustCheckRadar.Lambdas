@@ -62,6 +62,102 @@ def test_rejects_before_dns_or_fetch(url):
     dns.assert_not_called()
 
 
+@pytest.mark.parametrize("url", [
+    "https://example.com/a\u202eb",  # Unicode directional formatting.
+    "https://example.com/?q=a\u200bb",  # Invisible format character.
+    "https://example.com/a%250d%250ab",
+    "https://example.com/?next=a%250d%250ab",
+    "https://example.com/?next=a%25250ab",
+    "https://example.com/%E2%80%AEreview",
+    "https://example.com/?next=%E2%80%8Breview",
+    "https://example.com/?q=%C2%85review",
+])
+def test_control_or_format_characters_reject_before_dns_or_fetch(url):
+    client = FakeTransport([(200, None)])
+    with mock.patch.object(client, "addresses", wraps=client.addresses) as dns:
+        result = resolver.resolve(url, client)
+    assert result["resolutionStatus"] == "invalid_input"
+    assert result["reasonCodes"][0] in ("AMBIGUOUS_URL", "INVALID_URL_ENCODING")
+    assert result["requestCount"] == 0 and client.calls == []
+    dns.assert_not_called()
+
+
+DEEP_LINKS = [
+    "intent://scan/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fexample.com;end",
+    "javascript:alert(1)", "data:text/html,example", "file:///example",
+    "content://example/item", "android-app://example.app/https/example.com",
+    "market://details?id=example.app", "mailto:test@example.com", "tel:+15555550100",
+    "sms:+15555550100", "geo:0,0", "upi://pay?pa=test", "WIFI:T:WPA;S:example;;",
+]
+
+
+@pytest.mark.parametrize("url", DEEP_LINKS)
+def test_non_web_deep_link_never_resolves_or_uses_embedded_fallback(url):
+    client = FakeTransport()
+    with mock.patch.object(client, "addresses", wraps=client.addresses) as dns:
+        result = resolver.resolve(url, client)
+    assert result["resolutionStatus"] == "blocked"
+    assert result["reasonCodes"] == ["UNSUPPORTED_SCHEME"]
+    assert result["requestCount"] == 0 and client.calls == []
+    dns.assert_not_called()
+
+
+@pytest.mark.parametrize("location", DEEP_LINKS)
+def test_http_redirect_to_deep_link_never_follows_scheme_or_fallback(location):
+    client = FakeTransport([(302, location)])
+    with mock.patch.object(client, "addresses", wraps=client.addresses) as dns:
+        result = resolver.resolve("https://example.com/short", client)
+    assert result["resolutionStatus"] == "blocked"
+    assert result["reasonCodes"] == ["UNSUPPORTED_SCHEME"]
+    assert result["requestCount"] == len(client.calls) == dns.call_count == 1
+
+
+def test_allowed_unicode_and_encoded_spaces_keep_exact_wire_query():
+    url = "https://example.com/caf%C3%A9?q=hello%20world&x=1&x=&next=https%3A%2F%2Fexample.org%2Fa"
+    client = FakeTransport([(200, None)])
+    result = resolver.resolve(url, client)
+    assert result["httpChainComplete"] and client.calls[0][0].url == url
+
+
+def test_ordinary_unicode_path_is_still_encoded_without_repairing_input():
+    client = FakeTransport([(200, None)])
+    result = resolver.resolve("https://example.com/café?q=mañana", client)
+    assert result["httpChainComplete"]
+    assert client.calls[0][0].url == "https://example.com/caf%C3%A9?q=ma%C3%B1ana"
+
+
+def test_query_policy_decoding_remains_bounded():
+    client = FakeTransport()
+    with mock.patch.object(client, "addresses", wraps=client.addresses) as dns:
+        result = resolver.resolve("https://example.com/?next=%252525250a", client)
+    assert result["reasonCodes"] == ["EXCESSIVE_URL_ENCODING"]
+    assert result["requestCount"] == 0 and client.calls == []
+    dns.assert_not_called()
+
+
+def test_embedded_non_web_query_is_not_unwrapped_or_executed():
+    url = "https://example.com/?next=intent%3A%2F%2Fexample%2F%23Intent%3Bend"
+    client = FakeTransport([(200, None)])
+    result = resolver.resolve(url, client)
+    assert result["httpChainComplete"] and len(client.calls) == 1
+    assert client.calls[0][0].url == url
+    assert "BROWSER_NAVIGATION_NOT_EVALUATED" in result["reasonCodes"]
+
+
+@pytest.mark.parametrize("location,reason", [
+    ("/a\u202eb", "INVALID_REDIRECT_LOCATION"),
+    ("/a%250d%250ab", "INVALID_URL_ENCODING"),
+    ("/next?q=%E2%80%8Bvalue", "INVALID_URL_ENCODING"),
+])
+def test_redirect_controls_stop_before_second_dns_or_fetch(location, reason):
+    client = FakeTransport([(302, location)])
+    with mock.patch.object(client, "addresses", wraps=client.addresses) as dns:
+        result = resolver.resolve("https://example.com/short", client)
+    assert result["resolutionStatus"] in ("blocked", "invalid_input")
+    assert result["reasonCodes"] == [reason]
+    assert result["requestCount"] == len(client.calls) == dns.call_count == 1
+
+
 def test_preserves_path_query_and_does_not_visit_embedded_url():
     url = "https://example.com/a%2Fb?x=1&x=&next=http%3A%2F%2F127.0.0.1&x=2#fragment"
     client = FakeTransport([(200, None)])
