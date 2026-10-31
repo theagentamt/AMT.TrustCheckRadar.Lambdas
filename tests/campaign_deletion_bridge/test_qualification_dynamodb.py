@@ -25,8 +25,23 @@ CONTEXT=SimpleNamespace(function_name=FUNCTION,invoked_function_arn=f'arn:aws:la
                         get_remaining_time_in_millis=lambda:60000)
 def event(case):return {'schemaVersion':1,'operation':'qualify-campaign-completion','runId':RUN,'case':case}
 
+# These race fixtures publish into the previous period. Keep their setup inside
+# its seven-day recovery window, independently of the machine's calendar phase.
+# Only this test module's runner clock is replaced; SDK and production clocks stay real.
+PRODUCER_FIXTURE_PERIOD = 1482
+PRODUCER_FIXTURE_NOW = PRODUCER_FIXTURE_PERIOD * Q.PERIOD_SECONDS + 86400
+PRODUCER_RACE_CASES = (
+    'period_publisher_first_race', 'period_publisher_last_race',
+    'period_late_cluster', 'period_cluster_new_race',
+    'period_cluster_repeat_race', 'period_cluster_capped_race',
+)
+
 @pytest.fixture
-def runner(monkeypatch):
+def runner(monkeypatch, request):
+    case = getattr(request.node, 'callspec', SimpleNamespace(params={})).params.get('case')
+    if case in PRODUCER_RACE_CASES:
+        monkeypatch.setattr(Q, 'time', SimpleNamespace(
+            time=lambda: PRODUCER_FIXTURE_NOW, sleep=Q.time.sleep))
     monkeypatch.setenv('MOTO_ACCOUNT_ID',Q.ACCOUNT)
     for k,v in ENV.items():monkeypatch.setenv(k,v)
     with mock_aws():
@@ -138,3 +153,36 @@ def test_all_component_resource_wrapper_refuses_foreign_table_before_sdk(runner)
             resources.raw.transact_write_items(TransactItems=[{'Delete':{
                 'TableName':'trustcheckradar-dev-users','Key':Q.R.wire({'PK':'x','SK':'y'})}}])
     finally:resources.close()
+
+
+@pytest.mark.parametrize('case', PRODUCER_RACE_CASES)
+def test_producer_race_fixture_has_valid_previous_period_transient_window(runner, case):
+    import time
+    from shared_campaign_locators import period as period_fence
+    assert Q.time is not time  # Do not alter SDK/global clocks.
+    assert runner.now == PRODUCER_FIXTURE_NOW
+    assert runner.period == PRODUCER_FIXTURE_PERIOD
+    observed = runner.period * Q.PERIOD_SECONDS - 100
+    previous = observed // Q.PERIOD_SECONDS
+    assert previous == runner.period - 1
+    deadline = period_fence.transient_deadline(
+        previous, runner.now, runner.now + 1000 + 18 * 86400,
+        runner.now + 21 * 86400)
+    assert runner.now < deadline == runner.period * Q.PERIOD_SECONDS + Q.RECOVERY_SECONDS
+
+
+@pytest.mark.parametrize('after_horizon', [0, 86400])
+def test_producer_fixture_does_not_waive_expired_previous_period_guard(after_horizon):
+    from shared_campaign_locators import period as period_fence
+    from shared_campaign_locators.core import LocatorUnavailable
+    horizon = PRODUCER_FIXTURE_PERIOD * Q.PERIOD_SECONDS + Q.RECOVERY_SECONDS
+    now = horizon + after_horizon
+    with pytest.raises(LocatorUnavailable):
+        period_fence.transient_deadline(
+            PRODUCER_FIXTURE_PERIOD - 1, now,
+            now + 1000 + 18 * 86400, now + 21 * 86400)
+
+
+def test_non_race_runner_keeps_original_module_clock(runner):
+    import time
+    assert Q.time is time
