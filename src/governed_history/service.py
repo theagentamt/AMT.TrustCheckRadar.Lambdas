@@ -6,7 +6,7 @@ import re
 import time
 
 from shared_governed_history import INDEX_NAME, RETENTION_SECONDS, VERSION, present_projection
-from shared_governed_history.projection import RESULT, validate_stored_receipt
+from shared_governed_history.projection import RESULT, GUARDED_VERSION, validate_stored_receipt
 
 
 class GovernedHistoryError(Exception):
@@ -46,14 +46,15 @@ class Settings:
 
 
 class Cursor:
-    def __init__(self, authority, *, account, fingerprint, device_version, inventory_revision, now):
+    def __init__(self, authority, *, account, fingerprint, device_version, inventory_revision, now, version=VERSION):
         self.a, self.account, self.fingerprint = authority, account, fingerprint
         self.device_version, self.inventory_revision, self.now = device_version, inventory_revision, now
+        self.version = version
 
     def encode(self, before):
         key_id = self.a.s.active_key_id
         payload = {
-            "schemaVersion": 1, "transportVersion": VERSION, "keyId": key_id,
+            "schemaVersion": 1, "transportVersion": self.version, "keyId": key_id,
             "accountBinding": self.a._mac(key_id, "governed-history-cursor-account", self.account),
             "deviceBinding": self.a._mac(key_id, "governed-history-cursor-device", self.fingerprint),
             "deviceVersion": self.device_version, "inventoryRevision": self.inventory_revision,
@@ -85,7 +86,7 @@ class Cursor:
                      "deviceVersion", "inventoryRevision", "before", "expiresAtEpoch"}
             if (prefix != "ghc1" or not hmac.compare_digest(tag, expected) or set(value) != exact
                     or type(value["schemaVersion"]) is not int or value["schemaVersion"] != 1
-                    or value["transportVersion"] != VERSION or key_id not in self.a.s.hmac_keys
+                    or value["transportVersion"] != self.version or key_id not in self.a.s.hmac_keys
                     or not isinstance(value["accountBinding"], str)
                     or not hmac.compare_digest(value["accountBinding"], self.a._mac(key_id, "governed-history-cursor-account", self.account))
                     or not isinstance(value["deviceBinding"], str)
@@ -107,13 +108,16 @@ class Service:
     CANONICAL_PROJECTION = "PK, SK, recordType, #state, governedHistory, governedHistoryDigest, expiresAt, retentionDeadlineEpoch, GSI2PK, GSI2SK"
 
     def __init__(self, authority, settings, *, account, fingerprint, device_version,
-                 inventory_revision, now=lambda: int(time.time())):
+                 inventory_revision, now=lambda: int(time.time()), version=VERSION):
+        if version not in (VERSION, GUARDED_VERSION):
+            raise GovernedHistoryError("CONTRACT_UNSUPPORTED", 422)
+        self.version = version
         self.a, self.s, self.account, self.now = authority, settings, account, now
         if type(inventory_revision) is not int or inventory_revision < 1:
             raise GovernedHistoryError("SERVICE_NOT_ENABLED", 503)
         self.partitions = authority.deletion_partitions(account)
         self.cursor = Cursor(authority, account=account, fingerprint=fingerprint,
-                             device_version=device_version, inventory_revision=inventory_revision, now=now())
+                             device_version=device_version, inventory_revision=inventory_revision, now=now(), version=version)
 
     def _limit(self, raw):
         if raw is None:
@@ -149,7 +153,12 @@ class Service:
                 ExpressionAttributeNames={"#state": "state"}).get("Item")
             if row is None or row.get("GSI2PK") != candidate.get("GSI2PK") or row.get("GSI2SK") != candidate.get("GSI2SK"):
                 return None
-            return present_projection(validate_stored_receipt(row, now=self.now()), self.now())
+            projection = validate_stored_receipt(row, now=self.now())
+            if projection["transportVersion"] == GUARDED_VERSION and self.version != GUARDED_VERSION:
+                raise GovernedHistoryError("CONTRACT_UNSUPPORTED", 422)
+            return present_projection(projection, self.now())
+        except GovernedHistoryError:
+            raise
         except Exception:
             return None
 
@@ -187,7 +196,7 @@ class Service:
                 break
         more = examined is not None and (trailing or len(candidates) > examined_count)
         next_cursor = self.cursor.encode(examined) if more else None
-        result = {"transportVersion": VERSION, "serverTimeEpoch": self.now(),
+        result = {"transportVersion": self.version, "serverTimeEpoch": self.now(),
                   "items": items, "nextCursor": next_cursor}
         if len(json.dumps(result, separators=(",", ":"), ensure_ascii=False).encode()) > self.s.max_response_bytes:
             raise GovernedHistoryError("SERVICE_UNAVAILABLE", 503)
@@ -208,7 +217,7 @@ class Service:
             raise GovernedHistoryError("NOT_FOUND", 404)
         if len(found) != 1:
             raise GovernedHistoryError("SERVICE_UNAVAILABLE", 503)
-        result = {"transportVersion": VERSION, "serverTimeEpoch": self.now(), "result": found[0]}
+        result = {"transportVersion": self.version, "serverTimeEpoch": self.now(), "result": found[0]}
         if len(json.dumps(result, separators=(",", ":"), ensure_ascii=False).encode()) > self.s.max_response_bytes:
             raise GovernedHistoryError("SERVICE_UNAVAILABLE", 503)
         return result

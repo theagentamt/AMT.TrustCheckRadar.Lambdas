@@ -1,0 +1,10 @@
+{
+  "oneOf": [
+    {
+      "$ref": "legacy-item.schema.json"
+    },
+    {
+      "$ref": "guarded-item.schema.json"
+    }
+  ]
+}

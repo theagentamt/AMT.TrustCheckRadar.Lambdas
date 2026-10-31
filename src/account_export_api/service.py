@@ -88,6 +88,11 @@ class Export:
                     'startedAtEpoch': token['startedAtEpoch'], 'expiresAtEpoch': token['expiresAtEpoch'],
                     'observedAtEpoch': self.now(), 'pageNumber': token['pageNumber'],
                     'family': family, 'items': items, 'nextCursor': None, 'scope': self.scope}
+        if family == 'receipts':
+            # Existing export versions cannot silently carry guarded URL schema3.
+            require(not any(type(item.get('resultSummary')) is dict
+                    and item['resultSummary'].get('scope') == 'GUARDED_HTTP_AND_GOOGLE_LOOKUP'
+                    for item in items), 'SOURCE_UNAVAILABLE', 503)
         if self.version == VERSION and family == 'receipts':
             # Immutable older transport cannot silently carry newly versioned summaries.
             require(not any(type(item.get('resultSummary')) is dict and

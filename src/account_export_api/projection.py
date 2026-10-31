@@ -107,8 +107,8 @@ def receipt(row, now):
             from shared_check_authority.summary import validate_summary
             require(row.get('projectionScope') in ('full_url','origin_only'), 'SOURCE_UNAVAILABLE', 503)
             version=row.get('urlTransportVersion','1.0.0-candidate.1')
-            require(version in ('1.0.0-candidate.1','1.0.0-candidate.2') and summary.get('schemaVersion')==(2 if version=='1.0.0-candidate.2' else 1), 'SOURCE_UNAVAILABLE',503)
-            validate_summary(summary, row.get('clientCheckId'), outcome)
+            require(version in ('1.0.0-candidate.1','1.0.0-candidate.2','1.0.0-candidate.3') and summary.get('schemaVersion')=={'1.0.0-candidate.1':1,'1.0.0-candidate.2':2,'1.0.0-candidate.3':3}[version], 'SOURCE_UNAVAILABLE',503)
+            validate_summary(summary, row.get('clientCheckId'), outcome, request_scope=row.get('projectionScope'))
             if summary.get('lookupObservedAt') is not None:
                 from shared_lookup_freshness import epoch
                 require(epoch(summary['lookupObservedAt'])<=assessed,'SOURCE_UNAVAILABLE',503)

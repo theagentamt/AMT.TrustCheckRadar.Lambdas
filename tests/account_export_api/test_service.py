@@ -161,3 +161,12 @@ def test_new_receipt_requires_explicit_compatible_export_contract(world,modern,p
         value=start(selected)
         assert value['exportTransportVersion']==('1.0.0-account-export-candidate.4' if play else '1.0.0-account-export-candidate.2')
         assert value['items']==reader.items
+
+
+@pytest.mark.parametrize('play,demographics',[(False,False),(True,False),(True,True)])
+def test_older_export_profiles_never_silently_carry_guarded_url_summary(world,play,demographics):
+    service,reader,clock=world
+    service=Export(reader,service.cursor,lambda:clock[0],play_verification=play,demographic_research=demographics)
+    reader.entries=[('receipts',)]
+    reader.items=[{'resultSummary':{'schemaVersion':3,'scope':'GUARDED_HTTP_AND_GOOGLE_LOOKUP'}}]
+    with pytest.raises(ExportError,match='SOURCE_UNAVAILABLE'):start(service)

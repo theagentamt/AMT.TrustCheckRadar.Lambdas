@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "state",
+    "chargedChecks",
+    "receiptId",
+    "requiresReconciliation"
+  ],
+  "properties": {
+    "state": {
+      "enum": [
+        "not_started",
+        "pending",
+        "charged",
+        "not_charged",
+        "unknown"
+      ]
+    },
+    "chargedChecks": {
+      "enum": [
+        null,
+        0,
+        1
+      ]
+    },
+    "receiptId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requiresReconciliation": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "not_started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chargedChecks": {
+            "const": 0
+          },
+          "receiptId": {
+            "type": "null"
+          },
+          "requiresReconciliation": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "charged"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chargedChecks": {
+            "const": 1
+          },
+          "receiptId": {
+            "type": "string"
+          },
+          "requiresReconciliation": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "not_charged"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chargedChecks": {
+            "const": 0
+          },
+          "receiptId": {
+            "type": "string"
+          },
+          "requiresReconciliation": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "pending",
+              "unknown"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "chargedChecks": {
+            "type": "null"
+          },
+          "requiresReconciliation": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

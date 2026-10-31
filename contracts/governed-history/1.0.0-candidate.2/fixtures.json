@@ -1,0 +1,213 @@
+{
+  "activationEnabled": false,
+  "fixtures": [
+    {
+      "name": "guarded-results",
+      "response": {
+        "transportVersion": "1.0.0-governed-history-candidate.2",
+        "serverTimeEpoch": 1800000000,
+        "items": [
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.2",
+            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000000,
+            "assessmentTransportVersion": "1.0.0-candidate.3",
+            "processingOutcome": "partial",
+            "accounting": {
+              "state": "not_charged",
+              "chargedChecks": 0,
+              "receiptId": "00000000000000000000000000000000"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [
+                "MALWARE"
+              ],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 0,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "full_submitted_url",
+              "targetContactStatus": "not_contacted"
+            },
+            "expiresAtEpoch": 1800604800,
+            "presentation": {
+              "freshnessStatus": "current",
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          },
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.2",
+            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000000,
+            "assessmentTransportVersion": "1.0.0-candidate.3",
+            "processingOutcome": "partial",
+            "accounting": {
+              "state": "not_charged",
+              "chargedChecks": 0,
+              "receiptId": "00000000000000000000000000000000"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [
+                "SOCIAL_ENGINEERING"
+              ],
+              "lookupCount": 2,
+              "providerCallCount": 2,
+              "observedHopCount": 1,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": "2027-01-15T08:01:00Z",
+              "matchScope": "redirect_destination",
+              "targetContactStatus": "contacted"
+            },
+            "expiresAtEpoch": 1800604800,
+            "presentation": {
+              "freshnessStatus": "current",
+              "verdict": "high_risk",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "KNOWN_THREAT_MATCH"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          },
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.2",
+            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000000,
+            "assessmentTransportVersion": "1.0.0-candidate.3",
+            "processingOutcome": "complete",
+            "accounting": {
+              "state": "charged",
+              "chargedChecks": 1,
+              "receiptId": "00000000000000000000000000000000"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [],
+              "lookupCount": 3,
+              "providerCallCount": 3,
+              "observedHopCount": 3,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": null,
+              "matchScope": null,
+              "targetContactStatus": "contacted"
+            },
+            "expiresAtEpoch": 1800604800,
+            "presentation": {
+              "freshnessStatus": "not_applicable",
+              "verdict": "no_known_threat_detected",
+              "processingOutcome": "complete",
+              "coverage": "supported_checks_complete",
+              "reasonCodes": [
+                "NO_LIST_MATCH",
+                "BROWSER_NAVIGATION_NOT_EVALUATED"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          },
+          {
+            "schemaVersion": 1,
+            "transportVersion": "1.0.0-governed-history-candidate.2",
+            "resultId": "gh1_1800000000_00000000000000000000000000000000",
+            "resultType": "url",
+            "sourceType": "qr_url",
+            "acceptedAtEpoch": 1800000000,
+            "settledAtEpoch": 1800000000,
+            "assessmentTransportVersion": "1.0.0-candidate.3",
+            "processingOutcome": "partial",
+            "accounting": {
+              "state": "not_charged",
+              "chargedChecks": 0,
+              "receiptId": "00000000000000000000000000000000"
+            },
+            "outcome": {
+              "schemaVersion": 3,
+              "verdict": "unknown",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "ORIGIN_ONLY_NOT_FULL_LINK"
+              ],
+              "transportWarnings": [],
+              "threatTypes": [],
+              "lookupCount": 1,
+              "providerCallCount": 1,
+              "observedHopCount": 0,
+              "scope": "GUARDED_HTTP_AND_GOOGLE_LOOKUP",
+              "consumerAccessEnabled": false,
+              "lookupObservedAt": "2027-01-15T08:00:00Z",
+              "lookupValidUntil": null,
+              "matchScope": null,
+              "targetContactStatus": "not_contacted"
+            },
+            "expiresAtEpoch": 1800604800,
+            "presentation": {
+              "freshnessStatus": "not_applicable",
+              "verdict": "unknown",
+              "processingOutcome": "partial",
+              "coverage": "limited",
+              "reasonCodes": [
+                "ORIGIN_ONLY_NOT_FULL_LINK"
+              ],
+              "messageKey": null,
+              "nextAction": null
+            }
+          }
+        ],
+        "nextCursor": null
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'src/url_assessment'),str(Path(__file__).parent)]
 from test_transactions import world,PAYLOAD,TrustedWorkerContext,ACCOUNT
 from test_consumer import mapper,event,request,result
-from url_consumer.service import Consumer,FRESH_VERSION,fresh_mapper,timestamp
+from url_consumer.service import Consumer,GUARDED_VERSION as FRESH_VERSION,fresh_mapper,timestamp
 from shared_check_authority.core import AuthorityError
 from lookup_provider import parse_lookup,Unavailable
 from shared_lookup_freshness import epoch,current
@@ -25,11 +25,11 @@ def test_nanosecond_boundary_is_not_extended():
     assert not current(value['observedAt'],expiry,epoch(expiry))
 
 def request2():
-    r=request();r.update(transportVersion=FRESH_VERSION,contractVersion=fresh_mapper().VERSION);return r
+    r=request();r.update(transportVersion=FRESH_VERSION,contractVersion=fresh_mapper(True).VERSION);return r
 
 def modern(check,now,matched=False):
-    r=result(check);r.update(schemaVersion=2,lookupObservedAt=timestamp(now),lookupValidUntil=None)
-    if matched:r.update(verdict='high_risk',processingOutcome='complete',reasonCodes=['KNOWN_THREAT_MATCH'],threatTypes=['MALWARE'],lookupValidUntil=timestamp(now+20))
+    r=result(check);r.update(schemaVersion=3,lookupObservedAt=timestamp(now),lookupValidUntil=None)
+    if matched:r.update(verdict='high_risk',processingOutcome='partial',coverage='limited',observedHopCount=0,targetContactStatus='not_contacted',matchScope='full_submitted_url',reasonCodes=['KNOWN_THREAT_MATCH'],threatTypes=['MALWARE'],lookupValidUntil=timestamp(now+20))
     return r
 
 def submit(service,e):
@@ -41,13 +41,13 @@ def test_actual_settlement_expired_replay_keeps_charge_and_original_times(world)
     a,e,_,row,_,clock=world;calls=[]
     def provider(body):calls.append(body);return modern(body['checkId'],clock[0],True)
     service=Consumer(a,mapper,provider,lambda _:None)
-    proof,b=submit(service,e);before=deepcopy(row('CHECK#'+proof));assert b['accounting']['chargedChecks']==1
+    proof,b=submit(service,e);before=deepcopy(row('CHECK#'+proof));assert b['accounting']['chargedChecks']==0
     assert b['outcome']['verdict']=='high_risk';clock[0]+=20
     status,after=service.handle(event(e,'POST /v1/url-checks/reconcile',{'transportVersion':FRESH_VERSION,'checkId':'client-1','operationProof':proof}))
     assert status==200,after
     assert after['outcome']['verdict']=='unknown' and after['outcome']['reasonCodes']==['PROVIDER_EVIDENCE_EXPIRED']
     assert after['accounting']==b['accounting'];assert len(calls)==1
-    assert row('CHECK#'+proof)==before and row('PERIOD#p1')['usedChecks']==1
+    assert row('CHECK#'+proof)==before and row('PERIOD#p1')['usedChecks']==0
     assert after['outcome']['evidence'][0] == b['outcome']['evidence'][0] | {'freshness':'expired'}
     wrong=service.handle(event(e,'POST /v1/url-checks/reconcile',{'transportVersion':'1.0.0-candidate.1','checkId':'client-1','operationProof':proof}))
     assert wrong[0]==409 and wrong[1]['errorCode']=='CHECK_ID_CONFLICT'
@@ -66,7 +66,7 @@ def test_export_preserves_new_receipt_summary(world):
     service=Consumer(a,mapper,lambda b:modern(b['checkId'],clock[0],True),lambda _:None)
     proof,_=submit(service,e);clock[0]+=20
     exported=receipt(row('CHECK#'+proof),clock[0])
-    assert exported['chargedChecks']==1 and exported['processingOutcome']=='complete'
+    assert exported['chargedChecks']==0 and exported['processingOutcome']=='partial'
     assert exported['resultSummary']['lookupValidUntil']==timestamp(clock[0])
 
 @pytest.mark.parametrize('poison',[[[]],[{}],[True],['MALWARE','MALWARE']])
@@ -119,7 +119,7 @@ def test_legacy_new_requests_refuse_before_provider_or_reservation(world,route):
 def test_legacy_original_receipt_reconciles_without_rebinding_or_current_warning(world):
     a,e,_,row,_,clock=world;payload=PAYLOAD
     proof=a.prepare(e,payload,'client-1',client_check_id='client-1');admitted=a.admit(e,payload,proof,client_check_id='client-1')
-    legacy={k:v for k,v in modern('client-1',clock[0],True).items() if k not in ('lookupObservedAt','lookupValidUntil')};legacy['schemaVersion']=1
+    legacy={k:v for k,v in modern('client-1',clock[0],True).items() if k not in ('lookupObservedAt','lookupValidUntil','matchScope','targetContactStatus')};legacy.update(schemaVersion=1,scope='HTTP_REDIRECTS_AND_GOOGLE_LOOKUP',processingOutcome='complete',coverage='supported_checks_complete',lookupCount=1,providerCallCount=1,observedHopCount=1)
     a.settle(TrustedWorkerContext(ACCOUNT),proof,admitted['executionToken'],'complete',result_summary=legacy)
     before=deepcopy(row('CHECK#'+proof))
     import importlib.util
@@ -133,10 +133,10 @@ def test_legacy_original_receipt_reconciles_without_rebinding_or_current_warning
 
 @pytest.mark.parametrize('modern_intent',[False,True])
 def test_settlement_cannot_cross_bound_private_schema(world,modern_intent):
-    a,e,_,row,_,clock=world;payload=PAYLOAD|({'urlTransportVersion':FRESH_VERSION} if modern_intent else {})
+    a,e,_,row,_,clock=world;payload=PAYLOAD|({'urlTransportVersion':'1.0.0-candidate.2'} if modern_intent else {})
     proof=a.prepare(e,payload,'client-1',client_check_id='client-1');admitted=a.admit(e,payload,proof,client_check_id='client-1')
     value=modern('client-1',clock[0])
-    if modern_intent:value={k:v for k,v in value.items() if k not in ('lookupObservedAt','lookupValidUntil')}|{'schemaVersion':1}
+    if modern_intent:value={k:v for k,v in value.items() if k not in ('lookupObservedAt','lookupValidUntil','matchScope','targetContactStatus')}|{'schemaVersion':1}
     before=deepcopy(row('CHECK#'+proof))
     with pytest.raises(AuthorityError,match='RESULT_SUMMARY_INVALID'):
         a.settle(TrustedWorkerContext(ACCOUNT),proof,admitted['executionToken'],'complete',result_summary=value)

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "checkId",
+    "url",
+    "scope"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "checkId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "url": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "scope": {
+      "enum": [
+        "full_url",
+        "origin_only"
+      ]
+    },
+    "executionBudgetMs": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 18000
+    }
+  }
+}

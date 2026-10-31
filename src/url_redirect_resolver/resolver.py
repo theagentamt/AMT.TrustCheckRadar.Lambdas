@@ -232,3 +232,56 @@ def resolve(url, transport, deadline=None):
         result["resolutionStatus"] = stopped.status
         result["reasonCodes"] = [stopped.reason]
         return result
+
+
+def resolve_step(url, transport, deadline):
+    """One validated HTTP request, never follows a Location or handles secrets."""
+    result = {"schemaVersion": 2, "resolutionStatus": "partial", "hops": [],
+              "location": None, "reasonCodes": [], "requestCount": 0,
+              "scope": "HTTP_SINGLE_HOP_ONLY"}
+    try:
+        deadline.remaining()
+        target = parse_target(url)
+        addresses = validated_addresses(transport.addresses(target.host, deadline))
+        result["requestCount"] = 1
+        status, location = transport.fetch(target, addresses[0], deadline)
+        result.update(resolutionStatus="http_response", hops=[{"url": target.url, "httpStatus": status}],
+                      location=location)
+    except ResolutionStop as stopped:
+        result.update(resolutionStatus=stopped.status, reasonCodes=[stopped.reason])
+    return result
+
+
+def validated_addresses(addresses):
+    if not addresses or len(addresses) > 32:
+        raise ResolutionStop("DNS_ANSWER_UNAVAILABLE")
+    values = [public_address(value) for value in addresses]
+    ipv4 = [str(value) for value in values if value.version == 4]
+    if not ipv4:
+        raise ResolutionStop("IPV6_ONLY_UNSUPPORTED")
+    return ipv4
+
+
+def dns_addresses(host, deadline):
+    try:
+        return [str(ipaddress.ip_address(host))]
+    except ValueError:
+        pass
+    import dns.exception
+    import dns.resolver
+
+    resolver = dns.resolver.Resolver(configure=True)
+    resolver.timeout = 1.0
+    addresses = []
+    try:
+        for kind in ("A", "AAAA"):
+            try:
+                answer = resolver.resolve(host + ".", kind, search=False, lifetime=deadline.remaining(2.0))
+                addresses.extend(str(record) for record in answer)
+            except dns.resolver.NoAnswer:
+                continue
+        return addresses
+    except dns.exception.Timeout:
+        raise ResolutionStop("DNS_TIMEOUT") from None
+    except dns.exception.DNSException:
+        raise ResolutionStop("DNS_FAILED") from None

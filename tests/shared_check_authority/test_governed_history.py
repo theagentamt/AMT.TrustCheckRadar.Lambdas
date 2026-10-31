@@ -193,3 +193,41 @@ def test_account_deletion_erases_canonical_receipt_and_sparse_index(world):
         IndexName="GSI2", KeyConditionExpression="GSI2PK = :pk",
         ExpressionAttributeValues={":pk": stored["PK"]})
     assert indexed["Items"] == []
+
+
+def test_guarded_url_settlement_preserves_no_contact_and_new_history_identity(world):
+    from shared_governed_history.projection import GUARDED_VERSION, GUARDED_URL_VERSION
+    from shared_url_guarded import SCOPE
+    a,e,_,row,_,_=world;enable(a)
+    payload=url_payload()|{'urlTransportVersion':GUARDED_URL_VERSION}
+    value=url_summary('guarded-history')|{'schemaVersion':3,'scope':SCOPE,
+        'verdict':'high_risk','processingOutcome':'partial','coverage':'limited',
+        'reasonCodes':['KNOWN_THREAT_MATCH'],'threatTypes':['MALWARE'],
+        'observedHopCount':0,'lookupValidUntil':'2027-01-15T08:01:00Z',
+        'matchScope':'full_submitted_url','targetContactStatus':'not_contacted'}
+    proof,_=settle(a,e,payload,'guarded-history',value)
+    p=validate_projection(row('CHECK#'+proof)['governedHistory'])
+    assert p['transportVersion']==GUARDED_VERSION and p['assessmentTransportVersion']==GUARDED_URL_VERSION
+    assert p['outcome']['observedHopCount']==0 and p['accounting']['chargedChecks']==0
+    assert 'https://' not in json.dumps(p) and 'operationProof' not in json.dumps(p)
+
+
+def test_history_version_negotiation_preserves_legacy_and_never_silently_drops_new(world):
+    from governed_history.service import Service,Settings,GovernedHistoryError
+    from shared_governed_history.projection import VERSION,GUARDED_VERSION,GUARDED_URL_VERSION
+    from shared_url_guarded import SCOPE
+    a,e,_,row,_,clock=world;enable(a)
+    settle(a,e,url_payload(),'old-url',url_summary('old-url'))
+    clock[0]+=1
+    payload=url_payload()|{'urlTransportVersion':GUARDED_URL_VERSION}
+    value=url_summary('new-url')|{'schemaVersion':3,'scope':SCOPE,
+        'lookupObservedAt':'2027-01-15T08:00:01Z','matchScope':None,'targetContactStatus':'contacted'}
+    settle(a,e,payload,'new-url',value)
+    settings=Settings('GSI2',900,RETENTION_SECONDS,20,50,262144)
+    def reader(version):return Service(a,settings,account=ACCOUNT,fingerprint='device-one',
+        device_version=1,inventory_revision=1,now=lambda:clock[0],version=version)
+    with pytest.raises(GovernedHistoryError,match='CONTRACT_UNSUPPORTED'):reader(VERSION).list()
+    items=reader(GUARDED_VERSION).list()['items']
+    assert len(items)==2 and {x['transportVersion'] for x in items}=={VERSION,GUARDED_VERSION}
+    cursor=reader(GUARDED_VERSION).cursor.encode('GOVERNED#001800000000#'+'0'*32)
+    with pytest.raises(GovernedHistoryError,match='INVALID_CURSOR'):reader(VERSION).cursor.decode(cursor)

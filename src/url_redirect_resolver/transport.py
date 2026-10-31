@@ -7,7 +7,7 @@ import re
 import socket
 import ssl
 
-from resolver import ResolutionStop, public_address
+from resolver import ResolutionStop, public_address, dns_addresses
 
 MAX_HEADER_BYTES = 16384
 
@@ -58,28 +58,7 @@ def read_headers(sock, deadline):
 
 class Transport:
     def addresses(self, host, deadline):
-        try:
-            return [str(ipaddress.ip_address(host))]
-        except ValueError:
-            pass
-        import dns.exception
-        import dns.resolver
-
-        resolver = dns.resolver.Resolver(configure=True)
-        resolver.timeout = 1.0
-        addresses = []
-        try:
-            for kind in ("A", "AAAA"):
-                try:
-                    answer = resolver.resolve(host + ".", kind, search=False, lifetime=deadline.remaining(2.0))
-                    addresses.extend(str(record) for record in answer)
-                except dns.resolver.NoAnswer:
-                    continue
-            return addresses
-        except dns.exception.Timeout:
-            raise ResolutionStop("DNS_TIMEOUT") from None
-        except dns.exception.DNSException:
-            raise ResolutionStop("DNS_FAILED") from None
+        return dns_addresses(host, deadline)
 
     def fetch(self, target, address, deadline):
         # Defense at the socket boundary as well as in the orchestrating loop.

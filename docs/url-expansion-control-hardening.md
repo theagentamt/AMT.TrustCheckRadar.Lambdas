@@ -1,5 +1,9 @@
 # URL control-character and deep-link boundaries
 
+This records parser-only commit d2f6a037. The subsequent owner-selected guarded
+automatic default is specified in `url-guarded-expansion.md`; the pending decision
+below is historical and superseded. The original parser commit is preserved.
+
 The existing backend isolates website fetches in the private resolver, rechecks
 each redirect's public addresses, pins the socket address, verifies TLS, forwards
 no customer credentials/cookies and executes no page scripts. It bounds HTTP

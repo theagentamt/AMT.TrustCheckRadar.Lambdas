@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "disposition",
+    "afterSeconds",
+    "automaticRetryAllowed"
+  ],
+  "properties": {
+    "disposition": {
+      "enum": [
+        "do_not_retry",
+        "reconcile_same_check",
+        "retry_same_check",
+        "after_sign_in",
+        "after_device_action",
+        "after_access_change",
+        "after_client_update",
+        "after_input_review"
+      ]
+    },
+    "afterSeconds": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "automaticRetryAllowed": {
+      "const": false
+    }
+  }
+}
